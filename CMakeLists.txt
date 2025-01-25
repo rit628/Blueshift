@@ -1,0 +1,61 @@
+cmake_minimum_required(VERSION 3.25)
+
+set(CMAKE_C_COMPILER clang)
+set(CMAKE_CXX_COMPILER clang++)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_SCAN_FOR_MODULES)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# Packages
+include(FetchContent)
+
+# GoogleTest
+FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/b514bdc898e2951020cbdca1304b75f5950d1f59.zip
+)
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
+# Boost
+set(REQUIRED_BOOST_LIBS asio thread)
+list(TRANSFORM REQUIRED_BOOST_LIBS PREPEND Boost:: OUTPUT_VARIABLE BOOST_LIB_DEPS)
+FetchContent_Declare(
+    Boost
+    URL https://github.com/boostorg/boost/releases/download/boost-1.86.0/boost-1.86.0-cmake.zip
+)
+set(BOOST_INCLUDE_LIBRARIES ${REQUIRED_BOOST_LIBS})
+FetchContent_MakeAvailable(Boost)
+
+project($ENV{PROJECT_NAME})
+    
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$ENV{ARCHIVE_OUTPUT_DIRECTORY})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$ENV{LIBRARY_OUTPUT_DIRECTORY})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$ENV{RUNTIME_OUTPUT_DIRECTORY})
+
+set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
+set(MASTER_SRC_DIR ${SRC_DIR}/master)
+set(CLIENT_SRC_DIR ${SRC_DIR}/client)
+set(LANG_SRC_DIR ${SRC_DIR}/lang)
+
+set(TEST_DIR ${CMAKE_SOURCE_DIR}/test)
+set(MASTER_TEST_DIR ${TEST_DIR}/master)
+set(CLIENT_TEST_DIR ${TEST_DIR}/client)
+set(LANG_TEST_DIR ${TEST_DIR}/lang)
+
+# MASTER LIBS AND EXECUTABLE
+add_executable(master ${MASTER_SRC_DIR}/main.cpp)
+
+# CLIENT LIBS AND EXECUTABLE
+add_executable(client ${CLIENT_SRC_DIR}/main.cpp)
+
+# LANG LIBS AND EXECUTABLE
+add_executable(lang ${LANG_SRC_DIR}/main.cpp)
+
+# TESTS
+enable_testing()
+
+include(GoogleTest)

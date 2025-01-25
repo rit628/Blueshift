@@ -1,0 +1,66 @@
+name: ${PROJECT_NAME}
+
+networks:
+  default:
+    name: ${NETWORK_NAME}
+
+services:
+  builder:
+    hostname: ${BUILD_CONTAINER_NAME}
+    container_name: ${BUILD_CONTAINER_NAME}
+    command: ["build", "-l"]
+    build:
+      context: .
+      dockerfile: .docker/builder/Dockerfile
+      args:
+        - WORKDIR=${BUILD_MOUNT_DIR}
+    image: ${BUILD_IMAGE_NAME}
+    volumes:
+      - ./blueshift:${BUILD_MOUNT_DIR}/blueshift
+      - ./CMakeLists.txt:${BUILD_MOUNT_DIR}/CMakeLists.txt
+      - ./src:${BUILD_MOUNT_DIR}/src
+      - ./test:${BUILD_MOUNT_DIR}/test
+      - build:${BUILD_MOUNT_DIR}/build
+    env_file:
+      - .env
+
+  master:
+    hostname: ${MASTER_HOSTNAME}
+    container_name: ${MASTER_HOSTNAME}
+    build:
+      context: .
+      dockerfile: .docker/master/Dockerfile
+      args:
+        - WORKDIR=${MASTER_CONTAINER_WORKDIR}
+    image: ${MASTER_IMAGE_NAME}
+    volumes:
+      - build:${MASTER_CONTAINER_WORKDIR}
+    expose:
+      - ${MASTER_PORT}
+    env_file:
+      - .env
+    depends_on:
+      builder:
+        condition: service_completed_successfully
+
+  client:
+    build:
+      context: .
+      dockerfile: .docker/client/Dockerfile
+      args:
+        - WORKDIR=${CLIENT_CONTAINER_WORKDIR}
+    image: ${CLIENT_IMAGE_NAME}
+    volumes:
+      - build:${CLIENT_CONTAINER_WORKDIR}
+    deploy:
+      mode: replicated
+      replicas: ${NUM_CLIENTS}
+    env_file:
+      - .env
+    depends_on:
+      builder:
+        condition: service_completed_successfully
+
+volumes:
+  build:
+    name: ${PROJECT_PREFIX}_build

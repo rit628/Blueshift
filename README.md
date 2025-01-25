@@ -1,0 +1,153 @@
+# Development Environment Setup
+
+## Installation Dependencies
+- `docker 25+`
+- `cmake 3.25+`
+- `python 3.9+`
+- `clang 18+`
+
+## File & Directory Structure
+- `bls` - Primary build script for Blueshift. This is the main script you should use for building, running, and testing the project. For a list of commands and options run `./bls --help`. Further, for help with any of the commands and their respective subcommands/options, run `./bls [command] --help`.
+- `blueshift` - This script contains the logic for the primary build script. DO NOT use it directly as it will be missing the necessary environment variables to run successfully. However, any edits or new additions to the build script should be made here as `bls` is meant to be a thin wrapper around this script.
+- `CMakeLists.txt` - Contains all build targets. Update whenever adding a new module, library, or test suite.
+- `compose.yaml` - Contains the image, container, and network configurations for Blueshift's containerized environment. This file can generally be ignored unless there are problems with the primary build script.
+- `.docker` - Contains Dockerfiles for building and running Blueshift. These files will rarely need updating and can generally be ignored unless there are problems with the primary build script
+- `build` - Contains completed builds for Blueshift if binaries are compiled locally. Compiled binaries, libraries, and archives will be located in the subdirectory specified in the `.env` file. This folder also contains `compile_commands.json`, so any issues with your language server could result from a misconfigured `build` directory.
+- `src` - Contains all Blueshift source code. In order for best compatibility with our testing framework, source code should be organized with module folders at the top level, associated library folders within, and optionally a `main.cpp` file at the root of each module containing its execution engine. An example of a properly organized `src` folder is given below:
+```
+Project
+└──src
+   ├── client
+   │   ├── include
+   │   ├── libmessage
+   │   │   ├── message.cpp
+   │   │   ├── message.h
+   │   │   └── message_types.hpp
+   │   └── main.cpp
+   └── lang
+       ├── include
+       │   └── TYPES.include
+       ├── liblexer
+       │   ├── token.cpp
+       │   ├── lexer.cpp
+       │   └── lexer.hpp
+       ├── libparser
+       │   ├── include
+       │   │   └── DEPS.include
+       │   ├── parser.cpp
+       │   └── parser.hpp
+       └── main.cpp
+```
+- `test` - Contains all Blueshift unit tests. Organized in the same way as `src` with tests written for individual library components denoted by `test_component.cpp`.
+```
+Project
+└──test
+   ├── client
+   │   └── libmessage
+   │       └── test_message.cpp
+   └── lang
+       ├── liblexer
+       │   ├── test_token.cpp
+       │   └── test_lexer.cpp
+       └── libparser
+           └── test_parser.hpp
+```
+
+## Workflow Example (client module with message library and boost dependency)
+1. Create a `client` directory under `src` and a `libmessage` directory under it.
+2. Add source files for the `client` module's engine (`main.cpp`) and for the implementation of `libmessage`.
+3. Add any new boost dependencies to the `REQUIRED_BOOST_LIBS` variable within `CMakeLists.txt`.
+4. Create a new build target in `CMakeLists.txt` as follows:
+```cmake
+set(CLIENT_SRC_DIR ${SRC_DIR}/client)
+
+# CLIENT LIBS AND EXECUTABLE
+file(GLOB_RECURSE LIBMESSAGE_SRC ${CLIENT_SRC_DIR}/libmessage/*.cpp)
+add_library(libmessage STATIC ${LIBMESSAGE_SRC})
+target_link_libraries(libmessage ${BOOST_LIB_DEPS})
+add_executable(client ${CLIENT_SRC_DIR}/main.cpp)
+target_link_libraries(client libmessage ${BOOST_LIB_DEPS})
+```
+5. Build with `./bls build` and run with `./bls run` (first build will take some time due to docker image builds).
+6. If desired, test cases can be added to `CMakeLists.txt` as follows:
+```cmake
+set(CLIENT_TEST_DIR ${TEST_DIR}/client)
+
+file(GLOB_RECURSE LIBMESSAGE_TESTS ${CLIENT_TEST_DIR}/libmessage/*.cpp)
+add_executable(test_libmessage ${LIBMESSAGE_TESTS})
+target_link_libraries(test_libmessage libmessage GTest::gtest_main)
+
+include(GoogleTest)
+gtest_discover_tests(test_libmessage)
+```
+7. Build created tests with `./bls build` and run with `./bls test`.
+
+## Troubleshooting
+- If you can't run the build script, make sure it has execute permissions by running: `chmod +x blueshift bls`.
+- If something is wrong with your build within the containerized environment, run `./bls reset` to clear the Blueshift container environment before reattempting your previous task.
+- If `./bls reset` doesn't fix anything, try `./bls reset --rm-build-cache`.
+- If `./bls reset --rm-build-cache` fails to resolve the issue as well, use the `--local` argument in your target command to perform the operation locally while a solution is found to the issue.
+- If you are on Windows and are having issues with building and/or running Blueshift, try cloning the repo to a directory within WSL instead of a directory on the host's filesystem.
+
+## Recommendations
+It is highly recommended to use `clangd 18+` as the language server for development, as it will automatically detect dependency locations from the `compile_commands.json` file generated from the `cmake` build. Configuration details will differ depending on your IDE; the instructions for VSCode are given below:
+- Install the official `clangd` extension.
+- If the Microsoft C/C++ is installed, disable Intellisense (there will be a pop up upon opening the project).
+- Run `./bls build` to do an initial build and generate `compile_commands.json`.
+- Run the `clangd: Restart language server` command within VSCode to update the server with the new dependencies.
+
+# Guidelines & Best Practices
+
+## Commit Structure
+In general, all commits should have the form: `component: Short change explanation (in the
+imperative)`
+
+For example: `readme: Add documentation for commit structure`
+
+For larger commits (such as pr commits), if the extent of what has been changed cannot be
+encompassed in a single line, use the following format:
+```
+pr-name: Short explanation of what the pr encompasses (in the imperative)
+* component-1: Short change explanation (in the imperative)
+* component-2: Short change explanation (in the imperative)
+.
+.
+.
+* component-n: Short change explanation (in the imperative)
+```
+
+## Pull Requests
+All pull requests should assign at least one reviewer to look over them. This list should include
+any developer who may have relevant knowledge on the components being worked on (ie.
+people who have previously contributed to those components).
+
+For all current and future PRs DO NOT:
+- Merge into main without verbal, written, or GitHub approval of the PR from one of the
+listed reviewers
+- Commit a merge commit into main (pr commits should always be squashed to ensure
+linear history)
+
+When a PR is approved, run the following command in your local branch before clicking merge
+on GitHub to ensure you do not create any merge conflicts in main and adhere to the commit
+structure:
+
+- `git rebase -i $(git merge-base HEAD origin/main)`
+
+After running the above command, your git merge editor will ask you what you would like to do
+with all of your commits on your local branch. Choose `reword` for the oldest commit and
+`fixup` for all others. You will then be prompted to resolve all merge conflicts with main. In most
+cases, these will be trivial conflicts so long as all developers adhere to the best practices listed in
+the following section. For nontrivial merge conflicts, consult the author of the conflicting code to
+discuss how to best resolve the conflict without breaking their changes. Once all conflicts are
+resolved, you will be asked to reword the commit message for the new single commit all
+previous changes will be registered under. Simply follow the guidelines on commit structure and
+complete the commit. Once done, force push the new commit onto your branch and the PR
+should automatically update to reflect the rebase. Feel free to merge the commit into main via the
+GitHub GUI at this point.
+
+## Best Practices
+- Use short-lived branches based on assigned Trello tickets to work on new changes.
+- Always create your feature branch off of `origin/main` to avoid history problems when
+rebasing for a PR.
+- Do not continue to work on the same branch post PR merge. Instead, create a new short-lived branch for the next PR. This helps avoid nasty merge conflicts in the future due to
+outdated history.
