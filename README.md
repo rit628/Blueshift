@@ -63,10 +63,10 @@ set(CLIENT_SRC_DIR ${SRC_DIR}/client)
 
 # CLIENT LIBS AND EXECUTABLE
 file(GLOB_RECURSE LIBMESSAGE_SRC ${CLIENT_SRC_DIR}/libmessage/*.cpp)
-add_library(libmessage STATIC ${LIBMESSAGE_SRC})
-target_link_libraries(libmessage ${BOOST_LIB_DEPS})
+add_library(message STATIC ${LIBMESSAGE_SRC})
+target_link_libraries(message ${BOOST_LIB_DEPS})
 add_executable(client ${CLIENT_SRC_DIR}/main.cpp)
-target_link_libraries(client libmessage ${BOOST_LIB_DEPS})
+target_link_libraries(client message ${BOOST_LIB_DEPS})
 ```
 5. Build with `./bls build` and run with `./bls run` (first build will take some time due to docker image builds).
 6. If desired, test cases can be added to `CMakeLists.txt` as follows:
