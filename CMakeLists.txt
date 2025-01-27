@@ -21,7 +21,7 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 # Boost
-set(REQUIRED_BOOST_LIBS asio thread)
+set(REQUIRED_BOOST_LIBS asio thread regex)
 list(TRANSFORM REQUIRED_BOOST_LIBS PREPEND Boost:: OUTPUT_VARIABLE BOOST_LIB_DEPS)
 FetchContent_Declare(
     Boost
@@ -53,7 +53,12 @@ add_executable(master ${MASTER_SRC_DIR}/main.cpp)
 add_executable(client ${CLIENT_SRC_DIR}/main.cpp)
 
 # LANG LIBS AND EXECUTABLE
+file(GLOB_RECURSE LIBLEXER_SRC ${LANG_SRC_DIR}/liblexer/*.cpp)
+add_library(lexer STATIC ${LIBLEXER_SRC})
+target_link_libraries(lexer ${BOOST_LIB_DEPS})
+
 add_executable(lang ${LANG_SRC_DIR}/main.cpp)
+target_link_libraries(lang lexer ${BOOST_LIB_DEPS})
 
 # TESTS
 enable_testing()
