@@ -38,6 +38,7 @@ namespace BlsLang {
             size_t getAbsIdx() const { return absIdx; }
             size_t getLineNum() const { return lineNum; }
             size_t getColNum() const { return colNum; }
+            bool operator==(const Token&) const = default;
 
         private:
             enum Type type;

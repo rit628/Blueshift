@@ -63,4 +63,11 @@ target_link_libraries(lang lexer ${BOOST_LIB_DEPS})
 # TESTS
 enable_testing()
 
+# LANG TESTS
+file(GLOB_RECURSE LIBLEXER_TESTS ${LANG_TEST_DIR}/liblexer/*.cpp)
+add_executable(test_liblexer ${LIBLEXER_TESTS})
+target_include_directories(test_liblexer PUBLIC ${LANG_SRC_DIR}/liblexer)
+target_link_libraries(test_liblexer lexer GTest::gtest_main)
+
 include(GoogleTest)
+gtest_discover_tests(test_liblexer)
