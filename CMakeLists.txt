@@ -42,6 +42,7 @@ set(CLIENT_SRC_DIR ${SRC_DIR}/client)
 set(LANG_SRC_DIR ${SRC_DIR}/lang)
 
 set(TEST_DIR ${CMAKE_SOURCE_DIR}/test)
+set(TEST_DEPS ${TEST_DIR}/include)
 set(MASTER_TEST_DIR ${TEST_DIR}/master)
 set(CLIENT_TEST_DIR ${TEST_DIR}/client)
 set(LANG_TEST_DIR ${TEST_DIR}/lang)
@@ -66,7 +67,7 @@ enable_testing()
 # LANG TESTS
 file(GLOB_RECURSE LIBLEXER_TESTS ${LANG_TEST_DIR}/liblexer/*.cpp)
 add_executable(test_liblexer ${LIBLEXER_TESTS})
-target_include_directories(test_liblexer PUBLIC ${LANG_SRC_DIR}/liblexer)
+target_include_directories(test_liblexer PUBLIC ${TEST_DEPS} ${LANG_SRC_DIR}/liblexer)
 target_link_libraries(test_liblexer lexer GTest::gtest_main)
 
 include(GoogleTest)
