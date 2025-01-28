@@ -20,5 +20,13 @@ namespace BlsLang {
     const boost::regex COMMENT_CONTENTS_SINGLELINE (R"([^\n])");
     const boost::regex COMMENT_CONTENTS_MULTILINE (R"([^*])");
 
+    const boost::regex OPERATOR_EQUALS_PREFIX(R"([<>!=+\-*/^%])");
+    const boost::regex OPERATOR_EQUALS(R"(\=)");
+    const boost::regex OPERATOR_PLUS(R"(\+)");
+    const boost::regex OPERATOR_MINUS(R"(\-)");
+    const boost::regex OPERATOR_AND(R"(\&)");
+    const boost::regex OPERATOR_OR(R"(\|)");
+    const boost::regex OPERATOR_GENERIC(R"(.)");
+
     const boost::regex WHITESPACE (R"([ \u0008\n\r\t])");
 }

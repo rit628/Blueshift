@@ -89,5 +89,13 @@ Token Lexer::lexComment() {
 }
 
 Token Lexer::lexOperator() {
-
+    if (cs.match({OPERATOR_EQUALS_PREFIX, OPERATOR_EQUALS}) ||
+        cs.match({OPERATOR_PLUS, OPERATOR_PLUS}) ||
+        cs.match({OPERATOR_MINUS, OPERATOR_MINUS}) ||
+        cs.match({OPERATOR_AND, OPERATOR_AND}) ||
+        cs.match({OPERATOR_OR, OPERATOR_OR}) ||
+        cs.match({OPERATOR_GENERIC})) {
+        return cs.emit(Token::Type::OPERATOR);
+    }
+    throw std::runtime_error("Illegal character or end of file.");
 }
