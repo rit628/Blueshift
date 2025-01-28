@@ -16,11 +16,10 @@ namespace BlsLang {
 
             Token lexToken();
             Token lexIdentifier();
-            Token lexInteger();
-            Token lexFloat();
+            Token lexNumber();
             Token lexString();
-            Token lexOperator();
             Token lexComment();
+            Token lexOperator();
     };
 
 }

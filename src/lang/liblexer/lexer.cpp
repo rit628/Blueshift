@@ -1,5 +1,6 @@
 #include "lexer.hpp"
 #include "include/token_definitions.hpp"
+#include "token.hpp"
 #include <string>
 #include <vector>
 #include <boost/regex.hpp>
@@ -18,20 +19,34 @@ std::vector<Token> Lexer::lex(const std::string& input) {
 }
 
 Token Lexer::lexToken() {
-    // temporary for now so everything can compile for sample engine
-    while (cs.match({IDENTIFIER_START}));
-    return cs.emit(Token::Type::OPERATOR);
+    if (cs.peek({IDENTIFIER_START})) {
+        return lexIdentifier();
+    }
+    else if (cs.peek({NUMERIC_DIGIT}) ||
+             cs.peek({NEGATIVE_SIGN, NUMERIC_DIGIT}) ||
+             cs.peek({NEGATIVE_SIGN, DECIMAL_POINT}) ||
+             cs.peek({DECIMAL_POINT, NUMERIC_DIGIT})) {
+        return lexNumber();
+    }
+    else if (cs.peek({STRING_QUOTE})) {
+        return lexString();
+    }
+    else if (cs.peek({COMMENT_SLASH, COMMENT_SLASH}) ||
+             cs.peek({COMMENT_SLASH, COMMENT_STAR})) {
+        return lexComment();
+    }
+    else {
+        return lexOperator();
+    }
 }
 
 Token Lexer::lexIdentifier() {
-
+    cs.match({IDENTIFIER_START});
+    while (cs.match({IDENTIFIER_END}));
+    return cs.emit(Token::Type::IDENTIFIER);
 }
 
-Token Lexer::lexInteger() {
-
-}
-
-Token Lexer::lexFloat() {
+Token Lexer::lexNumber() {
 
 }
 
@@ -39,10 +54,10 @@ Token Lexer::lexString() {
 
 }
 
-Token Lexer::lexOperator() {
+Token Lexer::lexComment() {
 
 }
 
-Token Lexer::lexComment() {
+Token Lexer::lexOperator() {
 
 }
