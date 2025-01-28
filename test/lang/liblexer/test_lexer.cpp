@@ -69,7 +69,7 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, StringTests, ValidString) {
         std::string test_str = R"("This is a string")";
         std::vector<Token> exp_tokens {
-            Token(Token::Type::STRING, "This is a string", 0, 0, 0),
+            Token(Token::Type::STRING, "\"This is a string\"", 0, 0, 0),
         };
         TEST_LEX(test_str, exp_tokens);
     }
@@ -77,7 +77,7 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, StringTests, StringWithEscapeCharacters) {
         std::string test_str = R"("String with \n escape")";
         std::vector<Token> exp_tokens {
-            Token(Token::Type::STRING, "String with \\n escape", 0, 0, 0),
+            Token(Token::Type::STRING, "\"String with \\n escape\"", 0, 0, 0),
         };
         TEST_LEX(test_str, exp_tokens);
     }

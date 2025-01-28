@@ -14,7 +14,9 @@ std::vector<Token> Lexer::lex(const std::string& input) {
     while (!cs.empty()) {
         while (cs.match({WHITESPACE}));
         cs.resetToken();
-        tokens.push_back(lexToken());
+        if (!cs.empty()) { // prevent attempts to lex empty token when EOF is reached
+            tokens.push_back(lexToken());
+        }
     }
     return tokens;
 }
