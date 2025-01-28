@@ -17,7 +17,8 @@ namespace BlsLang {
 
     const boost::regex COMMENT_SLASH ("/");
     const boost::regex COMMENT_STAR (R"(\*)");
+    const boost::regex COMMENT_CONTENTS_SINGLELINE (R"([^\n])");
+    const boost::regex COMMENT_CONTENTS_MULTILINE (R"([^*])");
 
     const boost::regex WHITESPACE (R"([ \u0008\n\r\t])");
-
 }

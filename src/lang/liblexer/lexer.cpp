@@ -55,7 +55,15 @@ Token Lexer::lexString() {
 }
 
 Token Lexer::lexComment() {
-
+    if (cs.match({COMMENT_SLASH, COMMENT_SLASH})) { // singleline comment
+        while(cs.match({COMMENT_CONTENTS_SINGLELINE}));
+    }
+    else if (cs.match({COMMENT_SLASH, COMMENT_STAR})) { // multiline comment
+        while (!cs.match({COMMENT_STAR, COMMENT_SLASH})) {
+            cs.match({COMMENT_CONTENTS_MULTILINE});
+        }
+    }
+    return cs.emit(Token::Type::COMMENT);
 }
 
 Token Lexer::lexOperator() {
