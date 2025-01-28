@@ -2,12 +2,12 @@
 
 namespace BlsLang {
 
-    const boost::regex IDENTIFIER_START ("@|[A-Za-z]");
-    const boost::regex IDENTIFIER_END ("[A-Za-z0-9_-]");
+    const boost::regex IDENTIFIER_START (R"(@|[A-Za-z])");
+    const boost::regex IDENTIFIER_END (R"([A-Za-z0-9_-])");
 
-    const boost::regex NUMERIC_DIGIT ("[0-9]");
-    const boost::regex NEGATIVE_SIGN ("-");
-    const boost::regex DECIMAL_POINT (R"(\\.)");
+    const boost::regex NUMERIC_DIGIT (R"([0-9])");
+    const boost::regex NEGATIVE_SIGN (R"(-)");
+    const boost::regex DECIMAL_POINT (R"(\.)");
 
     const boost::regex ESCAPE_SLASH (R"(\\)");
     const boost::regex ESCAPE_CHARS (R"([bnrt'\"\\])");

@@ -48,7 +48,17 @@ Token Lexer::lexIdentifier() {
 }
 
 Token Lexer::lexNumber() {
-
+    bool isDecimal = false;
+    cs.match({NEGATIVE_SIGN}); // consume negative sign
+    while (cs.match({NUMERIC_DIGIT})); // consume digits before decimal point
+    if (cs.match({DECIMAL_POINT})) {
+        isDecimal = true;
+        if (!cs.peek({NUMERIC_DIGIT})) { // decimal must have digits after point
+            throw std::runtime_error("Invalid decimal.");
+        }
+    }
+    while (cs.match({NUMERIC_DIGIT})); // consume digits after decimal point
+    return cs.emit(isDecimal ? Token::Type::DECIMAL : Token::Type::INTEGER);
 }
 
 Token Lexer::lexString() {

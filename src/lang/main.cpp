@@ -12,7 +12,9 @@ int main() {
     multiline as follows /* some multiline
     comment that finishes just
     about here */ now after that lest test some
-    strings like this one "some text \n \t ")";
+    strings like this one "some text \n \t " now
+    time for some numbers 1 12 -12 decimals 
+    too 1.2 .1 -1.2 -.3 -0.5 hooray)";
     auto ret = lexer.lex(test);
     std::cout << ret.size() << std::endl;
     for (auto&& i : ret) {
