@@ -1,6 +1,7 @@
 #include "lexer.hpp"
 #include "include/token_definitions.hpp"
 #include "token.hpp"
+#include <stdexcept>
 #include <string>
 #include <vector>
 #include <boost/regex.hpp>
@@ -51,7 +52,18 @@ Token Lexer::lexNumber() {
 }
 
 Token Lexer::lexString() {
-
+    cs.match({STRING_QUOTE}); // consume opening quote
+    while (!cs.match({STRING_QUOTE})) {
+        if (cs.peek({ESCAPE_SLASH})) {  // consume escape sequence
+            if (!cs.match({ESCAPE_SLASH, ESCAPE_CHARS})) {
+                throw std::runtime_error("Invalid escape sequence.");
+            }
+        }
+        else if (cs.empty() || !cs.match({STRING_LITERALS})) {  // consume string content
+            throw std::runtime_error("Unterminated string literal.");
+        }
+    }
+    return cs.emit(Token::Type::STRING);
 }
 
 Token Lexer::lexComment() {

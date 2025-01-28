@@ -11,7 +11,8 @@ int main() {
     that are //singleline and
     multiline as follows /* some multiline
     comment that finishes just
-    about here */)";
+    about here */ now after that lest test some
+    strings like this one "some text \n \t ")";
     auto ret = lexer.lex(test);
     std::cout << ret.size() << std::endl;
     for (auto&& i : ret) {
