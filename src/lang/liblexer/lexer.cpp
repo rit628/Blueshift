@@ -84,6 +84,9 @@ Token Lexer::lexComment() {
     }
     else if (cs.match({COMMENT_SLASH, COMMENT_STAR})) { // multiline comment
         while (!cs.match({COMMENT_STAR, COMMENT_SLASH})) {
+            if (cs.empty()) {
+                throw std::runtime_error("Unterminated mutiline comment.");
+            }
             cs.match({COMMENT_CONTENTS_MULTILINE});
         }
     }

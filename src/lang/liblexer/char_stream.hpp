@@ -21,6 +21,7 @@ namespace BlsLang {
             // Creates a token with the currently consumed characters
             Token emit(Token::Type type);
             bool empty() { return ss.eof() || ss.tellg() == ss.view().size(); }
+            const std::string& getTokenState() const { return currToken; }
         private:
             std::istringstream ss;
             std::string currToken = "";
