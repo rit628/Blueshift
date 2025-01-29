@@ -73,9 +73,11 @@ target_link_libraries(client message ${BOOST_LIB_DEPS})
 ```cmake
 set(CLIENT_TEST_DIR ${TEST_DIR}/client)
 
+# Client Tests
 file(GLOB_RECURSE LIBMESSAGE_TESTS ${CLIENT_TEST_DIR}/libmessage/*.cpp)
 add_executable(test_libmessage ${LIBMESSAGE_TESTS})
-target_link_libraries(test_libmessage libmessage GTest::gtest_main)
+target_include_directories(test_libmessage PUBLIC ${TEST_DEPS} ${CLIENT_SRC_DIR}/libmessage)
+target_link_libraries(test_libmessage message GTest::gtest_main)
 
 include(GoogleTest)
 gtest_discover_tests(test_libmessage)
