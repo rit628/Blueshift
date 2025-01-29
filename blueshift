@@ -13,13 +13,15 @@ DEFAULT_NUM_CLIENTS = os.environ.get("NUM_CLIENTS")
 def clean_shutdown(base_cmd):
     subprocess.run(base_cmd + ["down"])
 
-def local_run(args):
-    bin_dir = os.environ.get("RUNTIME_OUTPUT_DIRECTORY")
-    executable = os.path.join("." ,"build", bin_dir, args.local[0])
-    exec_args = args.local[1:]
-    subprocess.run([executable, *exec_args])
+def run(args):
+    if args.local:
+        bin_dir = os.environ.get("RUNTIME_OUTPUT_DIRECTORY")
+        executable = os.path.join("." ,"build", bin_dir, args.binary)
+        subprocess.run([executable, *args.binary_args])
+    else:
+        subprocess.run(["docker", "compose", "run", "--rm", "builder",  "run", "-l", args.binary, *args.binary_args])
 
-def container_run(args):
+def deploy(args):
     base_cmd = ["docker", "compose"]
     atexit.register(clean_shutdown, base_cmd)
     
@@ -30,12 +32,6 @@ def container_run(args):
         command.append("--build")
 
     subprocess.run(command)
-
-def run(args):
-    if args.local:
-        local_run(args)
-    else:
-        container_run(args)
 
 def build(args):
     build_args = []
@@ -52,10 +48,14 @@ def build(args):
         subprocess.run(["docker", "compose", "run", "--rm", "builder",  "build", "-l", *build_args, *args.make])
 
 def test(args):
+    os.environ["GTEST_COLOR"] = "1"
+    ctest_args = [args.verbose]
+    ctest_args = list(filter(None, ctest_args))
     if args.local:
-        subprocess.run(["ctest"], cwd="./build")
+        fail_output = ["--output-on-failure"] if not args.no_output_on_failure else []
+        subprocess.run(["ctest", *fail_output, *ctest_args], cwd="./build")
     else:
-        subprocess.run(["docker", "compose", "run", "--rm", "builder", "test", "-l"])
+        subprocess.run(["docker", "compose", "run", "--rm", "builder", "test", "-l", *ctest_args])
 
 def check_successful_reset_or_force():
     network_id = subprocess.check_output(f"docker network ls | grep {NETWORK_NAME} | awk '{{ print $1 }}'",
@@ -89,19 +89,28 @@ def reset(args):
 parser = argparse.ArgumentParser(description=f"{PROJECT_NAME} development environment build script", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 subparsers = parser.add_subparsers(title="commands")
 
-run_parser = subparsers.add_parser("run", help=f"run {PROJECT_NAME} development environment (send SIGINT [ctrl+c] to stop gracefully)")
-run_parser.add_argument("-n", "--num-clients",
-                        help="number of clients to create",
-                        default=DEFAULT_NUM_CLIENTS)
-run_parser.add_argument("-b", "--build",
-                        help="rebuild container images before running",
-                        action="store_true")
+run_parser = subparsers.add_parser("run", help=f"run selected {PROJECT_NAME} binaries")
+run_parser.add_argument("binary",
+                        help="binary to execute")
+run_parser.add_argument("binary_args",
+                        help="program arguments",
+                        nargs="*",
+                        default=None)
 run_parser.add_argument("-l", "--local",
-                          help="run a selected binary on local host instead of in containerized environment",
-                          nargs="*")
+                          help="run selected binary on local host instead of in containerized environment",
+                          action="store_true")
 run_parser.set_defaults(fn=run)
 
-build_parser = subparsers.add_parser("build", help=f"build {PROJECT_NAME} development environment")
+deploy_parser = subparsers.add_parser("deploy", help=f"run {PROJECT_NAME} deployment environment (send SIGINT [ctrl+c] to stop gracefully)")
+deploy_parser.add_argument("-n", "--num-clients",
+                        help="number of clients to create (only used in deployment simulation)",
+                        default=DEFAULT_NUM_CLIENTS)
+deploy_parser.add_argument("-b", "--build",
+                        help="rebuild container images before running",
+                        action="store_true")
+deploy_parser.set_defaults(fn=deploy)
+
+build_parser = subparsers.add_parser("build", help=f"build {PROJECT_NAME} binaries or deployment images")
 build_parser.add_argument("make",
                           help="makefile arguments",
                           nargs="*",
@@ -117,7 +126,14 @@ build_parser.add_argument("-c", "--clean",
                           action="store_true")
 build_parser.set_defaults(fn=build)
 
-test_parser = subparsers.add_parser("test", help=f"test {PROJECT_NAME} development environment")
+test_parser = subparsers.add_parser("test", help=f"test {PROJECT_NAME} binary and library builds")
+test_parser.add_argument("-v", "--verbose",
+                         help="show verbose output",
+                         action="store_const",
+                         const="--verbose")
+test_parser.add_argument("--no-output-on-failure",
+                         help="show condensed output regardless of failed tests",
+                         action="store_true")
 test_parser.add_argument("-l", "--local",
                           help="test on local host only; container builds are not tested",
                           action="store_true")
