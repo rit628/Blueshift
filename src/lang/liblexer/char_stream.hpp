@@ -22,6 +22,8 @@ namespace BlsLang {
             Token emit(Token::Type type);
             bool empty() { return ss.eof() || ss.tellg() == ss.view().size(); }
             const std::string& getTokenState() const { return currToken; }
+            size_t getLine() const { return line; }
+            size_t getColumn() const { return col; }
         private:
             std::istringstream ss;
             std::string currToken = "";

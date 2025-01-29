@@ -2,7 +2,6 @@
 #include "test_macros.hpp"
 #include "token.hpp"
 #include <gtest/gtest.h>
-#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -122,7 +121,7 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, EdgeTests, UnclosedComment) {
         std::string test_str = R"(/* Multiline comment unclosed)";
         std::vector<Token> exp_tokens {};
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), std::runtime_error);
+        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), LexException);
     }
 
     // Edge Cases
@@ -169,13 +168,13 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, EdgeTests, StringUnterminated) {
         std::string test_str = R"("unterminated string)";
         std::vector<Token> exp_tokens {};
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), std::runtime_error);
+        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), LexException);
     }
 
     GROUP_TEST_F(LexerTest, EdgeTests, InvalidNumericLiteral) {
         std::string test_str = R"(12.)";
         std::vector<Token> exp_tokens {};
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), std::runtime_error);
+        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), LexException);
     }
 
     GROUP_TEST_F(LexerTest, EdgeTests, MultiLineStringWithEscapes) {
@@ -500,7 +499,7 @@ namespace BlsLang {
         std::vector<Token> exp_tokens {
             Token(Token::Type::DECIMAL, "1.", 0, 1, 1),
         };
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), std::runtime_error);
+        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), LexException);
     }
 
     // ZeroWithTrailingDecimalPoint
@@ -509,7 +508,7 @@ namespace BlsLang {
         std::vector<Token> exp_tokens {
             Token(Token::Type::DECIMAL, "0.", 0, 1, 1),
         };
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), std::runtime_error);
+        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), LexException);
 
     }
 
@@ -546,7 +545,7 @@ namespace BlsLang {
         std::vector<Token> exp_tokens {
             Token(Token::Type::DECIMAL, "1.", 0, 1, 1),
         };
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), std::runtime_error);
+        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), LexException);
     }
 
     // LeadingDecimal
@@ -717,7 +716,7 @@ namespace BlsLang {
         std::vector<Token> exp_tokens {
             Token(Token::Type::STRING, "\"\\\"", 0, 1, 1),
         };
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens, false), std::runtime_error);
+        EXPECT_THROW(TEST_LEX(test_str, exp_tokens, false), LexException);
     }
 
     // LiteralEmptyString
@@ -736,7 +735,7 @@ namespace BlsLang {
         std::vector<Token> exp_tokens {
             Token(Token::Type::STRING, "\"\\q\\w\\e\\1\\2\\`\\&\"", 0, 1, 1),
         };
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), std::runtime_error);
+        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), LexException);
     }
 
     // UnterminatedString
@@ -745,7 +744,7 @@ namespace BlsLang {
         std::vector<Token> exp_tokens {
             Token(Token::Type::STRING, "\"", 0, 1, 1),
         };
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), std::runtime_error);
+        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), LexException);
     }
 
     // NestedString
@@ -772,7 +771,7 @@ namespace BlsLang {
         std::vector<Token> exp_tokens {
             Token(Token::Type::STRING, "\"\n\"", 0, 1, 1),
         };
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), std::runtime_error);
+        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), LexException);
     }
 
     // StringLiteralBrokenByCarriageReturn
@@ -781,7 +780,7 @@ namespace BlsLang {
         std::vector<Token> exp_tokens {
             Token(Token::Type::STRING, "\"\r\"", 0, 1, 1),
         };
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), std::runtime_error);
+        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), LexException);
     }
 
     // Unterminated
@@ -790,7 +789,7 @@ namespace BlsLang {
         std::vector<Token> exp_tokens {
             Token(Token::Type::STRING, "\"unterminated", 0, 1, 1),
         };
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), std::runtime_error);
+        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), LexException);
     }
 
     // InvalidEscape
@@ -799,7 +798,7 @@ namespace BlsLang {
         std::vector<Token> exp_tokens {
             Token(Token::Type::STRING, "\"invalid\\escape\"", 0, 1, 1),
         };
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), std::runtime_error);
+        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), LexException);
     }
 
     // NewlineInString
@@ -808,7 +807,7 @@ namespace BlsLang {
         std::vector<Token> exp_tokens {
             Token(Token::Type::STRING, "\"juice\nwhale\"", 1, 1, 2),
         };
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), std::runtime_error);
+        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), LexException);
     }
 
     // NewlineInStringEnd
@@ -817,7 +816,7 @@ namespace BlsLang {
         std::vector<Token> exp_tokens {
             Token(Token::Type::STRING, "\"juice whale\n\"", 1, 1, 2),
         };
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), std::runtime_error);
+        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), LexException);
     }
 
 

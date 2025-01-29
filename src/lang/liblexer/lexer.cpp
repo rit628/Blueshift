@@ -1,7 +1,6 @@
 #include "lexer.hpp"
 #include "include/token_definitions.hpp"
 #include "token.hpp"
-#include <stdexcept>
 #include <string>
 #include <vector>
 #include <boost/regex.hpp>
@@ -56,7 +55,7 @@ Token Lexer::lexNumber() {
     if (cs.match({DECIMAL_POINT})) {
         isDecimal = true;
         if (!cs.peek({NUMERIC_DIGIT})) { // decimal must have digits after point
-            throw std::runtime_error("Invalid decimal.");
+            throw LexException("Invalid decimal.", cs.getLine(), cs.getColumn());
         }
     }
     while (cs.match({NUMERIC_DIGIT})); // consume digits after decimal point
@@ -68,11 +67,11 @@ Token Lexer::lexString() {
     while (!cs.match({STRING_QUOTE})) {
         if (cs.peek({ESCAPE_SLASH})) {  // consume escape sequence
             if (!cs.match({ESCAPE_SLASH, ESCAPE_CHARS})) {
-                throw std::runtime_error("Invalid escape sequence.");
+                throw LexException("Invalid escape sequence.", cs.getLine(), cs.getColumn());
             }
         }
         else if (cs.empty() || !cs.match({STRING_LITERALS})) {  // consume string content
-            throw std::runtime_error("Unterminated string literal.");
+            throw LexException("Unterminated string literal.", cs.getLine(), cs.getColumn());
         }
     }
     return cs.emit(Token::Type::STRING);
@@ -85,7 +84,7 @@ Token Lexer::lexComment() {
     else if (cs.match({COMMENT_SLASH, COMMENT_STAR})) { // multiline comment
         while (!cs.match({COMMENT_STAR, COMMENT_SLASH})) {
             if (cs.empty()) {
-                throw std::runtime_error("Unterminated mutiline comment.");
+                throw LexException("Unterminated mutiline comment.", cs.getLine(), cs.getColumn());
             }
             cs.match({COMMENT_CONTENTS_MULTILINE});
         }
@@ -102,5 +101,5 @@ Token Lexer::lexOperator() {
         cs.match({OPERATOR_GENERIC})) {
         return cs.emit(Token::Type::OPERATOR);
     }
-    throw std::runtime_error("Illegal character or end of file.");
+    throw LexException("Illegal character or end of file.", cs.getLine(), cs.getColumn());
 }
