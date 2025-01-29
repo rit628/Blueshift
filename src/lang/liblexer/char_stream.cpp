@@ -5,8 +5,8 @@
 using namespace BlsLang;
 
 void CharStream::loadSource(const std::string& input) {
-    line = 0;
-    col = 0;
+    line = 1;
+    col = 1;
     ss.clear();
     ss.str(input);
     resetToken();
@@ -37,7 +37,7 @@ bool CharStream::match(std::initializer_list<std::reference_wrapper<const boost:
         currToken += currChar;
         if (currChar == '\n') {
             line++;
-            col = 0;
+            col = 1;
         }
     }
     return true;

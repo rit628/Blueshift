@@ -1,5 +1,7 @@
 #include "liblexer/lexer.hpp"
+#include <fstream>
 #include <iostream>
+#include <sstream>
 #include <string>
 
 int main() {
@@ -16,7 +18,11 @@ int main() {
     time for some numbers 1 12 -12 decimals 
     too 1.2 .1 -1.2 -.3 -0.5 hooray now time for 
     the ops <= >= != == += -= *= /= ^= %= ++ -- && || . () $ yipee!)";
-    auto ret = lexer.lex(test);
+    std::ifstream file;
+    file.open("test/lang/samples/function.blu");
+    std::stringstream ss;
+    ss << file.rdbuf();
+    auto ret = lexer.lex(ss.str());
     std::cout << ret.size() << std::endl;
     for (auto&& i : ret) {
         std::cout << i.getTypeName() << " " << i.getLiteral() << " @ " << i.getLineNum() << ":" << i.getColNum() << " or " << i.getAbsIdx() <<  std::endl;

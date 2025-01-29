@@ -25,6 +25,6 @@ namespace BlsLang {
         private:
             std::istringstream ss;
             std::string currToken = "";
-            size_t line = 0, col = 0, tokenLine = 0, tokenCol = 0;
+            size_t line = 1, col = 1, tokenLine = 1, tokenCol = 1;
     };
 }
