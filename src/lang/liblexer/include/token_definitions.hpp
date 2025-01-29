@@ -3,7 +3,7 @@
 
 namespace BlsLang {
 
-    const boost::regex IDENTIFIER_START (R"(@|[A-Za-z])");
+    const boost::regex IDENTIFIER_START (R"([A-Za-z])");
     const boost::regex IDENTIFIER_END (R"([A-Za-z0-9_])");
 
     const boost::regex NUMERIC_DIGIT (R"([0-9])");
