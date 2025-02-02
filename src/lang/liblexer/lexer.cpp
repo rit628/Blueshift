@@ -26,8 +26,8 @@ Token Lexer::lexToken() {
     }
     else if (cs.peek({NUMERIC_DIGIT}) ||
              cs.peek({NEGATIVE_SIGN, NUMERIC_DIGIT}) ||
-             cs.peek({NEGATIVE_SIGN, DECIMAL_POINT}) ||
-             cs.peek({DECIMAL_POINT, NUMERIC_DIGIT})) {
+             cs.peek({DECIMAL_POINT, NUMERIC_DIGIT}) ||
+             cs.peek({NEGATIVE_SIGN, DECIMAL_POINT, NUMERIC_DIGIT})) {
         return lexNumber();
     }
     else if (cs.peek({STRING_QUOTE})) {
@@ -49,17 +49,28 @@ Token Lexer::lexIdentifier() {
 }
 
 Token Lexer::lexNumber() {
-    bool isDecimal = false;
     cs.match({NEGATIVE_SIGN}); // consume negative sign
-    while (cs.match({NUMERIC_DIGIT})); // consume digits before decimal point
-    if (cs.match({DECIMAL_POINT})) {
-        isDecimal = true;
-        if (!cs.peek({NUMERIC_DIGIT})) { // decimal must have digits after point
-            throw LexException("Invalid decimal.", cs.getLine(), cs.getColumn());
+    
+    Token::Type tokenType = Token::Type::INTEGER;
+
+    if (cs.match({ZERO, HEX_START, HEX_DIGIT})) { // hexadecmial literal
+        while (cs.match({HEX_DIGIT}));
+    }
+    else if (cs.match({ZERO, BINARY_START, BINARY_DIGIT})) { // binary literal
+        while (cs.match({BINARY_DIGIT}));
+    }
+    else if (!cs.peek({ZERO, DECIMAL_POINT}) && cs.match({ZERO})) { // octal literal
+        while (cs.match({OCTAL_DIGIT}));
+    }
+    else { // decimal literal 
+        while (cs.match({NUMERIC_DIGIT})); // consume digits before decimal point
+        if (cs.match({DECIMAL_POINT, NUMERIC_DIGIT})) {
+            tokenType = Token::Type::FLOAT;
+            while (cs.match({NUMERIC_DIGIT})); // consume digits after decimal point
         }
     }
-    while (cs.match({NUMERIC_DIGIT})); // consume digits after decimal point
-    return cs.emit(isDecimal ? Token::Type::DECIMAL : Token::Type::INTEGER);
+
+    return cs.emit(tokenType);
 }
 
 Token Lexer::lexString() {

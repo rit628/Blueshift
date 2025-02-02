@@ -10,20 +10,20 @@ namespace BlsLang {
             enum class Type {
                 IDENTIFIER,
                 INTEGER,
-                DECIMAL,
+                FLOAT,
                 STRING,
-                OPERATOR,
                 COMMENT,
+                OPERATOR,
                 COUNT
             };
 
             static constexpr std::array<const char *, static_cast<int>(Type::COUNT)> typeStrings {
                 "IDENTIFIER",
                 "INTEGER",
-                "DECIMAL",
+                "FLOAT",
                 "STRING",
-                "OPERATOR",
-                "COMMENT"
+                "COMMENT",
+                "OPERATOR"
             };
 
             Token(Type type, const std::string& literal, size_t absIdx, size_t lineNum, size_t colNum)

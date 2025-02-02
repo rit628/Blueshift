@@ -40,8 +40,8 @@ namespace BlsLang {
         TEST_LEX(test_str, exp_tokens, false);
     }
 
-    // Numeric Tests
-    GROUP_TEST_F(LexerTest, NumericTests, IntegerLiteral) {
+    // Integer Tests
+    GROUP_TEST_F(LexerTest, IntegerTests, IntegerLiteral) {
         std::string test_str = R"(123)";
         std::vector<Token> exp_tokens {
             Token(Token::Type::INTEGER, "123", 0, 1, 1),
@@ -49,7 +49,7 @@ namespace BlsLang {
         TEST_LEX(test_str, exp_tokens);
     }
 
-    GROUP_TEST_F(LexerTest, NumericTests, NegativeInteger) {
+    GROUP_TEST_F(LexerTest, IntegerTests, NegativeInteger) {
         std::string test_str = R"(-456)";
         std::vector<Token> exp_tokens {
             Token(Token::Type::INTEGER, "-456", 0, 1, 1),
@@ -57,13 +57,165 @@ namespace BlsLang {
         TEST_LEX(test_str, exp_tokens);
     }
 
-    // Decimal Tests
-    GROUP_TEST_F(LexerTest, NumericTests, DecimalLiteral) {
-        std::string test_str = R"(12.34)";
+    GROUP_TEST_F(LexerTest, IntegerTests, HexLiteral) {
+        std::string test_str = R"(0x123456789abcdef)";
         std::vector<Token> exp_tokens {
-            Token(Token::Type::DECIMAL, "12.34", 0, 1, 1),
+            Token(Token::Type::INTEGER, "0x123456789abcdef", 0, 1, 1),
         };
         TEST_LEX(test_str, exp_tokens);
+    }
+
+    GROUP_TEST_F(LexerTest, IntegerTests, HexLiteralCapital) {
+        std::string test_str = R"(0X123456789ABCDEF)";
+        std::vector<Token> exp_tokens {
+            Token(Token::Type::INTEGER, "0X123456789ABCDEF", 0, 1, 1),
+        };
+        TEST_LEX(test_str, exp_tokens);
+    }
+
+    GROUP_TEST_F(LexerTest, IntegerTests, HexWithNonHexStartingDigit) {
+        std::string test_str = R"(0xG)";
+        std::vector<Token> exp_tokens {
+            Token(Token::Type::INTEGER, "0xG", 0, 1, 1),
+        };
+        TEST_LEX(test_str, exp_tokens, false);
+    }
+
+    GROUP_TEST_F(LexerTest, IntegerTests, HexWithNonHexLaterDigits) {
+        std::string test_str = R"(0x12FfH)";
+        std::vector<Token> exp_tokens {
+            Token(Token::Type::INTEGER, "0x12FfH", 0, 1, 1),
+        };
+        TEST_LEX(test_str, exp_tokens, false);
+    }
+
+    GROUP_TEST_F(LexerTest, IntegerTests, BinaryLiteral) {
+        std::string test_str = R"(0b101101)";
+        std::vector<Token> exp_tokens {
+            Token(Token::Type::INTEGER, "0b101101", 0, 1, 1),
+        };
+        TEST_LEX(test_str, exp_tokens);
+    }
+
+    GROUP_TEST_F(LexerTest, IntegerTests, BinaryLiteralCapital) {
+        std::string test_str = R"(0B101101)";
+        std::vector<Token> exp_tokens {
+            Token(Token::Type::INTEGER, "0B101101", 0, 1, 1),
+        };
+        TEST_LEX(test_str, exp_tokens);
+    }
+
+    GROUP_TEST_F(LexerTest, IntegerTests, BinaryWithNonBinaryStartingDigit) {
+        std::string test_str = R"(0b2)";
+        std::vector<Token> exp_tokens {
+            Token(Token::Type::INTEGER, "0b2", 0, 1, 1),
+        };
+        TEST_LEX(test_str, exp_tokens, false);
+    }
+
+    GROUP_TEST_F(LexerTest, IntegerTests, BinaryWithNonBinaryLaterDigits) {
+        std::string test_str = R"(0b1019)";
+        std::vector<Token> exp_tokens {
+            Token(Token::Type::INTEGER, "0b1019", 0, 1, 1),
+        };
+        TEST_LEX(test_str, exp_tokens, false);
+    }
+
+    GROUP_TEST_F(LexerTest, IntegerTests, OctalLiteral) {
+        std::string test_str = R"(001234)";
+        std::vector<Token> exp_tokens {
+            Token(Token::Type::INTEGER, "001234", 0, 1, 1),
+        };
+        TEST_LEX(test_str, exp_tokens);
+    }
+
+    GROUP_TEST_F(LexerTest, IntegerTests, OctalWithNonOctalStartingDigit) {
+        std::string test_str = R"(09)";
+        std::vector<Token> exp_tokens {
+            Token(Token::Type::INTEGER, "09", 0, 1, 1),
+        };
+        TEST_LEX(test_str, exp_tokens, false);
+    }
+
+    GROUP_TEST_F(LexerTest, IntegerTests, OctalWithNonOctalLaterDigits) {
+        std::string test_str = R"(01239)";
+        std::vector<Token> exp_tokens {
+            Token(Token::Type::INTEGER, "01239", 0, 1, 1),
+        };
+        TEST_LEX(test_str, exp_tokens, false);
+    }
+
+    // Float Tests
+    GROUP_TEST_F(LexerTest, FloatTests, FloatLiteralSingleIntAndFrac) {
+        std::string test_str = R"(1.2)";
+        std::vector<Token> exp_tokens {
+            Token(Token::Type::FLOAT, "1.2", 0, 1, 1),
+        };
+        TEST_LEX(test_str, exp_tokens);
+    }
+
+    GROUP_TEST_F(LexerTest, FloatTests, FloatLiteralZeroAndFrac) {
+        std::string test_str = R"(0.2)";
+        std::vector<Token> exp_tokens {
+            Token(Token::Type::FLOAT, "0.2", 0, 1, 1),
+        };
+        TEST_LEX(test_str, exp_tokens);
+    }
+
+    GROUP_TEST_F(LexerTest, FloatTests, FloatLiteralNoIntAndFrac) {
+        std::string test_str = R"(.2)";
+        std::vector<Token> exp_tokens {
+            Token(Token::Type::FLOAT, ".2", 0, 1, 1),
+        };
+        TEST_LEX(test_str, exp_tokens);
+    }
+
+    GROUP_TEST_F(LexerTest, FloatTests, FloatLiteralMultiDigit) {
+        std::string test_str = R"(10234.56789)";
+        std::vector<Token> exp_tokens {
+            Token(Token::Type::FLOAT, "10234.56789", 0, 1, 1),
+        };
+        TEST_LEX(test_str, exp_tokens);
+    }
+
+    GROUP_TEST_F(LexerTest, FloatTests, IntegerWithTrailingDecimalPoint) {
+        std::string test_str = R"(1.)";
+        std::vector<Token> exp_tokens {
+            Token(Token::Type::FLOAT, "1.", 0, 1, 1),
+        };
+        TEST_LEX(test_str, exp_tokens, false);
+    }
+
+    GROUP_TEST_F(LexerTest, FloatTests, ZeroWithTrailingDecimalPoint) {
+        std::string test_str = R"(0.)";
+        std::vector<Token> exp_tokens {
+            Token(Token::Type::FLOAT, "0.", 0, 1, 1),
+        };
+        TEST_LEX(test_str, exp_tokens, false);
+    }
+
+    GROUP_TEST_F(LexerTest, FloatTests, HexFloat) {
+        std::string test_str = R"(0x123.456)";
+        std::vector<Token> exp_tokens {
+            Token(Token::Type::FLOAT, "0x123.456", 0, 1, 1),
+        };
+        TEST_LEX(test_str, exp_tokens, false);
+    }
+
+    GROUP_TEST_F(LexerTest, FloatTests, BinaryFloat) {
+        std::string test_str = R"(0b1010.101)";
+        std::vector<Token> exp_tokens {
+            Token(Token::Type::FLOAT, "0b1010.101", 0, 1, 1),
+        };
+        TEST_LEX(test_str, exp_tokens, false);
+    }
+
+    GROUP_TEST_F(LexerTest, FloatTests, OctalFloat) {
+        std::string test_str = R"(012.34)";
+        std::vector<Token> exp_tokens {
+            Token(Token::Type::FLOAT, "012.34", 0, 1, 1),
+        };
+        TEST_LEX(test_str, exp_tokens, false);
     }
 
     // String Tests
@@ -171,12 +323,6 @@ namespace BlsLang {
         EXPECT_THROW(TEST_LEX(test_str, exp_tokens), LexException);
     }
 
-    GROUP_TEST_F(LexerTest, EdgeTests, InvalidNumericLiteral) {
-        std::string test_str = R"(12.)";
-        std::vector<Token> exp_tokens {};
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), LexException);
-    }
-
     GROUP_TEST_F(LexerTest, EdgeTests, MultiLineStringWithEscapes) {
         std::string test_str = R"("This is a multi-line\nstring with escapes")";
         std::vector<Token> exp_tokens {
@@ -200,7 +346,7 @@ namespace BlsLang {
         std::string test_str = R"(00123 0.045)";
         std::vector<Token> exp_tokens {
             Token(Token::Type::INTEGER, "00123", 0, 1, 1),
-            Token(Token::Type::DECIMAL, "0.045", 6, 1, 7),
+            Token(Token::Type::FLOAT, "0.045", 6, 1, 7),
         };
         TEST_LEX(test_str, exp_tokens);
     }
@@ -389,7 +535,7 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, NumericTests, MultipleDigitsDecimal) {
         std::string test_str = R"(123.456)";
         std::vector<Token> exp_tokens {
-            Token(Token::Type::DECIMAL, "123.456", 0, 1, 1),
+            Token(Token::Type::FLOAT, "123.456", 0, 1, 1),
         };
         TEST_LEX(test_str, exp_tokens);
     }
@@ -398,7 +544,7 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, NumericTests, OneDecimal) {
         std::string test_str = R"(1.0)";
         std::vector<Token> exp_tokens {
-            Token(Token::Type::DECIMAL, "1.0", 0, 1, 1),
+            Token(Token::Type::FLOAT, "1.0", 0, 1, 1),
         };
         TEST_LEX(test_str, exp_tokens);
     }
@@ -407,7 +553,7 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, NumericTests, ZeroDecimal) {
         std::string test_str = R"(0.0)";
         std::vector<Token> exp_tokens {
-            Token(Token::Type::DECIMAL, "0.0", 0, 1, 1),
+            Token(Token::Type::FLOAT, "0.0", 0, 1, 1),
         };
         TEST_LEX(test_str, exp_tokens);
     }
@@ -416,7 +562,7 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, NumericTests, NegativeOneDecimal) {
         std::string test_str = R"(-1.0)";
         std::vector<Token> exp_tokens {
-            Token(Token::Type::DECIMAL, "-1.0", 0, 1, 1),
+            Token(Token::Type::FLOAT, "-1.0", 0, 1, 1),
         };
         TEST_LEX(test_str, exp_tokens);
     }
@@ -425,7 +571,7 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, NumericTests, OneHundredAndTwentyThree) {
         std::string test_str = R"(123.0)";
         std::vector<Token> exp_tokens {
-            Token(Token::Type::DECIMAL, "123.0", 0, 1, 1),
+            Token(Token::Type::FLOAT, "123.0", 0, 1, 1),
         };
         TEST_LEX(test_str, exp_tokens);
     }
@@ -434,7 +580,7 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, NumericTests, NegativeOneHundredAndTwentyThree) {
         std::string test_str = R"(-123.0)";
         std::vector<Token> exp_tokens {
-            Token(Token::Type::DECIMAL, "-123.0", 0, 1, 1),
+            Token(Token::Type::FLOAT, "-123.0", 0, 1, 1),
         };
         TEST_LEX(test_str, exp_tokens);
     }
@@ -443,7 +589,7 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, NumericTests, FifteenHundredths) {
         std::string test_str = R"(0.15)";
         std::vector<Token> exp_tokens {
-            Token(Token::Type::DECIMAL, "0.15", 0, 1, 1),
+            Token(Token::Type::FLOAT, "0.15", 0, 1, 1),
         };
         TEST_LEX(test_str, exp_tokens);
     }
@@ -452,7 +598,7 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, NumericTests, NegativeFifteenHundredths) {
         std::string test_str = R"(-0.15)";
         std::vector<Token> exp_tokens {
-            Token(Token::Type::DECIMAL, "-0.15", 0, 1, 1),
+            Token(Token::Type::FLOAT, "-0.15", 0, 1, 1),
         };
         TEST_LEX(test_str, exp_tokens);
     }
@@ -461,7 +607,7 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, NumericTests, NegativeZeroDecimal2) {
         std::string test_str = R"(-0.0)";
         std::vector<Token> exp_tokens {
-            Token(Token::Type::DECIMAL, "-0.0", 0, 1, 1),
+            Token(Token::Type::FLOAT, "-0.0", 0, 1, 1),
         };
         TEST_LEX(test_str, exp_tokens);
     }
@@ -470,7 +616,7 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, NumericTests, NoDecimal) {
         std::string test_str = R"(1)";
         std::vector<Token> exp_tokens {
-            Token(Token::Type::DECIMAL, "1", 0, 1, 1),
+            Token(Token::Type::FLOAT, "1", 0, 1, 1),
         };
         TEST_LEX(test_str, exp_tokens, false);
     }
@@ -479,7 +625,7 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, NumericTests, NoInteger) {
         std::string test_str = R"(.1)";
         std::vector<Token> exp_tokens {
-            Token(Token::Type::DECIMAL, ".1", 0, 1, 1),
+            Token(Token::Type::FLOAT, ".1", 0, 1, 1),
         };
         TEST_LEX(test_str, exp_tokens);
     }
@@ -488,44 +634,7 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, NumericTests, NoIntegerTrailing0) {
         std::string test_str = R"(.0)";
         std::vector<Token> exp_tokens {
-            Token(Token::Type::DECIMAL, ".0", 0, 1, 1),
-        };
-        TEST_LEX(test_str, exp_tokens);
-    }
-
-    // IntegerWithTrailingDecimalPoint
-    GROUP_TEST_F(LexerTest, NumericTests, IntegerWithTrailingDecimalPoint) {
-        std::string test_str = R"(1.)";
-        std::vector<Token> exp_tokens {
-            Token(Token::Type::DECIMAL, "1.", 0, 1, 1),
-        };
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), LexException);
-    }
-
-    // ZeroWithTrailingDecimalPoint
-    GROUP_TEST_F(LexerTest, NumericTests, ZeroWithTrailingDecimalPoint) {
-        std::string test_str = R"(0.)";
-        std::vector<Token> exp_tokens {
-            Token(Token::Type::DECIMAL, "0.", 0, 1, 1),
-        };
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), LexException);
-
-    }
-
-    // LeadingZeroesDecimal
-    GROUP_TEST_F(LexerTest, NumericTests, LeadingZeroesDecimal) {
-        std::string test_str = R"(0123.0)";
-        std::vector<Token> exp_tokens {
-            Token(Token::Type::DECIMAL, "0123.0", 0, 1, 1),
-        };
-        TEST_LEX(test_str, exp_tokens);
-    }
-
-    // NegativeLeadingZeroesDecimal
-    GROUP_TEST_F(LexerTest, NumericTests, NegativeLeadingZeroesDecimal) {
-        std::string test_str = R"(-0123.0)";
-        std::vector<Token> exp_tokens {
-            Token(Token::Type::DECIMAL, "-0123.0", 0, 1, 1),
+            Token(Token::Type::FLOAT, ".0", 0, 1, 1),
         };
         TEST_LEX(test_str, exp_tokens);
     }
@@ -534,29 +643,19 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, NumericTests, NegativeDecimalNoInteger) {
         std::string test_str = R"(-.15)";
         std::vector<Token> exp_tokens {
-            Token(Token::Type::DECIMAL, "-.15", 0, 1, 1),
+            Token(Token::Type::FLOAT, "-.15", 0, 1, 1),
         };
         TEST_LEX(test_str, exp_tokens);
-    }
-
-    // TrailingDecimal
-    GROUP_TEST_F(LexerTest, NumericTests, TrailingDecimal2) {
-        std::string test_str = R"(1.)";
-        std::vector<Token> exp_tokens {
-            Token(Token::Type::DECIMAL, "1.", 0, 1, 1),
-        };
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), LexException);
     }
 
     // LeadingDecimal
     GROUP_TEST_F(LexerTest, NumericTests, LeadingDecimal2) {
         std::string test_str = R"(.5)";
         std::vector<Token> exp_tokens {
-            Token(Token::Type::DECIMAL, ".5", 0, 1, 1),
+            Token(Token::Type::FLOAT, ".5", 0, 1, 1),
         };
         TEST_LEX(test_str, exp_tokens);
     }
-
 
     //
     // ===============
@@ -1102,7 +1201,7 @@ namespace BlsLang {
         std::vector<Token> exp_tokens {
             Token(Token::Type::INTEGER, "05", 0, 1, 1),
             Token(Token::Type::INTEGER, "394", 3, 1, 4),
-            Token(Token::Type::DECIMAL, "98.81", 7, 1, 8),
+            Token(Token::Type::FLOAT, "98.81", 7, 1, 8),
         };
         TEST_LEX(test_str, exp_tokens);
     }
@@ -1120,7 +1219,7 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, ExampleTests, NegativeZeroDecimalWithMethodCall) {
         std::string test_str = R"(-0.0.toString())";
         std::vector<Token> exp_tokens {
-            Token(Token::Type::DECIMAL, "-0.0", 0, 1, 1),
+            Token(Token::Type::FLOAT, "-0.0", 0, 1, 1),
             Token(Token::Type::OPERATOR, ".", 4, 1, 5),
             Token(Token::Type::IDENTIFIER, "toString", 5, 1, 6),
             Token(Token::Type::OPERATOR, "(", 13, 1, 14),
@@ -1133,7 +1232,7 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, ExampleTests, NegativeOneTenthWithMethodCall) {
         std::string test_str = R"(-0.1.toString())";
         std::vector<Token> exp_tokens {
-            Token(Token::Type::DECIMAL, "-0.1", 0, 1, 1),
+            Token(Token::Type::FLOAT, "-0.1", 0, 1, 1),
             Token(Token::Type::OPERATOR, ".", 4, 1, 5),
             Token(Token::Type::IDENTIFIER, "toString", 5, 1, 6),
             Token(Token::Type::OPERATOR, "(", 13, 1, 14),
@@ -1146,7 +1245,7 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, ExampleTests, NegativeOneTenthTrailingZeroWithMethodCall) {
         std::string test_str = R"(-0.10.toString())";
         std::vector<Token> exp_tokens {
-            Token(Token::Type::DECIMAL, "-0.10", 0, 1, 1),
+            Token(Token::Type::FLOAT, "-0.10", 0, 1, 1),
             Token(Token::Type::OPERATOR, ".", 5, 1, 6),
             Token(Token::Type::IDENTIFIER, "toString", 6, 1, 7),
             Token(Token::Type::OPERATOR, "(", 14, 1, 15),
@@ -1159,7 +1258,7 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, ExampleTests, NegativeOneDecimalWithMethodCall) {
         std::string test_str = R"(-1.0.toString())";
         std::vector<Token> exp_tokens {
-            Token(Token::Type::DECIMAL, "-1.0", 0, 1, 1),
+            Token(Token::Type::FLOAT, "-1.0", 0, 1, 1),
             Token(Token::Type::OPERATOR, ".", 4, 1, 5),
             Token(Token::Type::IDENTIFIER, "toString", 5, 1, 6),
             Token(Token::Type::OPERATOR, "(", 13, 1, 14),
@@ -1172,8 +1271,8 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, ExampleTests, MultipleDots) {
         std::string test_str = R"(1.2.3)";
         std::vector<Token> exp_tokens {
-            Token(Token::Type::DECIMAL, "1.2", 0, 1, 1),
-            Token(Token::Type::DECIMAL, ".3", 3, 1, 4),
+            Token(Token::Type::FLOAT, "1.2", 0, 1, 1),
+            Token(Token::Type::FLOAT, ".3", 3, 1, 4),
         };
         TEST_LEX(test_str, exp_tokens);
     }
