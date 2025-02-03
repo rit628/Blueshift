@@ -35,5 +35,5 @@ namespace BlsLang {
     const boost::regex OPERATOR_OR                  (R"(\|)");
     const boost::regex OPERATOR_GENERIC             (R"(.)");
 
-    const boost::regex WHITESPACE                   ("[ \u0008\\n\\r\\t]"); // not a raw string to include unicode characters
+    const boost::regex WHITESPACE                   ("[ \u000B\u0008\\n\\r\\f\\t]"); // not a raw string to include unicode characters
 }
