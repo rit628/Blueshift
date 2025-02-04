@@ -21,7 +21,7 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 # Boost
-set(REQUIRED_BOOST_LIBS asio thread)
+set(REQUIRED_BOOST_LIBS asio thread regex)
 list(TRANSFORM REQUIRED_BOOST_LIBS PREPEND Boost:: OUTPUT_VARIABLE BOOST_LIB_DEPS)
 FetchContent_Declare(
     Boost
@@ -42,6 +42,7 @@ set(CLIENT_SRC_DIR ${SRC_DIR}/client)
 set(LANG_SRC_DIR ${SRC_DIR}/lang)
 
 set(TEST_DIR ${CMAKE_SOURCE_DIR}/test)
+set(TEST_DEPS ${TEST_DIR}/include)
 set(MASTER_TEST_DIR ${TEST_DIR}/master)
 set(CLIENT_TEST_DIR ${TEST_DIR}/client)
 set(LANG_TEST_DIR ${TEST_DIR}/lang)
@@ -53,9 +54,21 @@ add_executable(master ${MASTER_SRC_DIR}/main.cpp)
 add_executable(client ${CLIENT_SRC_DIR}/main.cpp)
 
 # LANG LIBS AND EXECUTABLE
+file(GLOB_RECURSE LIBLEXER_SRC ${LANG_SRC_DIR}/liblexer/*.cpp)
+add_library(lexer STATIC ${LIBLEXER_SRC})
+target_link_libraries(lexer ${BOOST_LIB_DEPS})
+
 add_executable(lang ${LANG_SRC_DIR}/main.cpp)
+target_link_libraries(lang lexer ${BOOST_LIB_DEPS})
 
 # TESTS
 enable_testing()
 
+# LANG TESTS
+file(GLOB_RECURSE LIBLEXER_TESTS ${LANG_TEST_DIR}/liblexer/*.cpp)
+add_executable(test_liblexer ${LIBLEXER_TESTS})
+target_include_directories(test_liblexer PUBLIC ${TEST_DEPS} ${LANG_SRC_DIR}/liblexer)
+target_link_libraries(test_liblexer lexer GTest::gtest_main)
+
 include(GoogleTest)
+gtest_discover_tests(test_liblexer)
