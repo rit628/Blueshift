@@ -48,6 +48,8 @@ set(CLIENT_TEST_DIR ${TEST_DIR}/client)
 set(LANG_TEST_DIR ${TEST_DIR}/lang)
 
 # MASTER LIBS AND EXECUTABLE
+file(GLOB_RECURSE LIBTSQ_SRC ${MASTER_SRC_DIR}/libTSQ/*.cpp)
+add_library(TSQ STATIC ${LIBTSQ_SRC})
 add_executable(master ${MASTER_SRC_DIR}/main.cpp)
 
 # CLIENT LIBS AND EXECUTABLE
@@ -70,5 +72,12 @@ add_executable(test_liblexer ${LIBLEXER_TESTS})
 target_include_directories(test_liblexer PUBLIC ${TEST_DEPS} ${LANG_SRC_DIR}/liblexer)
 target_link_libraries(test_liblexer lexer GTest::gtest_main)
 
+# MASTER TESTS
+file(GLOB_RECURSE LIBTSQ_TESTS ${MASTER_TEST_DIR}/libTSQ/*.cpp)
+add_executable(test_libTSQ ${LIBTSQ_TESTS})
+target_include_directories(test_libTSQ PUBLIC ${TEST_DEPS} ${MASTER_SRC_DIR}/libTSQ)
+target_link_libraries(test_libTSQ TSQ GTest::gtest_main)
+
 include(GoogleTest)
 gtest_discover_tests(test_liblexer)
+gtest_discover_tests(test_libTSQ)
