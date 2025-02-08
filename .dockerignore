@@ -1,0 +1,50 @@
+# Logs
+logs
+*.log
+
+# Caches
+.cache/
+
+# Build artifacts
+build/
+CMakeCache.txt
+CMakeFiles/
+Makefile
+*.o
+*.a
+*.so
+*.dylib
+*.out
+*.exe
+*.dll
+*.pdb
+
+# Editor directories and files
+.vscode
+!.vscode/extensions.json
+.venv
+__pycache__
+*.code-workspace
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# System-specific files
+.DS_Store
+Thumbs.db
+
+# Git files
+.gitignore
+.gitattributes
+
+# Docker files
+.docker/
+.dockerignore
+compose.yaml
+
+# Misc files
+README.md
+bls

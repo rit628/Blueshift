@@ -16,10 +16,7 @@ services:
         - WORKDIR=${BUILD_MOUNT_DIR}
     image: ${BUILD_IMAGE_NAME}
     volumes:
-      - ./blueshift:${BUILD_MOUNT_DIR}/blueshift
-      - ./CMakeLists.txt:${BUILD_MOUNT_DIR}/CMakeLists.txt
-      - ./src:${BUILD_MOUNT_DIR}/src
-      - ./test:${BUILD_MOUNT_DIR}/test
+      - .:${BUILD_MOUNT_DIR}
       - build:${BUILD_MOUNT_DIR}/build
     env_file:
       - .env
