@@ -1,4 +1,5 @@
 #include "liblexer/lexer.hpp"
+#include "libparser/parser.hpp"
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -27,4 +28,7 @@ int main() {
     for (auto&& i : ret) {
         std::cout << i.getTypeName() << " " << i.getLiteral() << " @ " << i.getLineNum() << ":" << i.getColNum() << " or " << i.getAbsIdx() <<  std::endl;
     }
+
+    // BlsLang::Parser parser;
+    // std::cout << *parser.parse(ret);
 }

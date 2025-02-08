@@ -60,8 +60,13 @@ file(GLOB_RECURSE LIBLEXER_SRC ${LANG_SRC_DIR}/liblexer/*.cpp)
 add_library(lexer STATIC ${LIBLEXER_SRC})
 target_link_libraries(lexer ${BOOST_LIB_DEPS})
 
+file(GLOB_RECURSE LIBPARSER_SRC ${LANG_SRC_DIR}/libparser/*.cpp)
+add_library(parser STATIC ${LIBPARSER_SRC})
+target_include_directories(parser PUBLIC ${LANG_SRC_DIR})
+target_link_libraries(parser ${BOOST_LIB_DEPS})
+
 add_executable(lang ${LANG_SRC_DIR}/main.cpp)
-target_link_libraries(lang lexer ${BOOST_LIB_DEPS})
+target_link_libraries(lang lexer parser ${BOOST_LIB_DEPS})
 
 # TESTS
 enable_testing()
