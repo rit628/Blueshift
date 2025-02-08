@@ -36,6 +36,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$ENV{ARCHIVE_OUTPUT_DIREC
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$ENV{LIBRARY_OUTPUT_DIRECTORY})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$ENV{RUNTIME_OUTPUT_DIRECTORY})
 
+set(BLS_CONFIG ${CMAKE_SOURCE_DIR}/config)
+
 set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
 set(MASTER_SRC_DIR ${SRC_DIR}/master)
 set(CLIENT_SRC_DIR ${SRC_DIR}/client)
@@ -62,7 +64,7 @@ target_link_libraries(lexer ${BOOST_LIB_DEPS})
 
 file(GLOB_RECURSE LIBPARSER_SRC ${LANG_SRC_DIR}/libparser/*.cpp)
 add_library(parser STATIC ${LIBPARSER_SRC})
-target_include_directories(parser PUBLIC ${LANG_SRC_DIR})
+target_include_directories(parser PUBLIC ${BLS_CONFIG} ${LANG_SRC_DIR})
 target_link_libraries(parser ${BOOST_LIB_DEPS})
 
 add_executable(lang ${LANG_SRC_DIR}/main.cpp)
