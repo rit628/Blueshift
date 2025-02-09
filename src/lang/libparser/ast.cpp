@@ -110,9 +110,24 @@ void AstNode::Statement::If::print(std::ostream& os) const {
 
 void AstNode::Function::Procedure::print(std::ostream& os) const {
     os << "AstNode::Function::Procedure {\n  name = " << name;
-    if (returnType) os << "\n  returnType = " << *returnType;
+    os << "\n  returnType = " << returnType->at(0);
+    for (int i = 1; i < returnType->size(); i++) {
+        os << "<" << returnType->at(i);
+    }
+    for (int i = 1; i < returnType->size(); i++) {
+        os << ">";
+    }
     os << "\n  parameterTypes = [";
-    for (auto&& t : parameterTypes) os << " " << t;
+    for (auto&& t : parameterTypes) {
+        os << t.at(0);
+        for (int i = 1; i < t.size(); i++) {
+            os << "<" << t.at(i);
+        }
+        for (int i = 1; i < t.size(); i++) {
+            os << ">";
+        }
+        os << ",\n";
+    }
     os << " ]\n  parameters = [";
     for (auto&& p : parameters) os << " " << p;
     os << "\n  statements = [";
@@ -122,9 +137,17 @@ void AstNode::Function::Procedure::print(std::ostream& os) const {
 
 void AstNode::Function::Oblock::print(std::ostream& os) const {
     os << "AstNode::Function::Oblock {\n  name = " << name << "\n}" << std::endl;
-    if (returnType) os << "\n  returnType = " << *returnType;
     os << "\n  parameterTypes = [";
-    for (auto&& t : parameterTypes) os << " " << t;
+    for (auto&& t : parameterTypes) {
+        os << t.at(0);
+        for (int i = 1; i < t.size(); i++) {
+            os << "<" << t.at(i);
+        }
+        for (int i = 1; i < t.size(); i++) {
+            os << ">";
+        }
+        os << ",\n";
+    }
     os << " ]\n  parameters = [";
     for (auto&& p : parameters) os << " " << p;
     os << "\n  statements = [";

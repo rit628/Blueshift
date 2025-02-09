@@ -334,8 +334,8 @@ namespace BlsLang {
         private:
             Function() = default;
             Function(std::string name
-                   , std::optional<std::string> returnType
-                   , std::vector<std::string> parameterTypes
+                   , std::optional<std::vector<std::string>> returnType
+                   , std::vector<std::vector<std::string>> parameterTypes
                    , std::vector<std::string> parameters
                    , std::vector<std::unique_ptr<AstNode::Statement>> statements)
                    : name(std::move(name))
@@ -346,8 +346,9 @@ namespace BlsLang {
             virtual ~Function() = default;
    
             std::string name;
-            std::optional<std::string> returnType;
-            std::vector<std::string> parameterTypes, parameters;
+            std::optional<std::vector<std::string>> returnType;
+            std::vector<std::vector<std::string>> parameterTypes;
+            std::vector<std::string> parameters;
             std::vector<std::unique_ptr<AstNode::Statement>> statements;
     };
 
@@ -355,8 +356,8 @@ namespace BlsLang {
         public:
             Procedure() = default;
             Procedure(std::string name
-                    , std::optional<std::string> returnType
-                    , std::vector<std::string> parameterTypes
+                    , std::optional<std::vector<std::string>> returnType
+                    , std::vector<std::vector<std::string>> parameterTypes
                     , std::vector<std::string> parameters
                     , std::vector<std::unique_ptr<AstNode::Statement>> statements)
             :
@@ -376,7 +377,7 @@ namespace BlsLang {
         public:
             Oblock() = default;
             Oblock(std::string name
-                 , std::vector<std::string> parameterTypes
+                 , std::vector<std::vector<std::string>> parameterTypes
                  , std::vector<std::string> parameters
                  , std::vector<std::unique_ptr<AstNode::Statement>> statements)
             : 
