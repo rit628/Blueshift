@@ -376,7 +376,6 @@ namespace BlsLang {
         public:
             Oblock() = default;
             Oblock(std::string name
-                 , std::optional<std::string> returnType
                  , std::vector<std::string> parameterTypes
                  , std::vector<std::string> parameters
                  , std::vector<std::unique_ptr<AstNode::Statement>> statements)
