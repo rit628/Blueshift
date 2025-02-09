@@ -6,8 +6,8 @@
 
 using namespace BlsLang;
 
-const Token& TokenStream::at(size_t offset) const {
-    if (outOfRange(index + offset)) {
+const Token& TokenStream::at(int offset) const {
+    if (outOfRange(offset)) {
         throw std::runtime_error("Out of range access for token stream.");
     }
     return ts.at(index + offset);

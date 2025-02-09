@@ -23,7 +23,7 @@ namespace BlsLang {
             // Looks ahead in stream for tokens matching given patterns and consumes matching tokens
             template<TokenAttr... Args>
             bool match(Args... patterns);
-            const Token& at(size_t offset) const;
+            const Token& at(int offset) const;
             void setStream(std::vector<Token>& newStream);
             size_t getLine() const;
             size_t getColumn() const;
@@ -32,7 +32,7 @@ namespace BlsLang {
         private:
             template<TokenAttr T>
             bool peekPattern(T pattern, size_t index);
-            bool outOfRange(size_t offset) const { return ts.size() <= (index + offset); }
+            bool outOfRange(int offset) const { return (ts.size() <= (index + offset)) || (index + offset) < 0; }
 
             std::vector<Token> ts;
             size_t index = 0;
