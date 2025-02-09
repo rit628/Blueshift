@@ -7,7 +7,7 @@
 using namespace BlsLang;
 
 const Token& TokenStream::at(size_t offset) const {
-    if (outOfRange(index)) {
+    if (outOfRange(index + offset)) {
         throw std::runtime_error("Out of range access for token stream.");
     }
     return ts.at(index + offset);
@@ -22,11 +22,13 @@ void TokenStream::setStream(std::vector<Token>& newStream) {
 }
 
 size_t TokenStream::getLine() const {
+    if (ts.empty()) return 0;
     auto idx = outOfRange(index) ? ts.size() - 1 : index;
     return ts.at(idx).getLineNum();
 }
 
 size_t TokenStream::getColumn() const {
+    if (ts.empty()) return 0;
     auto idx = outOfRange(index) ? ts.size() - 1 : index;
     return ts.at(idx).getColNum();
 }

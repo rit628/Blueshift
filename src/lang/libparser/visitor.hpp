@@ -8,7 +8,7 @@ namespace BlsLang {
     class Visitor {
         public:
             virtual std::any visit(AstNode& v) = 0;
-            virtual ~Visitor();
+            virtual ~Visitor() = default;
     };
 
 }

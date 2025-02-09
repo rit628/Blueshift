@@ -17,20 +17,22 @@ namespace BlsLang {
             TokenStream() {}
             TokenStream(std::vector<Token> input) : ts(std::move(input)) {}
 
+            // Looks ahead in stream (without consuming tokens) for tokens matching given patterns
             template<TokenAttr... Args>
             bool peek(Args... patterns);
+            // Looks ahead in stream for tokens matching given patterns and consumes matching tokens
             template<TokenAttr... Args>
             bool match(Args... patterns);
             const Token& at(size_t offset) const;
             void setStream(std::vector<Token>& newStream);
             size_t getLine() const;
             size_t getColumn() const;
-            const bool empty() const { return outOfRange(0); }
+            bool empty() const { return outOfRange(0); }
 
         private:
             template<TokenAttr T>
             bool peekPattern(T pattern, size_t index);
-            bool outOfRange(int offset) const { return ts.size() <= (index + offset); }
+            bool outOfRange(size_t offset) const { return ts.size() <= (index + offset); }
 
             std::vector<Token> ts;
             size_t index = 0;
