@@ -54,8 +54,10 @@ std::unique_ptr<AstNode::Setup> Parser::parseSetup() {
 }
 
 std::unique_ptr<AstNode::Function::Oblock> Parser::parseOblock() {
-    auto name = ts.at(1).getLiteral();
-    ts.match(RESERVED_OBLOCK, Token::Type::IDENTIFIER, "(");
+    if (!ts.match(RESERVED_OBLOCK, Token::Type::IDENTIFIER)) {
+        throw ParseException("Expected valid identifier for oblock name.", ts.getLine(), ts.getColumn());
+    }
+    auto name = ts.at(-1).getLiteral();
     std::vector<std::vector<std::string>> parameterTypes;
     std::vector<std::string> parameters;
     parseFunctionParams(parameterTypes, parameters);
@@ -68,8 +70,10 @@ std::unique_ptr<AstNode::Function::Oblock> Parser::parseOblock() {
 
 std::unique_ptr<AstNode::Function::Procedure> Parser::parseProcedure() {
     auto returnType = parseTypeIdentifier();
-    auto name = ts.at(0).getLiteral();
-    ts.match(Token::Type::IDENTIFIER, "(");
+    if (!ts.match(Token::Type::IDENTIFIER)) {
+        throw ParseException("Expected valid identifier for procedure name.", ts.getLine(), ts.getColumn());
+    }
+    auto name = ts.at(-1).getLiteral();
     std::vector<std::vector<std::string>> parameterTypes;
     std::vector<std::string> parameters;
     parseFunctionParams(parameterTypes, parameters);
@@ -82,16 +86,12 @@ std::unique_ptr<AstNode::Function::Procedure> Parser::parseProcedure() {
 }
 
 std::vector<std::unique_ptr<AstNode::Statement>> Parser::parseBlock() {
-    if (!ts.match("{")) {
-        throw ParseException("Expected '{' at start of block body.", ts.getLine(), ts.getColumn());
-    }
+    matchExpectedSymbol("{", "at start of block body.");
     std::vector<std::unique_ptr<AstNode::Statement>> body;
     while (!ts.peek("}") && !ts.empty()) {
         body.push_back(parseStatement());
     }
-    if (!ts.match("}")) {
-        throw ParseException("Expected '}' at end of block body.", ts.getLine(), ts.getColumn());
-    }
+    matchExpectedSymbol("}", "at end of block body.");
     return body;
 }
 
@@ -116,14 +116,10 @@ std::unique_ptr<AstNode::Statement> Parser::parseStatement() {
         auto lhs = parseExpression();
         if (ts.match(ASSIGNMENT)) {
             auto rhs = parseExpression();
-            if (!ts.match(";")) {
-                throw ParseException("Expected ';' at end of assignment.", ts.getLine(), ts.getColumn());
-            }
+            matchExpectedSymbol(";", "at end of assignment.");
             return std::make_unique<AstNode::Statement::Assignment>(std::move(lhs), std::move(rhs));
         }
-        if (!ts.match(";")) {
-            throw ParseException("Expected ';' at end of expression.", ts.getLine(), ts.getColumn());
-        }
+        matchExpectedSymbol(";", "at end of expression.");
         return std::make_unique<AstNode::Statement::Expression>(std::move(lhs));
     }
 }
@@ -135,30 +131,22 @@ std::unique_ptr<AstNode::Statement::Declaration> Parser::parseDeclarationStateme
     }
     auto name = ts.at(-1).getLiteral();
     auto rhs = (ts.match(ASSIGNMENT)) ? std::make_optional(parseExpression()) : std::nullopt;
-    if (!ts.match(";")) {
-        throw ParseException("Expected ';' at end of declaration.", ts.getLine(), ts.getColumn());
-    }
+    matchExpectedSymbol(";", "at end of declaration.");
     return std::make_unique<AstNode::Statement::Declaration>(std::move(name), std::move(type), std::move(rhs));
 }
 
 std::unique_ptr<AstNode::Statement::Return> Parser::parseReturnStatement() {
     ts.match(RESERVED_RETURN);
     auto value = (ts.peek(";")) ? std::nullopt : std::make_optional(parseExpression());
-    if (!ts.match(";")) {
-        throw ParseException("Expected ';' at end of return.", ts.getLine(), ts.getColumn());
-    }
+    matchExpectedSymbol(";", "at end of return.");
     return std::make_unique<AstNode::Statement::Return>(std::move(value));
 }
 
 std::unique_ptr<AstNode::Statement::While> Parser::parseWhileStatement() {
     ts.match(RESERVED_WHILE);
-    if (!ts.match("(")) {
-        throw ParseException("Expected '(' after 'while'.", ts.getLine(), ts.getColumn());
-    }
+    matchExpectedSymbol("(", "after 'while'.");
     auto condition = parseExpression();
-    if (!ts.match(")")) {
-        throw ParseException("Expected ')' after while statement condition.", ts.getLine(), ts.getColumn());
-    }
+    matchExpectedSymbol(")", "after while statement condition.");
     auto block = parseBlock();
     return std::make_unique<AstNode::Statement::While>(std::move(condition), std::move(block));
 }
@@ -203,6 +191,12 @@ std::unique_ptr<AstNode::Expression> Parser::parsePrimaryExpression() {
 
 }
 
+void Parser::matchExpectedSymbol(std::string&& symbol, std::string&& message) {
+    if (!ts.match(symbol)) {
+        throw ParseException("Expected '" + symbol + "' " + message, ts.getLine(), ts.getColumn());
+    }
+}
+
 std::vector<std::string> Parser::parseTypeIdentifier() {
     std::vector<std::string> type;
     size_t delimCount = 0;
@@ -223,6 +217,7 @@ std::vector<std::string> Parser::parseTypeIdentifier() {
 }
 
 void Parser::parseFunctionParams(std::vector<std::vector<std::string>>& parameterTypes, std::vector<std::string>& parameters) {
+    matchExpectedSymbol("(", "at start of function parameter list.");
     if (!ts.peek(")")) {
         do {
             parameterTypes.push_back(parseTypeIdentifier());
@@ -234,7 +229,5 @@ void Parser::parseFunctionParams(std::vector<std::vector<std::string>>& paramete
             }
         } while (ts.match(","));
     }
-    if (!ts.match(")")) {
-        throw new ParseException("Expected ')' at end of function parameter list.", ts.getLine(), ts.getColumn());
-    }
+    matchExpectedSymbol(")", "at end of function parameter list.");
 }

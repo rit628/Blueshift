@@ -36,6 +36,7 @@ namespace BlsLang {
             std::unique_ptr<AstNode::Expression> parsePrimaryExpression();
 
             // helpers
+            void matchExpectedSymbol(std::string&& symbol, std::string&& message);
             std::vector<std::string> parseTypeIdentifier();
             void parseFunctionParams(std::vector<std::vector<std::string>>& parameterTypes, std::vector<std::string>& parameters);
     };
