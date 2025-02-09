@@ -30,6 +30,16 @@ namespace BlsLang {
 
     constexpr auto RESERVED_OBLOCK                      ("oblock");
     constexpr auto RESERVED_SETUP                       ("setup");
+
+    constexpr auto BLOCK_OPEN                           ("{");
+    constexpr auto BLOCK_CLOSE                          ("}");
+
+    constexpr auto PARENTHESES_OPEN                     ("(");
+    constexpr auto PARENTHESES_CLOSE                    (")");
+
+    constexpr auto ARGUMENT_SEPERATOR                   (",");
+
+    constexpr auto STATEMENT_TERMINATOR                 (";");
     
     constexpr auto MEMBER_ACCESS                        (".");
 

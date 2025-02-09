@@ -49,7 +49,7 @@ std::unique_ptr<AstNode::Source> Parser::parseSource() {
 }
 
 std::unique_ptr<AstNode::Setup> Parser::parseSetup() {
-    ts.match(RESERVED_SETUP, "(", ")");
+    ts.match(RESERVED_SETUP, PARENTHESES_OPEN, PARENTHESES_CLOSE);
     auto statements = parseBlock();
     return std::make_unique<AstNode::Setup>(std::move(statements));
 }
@@ -65,8 +65,8 @@ std::unique_ptr<AstNode::Function> Parser::parseFunction() {
     auto name = ts.at(-1).getLiteral();
     std::vector<std::unique_ptr<AstNode::Specifier::Type>> parameterTypes;
     std::vector<std::string> parameters;
-    matchExpectedSymbol("(", "at start of function parameter list.");
-    if (!ts.peek(")")) {
+    matchExpectedSymbol(PARENTHESES_OPEN, "at start of function parameter list.");
+    if (!ts.peek(PARENTHESES_CLOSE)) {
         do {
             parameterTypes.push_back(parseTypeSpecifier());
             if (ts.match(Token::Type::IDENTIFIER)) {
@@ -75,9 +75,9 @@ std::unique_ptr<AstNode::Function> Parser::parseFunction() {
             else {
                 throw ParseException("Invalid function parameter.", ts.getLine(), ts.getColumn());
             }
-        } while (ts.match(","));
+        } while (ts.match(ARGUMENT_SEPERATOR));
     }
-    matchExpectedSymbol(")", "at end of function parameter list.");
+    matchExpectedSymbol(PARENTHESES_CLOSE, "at end of function parameter list.");
     auto statements = parseBlock();
     if (returnType) { // parsed procedure
         return std::make_unique<AstNode::Function::Procedure>(std::move(name)
@@ -95,12 +95,12 @@ std::unique_ptr<AstNode::Function> Parser::parseFunction() {
 }
 
 std::vector<std::unique_ptr<AstNode::Statement>> Parser::parseBlock() {
-    matchExpectedSymbol("{", "at start of block body.");
+    matchExpectedSymbol(BLOCK_OPEN, "at start of block body.");
     std::vector<std::unique_ptr<AstNode::Statement>> body;
-    while (!ts.peek("}") && !ts.empty()) {
+    while (!ts.peek(BLOCK_CLOSE) && !ts.empty()) {
         body.push_back(parseStatement());
     }
-    matchExpectedSymbol("}", "at end of block body.");
+    matchExpectedSymbol(BLOCK_CLOSE, "at end of block body.");
     return body;
 }
 
@@ -130,10 +130,10 @@ std::unique_ptr<AstNode::Statement> Parser::parseAssignmentExpressionStatement()
     auto lhs = parseExpression();
     if (ts.match(ASSIGNMENT)) {
         auto rhs = parseExpression();
-        matchExpectedSymbol(";", "at end of assignment.");
+        matchExpectedSymbol(STATEMENT_TERMINATOR, "at end of assignment.");
         return std::make_unique<AstNode::Statement::Assignment>(std::move(lhs), std::move(rhs));
     }
-    matchExpectedSymbol(";", "at end of expression.");
+    matchExpectedSymbol(STATEMENT_TERMINATOR, "at end of expression.");
     return std::make_unique<AstNode::Statement::Expression>(std::move(lhs));
 }
 
@@ -144,35 +144,35 @@ std::unique_ptr<AstNode::Statement::Declaration> Parser::parseDeclarationStateme
     }
     auto name = ts.at(-1).getLiteral();
     auto rhs = (ts.match(ASSIGNMENT)) ? std::make_optional(parseExpression()) : std::nullopt;
-    matchExpectedSymbol(";", "at end of declaration.");
+    matchExpectedSymbol(STATEMENT_TERMINATOR, "at end of declaration.");
     return std::make_unique<AstNode::Statement::Declaration>(std::move(name), std::move(type), std::move(rhs));
 }
 
 std::unique_ptr<AstNode::Statement::Return> Parser::parseReturnStatement() {
     ts.match(RESERVED_RETURN);
-    auto value = (ts.peek(";")) ? std::nullopt : std::make_optional(parseExpression());
-    matchExpectedSymbol(";", "at end of return.");
+    auto value = (ts.peek(STATEMENT_TERMINATOR)) ? std::nullopt : std::make_optional(parseExpression());
+    matchExpectedSymbol(STATEMENT_TERMINATOR, "at end of return.");
     return std::make_unique<AstNode::Statement::Return>(std::move(value));
 }
 
 std::unique_ptr<AstNode::Statement::While> Parser::parseWhileStatement() {
     ts.match(RESERVED_WHILE);
-    matchExpectedSymbol("(", "after 'while'.");
+    matchExpectedSymbol(PARENTHESES_OPEN, "after 'while'.");
     auto condition = parseExpression();
-    matchExpectedSymbol(")", "after while statement condition.");
+    matchExpectedSymbol(PARENTHESES_CLOSE, "after while statement condition.");
     auto block = parseBlock();
     return std::make_unique<AstNode::Statement::While>(std::move(condition), std::move(block));
 }
 
 std::unique_ptr<AstNode::Statement::For> Parser::parseForStatement() {
     ts.match(RESERVED_FOR);
-    matchExpectedSymbol("(", "after 'for'.");
+    matchExpectedSymbol(PARENTHESES_OPEN, "after 'for'.");
     auto parseInnerStatement = [this]() -> std::optional<std::unique_ptr<AstNode::Statement>> {
         if (ts.peek(Token::Type::IDENTIFIER, TYPE_DELIMITER_OPEN)
         || ts.peek(Token::Type::IDENTIFIER, Token::Type::IDENTIFIER)) {
             return parseDeclarationStatement();
         }
-        else if (!ts.match(";")) {
+        else if (!ts.match(STATEMENT_TERMINATOR)) {
             return parseAssignmentExpressionStatement();
         }
         else {
@@ -182,7 +182,7 @@ std::unique_ptr<AstNode::Statement::For> Parser::parseForStatement() {
     std::optional<std::unique_ptr<AstNode::Statement>> initStatement = parseInnerStatement();
     std::optional<std::unique_ptr<AstNode::Statement>> condition = parseInnerStatement();
     std::optional<std::unique_ptr<AstNode::Expression>> incrementExpression = parseExpression();
-    matchExpectedSymbol(")", "after for statement condition statements.");
+    matchExpectedSymbol(PARENTHESES_CLOSE, "after for statement condition statements.");
     std::vector<std::unique_ptr<AstNode::Statement>> block = parseBlock();
     return std::make_unique<AstNode::Statement::For>(std::move(initStatement)
                                                    , std::move(condition)
@@ -192,9 +192,9 @@ std::unique_ptr<AstNode::Statement::For> Parser::parseForStatement() {
 
 std::unique_ptr<AstNode::Statement::If> Parser::parseIfStatement() {
     ts.match(RESERVED_IF);
-    matchExpectedSymbol("(", "after 'if'.");
+    matchExpectedSymbol(PARENTHESES_OPEN, "after 'if'.");
     auto condition = parseExpression();
-    matchExpectedSymbol(")", "after if statement condition.");
+    matchExpectedSymbol(PARENTHESES_CLOSE, "after if statement condition.");
     auto block = parseBlock();
     std::vector<std::unique_ptr<AstNode::Statement::If>> elseIfStatements;
     while (ts.peek(RESERVED_ELSE, RESERVED_IF)) {
@@ -212,9 +212,9 @@ std::unique_ptr<AstNode::Statement::If> Parser::parseIfStatement() {
 
 std::unique_ptr<AstNode::Statement::If> Parser::parseElseIfStatement() {
     ts.match(RESERVED_ELSE, RESERVED_IF);
-    matchExpectedSymbol("(", "after 'else if'.");
+    matchExpectedSymbol(PARENTHESES_OPEN, "after 'else if'.");
     auto condition = parseExpression();
-    matchExpectedSymbol(")", "after 'else if' statement condition.");
+    matchExpectedSymbol(PARENTHESES_CLOSE, "after else if statement condition.");
     auto block = parseBlock();
     return std::make_unique<AstNode::Statement::If>(std::move(condition)
                                                   , std::move(block)
@@ -344,35 +344,35 @@ std::unique_ptr<AstNode::Expression> Parser::parsePrimaryExpression() {
     }
     else if (ts.match(Token::Type::STRING)) {
         auto literal = ts.at(-1).getLiteral();
-        // clean quotes and escapes here
+        // TODO: clean quotes and escapes here
         return std::make_unique<AstNode::Expression::Literal>(std::move(literal));
     }
-    else if (ts.match("(")) {
+    else if (ts.match(PARENTHESES_OPEN)) {
         auto innerExp = parseExpression();
-        matchExpectedSymbol(")", "after grouped expression.");
+        matchExpectedSymbol(PARENTHESES_CLOSE, "after grouped expression.");
         return std::make_unique<AstNode::Expression::Group>(std::move(innerExp));
     }
-    else if (ts.match(Token::Type::IDENTIFIER, "(")) { // function call
+    else if (ts.match(Token::Type::IDENTIFIER, PARENTHESES_OPEN)) { // function call
         auto name = ts.at(-2).getLiteral();
         std::vector<std::unique_ptr<AstNode::Expression>> arguments;
-        if (!ts.peek(")")) {
+        if (!ts.peek(PARENTHESES_CLOSE)) {
             do {
                 arguments.push_back(parseExpression());
-            } while (ts.match(","));
+            } while (ts.match(ARGUMENT_SEPERATOR));
         }
-        matchExpectedSymbol(")", "at end of function argument list.");
+        matchExpectedSymbol(PARENTHESES_CLOSE, "at end of function argument list.");
         return std::make_unique<AstNode::Expression::Function>(std::move(name), std::move(arguments));
     }
-    else if (ts.match(Token::Type::IDENTIFIER, MEMBER_ACCESS, Token::Type::IDENTIFIER, "(")) { // method call
+    else if (ts.match(Token::Type::IDENTIFIER, MEMBER_ACCESS, Token::Type::IDENTIFIER, PARENTHESES_OPEN)) { // method call
         auto object = ts.at(-4).getLiteral();
         auto methodName = ts.at(-2).getLiteral();
         std::vector<std::unique_ptr<AstNode::Expression>> arguments;
-        if (!ts.peek(")")) {
+        if (!ts.peek(PARENTHESES_CLOSE)) {
             do {
                 arguments.push_back(parseExpression());
-            } while (ts.match(","));
+            } while (ts.match(ARGUMENT_SEPERATOR));
         }
-        matchExpectedSymbol(")", "at end of method argument list.");
+        matchExpectedSymbol(PARENTHESES_CLOSE, "at end of method argument list.");
         return std::make_unique<AstNode::Expression::Method>(std::move(object)
                                                            , std::move(methodName)
                                                            , std::move(arguments));
@@ -402,15 +402,15 @@ std::unique_ptr<AstNode::Specifier> Parser::parseSpecifier() {
 
 std::unique_ptr<AstNode::Specifier::Type> Parser::parseTypeSpecifier() {
     if (!ts.match(Token::Type::IDENTIFIER)) {
-        throw ParseException("Invalid type identifier.", ts.getLine(), ts.getColumn());
+        throw ParseException("Invalid type specifier.", ts.getLine(), ts.getColumn());
     }
     auto name = ts.at(-1).getLiteral();
     std::vector<std::unique_ptr<AstNode::Specifier::Type>> typeArgs;
     if (ts.match(TYPE_DELIMITER_OPEN)) {
         do {
             typeArgs.push_back(parseTypeSpecifier());
-        } while (ts.match(","));
-        matchExpectedSymbol(TYPE_DELIMITER_CLOSE, "to match previous '<' in type identifier.");
+        } while (ts.match(ARGUMENT_SEPERATOR));
+        matchExpectedSymbol(TYPE_DELIMITER_CLOSE, "to match previous '<' in type specifier.");
     }
     return std::make_unique<AstNode::Specifier::Type>(std::move(name), std::move(typeArgs));
 }
