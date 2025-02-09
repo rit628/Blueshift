@@ -23,7 +23,7 @@ std::unique_ptr<AstNode::Source> Parser::parseSource() {
 
     while (!ts.empty()) {
         if (ts.peek(RESERVED_SETUP)) {
-            if (setup == nullptr) {
+            if (setup != nullptr) {
                 throw ParseException("Only one setup function allowed per source file.", ts.getLine(), ts.getColumn());
             }
             setup = parseSetup();

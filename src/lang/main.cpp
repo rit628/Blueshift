@@ -29,6 +29,6 @@ int main() {
         std::cout << i.getTypeName() << " " << i.getLiteral() << " @ " << i.getLineNum() << ":" << i.getColNum() << " or " << i.getAbsIdx() <<  std::endl;
     }
 
-    // BlsLang::Parser parser;
-    // std::cout << *parser.parse(ret);
+    BlsLang::Parser parser;
+    std::cout << *parser.parse(ret);
 }

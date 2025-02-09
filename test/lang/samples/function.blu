@@ -1,5 +1,9 @@
-int sum(int a, int b) {
+vector<int> sum(int a, int b) {
     int result = a + b;
     print(result);
     return result;
+}
+
+setup() {
+    
 }
