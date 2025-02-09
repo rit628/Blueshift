@@ -63,32 +63,26 @@ namespace BlsLang {
     class AstNode::Expression::Access : public AstNode::Expression {
         public:
             Access() = default;
-            Access(std::string target
+            Access(std::string object)
+                 : object(std::move(object))
+                 , subscript(std::move(std::nullopt))
+                 , member(std::move(std::nullopt)) {}
+            Access(std::string object
                  , std::unique_ptr<AstNode::Expression> subscript)
-                 : target(std::move(target))
+                 : object(std::move(object))
                  , subscript(std::move(subscript))
                  , member(std::move(std::nullopt)) {}
-            Access(std::unique_ptr<AstNode::Expression> target
-                 , std::unique_ptr<AstNode::Expression> subscript)
-                 : target(std::move(target))
-                 , subscript(std::move(subscript)) 
-                 , member(std::move(std::nullopt)) {}
-            Access(std::string target, std::string member)
-                 : target(std::move(target))
+            Access(std::string object, std::string member)
+                 : object(std::move(object))
                  , subscript(std::move(std::nullopt))
-                 , member(std::move(member)) {}
-            Access(std::unique_ptr<AstNode::Expression> target, std::string member)
-                 : target(std::move(target))
-                 , subscript(std::move(std::nullopt)) 
                  , member(std::move(member)) {}
             
             std::any accept(Visitor& v) override { return v.visit(*this); }
-            std::string toString() {return std::get<std::string>(target) + member.value();};
 
         private:
             void print(std::ostream& os) const override;
 
-            std::variant<std::string, std::unique_ptr<AstNode::Expression>> target;
+            std::string object;
             std::optional<std::unique_ptr<AstNode::Expression>> subscript;
             std::optional<std::string> member;
     };
@@ -113,11 +107,11 @@ namespace BlsLang {
     class AstNode::Expression::Method : public AstNode::Expression {
         public:
             Method() = default;
-            Method(std::unique_ptr<AstNode::Expression> target
-                 , std::string name
+            Method(std::string object
+                 , std::string methodName
                  , std::vector<std::unique_ptr<AstNode::Expression>> arguments)
-                 : target(std::move(target))
-                 , name(std::move(name))
+                 : object(std::move(object))
+                 , methodName(std::move(methodName))
                  , arguments(std::move(arguments)) {}
 
             std::any accept(Visitor& v) override { return v.visit(*this); }
@@ -125,8 +119,8 @@ namespace BlsLang {
         private:
             void print(std::ostream& os) const override;
 
-            std::unique_ptr<AstNode::Expression> target;
-            std::string name;
+            std::string object;
+            std::string methodName;
             std::vector<std::unique_ptr<AstNode::Expression>> arguments;
     };
 

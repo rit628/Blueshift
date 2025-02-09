@@ -21,19 +21,8 @@ void AstNode::Expression::Literal::print(std::ostream& os) const {
 }
 
 void AstNode::Expression::Access::print(std::ostream& os) const {
-    const auto visitor = overloads {
-        [&os](const auto& value) {
-            if constexpr (std::is_same_v<std::decay_t<decltype(value)>, std::string>) {
-                os << value;
-            }
-            else {
-                os << *value; 
-            }
-        }
-    };
     os << "AstNode::Expression::Access {\n";
-    os << "  target = ";
-    std::visit(visitor, target);
+    os << "  object = " << object;
     if (subscript) os << "  subscript = " << **subscript << "\n";
     if (member) os << "  member = " << *member << "\n";
     os << "}" << std::endl;
@@ -46,7 +35,7 @@ void AstNode::Expression::Function::print(std::ostream& os) const {
 }
 
 void AstNode::Expression::Method::print(std::ostream& os) const {
-    os << "AstNode::Expression::Method {\n  target = " << *target << "\n  name = " << name << "\n  arguments = [";
+    os << "AstNode::Expression::Method {\n  object = " << object << "\n  methodName = " << methodName << "\n  arguments = [";
     for (auto&& arg : arguments) os << " " << *arg;
     os << " ]\n}" << std::endl;
 }
@@ -80,7 +69,9 @@ void AstNode::Statement::Declaration::print(std::ostream& os) const {
 }
 
 void AstNode::Statement::Return::print(std::ostream& os) const {
-    os << "AstNode::Statement::Return {\n  value = " << *value << "\n}" << std::endl;
+    os << "AstNode::Statement::Return {\n  value = ";
+    (value) ? os << **value : os << "";
+    os << "\n}" << std::endl;
 }
 
 void AstNode::Statement::While::print(std::ostream& os) const {

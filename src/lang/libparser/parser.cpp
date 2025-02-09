@@ -285,7 +285,81 @@ std::unique_ptr<AstNode::Expression> Parser::parseUnaryExpression() {
 }
 
 std::unique_ptr<AstNode::Expression> Parser::parsePrimaryExpression() {
-
+    if (ts.match(LITERAL_TRUE) || ts.match(LITERAL_FALSE)) {
+        auto literal = LITERAL_TRUE == ts.at(-1).getLiteral();
+        return std::make_unique<AstNode::Expression::Literal>(std::move(literal));
+    }
+    else if (ts.match(Token::Type::INTEGER)) {
+        auto literalStr = ts.at(-1).getLiteral();
+        int base = 10;
+        if (literalStr.starts_with("0x") || literalStr.starts_with("0X")) { // hex literal
+            base = 16;
+        }
+        else if (literalStr.starts_with("0b") || literalStr.starts_with("0B")) { // binary literal
+            base = 2;
+        }
+        else if (literalStr.starts_with("0")) { // octal literal
+            base = 8;
+        }
+        auto literal = static_cast<size_t>(std::stoll(literalStr, 0, base));
+        return std::make_unique<AstNode::Expression::Literal>(std::move(literal));
+    }
+    else if (ts.match(Token::Type::FLOAT)) {
+        auto literal = std::stod(ts.at(-1).getLiteral());
+        return std::make_unique<AstNode::Expression::Literal>(std::move(literal));
+    }
+    else if (ts.match(Token::Type::STRING)) {
+        auto literal = ts.at(-1).getLiteral();
+        // clean quotes and escapes here
+        return std::make_unique<AstNode::Expression::Literal>(std::move(literal));
+    }
+    else if (ts.match("(")) {
+        auto innerExp = parseExpression();
+        matchExpectedSymbol(")", "after grouped expression.");
+        return std::make_unique<AstNode::Expression::Group>(std::move(innerExp));
+    }
+    else if (ts.match(Token::Type::IDENTIFIER, "(")) { // function call
+        auto name = ts.at(-2).getLiteral();
+        std::vector<std::unique_ptr<AstNode::Expression>> arguments;
+        if (!ts.peek(")")) {
+            do {
+                arguments.push_back(parseExpression());
+            } while (ts.match(","));
+        }
+        matchExpectedSymbol(")", "at end of function argument list.");
+        return std::make_unique<AstNode::Expression::Function>(std::move(name), std::move(arguments));
+    }
+    else if (ts.match(Token::Type::IDENTIFIER, MEMBER_ACCESS, Token::Type::IDENTIFIER, "(")) { // method call
+        auto object = ts.at(-4).getLiteral();
+        auto methodName = ts.at(-2).getLiteral();
+        std::vector<std::unique_ptr<AstNode::Expression>> arguments;
+        if (!ts.peek(")")) {
+            do {
+                arguments.push_back(parseExpression());
+            } while (ts.match(","));
+        }
+        matchExpectedSymbol(")", "at end of method argument list.");
+        return std::make_unique<AstNode::Expression::Method>(std::move(object)
+                                                           , std::move(methodName)
+                                                           , std::move(arguments));
+    }
+    else if (ts.match(Token::Type::IDENTIFIER)) {
+        auto object = ts.at(-1).getLiteral();
+        if (ts.match(MEMBER_ACCESS)) { // member access
+            if (!ts.match(Token::Type::IDENTIFIER)) {
+                throw ParseException("Expected data member or method call after '.' operator.", ts.getLine(), ts.getColumn());
+            }
+            auto member = ts.at(-1).getLiteral();
+            return std::make_unique<AstNode::Expression::Access>(std::move(object), std::move(member));
+        }
+        else if (ts.match(SUBSCRIPT_ACCESS_OPEN)) { // subscript access
+            auto subscript = parseExpression();
+            matchExpectedSymbol(SUBSCRIPT_ACCESS_CLOSE, "to match previous '[' in expression.");
+            return std::make_unique<AstNode::Expression::Access>(std::move(object), std::move(subscript));
+        }
+        return std::make_unique<AstNode::Expression::Access>(std::move(object));
+    }
+    throw ParseException("Invalid Expression.", ts.getLine(), ts.getColumn());
 }
 
 void Parser::matchExpectedSymbol(std::string&& symbol, std::string&& message) {
@@ -306,9 +380,7 @@ std::vector<std::string> Parser::parseTypeIdentifier() {
     } while (ts.match(TYPE_DELIMITER_OPEN));
     delimCount--; // remove one delimiter to account for initial identifier
     for (size_t i = 0; i < delimCount; i++) {
-        if (!ts.match(TYPE_DELIMITER_CLOSE)) {
-            throw ParseException("Expected '>' to match previous '<' in type identifier.", ts.getLine(), ts.getColumn());
-        }
+        matchExpectedSymbol(TYPE_DELIMITER_CLOSE, "to match previous '<' in type identifier.");
     }
     return type;
 }
