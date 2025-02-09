@@ -4,6 +4,7 @@
 #include "include/reserved_tokens.hpp"
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -121,22 +122,45 @@ std::unique_ptr<AstNode::Statement> Parser::parseStatement() {
             return std::make_unique<AstNode::Statement::Assignment>(std::move(lhs), std::move(rhs));
         }
         if (!ts.match(";")) {
-            throw ParseException("Expected ';' at end of assignment.", ts.getLine(), ts.getColumn());
+            throw ParseException("Expected ';' at end of expression.", ts.getLine(), ts.getColumn());
         }
         return std::make_unique<AstNode::Statement::Expression>(std::move(lhs));
     }
 }
 
 std::unique_ptr<AstNode::Statement::Declaration> Parser::parseDeclarationStatement() {
-
+    auto type = parseTypeIdentifier();
+    if (!ts.match(Token::Type::IDENTIFIER)) {
+        throw ParseException("Expected valid identifier for variable name.", ts.getLine(), ts.getColumn());
+    }
+    auto name = ts.at(-1).getLiteral();
+    auto rhs = (ts.match(ASSIGNMENT)) ? std::make_optional(parseExpression()) : std::nullopt;
+    if (!ts.match(";")) {
+        throw ParseException("Expected ';' at end of declaration.", ts.getLine(), ts.getColumn());
+    }
+    return std::make_unique<AstNode::Statement::Declaration>(std::move(name), std::move(type), std::move(rhs));
 }
 
 std::unique_ptr<AstNode::Statement::Return> Parser::parseReturnStatement() {
-
+    ts.match(RESERVED_RETURN);
+    auto value = (ts.peek(";")) ? std::nullopt : std::make_optional(parseExpression());
+    if (!ts.match(";")) {
+        throw ParseException("Expected ';' at end of return.", ts.getLine(), ts.getColumn());
+    }
+    return std::make_unique<AstNode::Statement::Return>(std::move(value));
 }
 
 std::unique_ptr<AstNode::Statement::While> Parser::parseWhileStatement() {
-
+    ts.match(RESERVED_WHILE);
+    if (!ts.match("(")) {
+        throw ParseException("Expected '(' after 'while'.", ts.getLine(), ts.getColumn());
+    }
+    auto condition = parseExpression();
+    if (!ts.match(")")) {
+        throw ParseException("Expected ')' after while statement condition.", ts.getLine(), ts.getColumn());
+    }
+    auto block = parseBlock();
+    return std::make_unique<AstNode::Statement::While>(std::move(condition), std::move(block));
 }
 
 std::unique_ptr<AstNode::Statement::For> Parser::parseForStatement() {
