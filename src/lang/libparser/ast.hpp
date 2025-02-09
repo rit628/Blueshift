@@ -44,7 +44,7 @@ namespace BlsLang {
             virtual ~Expression() = default;
     };
 
-    class AstNode::Expression::Literal : public AstNode {
+    class AstNode::Expression::Literal : public AstNode::Expression {
         public:
             Literal() = default;
             Literal(size_t literal)         : literal(std::move(literal)) {}
@@ -60,7 +60,7 @@ namespace BlsLang {
             std::variant<size_t, double, bool, std::string> literal;
     };
 
-    class AstNode::Expression::Access : public AstNode {
+    class AstNode::Expression::Access : public AstNode::Expression {
         public:
             Access() = default;
             Access(std::string target
@@ -93,7 +93,7 @@ namespace BlsLang {
             std::optional<std::string> member;
     };
 
-    class AstNode::Expression::Function : public AstNode {
+    class AstNode::Expression::Function : public AstNode::Expression {
         public:
             Function() = default;
             Function(std::string name
@@ -110,7 +110,7 @@ namespace BlsLang {
             std::vector<std::unique_ptr<AstNode::Expression>> arguments;
     };
 
-    class AstNode::Expression::Method : public AstNode {
+    class AstNode::Expression::Method : public AstNode::Expression {
         public:
             Method() = default;
             Method(std::unique_ptr<AstNode::Expression> target
@@ -130,7 +130,7 @@ namespace BlsLang {
             std::vector<std::unique_ptr<AstNode::Expression>> arguments;
     };
 
-    class AstNode::Expression::Group : public AstNode {
+    class AstNode::Expression::Group : public AstNode::Expression {
         public:
             Group() = default;
             Group(std::unique_ptr<AstNode::Expression> expression)
@@ -144,7 +144,7 @@ namespace BlsLang {
             std::unique_ptr<AstNode::Expression> expression;
     };
 
-    class AstNode::Expression::Unary : public AstNode {
+    class AstNode::Expression::Unary : public AstNode::Expression {
         public:
             Unary() = default;
             Unary(std::string op
@@ -164,7 +164,7 @@ namespace BlsLang {
             bool prefix;
     };
 
-    class AstNode::Expression::Binary : public AstNode {
+    class AstNode::Expression::Binary : public AstNode::Expression {
         public:
             Binary() = default;
             Binary(std::string op
