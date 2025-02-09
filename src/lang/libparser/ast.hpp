@@ -251,7 +251,7 @@ namespace BlsLang {
     class AstNode::Statement::Return : public AstNode::Statement {
         public:
             Return() = default;
-            Return(std::unique_ptr<AstNode::Expression> value)
+            Return(std::optional<std::unique_ptr<AstNode::Expression>> value)
                  : value(std::move(value)) {}
 
             std::any accept(Visitor& v) override { return v.visit(*this); }
@@ -259,7 +259,7 @@ namespace BlsLang {
         private:
             void print(std::ostream& os) const override;
 
-            std::unique_ptr<AstNode::Expression> value;
+            std::optional<std::unique_ptr<AstNode::Expression>> value;
     };
 
     class AstNode::Statement::While : public AstNode::Statement {
