@@ -21,8 +21,6 @@ namespace BlsLang {
             std::unique_ptr<AstNode::Function::Procedure> parseProcedure();
             std::vector<std::unique_ptr<AstNode::Statement>> parseBlock();
             std::unique_ptr<AstNode::Statement> parseStatement();
-            std::unique_ptr<AstNode::Statement::Expression> parseExpressionStatement();
-            std::unique_ptr<AstNode::Statement::Assignment> parseAssignmentStatement();
             std::unique_ptr<AstNode::Statement::Declaration> parseDeclarationStatement();
             std::unique_ptr<AstNode::Statement::Return> parseReturnStatement();
             std::unique_ptr<AstNode::Statement::While> parseWhileStatement();

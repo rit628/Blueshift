@@ -82,14 +82,14 @@ std::unique_ptr<AstNode::Function::Procedure> Parser::parseProcedure() {
 
 std::vector<std::unique_ptr<AstNode::Statement>> Parser::parseBlock() {
     if (!ts.match("{")) {
-        throw ParseException("Missing opening brace for block body.", ts.getLine(), ts.getColumn());
+        throw ParseException("Expected '{' at start of block body.", ts.getLine(), ts.getColumn());
     }
     std::vector<std::unique_ptr<AstNode::Statement>> body;
     while (!ts.peek("}") && !ts.empty()) {
         body.push_back(parseStatement());
     }
     if (!ts.match("}")) {
-        throw ParseException("Unclosed block body.", ts.getLine(), ts.getColumn());
+        throw ParseException("Expected '}' at end of block body.", ts.getLine(), ts.getColumn());
     }
     return body;
 }
@@ -107,15 +107,24 @@ std::unique_ptr<AstNode::Statement> Parser::parseStatement() {
     else if (ts.peek(RESERVED_RETURN)) {
         return parseReturnStatement();
     }
-
-}
-
-std::unique_ptr<AstNode::Statement::Expression> Parser::parseExpressionStatement() {
-
-}
-
-std::unique_ptr<AstNode::Statement::Assignment> Parser::parseAssignmentStatement() {
-
+    else if (ts.peek(Token::Type::IDENTIFIER, TYPE_DELIMITER_OPEN) ||
+             ts.peek(Token::Type::IDENTIFIER, Token::Type::IDENTIFIER)) {
+        return parseDeclarationStatement();
+    }
+    else {
+        auto lhs = parseExpression();
+        if (ts.match(ASSIGNMENT)) {
+            auto rhs = parseExpression();
+            if (!ts.match(";")) {
+                throw ParseException("Expected ';' at end of assignment.", ts.getLine(), ts.getColumn());
+            }
+            return std::make_unique<AstNode::Statement::Assignment>(std::move(lhs), std::move(rhs));
+        }
+        if (!ts.match(";")) {
+            throw ParseException("Expected ';' at end of assignment.", ts.getLine(), ts.getColumn());
+        }
+        return std::make_unique<AstNode::Statement::Expression>(std::move(lhs));
+    }
 }
 
 std::unique_ptr<AstNode::Statement::Declaration> Parser::parseDeclarationStatement() {
@@ -180,11 +189,10 @@ std::vector<std::string> Parser::parseTypeIdentifier() {
         type.push_back(ts.at(-1).getLiteral());
         delimCount++;
     } while (ts.match(TYPE_DELIMITER_OPEN));
-
     delimCount--; // remove one delimiter to account for initial identifier
     for (size_t i = 0; i < delimCount; i++) {
         if (!ts.match(TYPE_DELIMITER_CLOSE)) {
-            throw ParseException("Unclosed type identifier.", ts.getLine(), ts.getColumn());
+            throw ParseException("Expected '>' to match previous '<' in type identifier.", ts.getLine(), ts.getColumn());
         }
     }
     return type;
@@ -203,6 +211,6 @@ void Parser::parseFunctionParams(std::vector<std::vector<std::string>>& paramete
         } while (ts.match(","));
     }
     if (!ts.match(")")) {
-        throw new ParseException("Unclosed function parameter list.", ts.getLine(), ts.getColumn());
+        throw new ParseException("Expected ')' at end of function parameter list.", ts.getLine(), ts.getColumn());
     }
 }
