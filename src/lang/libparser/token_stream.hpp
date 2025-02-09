@@ -22,9 +22,10 @@ namespace BlsLang {
             template<TokenAttr... Args>
             bool match(Args... patterns);
             const Token& at(size_t offset) const;
-            size_t getLine() const { return (outOfRange(index) ? -1 : ts.at(index).getLineNum()); }
-            size_t getColumn() const { return (outOfRange(index) ? -1 : ts.at(index).getColNum()); }
-            void setStream(std::vector<Token>& newStream) { ts = std::move(newStream); }
+            void setStream(std::vector<Token>& newStream);
+            size_t getLine() const;
+            size_t getColumn() const;
+            const bool empty() const { return outOfRange(0); }
 
         private:
             template<TokenAttr T>
