@@ -17,8 +17,8 @@ std::unique_ptr<AstNode::Source> Parser::parse(std::vector<Token> tokenStream) {
 }
 
 std::unique_ptr<AstNode::Source> Parser::parseSource() {
-    std::vector<std::unique_ptr<AstNode::Function::Procedure>> procedures;
-    std::vector<std::unique_ptr<AstNode::Function::Oblock>> oblocks;
+    std::vector<std::unique_ptr<AstNode::Function>> procedures;
+    std::vector<std::unique_ptr<AstNode::Function>> oblocks;
     std::unique_ptr<AstNode::Setup> setup = nullptr;
 
     while (!ts.empty()) {
@@ -29,10 +29,10 @@ std::unique_ptr<AstNode::Source> Parser::parseSource() {
             setup = parseSetup();
         }
         else if (ts.peek(RESERVED_OBLOCK)) {
-            oblocks.push_back(parseOblock());
+            oblocks.push_back(parseFunction());
         }
         else if (ts.peek(Token::Type::IDENTIFIER)) {
-            procedures.push_back(parseProcedure());
+            procedures.push_back(parseFunction());
         }
         else {
             throw ParseException("Invalid top level element.", ts.getLine(), ts.getColumn());
@@ -54,36 +54,44 @@ std::unique_ptr<AstNode::Setup> Parser::parseSetup() {
     return std::make_unique<AstNode::Setup>(std::move(statements));
 }
 
-std::unique_ptr<AstNode::Function::Oblock> Parser::parseOblock() {
-    if (!ts.match(RESERVED_OBLOCK, Token::Type::IDENTIFIER)) {
-        throw ParseException("Expected valid identifier for oblock name.", ts.getLine(), ts.getColumn());
+std::unique_ptr<AstNode::Function> Parser::parseFunction() {
+    std::unique_ptr<AstNode::Specifier::Type> returnType = nullptr;
+    if (!ts.match(RESERVED_OBLOCK)) {
+        returnType = parseTypeSpecifier();
     }
-    auto name = ts.at(-1).getLiteral();
-    std::vector<std::vector<std::string>> parameterTypes;
-    std::vector<std::string> parameters;
-    parseFunctionParams(parameterTypes, parameters);
-    auto statements = parseBlock();
-    return std::make_unique<AstNode::Function::Oblock>(std::move(name)
-                                                        , std::move(parameterTypes)
-                                                        , std::move(parameters)
-                                                        , std::move(statements));
-}
-
-std::unique_ptr<AstNode::Function::Procedure> Parser::parseProcedure() {
-    auto returnType = parseTypeIdentifier();
     if (!ts.match(Token::Type::IDENTIFIER)) {
-        throw ParseException("Expected valid identifier for procedure name.", ts.getLine(), ts.getColumn());
+        throw ParseException("Expected valid identifier for function name.", ts.getLine(), ts.getColumn());
     }
     auto name = ts.at(-1).getLiteral();
-    std::vector<std::vector<std::string>> parameterTypes;
+    std::vector<std::unique_ptr<AstNode::Specifier::Type>> parameterTypes;
     std::vector<std::string> parameters;
-    parseFunctionParams(parameterTypes, parameters);
+    matchExpectedSymbol("(", "at start of function parameter list.");
+    if (!ts.peek(")")) {
+        do {
+            parameterTypes.push_back(parseTypeSpecifier());
+            if (ts.match(Token::Type::IDENTIFIER)) {
+                parameters.push_back(ts.at(-1).getLiteral());
+            }
+            else {
+                throw ParseException("Invalid function parameter.", ts.getLine(), ts.getColumn());
+            }
+        } while (ts.match(","));
+    }
+    matchExpectedSymbol(")", "at end of function parameter list.");
     auto statements = parseBlock();
-    return std::make_unique<AstNode::Function::Procedure>(std::move(name)
-                                                        , std::move(returnType)
-                                                        , std::move(parameterTypes)
-                                                        , std::move(parameters)
-                                                        , std::move(statements));
+    if (returnType) { // parsed procedure
+        return std::make_unique<AstNode::Function::Procedure>(std::move(name)
+                                                            , std::move(returnType)
+                                                            , std::move(parameterTypes)
+                                                            , std::move(parameters)
+                                                            , std::move(statements));
+    }
+    else { // parsed oblock
+        return std::make_unique<AstNode::Function::Oblock>(std::move(name)
+                                                         , std::move(parameterTypes)
+                                                         , std::move(parameters)
+                                                         , std::move(statements));
+    }
 }
 
 std::vector<std::unique_ptr<AstNode::Statement>> Parser::parseBlock() {
@@ -130,7 +138,7 @@ std::unique_ptr<AstNode::Statement> Parser::parseAssignmentExpressionStatement()
 }
 
 std::unique_ptr<AstNode::Statement::Declaration> Parser::parseDeclarationStatement() {
-    auto type = parseTypeIdentifier();
+    auto type = parseTypeSpecifier();
     if (!ts.match(Token::Type::IDENTIFIER)) {
         throw ParseException("Expected valid identifier for variable name.", ts.getLine(), ts.getColumn());
     }
@@ -388,41 +396,27 @@ std::unique_ptr<AstNode::Expression> Parser::parsePrimaryExpression() {
     throw ParseException("Invalid Expression.", ts.getLine(), ts.getColumn());
 }
 
+std::unique_ptr<AstNode::Specifier> Parser::parseSpecifier() {
+    return parseTypeSpecifier();
+}
+
+std::unique_ptr<AstNode::Specifier::Type> Parser::parseTypeSpecifier() {
+    if (!ts.match(Token::Type::IDENTIFIER)) {
+        throw ParseException("Invalid type identifier.", ts.getLine(), ts.getColumn());
+    }
+    auto name = ts.at(-1).getLiteral();
+    std::vector<std::unique_ptr<AstNode::Specifier::Type>> typeArgs;
+    if (ts.match(TYPE_DELIMITER_OPEN)) {
+        do {
+            typeArgs.push_back(parseTypeSpecifier());
+        } while (ts.match(","));
+        matchExpectedSymbol(TYPE_DELIMITER_CLOSE, "to match previous '<' in type identifier.");
+    }
+    return std::make_unique<AstNode::Specifier::Type>(std::move(name), std::move(typeArgs));
+}
+
 void Parser::matchExpectedSymbol(std::string&& symbol, std::string&& message) {
     if (!ts.match(symbol)) {
         throw ParseException("Expected '" + symbol + "' " + message, ts.getLine(), ts.getColumn());
     }
-}
-
-std::vector<std::string> Parser::parseTypeIdentifier() {
-    std::vector<std::string> type;
-    size_t delimCount = 0;
-    do {
-        if (!ts.match(Token::Type::IDENTIFIER)) {
-            throw ParseException("Invalid type identifier.", ts.getLine(), ts.getColumn());
-        }
-        type.push_back(ts.at(-1).getLiteral());
-        delimCount++;
-    } while (ts.match(TYPE_DELIMITER_OPEN));
-    delimCount--; // remove one delimiter to account for initial identifier
-    for (size_t i = 0; i < delimCount; i++) {
-        matchExpectedSymbol(TYPE_DELIMITER_CLOSE, "to match previous '<' in type identifier.");
-    }
-    return type;
-}
-
-void Parser::parseFunctionParams(std::vector<std::vector<std::string>>& parameterTypes, std::vector<std::string>& parameters) {
-    matchExpectedSymbol("(", "at start of function parameter list.");
-    if (!ts.peek(")")) {
-        do {
-            parameterTypes.push_back(parseTypeIdentifier());
-            if (ts.match(Token::Type::IDENTIFIER)) {
-                parameters.push_back(ts.at(-1).getLiteral());
-            }
-            else {
-                throw ParseException("Invalid function parameter.", ts.getLine(), ts.getColumn());
-            }
-        } while (ts.match(","));
-    }
-    matchExpectedSymbol(")", "at end of function parameter list.");
 }

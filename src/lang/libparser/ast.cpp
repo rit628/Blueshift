@@ -7,6 +7,16 @@ using namespace BlsLang;
 template<class... Ts>
 struct overloads : Ts... { using Ts::operator()...; };
 
+void AstNode::Specifier::Type::print(std::ostream& os) const {
+    os << "AstNode::Specifier::Type {\n";
+    os << "  name = " << name << "\n";
+    os << "  " << "typeArgs = <";
+    for (auto&& arg : typeArgs) {
+        os << " " << *arg;
+    }
+    os << " >\n}" << std::endl;
+}
+
 void AstNode::Expression::Literal::print(std::ostream& os) const {
     const auto visitor = overloads {
         [&os](size_t value) { os << "size_t " << value; },
@@ -61,8 +71,8 @@ void AstNode::Statement::Assignment::print(std::ostream& os) const {
 }
 
 void AstNode::Statement::Declaration::print(std::ostream& os) const {
-    os << "AstNode::Statement::Declaration {\n  name = " << name << "\n  type = ";
-    for (auto&& t : type) os << " " << t;
+    os << "AstNode::Statement::Declaration {\n  name = " << name;
+    os << "\n  type = " << *type;
     os << "\n  value = ";
     if (value) os << **value;
     os << "\n}" << std::endl;
@@ -101,23 +111,10 @@ void AstNode::Statement::If::print(std::ostream& os) const {
 
 void AstNode::Function::Procedure::print(std::ostream& os) const {
     os << "AstNode::Function::Procedure {\n  name = " << name;
-    os << "\n  returnType = " << returnType->at(0);
-    for (int i = 1; i < returnType->size(); i++) {
-        os << "<" << returnType->at(i);
-    }
-    for (int i = 1; i < returnType->size(); i++) {
-        os << ">";
-    }
+    os << "\n  returnType = " << **returnType;
     os << "\n  parameterTypes = [";
     for (auto&& t : parameterTypes) {
-        os << t.at(0);
-        for (int i = 1; i < t.size(); i++) {
-            os << "<" << t.at(i);
-        }
-        for (int i = 1; i < t.size(); i++) {
-            os << ">";
-        }
-        os << ",\n";
+        os << *t << " ";
     }
     os << " ]\n  parameters = [";
     for (auto&& p : parameters) os << " " << p;
@@ -130,14 +127,7 @@ void AstNode::Function::Oblock::print(std::ostream& os) const {
     os << "AstNode::Function::Oblock {\n  name = " << name << "\n}" << std::endl;
     os << "\n  parameterTypes = [";
     for (auto&& t : parameterTypes) {
-        os << t.at(0);
-        for (int i = 1; i < t.size(); i++) {
-            os << "<" << t.at(i);
-        }
-        for (int i = 1; i < t.size(); i++) {
-            os << ">";
-        }
-        os << ",\n";
+        os << *t << " ";
     }
     os << " ]\n  parameters = [";
     for (auto&& p : parameters) os << " " << p;

@@ -16,6 +16,7 @@ namespace BlsLang {
 
     class AstNode {
         public:
+            class Specifier;
             class Expression;
             class Statement;
             class Function;
@@ -29,6 +30,28 @@ namespace BlsLang {
         
         private:
             virtual void print(std::ostream& os) const = 0;
+    };
+
+    class AstNode::Specifier : public AstNode {
+        public:
+            class Type;
+        
+            virtual ~Specifier() = default;
+    };
+
+    class AstNode::Specifier::Type : public AstNode::Specifier {
+        public:
+            Type() = default;
+            Type(std::string name, std::vector<std::unique_ptr<AstNode::Specifier::Type>> typeArgs)
+               : name(std::move(name)), typeArgs(std::move(typeArgs)) {}
+            
+            std::any accept(Visitor& v) override { return v.visit(*this); }
+        
+        private:
+            void print(std::ostream& os) const override;
+
+            std::string name;
+            std::vector<std::unique_ptr<AstNode::Specifier::Type>> typeArgs;
     };
 
     class AstNode::Expression : public AstNode {
@@ -226,7 +249,7 @@ namespace BlsLang {
         public:
             Declaration() = default;
             Declaration(std::string name
-                      , std::vector<std::string> type
+                      , std::unique_ptr<AstNode::Specifier::Type> type
                       , std::optional<std::unique_ptr<AstNode::Expression>> value)
                       : name(std::move(name))
                       , type(std::move(type))
@@ -238,7 +261,7 @@ namespace BlsLang {
             void print(std::ostream& os) const override;
 
             std::string name;
-            std::vector<std::string> type;
+            std::unique_ptr<AstNode::Specifier::Type> type;
             std::optional<std::unique_ptr<AstNode::Expression>> value;
     };
 
@@ -325,11 +348,10 @@ namespace BlsLang {
             class Oblock;
             class Setup;
 
-        private:
             Function() = default;
             Function(std::string name
-                   , std::optional<std::vector<std::string>> returnType
-                   , std::vector<std::vector<std::string>> parameterTypes
+                   , std::optional<std::unique_ptr<AstNode::Specifier::Type>> returnType
+                   , std::vector<std::unique_ptr<AstNode::Specifier::Type>> parameterTypes
                    , std::vector<std::string> parameters
                    , std::vector<std::unique_ptr<AstNode::Statement>> statements)
                    : name(std::move(name))
@@ -338,10 +360,11 @@ namespace BlsLang {
                    , parameters(std::move(parameters))
                    , statements(std::move(statements)) {}
             virtual ~Function() = default;
-   
+        
+        private:
             std::string name;
-            std::optional<std::vector<std::string>> returnType;
-            std::vector<std::vector<std::string>> parameterTypes;
+            std::optional<std::unique_ptr<AstNode::Specifier::Type>> returnType;
+            std::vector<std::unique_ptr<AstNode::Specifier::Type>> parameterTypes;
             std::vector<std::string> parameters;
             std::vector<std::unique_ptr<AstNode::Statement>> statements;
     };
@@ -350,8 +373,8 @@ namespace BlsLang {
         public:
             Procedure() = default;
             Procedure(std::string name
-                    , std::optional<std::vector<std::string>> returnType
-                    , std::vector<std::vector<std::string>> parameterTypes
+                    , std::optional<std::unique_ptr<AstNode::Specifier::Type>> returnType
+                    , std::vector<std::unique_ptr<AstNode::Specifier::Type>> parameterTypes
                     , std::vector<std::string> parameters
                     , std::vector<std::unique_ptr<AstNode::Statement>> statements)
             :
@@ -371,7 +394,7 @@ namespace BlsLang {
         public:
             Oblock() = default;
             Oblock(std::string name
-                 , std::vector<std::vector<std::string>> parameterTypes
+                 , std::vector<std::unique_ptr<AstNode::Specifier::Type>> parameterTypes
                  , std::vector<std::string> parameters
                  , std::vector<std::unique_ptr<AstNode::Statement>> statements)
             : 
@@ -404,8 +427,8 @@ namespace BlsLang {
     class AstNode::Source : public AstNode {
         public:
             Source() = default;
-            Source(std::vector<std::unique_ptr<AstNode::Function::Procedure>> procedures
-                 , std::vector<std::unique_ptr<AstNode::Function::Oblock>> oblocks
+            Source(std::vector<std::unique_ptr<AstNode::Function>> procedures
+                 , std::vector<std::unique_ptr<AstNode::Function>> oblocks
                  , std::unique_ptr<AstNode::Setup> setup)
                  : procedures(std::move(procedures))
                  , oblocks(std::move(oblocks))
@@ -416,8 +439,8 @@ namespace BlsLang {
         private:
             void print(std::ostream& os) const override;
 
-            std::vector<std::unique_ptr<AstNode::Function::Procedure>> procedures;
-            std::vector<std::unique_ptr<AstNode::Function::Oblock>> oblocks;
+            std::vector<std::unique_ptr<AstNode::Function>> procedures;
+            std::vector<std::unique_ptr<AstNode::Function>> oblocks;
             std::unique_ptr<AstNode::Setup> setup;
     };
 

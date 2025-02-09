@@ -17,8 +17,7 @@ namespace BlsLang {
 
             std::unique_ptr<AstNode::Source> parseSource();
             std::unique_ptr<AstNode::Setup> parseSetup();
-            std::unique_ptr<AstNode::Function::Oblock> parseOblock();
-            std::unique_ptr<AstNode::Function::Procedure> parseProcedure();
+            std::unique_ptr<AstNode::Function> parseFunction();
             std::vector<std::unique_ptr<AstNode::Statement>> parseBlock();
             std::unique_ptr<AstNode::Statement> parseStatement();
             std::unique_ptr<AstNode::Statement> parseAssignmentExpressionStatement();
@@ -36,11 +35,11 @@ namespace BlsLang {
             std::unique_ptr<AstNode::Expression> parseExponentialExpression();
             std::unique_ptr<AstNode::Expression> parseUnaryExpression();
             std::unique_ptr<AstNode::Expression> parsePrimaryExpression();
+            std::unique_ptr<AstNode::Specifier> parseSpecifier();
+            std::unique_ptr<AstNode::Specifier::Type> parseTypeSpecifier();
 
             // helpers
             void matchExpectedSymbol(std::string&& symbol, std::string&& message);
-            std::vector<std::string> parseTypeIdentifier();
-            void parseFunctionParams(std::vector<std::vector<std::string>>& parameterTypes, std::vector<std::string>& parameters);
     };
 
     class ParseException : public std::exception {
