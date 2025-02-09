@@ -37,6 +37,8 @@ namespace BlsLang {
             std::unique_ptr<AstNode::Expression> parseUnaryExpression();
             std::unique_ptr<AstNode::Expression> parsePrimaryExpression();
 
+            // helpers
+            void parseFunctionParams(std::vector<std::string>& parameterTypes, std::vector<std::string>& parameters);
     };
 
     class ParseException : public std::exception {
