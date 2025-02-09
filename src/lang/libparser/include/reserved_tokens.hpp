@@ -33,12 +33,6 @@ namespace BlsLang {
     
     constexpr auto STATEMENT_TERMINATOR                 (";");
 
-    constexpr auto PARENTHESES_OPEN                     ("(");
-    constexpr auto PARENTHESES_CLOSE                    ("(");
-
-    constexpr auto BLOCK_OPEN                           ("{");
-    constexpr auto BLOCK_CLOSE                          ("}");
-
     constexpr auto MEMBER_ACCESS                        (".");
 
     constexpr auto SUBSCRIPT_ACCESS_OPEN                ("[");
