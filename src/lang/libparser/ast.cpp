@@ -81,9 +81,9 @@ void AstNode::Statement::While::print(std::ostream& os) const {
 }
 
 void AstNode::Statement::For::print(std::ostream& os) const {
-    os << "AstNode::Statement::For {\n  initStatement = " << *initStatement;
-    os << "\n  condition = " << *condition;
-    os << "\n  incrementExpression = " << *incrementExpression;
+    if (initStatement) os << "AstNode::Statement::For {\n  initStatement = " << **initStatement;
+    if (condition) os << "\n  condition = " << **condition;
+    if (incrementExpression) os << "\n  incrementExpression = " << **incrementExpression;
     os << "\n  block = [";
     for (auto&& stmt : block) os << " " << *stmt;
     os << " ]\n}" << std::endl;

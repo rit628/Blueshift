@@ -276,9 +276,9 @@ namespace BlsLang {
     class AstNode::Statement::For : public AstNode::Statement {
         public:
             For() = default;
-            For(std::unique_ptr<AstNode::Statement> initStatement
-              , std::unique_ptr<AstNode::Statement> condition
-              , std::unique_ptr<AstNode::Expression> incrementExpression
+            For(std::optional<std::unique_ptr<AstNode::Statement>> initStatement
+              , std::optional<std::unique_ptr<AstNode::Statement>> condition
+              , std::optional<std::unique_ptr<AstNode::Expression>> incrementExpression
               , std::vector<std::unique_ptr<AstNode::Statement>> block)
               : initStatement(std::move(initStatement))
               , condition(std::move(condition))
@@ -290,9 +290,9 @@ namespace BlsLang {
         private:
             void print(std::ostream& os) const override;
 
-            std::unique_ptr<AstNode::Statement> initStatement;
-            std::unique_ptr<AstNode::Statement> condition;
-            std::unique_ptr<AstNode::Expression> incrementExpression;
+            std::optional<std::unique_ptr<AstNode::Statement>> initStatement;
+            std::optional<std::unique_ptr<AstNode::Statement>> condition;
+            std::optional<std::unique_ptr<AstNode::Expression>> incrementExpression;
             std::vector<std::unique_ptr<AstNode::Statement>> block;
     };
 

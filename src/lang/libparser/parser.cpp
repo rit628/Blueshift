@@ -109,20 +109,24 @@ std::unique_ptr<AstNode::Statement> Parser::parseStatement() {
     else if (ts.peek(RESERVED_RETURN)) {
         return parseReturnStatement();
     }
-    else if (ts.peek(Token::Type::IDENTIFIER, TYPE_DELIMITER_OPEN) ||
-             ts.peek(Token::Type::IDENTIFIER, Token::Type::IDENTIFIER)) {
+    else if (ts.peek(Token::Type::IDENTIFIER, TYPE_DELIMITER_OPEN)
+          || ts.peek(Token::Type::IDENTIFIER, Token::Type::IDENTIFIER)) {
         return parseDeclarationStatement();
     }
     else {
-        auto lhs = parseExpression();
-        if (ts.match(ASSIGNMENT)) {
-            auto rhs = parseExpression();
-            matchExpectedSymbol(";", "at end of assignment.");
-            return std::make_unique<AstNode::Statement::Assignment>(std::move(lhs), std::move(rhs));
-        }
-        matchExpectedSymbol(";", "at end of expression.");
-        return std::make_unique<AstNode::Statement::Expression>(std::move(lhs));
+        return parseAssignmentExpressionStatement();
     }
+}
+
+std::unique_ptr<AstNode::Statement> Parser::parseAssignmentExpressionStatement() {
+    auto lhs = parseExpression();
+    if (ts.match(ASSIGNMENT)) {
+        auto rhs = parseExpression();
+        matchExpectedSymbol(";", "at end of assignment.");
+        return std::make_unique<AstNode::Statement::Assignment>(std::move(lhs), std::move(rhs));
+    }
+    matchExpectedSymbol(";", "at end of expression.");
+    return std::make_unique<AstNode::Statement::Expression>(std::move(lhs));
 }
 
 std::unique_ptr<AstNode::Statement::Declaration> Parser::parseDeclarationStatement() {
@@ -153,7 +157,29 @@ std::unique_ptr<AstNode::Statement::While> Parser::parseWhileStatement() {
 }
 
 std::unique_ptr<AstNode::Statement::For> Parser::parseForStatement() {
-
+    ts.match(RESERVED_FOR);
+    matchExpectedSymbol("(", "after 'for'.");
+    auto parseInnerStatement = [this]() -> std::optional<std::unique_ptr<AstNode::Statement>> {
+        if (ts.peek(Token::Type::IDENTIFIER, TYPE_DELIMITER_OPEN)
+        || ts.peek(Token::Type::IDENTIFIER, Token::Type::IDENTIFIER)) {
+            return parseDeclarationStatement();
+        }
+        else if (!ts.match(";")) {
+            return parseAssignmentExpressionStatement();
+        }
+        else {
+            return std::nullopt;
+        }
+    };
+    std::optional<std::unique_ptr<AstNode::Statement>> initStatement = parseInnerStatement();
+    std::optional<std::unique_ptr<AstNode::Statement>> condition = parseInnerStatement();
+    std::optional<std::unique_ptr<AstNode::Expression>> incrementExpression = parseExpression();
+    matchExpectedSymbol(")", "after for statement condition statements.");
+    std::vector<std::unique_ptr<AstNode::Statement>> block = parseBlock();
+    return std::make_unique<AstNode::Statement::For>(std::move(initStatement)
+                                                   , std::move(condition)
+                                                   , std::move(incrementExpression)
+                                                   , std::move(block));
 }
 
 std::unique_ptr<AstNode::Statement::If> Parser::parseIfStatement() {
