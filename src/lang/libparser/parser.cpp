@@ -156,7 +156,35 @@ std::unique_ptr<AstNode::Statement::For> Parser::parseForStatement() {
 }
 
 std::unique_ptr<AstNode::Statement::If> Parser::parseIfStatement() {
+    ts.match(RESERVED_IF);
+    matchExpectedSymbol("(", "after 'if'.");
+    auto condition = parseExpression();
+    matchExpectedSymbol(")", "after if statement condition.");
+    auto block = parseBlock();
+    std::vector<std::unique_ptr<AstNode::Statement::If>> elseIfStatements;
+    while (ts.peek(RESERVED_ELSE, RESERVED_IF)) {
+        elseIfStatements.push_back(parseIfStatement());
+    }
+    std::vector<std::unique_ptr<AstNode::Statement>> elseBlock;
+    if (ts.match(RESERVED_ELSE)) {
+        elseBlock = parseBlock();
+    }
+    return std::make_unique<AstNode::Statement::If>(std::move(condition)
+                                                  , std::move(block)
+                                                  , std::move(elseIfStatements)
+                                                  , std::move(elseBlock));
+}
 
+std::unique_ptr<AstNode::Statement::If> Parser::parseElseIfStatement() {
+    ts.match(RESERVED_ELSE, RESERVED_IF);
+    matchExpectedSymbol("(", "after 'else if'.");
+    auto condition = parseExpression();
+    matchExpectedSymbol(")", "after 'else if' statement condition.");
+    auto block = parseBlock();
+    return std::make_unique<AstNode::Statement::If>(std::move(condition)
+                                                  , std::move(block)
+                                                  , std::vector<std::unique_ptr<AstNode::Statement::If>>()
+                                                  , std::vector<std::unique_ptr<AstNode::Statement>>());
 }
 
 std::unique_ptr<AstNode::Expression> Parser::parseExpression() {
