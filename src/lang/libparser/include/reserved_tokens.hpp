@@ -53,11 +53,12 @@ namespace BlsLang {
     constexpr auto COMPARISON_NE                        ("!=");
     constexpr auto COMPARISON_EQ                        ("==");
 
-    constexpr auto BINARY_EXPONENTIATION                ("^");
-    constexpr auto BINARY_MULTIPLICATION                ("*");
-    constexpr auto BINARY_DIVISION                      ("/");
-    constexpr auto BINARY_ADDITION                      ("+");
-    constexpr auto BINARY_SUBTRACTION                   ("-");
+    constexpr auto ARITHMETIC_EXPONENTIATION                ("^");
+    constexpr auto ARITHMETIC_MULTIPLICATION                ("*");
+    constexpr auto ARITHMETIC_DIVISION                      ("/");
+    constexpr auto ARITHMETIC_REMAINDER                     ("%");
+    constexpr auto ARITHMETIC_ADDITION                      ("+");
+    constexpr auto ARITHMETIC_SUBTRACTION                   ("-");
 
     constexpr auto ASSIGNMENT                           ("=");
     constexpr auto ASSIGNMENT_ADDITION                  ("+=");

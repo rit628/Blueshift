@@ -188,27 +188,78 @@ std::unique_ptr<AstNode::Statement::If> Parser::parseElseIfStatement() {
 }
 
 std::unique_ptr<AstNode::Expression> Parser::parseExpression() {
-
+    return parseLogicalExpression();
 }
 
 std::unique_ptr<AstNode::Expression> Parser::parseLogicalExpression() {
+    auto lhs = parseComparisonExpression();
+    while (ts.match(LOGICAL_AND) || ts.match(LOGICAL_OR)) {
+        auto op = ts.at(-1).getLiteral();
+        auto rhs = parseComparisonExpression();
 
+        auto compoundExpression = std::make_unique<AstNode::Expression::Binary>(std::move(op), std::move(lhs), std::move(rhs));
+        lhs = std::move(compoundExpression);
+    }
+    return lhs;
 }
 
 std::unique_ptr<AstNode::Expression> Parser::parseComparisonExpression() {
+    auto lhs = parseAdditiveExpression();
+    while (ts.match(COMPARISON_LT)
+        || ts.match(COMPARISON_LE)
+        || ts.match(COMPARISON_GT)
+        || ts.match(COMPARISON_GE)
+        || ts.match(COMPARISON_EQ)
+        || ts.match(COMPARISON_NE)) {
+            
+        auto op = ts.at(-1).getLiteral();
+        auto rhs = parseAdditiveExpression();
 
+        auto compoundExpression = std::make_unique<AstNode::Expression::Binary>(std::move(op), std::move(lhs), std::move(rhs));
+        lhs = std::move(compoundExpression);
+    }
+    return lhs;
 }
 
 std::unique_ptr<AstNode::Expression> Parser::parseAdditiveExpression() {
+    auto lhs = parseMultiplicativeExpression();
+    while (ts.match(ARITHMETIC_ADDITION) || ts.match(ARITHMETIC_SUBTRACTION)) {
+            
+        auto op = ts.at(-1).getLiteral();
+        auto rhs = parseMultiplicativeExpression();
 
+        auto compoundExpression = std::make_unique<AstNode::Expression::Binary>(std::move(op), std::move(lhs), std::move(rhs));
+        lhs = std::move(compoundExpression);
+    }
+    return lhs;
 }
 
 std::unique_ptr<AstNode::Expression> Parser::parseMultiplicativeExpression() {
+    auto lhs = parseExponentialExpression();
+    while (ts.match(ARITHMETIC_MULTIPLICATION)
+        || ts.match(ARITHMETIC_DIVISION)
+        || ts.match(ARITHMETIC_REMAINDER)) {
+            
+        auto op = ts.at(-1).getLiteral();
+        auto rhs = parseExponentialExpression();
 
+        auto compoundExpression = std::make_unique<AstNode::Expression::Binary>(std::move(op), std::move(lhs), std::move(rhs));
+        lhs = std::move(compoundExpression);
+    }
+    return lhs;
 }
 
 std::unique_ptr<AstNode::Expression> Parser::parseExponentialExpression() {
+    auto lhs = parseUnaryExpression();
+    while (ts.match(ARITHMETIC_EXPONENTIATION)) {
+            
+        auto op = ts.at(-1).getLiteral();
+        auto rhs = parseUnaryExpression();
 
+        auto compoundExpression = std::make_unique<AstNode::Expression::Binary>(std::move(op), std::move(lhs), std::move(rhs));
+        lhs = std::move(compoundExpression);
+    }
+    return lhs;
 }
 
 std::unique_ptr<AstNode::Expression> Parser::parseUnaryExpression() {
