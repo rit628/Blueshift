@@ -40,6 +40,7 @@ namespace BlsLang {
     constexpr auto TYPE_DELIMITER_CLOSE                 (">");
 
     constexpr auto UNARY_NOT                            ("!");
+    constexpr auto UNARY_NEGATIVE                       ("-");
     constexpr auto UNARY_INCREMENT                      ("++");
     constexpr auto UNARY_DECREMENT                      ("--");
 
@@ -53,12 +54,12 @@ namespace BlsLang {
     constexpr auto COMPARISON_NE                        ("!=");
     constexpr auto COMPARISON_EQ                        ("==");
 
-    constexpr auto ARITHMETIC_EXPONENTIATION                ("^");
-    constexpr auto ARITHMETIC_MULTIPLICATION                ("*");
-    constexpr auto ARITHMETIC_DIVISION                      ("/");
-    constexpr auto ARITHMETIC_REMAINDER                     ("%");
-    constexpr auto ARITHMETIC_ADDITION                      ("+");
-    constexpr auto ARITHMETIC_SUBTRACTION                   ("-");
+    constexpr auto ARITHMETIC_EXPONENTIATION            ("^");
+    constexpr auto ARITHMETIC_MULTIPLICATION            ("*");
+    constexpr auto ARITHMETIC_DIVISION                  ("/");
+    constexpr auto ARITHMETIC_REMAINDER                 ("%");
+    constexpr auto ARITHMETIC_ADDITION                  ("+");
+    constexpr auto ARITHMETIC_SUBTRACTION               ("-");
 
     constexpr auto ASSIGNMENT                           ("=");
     constexpr auto ASSIGNMENT_ADDITION                  ("+=");

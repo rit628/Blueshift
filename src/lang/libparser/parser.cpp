@@ -6,6 +6,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace BlsLang;
@@ -263,7 +264,24 @@ std::unique_ptr<AstNode::Expression> Parser::parseExponentialExpression() {
 }
 
 std::unique_ptr<AstNode::Expression> Parser::parseUnaryExpression() {
-
+    std::string op;
+    std::unique_ptr<AstNode::Expression> expr;
+    if (ts.match(UNARY_NOT) || ts.match(UNARY_NEGATIVE)) {
+        op = ts.at(-1).getLiteral();
+        expr = parseUnaryExpression();
+        return std::make_unique<AstNode::Expression::Unary>(std::move(op), std::move(expr));
+    }
+    else if (ts.match(UNARY_INCREMENT) || ts.match(UNARY_DECREMENT)) { // match pre-(in/de)crement ++a/--a
+        op = ts.at(-1).getLiteral();
+        expr = parsePrimaryExpression();
+        return std::make_unique<AstNode::Expression::Unary>(std::move(op), std::move(expr));
+    }
+    expr = parsePrimaryExpression();
+    if (ts.match(UNARY_INCREMENT) || ts.match(UNARY_DECREMENT)) { // match post-(in/de)crement a++/a--
+        op = ts.at(-1).getLiteral();
+        return std::make_unique<AstNode::Expression::Unary>(std::move(op), std::move(expr));
+    }
+    return expr;
 }
 
 std::unique_ptr<AstNode::Expression> Parser::parsePrimaryExpression() {
