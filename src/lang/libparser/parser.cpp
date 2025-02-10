@@ -179,7 +179,7 @@ std::unique_ptr<AstNode::Statement::For> Parser::parseForStatement() {
     };
     auto initStatement = parseInnerStatement();
     auto condition = parseInnerStatement();
-    std::optional<std::unique_ptr<AstNode::Expression>> incrementExpression = parseExpression();
+    auto incrementExpression = (ts.peek(PARENTHESES_CLOSE)) ? std::nullopt : std::make_optional(parseExpression());
     matchExpectedSymbol(PARENTHESES_CLOSE, "after for statement condition statements.");
     std::vector<std::unique_ptr<AstNode::Statement>> block = parseBlock();
     return std::make_unique<AstNode::Statement::For>(std::move(initStatement)
@@ -344,6 +344,9 @@ std::unique_ptr<AstNode::Expression> Parser::parsePrimaryExpression() {
         // TODO: clean quotes and escapes here
         return std::make_unique<AstNode::Expression::Literal>(std::move(literal));
     }
+    // else if (ts.match(BRACKET_OPEN)) { //TODO: array literal
+        
+    // }
     else if (ts.match(PARENTHESES_OPEN)) {
         auto innerExp = parseExpression();
         matchExpectedSymbol(PARENTHESES_CLOSE, "after grouped expression.");

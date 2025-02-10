@@ -16,7 +16,8 @@ namespace BlsLang {
     };
 
     #define DEVTYPE_BEGIN(typename) \
-    constexpr auto DEVTYPE_##typename (#typename);
+    constexpr auto DEVTYPE_##typename (#typename); \
+    constexpr auto VTYPE_##typename ("v" #typename);
     #define ATTRIBUTE(_, __)
     #define DEVTYPE_END
     #include "DEVTYPES.LIST"
