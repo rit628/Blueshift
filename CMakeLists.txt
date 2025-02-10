@@ -92,4 +92,5 @@ target_link_libraries(test_libTSQ TSQ GTest::gtest_main)
 
 include(GoogleTest)
 gtest_discover_tests(test_liblexer)
+gtest_discover_tests(test_libparser)
 gtest_discover_tests(test_libTSQ)

@@ -9,6 +9,19 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, StatementTests, First) {
         std::vector<Token> sampleTokens {
+            Token(Token::Type::IDENTIFIER, "a", 0, 1, 1),
+            Token(Token::Type::OPERATOR, ";", 9, 1, 10),
+        };
+        std::unique_ptr<AstNode> expectedAst = std::make_unique<AstNode::Statement::Expression>(AstNode::Statement::Expression(
+            std::make_unique<AstNode::Expression::Access>(
+                "a"
+            )
+        ));
+        TEST_PARSE_STATEMENT(sampleTokens, std::move(expectedAst));
+    }
+
+    GROUP_TEST_F(ParserTest, StatementTests, Second) {
+        std::vector<Token> sampleTokens {
             Token(Token::Type::IDENTIFIER, "int", 0, 1, 1),
             Token(Token::Type::IDENTIFIER, "x", 4, 1, 5),
             Token(Token::Type::OPERATOR, "=", 6, 1, 7),
