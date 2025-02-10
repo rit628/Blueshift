@@ -1,8 +1,16 @@
 #include "ast.hpp"
+#include "visitor.hpp"
 #include <memory>
 #include <variant>
 
 using namespace BlsLang;
+
+#define AST_NODE_ABSTRACT(_)
+#define AST_NODE(Node) \
+std::any Node::accept(Visitor& v) { return v.visit(*this); }
+#include "include/NODE_TYPES.LIST"
+#undef AST_NODE
+#undef AST_NODE_ABSTRACT
 
 template<class... Ts>
 struct overloads : Ts... { using Ts::operator()...; };

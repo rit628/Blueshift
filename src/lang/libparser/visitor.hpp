@@ -1,13 +1,18 @@
 #pragma once
+#include "ast.hpp"
 #include <any>
 
 namespace BlsLang {
 
-    class AstNode;
-
     class Visitor {
         public:
-            virtual std::any visit(AstNode& v) = 0;
+            #define AST_NODE_ABSTRACT(_)
+            #define AST_NODE(Node) \
+            virtual std::any visit(Node& ast) = 0;
+            #include "include/NODE_TYPES.LIST"
+            #undef AST_NODE_ABSTRACT
+            #undef AST_NODE
+
             virtual ~Visitor() = default;
     };
 

@@ -1,5 +1,4 @@
 #pragma once
-#include "visitor.hpp"
 #include <any>
 #include <cstddef>
 #include <memory>
@@ -45,7 +44,10 @@ namespace BlsLang {
             Type(std::string name, std::vector<std::unique_ptr<AstNode::Specifier::Type>> typeArgs)
                : name(std::move(name)), typeArgs(std::move(typeArgs)) {}
             
-            std::any accept(Visitor& v) override { return v.visit(*this); }
+            std::any accept(Visitor& v) override;
+
+            auto& getName() { return name; }
+            auto& getTypeArgs() { return typeArgs; }
         
         private:
             void print(std::ostream& os) const override;
@@ -75,7 +77,9 @@ namespace BlsLang {
             Literal(bool literal)           : literal(std::move(literal)) {}
             Literal(std::string literal)    : literal(std::move(literal)) {}
 
-            std::any accept(Visitor& v) override { return v.visit(*this); }
+            std::any accept(Visitor& v) override;
+
+            auto& getLiteral() { return literal; }
 
         private:
             void print(std::ostream& os) const override;
@@ -100,7 +104,11 @@ namespace BlsLang {
                  , subscript(std::move(std::nullopt))
                  , member(std::move(member)) {}
             
-            std::any accept(Visitor& v) override { return v.visit(*this); }
+            std::any accept(Visitor& v) override;
+
+            auto& getObject() { return object; }
+            auto& getSubscript() { return subscript; }
+            auto& getMember() { return member; }
 
         private:
             void print(std::ostream& os) const override;
@@ -118,7 +126,10 @@ namespace BlsLang {
                    : name(std::move(name))
                    , arguments(std::move(arguments)) {}
 
-            std::any accept(Visitor& v) override { return v.visit(*this); }
+            std::any accept(Visitor& v) override;
+
+            auto& getName() { return name; }
+            auto& getArguments() { return arguments; }
 
         private:
             void print(std::ostream& os) const override;
@@ -137,7 +148,11 @@ namespace BlsLang {
                  , methodName(std::move(methodName))
                  , arguments(std::move(arguments)) {}
 
-            std::any accept(Visitor& v) override { return v.visit(*this); }
+            std::any accept(Visitor& v) override;
+
+            auto& getObject() { return object; }
+            auto& getMethodName() { return methodName; }
+            auto& getArguments() { return arguments; }
 
         private:
             void print(std::ostream& os) const override;
@@ -153,7 +168,9 @@ namespace BlsLang {
             Group(std::unique_ptr<AstNode::Expression> expression)
                 : expression(std::move(expression)) {}
             
-            std::any accept(Visitor& v) override { return v.visit(*this); }
+            std::any accept(Visitor& v) override;
+
+            auto& getExpression() { return expression; }
 
         private:
             void print(std::ostream& os) const override;
@@ -171,7 +188,11 @@ namespace BlsLang {
                 , expression(std::move(expression))
                 , prefix(std::move(prefix)) {}
         
-            std::any accept(Visitor& v) override { return v.visit(*this); }
+            std::any accept(Visitor& v) override;
+
+            auto& getOp() { return op; }
+            auto& getExpression() { return expression; }
+            auto getPrefix() { return prefix; }
 
         private:
             void print(std::ostream& os) const override;
@@ -191,7 +212,11 @@ namespace BlsLang {
                  , left(std::move(left))
                  , right(std::move(right)) {}
             
-            std::any accept(Visitor& v) override { return v.visit(*this); }
+            std::any accept(Visitor& v) override;
+
+            auto& getOp() { return op; }
+            auto& getLeft() { return left; }
+            auto& getRight() { return right; }
 
         private:
             void print(std::ostream& os) const override;
@@ -220,7 +245,9 @@ namespace BlsLang {
             Expression(std::unique_ptr<AstNode::Expression> expression)
                      : expression(std::move(expression)) {}
 
-            std::any accept(Visitor& v) override { return v.visit(*this); }
+            std::any accept(Visitor& v) override;
+
+            auto& getExpression() { return expression; }
 
         private:
             void print(std::ostream& os) const override;
@@ -236,7 +263,10 @@ namespace BlsLang {
                      : recipient(std::move(recipient))
                      , value(std::move(value)) {}
 
-            std::any accept(Visitor& v) override { return v.visit(*this); }
+            std::any accept(Visitor& v) override;
+
+            auto& getRecipient() { return recipient; }
+            auto& getValue() { return value; }
 
         private:
             void print(std::ostream& os) const override;
@@ -255,7 +285,11 @@ namespace BlsLang {
                       , type(std::move(type))
                       , value(std::move(value)) {}
 
-            std::any accept(Visitor& v) override { return v.visit(*this); }
+            std::any accept(Visitor& v) override;
+
+            auto& getName() { return name; }
+            auto& getType() { return type; }
+            auto& getValue() { return value; }
 
         private:
             void print(std::ostream& os) const override;
@@ -271,7 +305,9 @@ namespace BlsLang {
             Return(std::optional<std::unique_ptr<AstNode::Expression>> value)
                  : value(std::move(value)) {}
 
-            std::any accept(Visitor& v) override { return v.visit(*this); }
+            std::any accept(Visitor& v) override;
+
+            auto& getValue() { return value; }
 
         private:
             void print(std::ostream& os) const override;
@@ -287,7 +323,10 @@ namespace BlsLang {
                 : condition(std::move(condition))
                 , block(std::move(block)) {}
 
-            std::any accept(Visitor& v) override { return v.visit(*this); }
+            std::any accept(Visitor& v) override;
+
+            auto& getCondition() { return condition; }
+            auto& getBlock() { return block; }
 
         private:
             void print(std::ostream& os) const override;
@@ -308,7 +347,12 @@ namespace BlsLang {
               , incrementExpression(std::move(incrementExpression))
               , block(std::move(block)) {}
             
-            std::any accept(Visitor& v) override { return v.visit(*this); }
+            std::any accept(Visitor& v) override;
+
+            auto& getInitStatement() { return initStatement; }
+            auto& getCondition() { return condition; }
+            auto& getIncrementExpression() { return incrementExpression; }
+            auto& getBlock() { return block; }
 
         private:
             void print(std::ostream& os) const override;
@@ -331,7 +375,12 @@ namespace BlsLang {
              , elseIfStatements(std::move(elseIfStatements))
              , elseBlock(std::move(elseBlock)) {}
             
-            std::any accept(Visitor& v) override { return v.visit(*this); }
+            std::any accept(Visitor& v) override;
+
+            auto& getCondition() { return condition; }
+            auto& getBlock() { return block; }
+            auto& getElseIfStatements() { return elseIfStatements; }
+            auto& getElseBlock() { return elseBlock; }
 
         private:
             void print(std::ostream& os) const override;
@@ -346,7 +395,6 @@ namespace BlsLang {
         public:
             class Procedure;
             class Oblock;
-            class Setup;
 
             Function() = default;
             Function(std::string name
@@ -360,6 +408,11 @@ namespace BlsLang {
                    , parameters(std::move(parameters))
                    , statements(std::move(statements)) {}
             virtual ~Function() = default;
+
+            auto& getName() { return name; }
+            auto& getReturnType() { return returnType; }
+            auto& getParameters() { return parameters; }
+            auto& getStatements() { return statements; }
         
         private:
             std::string name;
@@ -384,7 +437,7 @@ namespace BlsLang {
                    , std::move(parameters)
                    , std::move(statements)) {}
             
-            std::any accept(Visitor& v) override { return v.visit(*this); }
+            std::any accept(Visitor& v) override;
 
         private:
             void print(std::ostream& os) const override;
@@ -404,7 +457,7 @@ namespace BlsLang {
                    , std::move(parameters)
                    , std::move(statements)) {}
             
-            std::any accept(Visitor& v) override { return v.visit(*this); }
+            std::any accept(Visitor& v) override;
         
         private:
             void print(std::ostream& os) const override;
@@ -416,8 +469,10 @@ namespace BlsLang {
             Setup(std::vector<std::unique_ptr<AstNode::Statement>> statements)
                 : statements(std::move(statements)) {}
             
-            std::any accept(Visitor& v) override { return v.visit(*this); }
-        
+            std::any accept(Visitor& v) override;
+
+            auto& getStatements() { return statements; }
+                    
         private:
             void print(std::ostream& os) const override;
 
@@ -434,7 +489,11 @@ namespace BlsLang {
                  , oblocks(std::move(oblocks))
                  , setup(std::move(setup)) {}
 
-            std::any accept(Visitor& v) override { return v.visit(*this); }
+            std::any accept(Visitor& v) override;
+
+            auto& getProcedures() { return procedures; }
+            auto& getOblocks() { return oblocks; }
+            auto& getSetup() { return setup; }
         
         private:
             void print(std::ostream& os) const override;

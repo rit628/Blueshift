@@ -10,6 +10,7 @@ namespace BlsLang {
     
     class Parser {
         public:
+            friend class ParserTest;
             std::unique_ptr<AstNode::Source> parse(std::vector<Token> tokenStream);
 
         private:

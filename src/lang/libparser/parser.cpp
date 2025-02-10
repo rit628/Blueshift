@@ -310,7 +310,7 @@ std::unique_ptr<AstNode::Expression> Parser::parseUnaryExpression() {
     expr = parsePrimaryExpression();
     if (ts.match(UNARY_INCREMENT) || ts.match(UNARY_DECREMENT)) { // match post-(in/de)crement a++/a--
         auto& op = ts.at(-1).getLiteral();
-        return std::make_unique<AstNode::Expression::Unary>(std::move(op), std::move(expr));
+        return std::make_unique<AstNode::Expression::Unary>(std::move(op), std::move(expr), false);
     }
     return expr;
 }

@@ -79,6 +79,11 @@ add_executable(test_liblexer ${LIBLEXER_TESTS})
 target_include_directories(test_liblexer PUBLIC ${TEST_DEPS} ${LANG_SRC_DIR}/liblexer)
 target_link_libraries(test_liblexer lexer GTest::gtest_main)
 
+file(GLOB_RECURSE LIBPARSER_TESTS ${LANG_TEST_DIR}/libparser/*.cpp)
+add_executable(test_libparser ${LIBPARSER_TESTS})
+target_include_directories(test_libparser PUBLIC ${TEST_DEPS} ${LANG_SRC_DIR}/libparser)
+target_link_libraries(test_libparser parser GTest::gtest_main)
+
 # MASTER TESTS
 file(GLOB_RECURSE LIBTSQ_TESTS ${MASTER_TEST_DIR}/libTSQ/*.cpp)
 add_executable(test_libTSQ ${LIBTSQ_TESTS})
