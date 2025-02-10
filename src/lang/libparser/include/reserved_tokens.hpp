@@ -31,20 +31,20 @@ namespace BlsLang {
     constexpr auto RESERVED_OBLOCK                      ("oblock");
     constexpr auto RESERVED_SETUP                       ("setup");
 
-    constexpr auto BLOCK_OPEN                           ("{");
-    constexpr auto BLOCK_CLOSE                          ("}");
+    constexpr auto BRACE_OPEN                           ("{");
+    constexpr auto BRACE_CLOSE                          ("}");
 
     constexpr auto PARENTHESES_OPEN                     ("(");
     constexpr auto PARENTHESES_CLOSE                    (")");
 
-    constexpr auto ARGUMENT_SEPERATOR                   (",");
+    constexpr auto BRACKET_OPEN                         ("[");
+    constexpr auto BRACKET_CLOSE                        ("]");
 
-    constexpr auto STATEMENT_TERMINATOR                 (";");
+    constexpr auto COMMA                                (",");
+
+    constexpr auto SEMICOLON                            (";");
     
     constexpr auto MEMBER_ACCESS                        (".");
-
-    constexpr auto SUBSCRIPT_ACCESS_OPEN                ("[");
-    constexpr auto SUBSCRIPT_ACCESS_CLOSE               ("]");
 
     constexpr auto TYPE_DELIMITER_OPEN                  ("<");
     constexpr auto TYPE_DELIMITER_CLOSE                 (">");

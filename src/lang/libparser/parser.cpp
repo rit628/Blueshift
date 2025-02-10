@@ -62,7 +62,7 @@ std::unique_ptr<AstNode::Function> Parser::parseFunction() {
     if (!ts.match(Token::Type::IDENTIFIER)) {
         throw ParseException("Expected valid identifier for function name.", ts.getLine(), ts.getColumn());
     }
-    auto name = ts.at(-1).getLiteral();
+    auto& name = ts.at(-1).getLiteral();
     std::vector<std::unique_ptr<AstNode::Specifier::Type>> parameterTypes;
     std::vector<std::string> parameters;
     matchExpectedSymbol(PARENTHESES_OPEN, "at start of function parameter list.");
@@ -70,12 +70,12 @@ std::unique_ptr<AstNode::Function> Parser::parseFunction() {
         do {
             parameterTypes.push_back(parseTypeSpecifier());
             if (ts.match(Token::Type::IDENTIFIER)) {
-                parameters.push_back(ts.at(-1).getLiteral());
+                parameters.push_back(std::move(ts.at(-1).getLiteral()));
             }
             else {
                 throw ParseException("Invalid function parameter.", ts.getLine(), ts.getColumn());
             }
-        } while (ts.match(ARGUMENT_SEPERATOR));
+        } while (ts.match(COMMA));
     }
     matchExpectedSymbol(PARENTHESES_CLOSE, "at end of function parameter list.");
     auto statements = parseBlock();
@@ -95,12 +95,12 @@ std::unique_ptr<AstNode::Function> Parser::parseFunction() {
 }
 
 std::vector<std::unique_ptr<AstNode::Statement>> Parser::parseBlock() {
-    matchExpectedSymbol(BLOCK_OPEN, "at start of block body.");
+    matchExpectedSymbol(BRACE_OPEN, "at start of block body.");
     std::vector<std::unique_ptr<AstNode::Statement>> body;
-    while (!ts.peek(BLOCK_CLOSE) && !ts.empty()) {
+    while (!ts.peek(BRACE_CLOSE) && !ts.empty()) {
         body.push_back(parseStatement());
     }
-    matchExpectedSymbol(BLOCK_CLOSE, "at end of block body.");
+    matchExpectedSymbol(BRACE_CLOSE, "at end of block body.");
     return body;
 }
 
@@ -117,8 +117,7 @@ std::unique_ptr<AstNode::Statement> Parser::parseStatement() {
     else if (ts.peek(RESERVED_RETURN)) {
         return parseReturnStatement();
     }
-    else if (ts.peek(Token::Type::IDENTIFIER, TYPE_DELIMITER_OPEN)
-          || ts.peek(Token::Type::IDENTIFIER, Token::Type::IDENTIFIER)) {
+    else if (peekTypedDeclaration()) {
         return parseDeclarationStatement();
     }
     else {
@@ -130,10 +129,10 @@ std::unique_ptr<AstNode::Statement> Parser::parseAssignmentExpressionStatement()
     auto lhs = parseExpression();
     if (ts.match(ASSIGNMENT)) {
         auto rhs = parseExpression();
-        matchExpectedSymbol(STATEMENT_TERMINATOR, "at end of assignment.");
+        matchExpectedSymbol(SEMICOLON, "at end of assignment.");
         return std::make_unique<AstNode::Statement::Assignment>(std::move(lhs), std::move(rhs));
     }
-    matchExpectedSymbol(STATEMENT_TERMINATOR, "at end of expression.");
+    matchExpectedSymbol(SEMICOLON, "at end of expression.");
     return std::make_unique<AstNode::Statement::Expression>(std::move(lhs));
 }
 
@@ -142,16 +141,16 @@ std::unique_ptr<AstNode::Statement::Declaration> Parser::parseDeclarationStateme
     if (!ts.match(Token::Type::IDENTIFIER)) {
         throw ParseException("Expected valid identifier for variable name.", ts.getLine(), ts.getColumn());
     }
-    auto name = ts.at(-1).getLiteral();
+    auto& name = ts.at(-1).getLiteral();
     auto rhs = (ts.match(ASSIGNMENT)) ? std::make_optional(parseExpression()) : std::nullopt;
-    matchExpectedSymbol(STATEMENT_TERMINATOR, "at end of declaration.");
+    matchExpectedSymbol(SEMICOLON, "at end of declaration.");
     return std::make_unique<AstNode::Statement::Declaration>(std::move(name), std::move(type), std::move(rhs));
 }
 
 std::unique_ptr<AstNode::Statement::Return> Parser::parseReturnStatement() {
     ts.match(RESERVED_RETURN);
-    auto value = (ts.peek(STATEMENT_TERMINATOR)) ? std::nullopt : std::make_optional(parseExpression());
-    matchExpectedSymbol(STATEMENT_TERMINATOR, "at end of return.");
+    auto value = (ts.peek(SEMICOLON)) ? std::nullopt : std::make_optional(parseExpression());
+    matchExpectedSymbol(SEMICOLON, "at end of return.");
     return std::make_unique<AstNode::Statement::Return>(std::move(value));
 }
 
@@ -168,11 +167,10 @@ std::unique_ptr<AstNode::Statement::For> Parser::parseForStatement() {
     ts.match(RESERVED_FOR);
     matchExpectedSymbol(PARENTHESES_OPEN, "after 'for'.");
     auto parseInnerStatement = [this]() -> std::optional<std::unique_ptr<AstNode::Statement>> {
-        if (ts.peek(Token::Type::IDENTIFIER, TYPE_DELIMITER_OPEN)
-        || ts.peek(Token::Type::IDENTIFIER, Token::Type::IDENTIFIER)) {
+        if (peekTypedDeclaration()) {
             return parseDeclarationStatement();
         }
-        else if (!ts.match(STATEMENT_TERMINATOR)) {
+        else if (!ts.match(SEMICOLON)) {
             return parseAssignmentExpressionStatement();
         }
         else {
@@ -229,7 +227,7 @@ std::unique_ptr<AstNode::Expression> Parser::parseExpression() {
 std::unique_ptr<AstNode::Expression> Parser::parseLogicalExpression() {
     auto lhs = parseComparisonExpression();
     while (ts.match(LOGICAL_AND) || ts.match(LOGICAL_OR)) {
-        auto op = ts.at(-1).getLiteral();
+        auto& op = ts.at(-1).getLiteral();
         auto rhs = parseComparisonExpression();
 
         auto compoundExpression = std::make_unique<AstNode::Expression::Binary>(std::move(op), std::move(lhs), std::move(rhs));
@@ -247,7 +245,7 @@ std::unique_ptr<AstNode::Expression> Parser::parseComparisonExpression() {
         || ts.match(COMPARISON_EQ)
         || ts.match(COMPARISON_NE)) {
             
-        auto op = ts.at(-1).getLiteral();
+        auto& op = ts.at(-1).getLiteral();
         auto rhs = parseAdditiveExpression();
 
         auto compoundExpression = std::make_unique<AstNode::Expression::Binary>(std::move(op), std::move(lhs), std::move(rhs));
@@ -260,7 +258,7 @@ std::unique_ptr<AstNode::Expression> Parser::parseAdditiveExpression() {
     auto lhs = parseMultiplicativeExpression();
     while (ts.match(ARITHMETIC_ADDITION) || ts.match(ARITHMETIC_SUBTRACTION)) {
             
-        auto op = ts.at(-1).getLiteral();
+        auto& op = ts.at(-1).getLiteral();
         auto rhs = parseMultiplicativeExpression();
 
         auto compoundExpression = std::make_unique<AstNode::Expression::Binary>(std::move(op), std::move(lhs), std::move(rhs));
@@ -275,7 +273,7 @@ std::unique_ptr<AstNode::Expression> Parser::parseMultiplicativeExpression() {
         || ts.match(ARITHMETIC_DIVISION)
         || ts.match(ARITHMETIC_REMAINDER)) {
             
-        auto op = ts.at(-1).getLiteral();
+        auto& op = ts.at(-1).getLiteral();
         auto rhs = parseExponentialExpression();
 
         auto compoundExpression = std::make_unique<AstNode::Expression::Binary>(std::move(op), std::move(lhs), std::move(rhs));
@@ -288,7 +286,7 @@ std::unique_ptr<AstNode::Expression> Parser::parseExponentialExpression() {
     auto lhs = parseUnaryExpression();
     while (ts.match(ARITHMETIC_EXPONENTIATION)) {
             
-        auto op = ts.at(-1).getLiteral();
+        auto& op = ts.at(-1).getLiteral();
         auto rhs = parseUnaryExpression();
 
         auto compoundExpression = std::make_unique<AstNode::Expression::Binary>(std::move(op), std::move(lhs), std::move(rhs));
@@ -298,21 +296,20 @@ std::unique_ptr<AstNode::Expression> Parser::parseExponentialExpression() {
 }
 
 std::unique_ptr<AstNode::Expression> Parser::parseUnaryExpression() {
-    std::string op;
     std::unique_ptr<AstNode::Expression> expr;
     if (ts.match(UNARY_NOT) || ts.match(UNARY_NEGATIVE)) {
-        op = ts.at(-1).getLiteral();
+        auto& op = ts.at(-1).getLiteral();
         expr = parseUnaryExpression();
         return std::make_unique<AstNode::Expression::Unary>(std::move(op), std::move(expr));
     }
     else if (ts.match(UNARY_INCREMENT) || ts.match(UNARY_DECREMENT)) { // match pre-(in/de)crement ++a/--a
-        op = ts.at(-1).getLiteral();
+        auto& op = ts.at(-1).getLiteral();
         expr = parsePrimaryExpression();
         return std::make_unique<AstNode::Expression::Unary>(std::move(op), std::move(expr));
     }
     expr = parsePrimaryExpression();
     if (ts.match(UNARY_INCREMENT) || ts.match(UNARY_DECREMENT)) { // match post-(in/de)crement a++/a--
-        op = ts.at(-1).getLiteral();
+        auto& op = ts.at(-1).getLiteral();
         return std::make_unique<AstNode::Expression::Unary>(std::move(op), std::move(expr));
     }
     return expr;
@@ -324,7 +321,7 @@ std::unique_ptr<AstNode::Expression> Parser::parsePrimaryExpression() {
         return std::make_unique<AstNode::Expression::Literal>(std::move(literal));
     }
     else if (ts.match(Token::Type::INTEGER)) {
-        auto literalStr = ts.at(-1).getLiteral();
+        auto& literalStr = ts.at(-1).getLiteral();
         int base = 10;
         if (literalStr.starts_with("0x") || literalStr.starts_with("0X")) { // hex literal
             base = 16;
@@ -343,7 +340,7 @@ std::unique_ptr<AstNode::Expression> Parser::parsePrimaryExpression() {
         return std::make_unique<AstNode::Expression::Literal>(std::move(literal));
     }
     else if (ts.match(Token::Type::STRING)) {
-        auto literal = ts.at(-1).getLiteral();
+        auto& literal = ts.at(-1).getLiteral();
         // TODO: clean quotes and escapes here
         return std::make_unique<AstNode::Expression::Literal>(std::move(literal));
     }
@@ -353,24 +350,24 @@ std::unique_ptr<AstNode::Expression> Parser::parsePrimaryExpression() {
         return std::make_unique<AstNode::Expression::Group>(std::move(innerExp));
     }
     else if (ts.match(Token::Type::IDENTIFIER, PARENTHESES_OPEN)) { // function call
-        auto name = ts.at(-2).getLiteral();
+        auto& name = ts.at(-2).getLiteral();
         std::vector<std::unique_ptr<AstNode::Expression>> arguments;
         if (!ts.peek(PARENTHESES_CLOSE)) {
             do {
                 arguments.push_back(parseExpression());
-            } while (ts.match(ARGUMENT_SEPERATOR));
+            } while (ts.match(COMMA));
         }
         matchExpectedSymbol(PARENTHESES_CLOSE, "at end of function argument list.");
         return std::make_unique<AstNode::Expression::Function>(std::move(name), std::move(arguments));
     }
     else if (ts.match(Token::Type::IDENTIFIER, MEMBER_ACCESS, Token::Type::IDENTIFIER, PARENTHESES_OPEN)) { // method call
-        auto object = ts.at(-4).getLiteral();
-        auto methodName = ts.at(-2).getLiteral();
+        auto& object = ts.at(-4).getLiteral();
+        auto& methodName = ts.at(-2).getLiteral();
         std::vector<std::unique_ptr<AstNode::Expression>> arguments;
         if (!ts.peek(PARENTHESES_CLOSE)) {
             do {
                 arguments.push_back(parseExpression());
-            } while (ts.match(ARGUMENT_SEPERATOR));
+            } while (ts.match(COMMA));
         }
         matchExpectedSymbol(PARENTHESES_CLOSE, "at end of method argument list.");
         return std::make_unique<AstNode::Expression::Method>(std::move(object)
@@ -378,17 +375,17 @@ std::unique_ptr<AstNode::Expression> Parser::parsePrimaryExpression() {
                                                            , std::move(arguments));
     }
     else if (ts.match(Token::Type::IDENTIFIER)) {
-        auto object = ts.at(-1).getLiteral();
+        auto& object = ts.at(-1).getLiteral();
         if (ts.match(MEMBER_ACCESS)) { // member access
             if (!ts.match(Token::Type::IDENTIFIER)) {
                 throw ParseException("Expected data member or method call after '.' operator.", ts.getLine(), ts.getColumn());
             }
-            auto member = ts.at(-1).getLiteral();
+            auto& member = ts.at(-1).getLiteral();
             return std::make_unique<AstNode::Expression::Access>(std::move(object), std::move(member));
         }
-        else if (ts.match(SUBSCRIPT_ACCESS_OPEN)) { // subscript access
+        else if (ts.match(BRACKET_OPEN)) { // subscript access
             auto subscript = parseExpression();
-            matchExpectedSymbol(SUBSCRIPT_ACCESS_CLOSE, "to match previous '[' in expression.");
+            matchExpectedSymbol(BRACKET_CLOSE, "to match previous '[' in expression.");
             return std::make_unique<AstNode::Expression::Access>(std::move(object), std::move(subscript));
         }
         return std::make_unique<AstNode::Expression::Access>(std::move(object));
@@ -404,15 +401,60 @@ std::unique_ptr<AstNode::Specifier::Type> Parser::parseTypeSpecifier() {
     if (!ts.match(Token::Type::IDENTIFIER)) {
         throw ParseException("Invalid type specifier.", ts.getLine(), ts.getColumn());
     }
-    auto name = ts.at(-1).getLiteral();
+    auto& name = ts.at(-1).getLiteral();
     std::vector<std::unique_ptr<AstNode::Specifier::Type>> typeArgs;
     if (ts.match(TYPE_DELIMITER_OPEN)) {
         do {
             typeArgs.push_back(parseTypeSpecifier());
-        } while (ts.match(ARGUMENT_SEPERATOR));
+        } while (ts.match(COMMA));
         matchExpectedSymbol(TYPE_DELIMITER_CLOSE, "to match previous '<' in type specifier.");
     }
     return std::make_unique<AstNode::Specifier::Type>(std::move(name), std::move(typeArgs));
+}
+
+bool Parser::peekTypedDeclaration() {
+    return ts.peek(Token::Type::IDENTIFIER, Token::Type::IDENTIFIER) || peekNestedTypeSpecifier();
+}
+
+bool Parser::peekNestedTypeSpecifier() {
+    if (!ts.peek(Token::Type::IDENTIFIER, TYPE_DELIMITER_OPEN)) return false;
+
+    size_t offset = 2;
+    auto prevToken = std::string(TYPE_DELIMITER_OPEN);
+    
+    /* 
+       Our concern is to not disturb an operator chain (ie. a < b < c)
+       as that will be dealt with by the binary expression parsing methods.
+       
+       If at any point a token other than '<' or '>' succeeds an identifier,
+       the expression will be considered an invalid attempt at writing a 
+       nested type specifier and return true.
+       
+       If at any point a token other than an identifier succeeds a '<' token,
+       the expression will be considered an operator chain expression and return false.
+       
+       If at any point a '>' token succeeds another '>' token, the expression
+       will be considered a nested type specifier and return true. If any other
+       token succeeds the '>' token, it will be considered an operator chain
+       expression and return false.
+    */
+    while (!ts.outOfRange(offset)) {
+        auto& currentToken = ts.at(offset);
+        auto currentType = currentToken.getType();
+        auto& currentLiteral = currentToken.getLiteral();
+        if (prevToken == "<" && currentType != Token::Type::IDENTIFIER) {
+            return false;
+        }
+        else if (prevToken == ">") {
+            return currentLiteral == ">";
+        }
+        else if (currentLiteral != "<" && currentLiteral != ">") {
+            return true;
+        }
+        prevToken = currentLiteral;
+        offset++;
+    }
+    return false;
 }
 
 void Parser::matchExpectedSymbol(std::string&& symbol, std::string&& message) {

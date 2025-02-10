@@ -39,6 +39,8 @@ namespace BlsLang {
             std::unique_ptr<AstNode::Specifier::Type> parseTypeSpecifier();
 
             // helpers
+            bool peekTypedDeclaration();
+            bool peekNestedTypeSpecifier();
             void matchExpectedSymbol(std::string&& symbol, std::string&& message);
     };
 

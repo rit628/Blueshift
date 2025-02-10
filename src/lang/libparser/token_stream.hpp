@@ -27,12 +27,12 @@ namespace BlsLang {
             void setStream(std::vector<Token>& newStream);
             size_t getLine() const;
             size_t getColumn() const;
+            bool outOfRange(int offset) const { return (ts.size() <= (index + offset)) || (index + offset) < 0; }
             bool empty() const { return outOfRange(0); }
 
         private:
             template<TokenAttr T>
             bool peekPattern(T pattern, size_t index);
-            bool outOfRange(int offset) const { return (ts.size() <= (index + offset)) || (index + offset) < 0; }
 
             std::vector<Token> ts;
             size_t index = 0;
