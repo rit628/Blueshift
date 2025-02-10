@@ -359,7 +359,7 @@ namespace BlsLang {
         auto& expectedUnary = dynamic_cast<AstNode::Expression::Unary&>(*toCast);
     
         EXPECT_EQ(expectedUnary.getOp(), ast.getOp());
-        EXPECT_EQ(expectedUnary.getPrefix(), ast.getPrefix());
+        EXPECT_EQ(expectedUnary.getPosition(), ast.getPosition());
     
         auto& expectedExpression = expectedUnary.getExpression();
         auto& expression = ast.getExpression();

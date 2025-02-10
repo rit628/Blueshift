@@ -63,7 +63,9 @@ void AstNode::Expression::Group::print(std::ostream& os) const {
 }
 
 void AstNode::Expression::Unary::print(std::ostream& os) const {
-    os << "AstNode::Expression::Unary {\n  op = " << op << "\n  expression = " << *expression << "\n  prefix = " << prefix << "\n}" << std::endl;
+    os << "AstNode::Expression::Unary {\n  op = " << op << "\n  expression = " << *expression;
+    os << "\n  position = " << ((position == AstNode::Expression::Unary::OPERATOR_POSITION::PREFIX) ? "prefix" : "postfix");
+    os << "\n}" << std::endl;
 }
 
 void AstNode::Expression::Binary::print(std::ostream& os) const {

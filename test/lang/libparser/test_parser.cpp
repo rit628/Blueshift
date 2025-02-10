@@ -337,7 +337,7 @@ namespace BlsLang {
             new AstNode::Expression::Unary(
                 UNARY_INCREMENT,
                 new AstNode::Expression::Access("i"),
-                false
+                AstNode::Expression::Unary::OPERATOR_POSITION::POSTFIX
             ),
             {
                 new AstNode::Statement::Assignment(

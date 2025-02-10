@@ -311,7 +311,9 @@ std::unique_ptr<AstNode::Expression> Parser::parseUnaryExpression() {
     expr = parsePrimaryExpression();
     if (ts.match(UNARY_INCREMENT) || ts.match(UNARY_DECREMENT)) { // match post-(in/de)crement a++/a--
         auto& op = ts.at(-1).getLiteral();
-        return std::make_unique<AstNode::Expression::Unary>(std::move(op), std::move(expr), false);
+        return std::make_unique<AstNode::Expression::Unary>(std::move(op)
+                                                          , std::move(expr)
+                                                          , AstNode::Expression::Unary::OPERATOR_POSITION::POSTFIX);
     }
     return expr;
 }
@@ -342,10 +344,10 @@ std::unique_ptr<AstNode::Expression> Parser::parsePrimaryExpression() {
     }
     else if (ts.match(Token::Type::STRING)) {
         auto literal = ts.at(-1).getLiteral();
-        cleanEscapes(literal);
+        cleanLiteral(literal);
         return std::make_unique<AstNode::Expression::Literal>(std::move(literal));
     }
-    // else if (ts.match(BRACKET_OPEN)) { //TODO: array literal
+    // else if (ts.match(BRACKET_OPEN)) { //TODO: list literal
         
     // }
     else if (ts.match(PARENTHESES_OPEN)) {
@@ -419,7 +421,7 @@ std::unique_ptr<AstNode::Specifier::Type> Parser::parseTypeSpecifier() {
     return std::make_unique<AstNode::Specifier::Type>(std::move(name), std::move(typeArgs));
 }
 
-void Parser::cleanEscapes(std::string& literal) {
+void Parser::cleanLiteral(std::string& literal) {
     literal = literal.substr(1, literal.size() - 2); // remove start and end quotes
     static const boost::regex escapes(R"(\\([bnrt'\"\\]))");
     auto replacements = [](const boost::smatch& match) -> std::string {

@@ -213,32 +213,37 @@ namespace BlsLang {
 
     class AstNode::Expression::Unary : public AstNode::Expression {
         public:
+            enum class OPERATOR_POSITION : uint8_t {
+                PREFIX,
+                POSTFIX
+            };
+
             Unary() = default;
             Unary(std::string op
                 , std::unique_ptr<AstNode::Expression> expression
-                , bool prefix = true)
+                , OPERATOR_POSITION position = OPERATOR_POSITION::PREFIX)
                 : op(std::move(op))
                 , expression(std::move(expression))
-                , prefix(std::move(prefix)) {}
+                , position(std::move(position)) {}
             Unary(std::string op
                 , AstNode::Expression* expression
-                , bool prefix = true)
+                , OPERATOR_POSITION position = OPERATOR_POSITION::PREFIX)
                 : op(std::move(op))
                 , expression(expression)
-                , prefix(prefix) {}
+                , position(position) {}
         
             std::any accept(Visitor& v) override;
 
             auto& getOp() { return op; }
             auto& getExpression() { return expression; }
-            auto getPrefix() { return prefix; }
+            auto getPosition() { return position; }
 
         private:
             void print(std::ostream& os) const override;
 
             std::string op;
             std::unique_ptr<AstNode::Expression> expression;
-            bool prefix;
+            OPERATOR_POSITION position;
     };
 
     class AstNode::Expression::Binary : public AstNode::Expression {
