@@ -70,8 +70,8 @@ namespace BlsLang {
     };
 
     inline std::any ParserTest::TestVisitor::visit(AstNode::Source& ast) {
-        auto& expectedSource = dynamic_cast<AstNode::Source&>(*expectedAst);
-        EXPECT_NE(&expectedSource, nullptr);
+        auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
+        auto& expectedSource = dynamic_cast<AstNode::Source&>(*toCast);
     
         auto& expectedProcedures = expectedSource.getProcedures();
         auto& procedures = ast.getProcedures();
@@ -93,7 +93,6 @@ namespace BlsLang {
     
         auto& expectedSetup = expectedSource.getSetup();
         auto& setup = ast.getSetup();
-        EXPECT_EQ(expectedSetup, setup);
         expectedVisits.push(std::move(expectedSetup));
         setup->accept(*this);
         expectedVisits.pop();
@@ -104,16 +103,19 @@ namespace BlsLang {
     inline std::any ParserTest::TestVisitor::visit(AstNode::Function::Procedure& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedProcedure = dynamic_cast<AstNode::Function::Procedure&>(*toCast);
-        EXPECT_NE(&expectedProcedure, nullptr);
+
         EXPECT_EQ(expectedProcedure.getName(), ast.getName());
         EXPECT_EQ(expectedProcedure.getParameters(), ast.getParameters());
-    
         expectedVisits.push(std::move(*expectedProcedure.getReturnType()));
         ast.getReturnType()->get()->accept(*this);
         expectedVisits.pop();
-        for (auto& statement : ast.getStatements()) {
-            expectedVisits.push(std::move(statement));
-            statement->accept(*this);
+
+        auto& expectedStatements = expectedProcedure.getStatements();
+        auto& statements = ast.getStatements();
+        EXPECT_EQ(expectedStatements.size(), statements.size());
+        for (size_t i = 0; i < expectedStatements.size(); i++) {
+            expectedVisits.push(std::move(expectedStatements.at(i)));
+            statements.at(i)->accept(*this);
             expectedVisits.pop();
         }
     
@@ -122,15 +124,17 @@ namespace BlsLang {
     
     inline std::any ParserTest::TestVisitor::visit(AstNode::Function::Oblock& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
-        auto& expectedProcedure = dynamic_cast<AstNode::Function::Oblock&>(*toCast);
-        EXPECT_NE(&expectedProcedure, nullptr);
+        auto& expectedOblock = dynamic_cast<AstNode::Function::Oblock&>(*toCast);
     
-        EXPECT_EQ(expectedProcedure.getName(), ast.getName());
-        EXPECT_EQ(expectedProcedure.getParameters(), ast.getParameters());
+        EXPECT_EQ(expectedOblock.getName(), ast.getName());
+        EXPECT_EQ(expectedOblock.getParameters(), ast.getParameters());
     
-        for (auto& statement : ast.getStatements()) {
-            expectedVisits.push(std::move(statement));
-            statement->accept(*this);
+        auto& expectedStatements = expectedOblock.getStatements();
+        auto& statements = ast.getStatements();
+        EXPECT_EQ(expectedStatements.size(), statements.size());
+        for (size_t i = 0; i < expectedStatements.size(); i++) {
+            expectedVisits.push(std::move(expectedStatements.at(i)));
+            statements.at(i)->accept(*this);
             expectedVisits.pop();
         }
     
@@ -140,7 +144,6 @@ namespace BlsLang {
     inline std::any ParserTest::TestVisitor::visit(AstNode::Setup& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedSetup = dynamic_cast<AstNode::Setup&>(*toCast);
-        EXPECT_NE(&expectedSetup, nullptr);
     
         auto& expectedStatements = expectedSetup.getStatements();
         auto& statements = ast.getStatements();
@@ -156,7 +159,6 @@ namespace BlsLang {
     inline std::any ParserTest::TestVisitor::visit(AstNode::Statement::If& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedIf = dynamic_cast<AstNode::Statement::If&>(*toCast);
-        EXPECT_NE(&expectedIf, nullptr);
     
         auto& expectedCondition = expectedIf.getCondition();
         auto& condition = ast.getCondition();
@@ -197,7 +199,6 @@ namespace BlsLang {
     inline std::any ParserTest::TestVisitor::visit(AstNode::Statement::For& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedFor = dynamic_cast<AstNode::Statement::For&>(*toCast);
-        EXPECT_NE(&expectedFor, nullptr);
     
         auto& expectedInit = expectedFor.getInitStatement();
         auto& init = ast.getInitStatement();
@@ -241,7 +242,6 @@ namespace BlsLang {
     inline std::any ParserTest::TestVisitor::visit(AstNode::Statement::While& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedWhile = dynamic_cast<AstNode::Statement::While&>(*toCast);
-        EXPECT_NE(&expectedWhile, nullptr);
     
         auto& expectedCondition = expectedWhile.getCondition();
         auto& condition = ast.getCondition();
@@ -264,7 +264,6 @@ namespace BlsLang {
     inline std::any ParserTest::TestVisitor::visit(AstNode::Statement::Return& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedReturn = dynamic_cast<AstNode::Statement::Return&>(*toCast);
-        EXPECT_NE(&expectedReturn, nullptr);
     
         auto& expectedValue = expectedReturn.getValue();
         auto& value = ast.getValue();
@@ -279,10 +278,8 @@ namespace BlsLang {
     }
     
     inline std::any ParserTest::TestVisitor::visit(AstNode::Statement::Declaration& ast) {
-        std::cout << "\n" << *expectedAst;
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedDeclaration = dynamic_cast<AstNode::Statement::Declaration&>(*toCast);
-        EXPECT_NE(&expectedDeclaration, nullptr);
     
         EXPECT_EQ(expectedDeclaration.getName(), ast.getName());
     
@@ -307,7 +304,6 @@ namespace BlsLang {
     inline std::any ParserTest::TestVisitor::visit(AstNode::Statement::Assignment& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedAssignment = dynamic_cast<AstNode::Statement::Assignment&>(*toCast);
-        EXPECT_NE(&expectedAssignment, nullptr);
     
         auto& expectedRecipient = expectedAssignment.getRecipient();
         auto& recipient = ast.getRecipient();
@@ -325,10 +321,8 @@ namespace BlsLang {
     }
     
     inline std::any ParserTest::TestVisitor::visit(AstNode::Statement::Expression& ast) {
-        std::cout << "\n" << *expectedAst;
         auto& toCast = (expectedVisits.empty()) ? *expectedAst : *expectedVisits.top();
         auto& expectedExpressionStatement = dynamic_cast<AstNode::Statement::Expression&>(toCast);
-        EXPECT_NE(&expectedExpressionStatement, nullptr);
     
         auto& expectedExpression = expectedExpressionStatement.getExpression();
         auto& expression = ast.getExpression();
@@ -342,7 +336,6 @@ namespace BlsLang {
     inline std::any ParserTest::TestVisitor::visit(AstNode::Expression::Binary& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedBinary = dynamic_cast<AstNode::Expression::Binary&>(*toCast);
-        EXPECT_NE(&expectedBinary, nullptr);
     
         EXPECT_EQ(expectedBinary.getOp(), ast.getOp());
     
@@ -364,7 +357,6 @@ namespace BlsLang {
     inline std::any ParserTest::TestVisitor::visit(AstNode::Expression::Unary& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedUnary = dynamic_cast<AstNode::Expression::Unary&>(*toCast);
-        EXPECT_NE(&expectedUnary, nullptr);
     
         EXPECT_EQ(expectedUnary.getOp(), ast.getOp());
         EXPECT_EQ(expectedUnary.getPrefix(), ast.getPrefix());
@@ -381,7 +373,6 @@ namespace BlsLang {
     inline std::any ParserTest::TestVisitor::visit(AstNode::Expression::Group& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedGroup = dynamic_cast<AstNode::Expression::Group&>(*toCast);
-        EXPECT_NE(&expectedGroup, nullptr);
     
         auto& expectedExpression = expectedGroup.getExpression();
         auto& expression = ast.getExpression();
@@ -395,7 +386,6 @@ namespace BlsLang {
     inline std::any ParserTest::TestVisitor::visit(AstNode::Expression::Method& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedMethod = dynamic_cast<AstNode::Expression::Method&>(*toCast);
-        EXPECT_NE(&expectedMethod, nullptr);
     
         EXPECT_EQ(expectedMethod.getObject(), ast.getObject());
         EXPECT_EQ(expectedMethod.getMethodName(), ast.getMethodName());
@@ -412,7 +402,6 @@ namespace BlsLang {
     inline std::any ParserTest::TestVisitor::visit(AstNode::Expression::Function& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedFunction = dynamic_cast<AstNode::Expression::Function&>(*toCast);
-        EXPECT_NE(&expectedFunction, nullptr);
     
         EXPECT_EQ(expectedFunction.getName(), ast.getName());
         EXPECT_EQ(expectedFunction.getArguments().size(), ast.getArguments().size());
@@ -428,7 +417,6 @@ namespace BlsLang {
     inline std::any ParserTest::TestVisitor::visit(AstNode::Expression::Access& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedAccess = dynamic_cast<AstNode::Expression::Access&>(*toCast);
-        EXPECT_NE(&expectedAccess, nullptr);
     
         EXPECT_EQ(expectedAccess.getObject(), ast.getObject());
         EXPECT_EQ(expectedAccess.getSubscript().has_value(), ast.getSubscript().has_value());
@@ -449,7 +437,6 @@ namespace BlsLang {
     inline std::any ParserTest::TestVisitor::visit(AstNode::Expression::Literal& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedLiteral = dynamic_cast<AstNode::Expression::Literal&>(*toCast);
-        EXPECT_NE(&expectedLiteral, nullptr);
     
         // Check if the literal values match (size_t, double, bool, std::string)
         if (std::holds_alternative<size_t>(expectedLiteral.getLiteral())) {
@@ -468,7 +455,6 @@ namespace BlsLang {
     inline std::any ParserTest::TestVisitor::visit(AstNode::Specifier::Type& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedType = dynamic_cast<AstNode::Specifier::Type&>(*toCast);
-        EXPECT_NE(&expectedType, nullptr);
     
         EXPECT_EQ(expectedType.getName(), ast.getName());
         EXPECT_EQ(expectedType.getTypeArgs().size(), ast.getTypeArgs().size());
