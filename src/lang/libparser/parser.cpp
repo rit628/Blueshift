@@ -8,6 +8,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <boost/regex.hpp>
 
 using namespace BlsLang;
 
@@ -340,8 +341,8 @@ std::unique_ptr<AstNode::Expression> Parser::parsePrimaryExpression() {
         return std::make_unique<AstNode::Expression::Literal>(std::move(literal));
     }
     else if (ts.match(Token::Type::STRING)) {
-        auto& literal = ts.at(-1).getLiteral();
-        // TODO: clean quotes and escapes here
+        auto literal = ts.at(-1).getLiteral();
+        cleanEscapes(literal);
         return std::make_unique<AstNode::Expression::Literal>(std::move(literal));
     }
     // else if (ts.match(BRACKET_OPEN)) { //TODO: array literal
@@ -416,6 +417,23 @@ std::unique_ptr<AstNode::Specifier::Type> Parser::parseTypeSpecifier() {
         matchExpectedSymbol(TYPE_DELIMITER_CLOSE, "to match previous '<' in type specifier.");
     }
     return std::make_unique<AstNode::Specifier::Type>(std::move(name), std::move(typeArgs));
+}
+
+void Parser::cleanEscapes(std::string& literal) {
+    literal = literal.substr(1, literal.size() - 2); // remove start and end quotes
+    static const boost::regex escapes(R"(\\([bnrt'\"\\]))");
+    auto replacements = [](const boost::smatch& match) -> std::string {
+        std::string matched = match[1].str();
+        if (matched == "b") return "\\";
+        if (matched == "n")  return "\n";
+        if (matched == "r")  return "\r";
+        if (matched == "t")  return "\t";
+        if (matched == "'")  return "'";
+        if (matched == "\"") return "\"";
+        if (matched == "\\") return "\\";
+        return matched;
+    };
+    literal = boost::regex_replace(literal, escapes, replacements, boost::match_default | boost::format_all);
 }
 
 bool Parser::peekTypedDeclaration() {

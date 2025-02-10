@@ -62,10 +62,10 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, ExpressionTests, LiteralString) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::STRING, "\"hello\"", 0, 1, 1)
+            Token(Token::Type::STRING, R"("hello \n \\ \"wrld\" ")", 0, 1, 1)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Literal(
-            std::string("\"hello\"")
+            std::string("hello \n \\ \"wrld\" ")
         ));
         TEST_PARSE_EXPRESSION(sampleTokens, std::move(expectedAst));
     }

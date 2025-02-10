@@ -40,6 +40,7 @@ namespace BlsLang {
             std::unique_ptr<AstNode::Specifier::Type> parseTypeSpecifier();
 
             // helpers
+            void cleanEscapes(std::string& literal);
             bool peekTypedDeclaration();
             bool peekNestedTypeSpecifier();
             constexpr const char * const invalidContainerMessage();
