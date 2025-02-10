@@ -1,6 +1,7 @@
 #pragma once
 #include <any>
 #include <cstddef>
+#include <initializer_list>
 #include <memory>
 #include <ostream>
 #include <utility>
@@ -43,6 +44,13 @@ namespace BlsLang {
             Type() = default;
             Type(std::string name, std::vector<std::unique_ptr<AstNode::Specifier::Type>> typeArgs)
                : name(std::move(name)), typeArgs(std::move(typeArgs)) {}
+            Type(std::string name, std::initializer_list<AstNode::Specifier::Type*> typeArgs)
+               : name(std::move(name))
+            {
+                for (auto&& arg : typeArgs) {
+                    this->typeArgs.push_back(std::unique_ptr<AstNode::Specifier::Type>(arg));
+                }
+            }
             
             std::any accept(Visitor& v) override;
 
@@ -99,6 +107,11 @@ namespace BlsLang {
                  : object(std::move(object))
                  , subscript(std::move(subscript))
                  , member(std::move(std::nullopt)) {}
+            Access(std::string object
+                 , AstNode::Expression* subscript)
+                 : object(std::move(object))
+                 , subscript(std::move(subscript))
+                 , member(std::move(std::nullopt)) {}
             Access(std::string object, std::string member)
                  : object(std::move(object))
                  , subscript(std::move(std::nullopt))
@@ -125,6 +138,14 @@ namespace BlsLang {
                    , std::vector<std::unique_ptr<AstNode::Expression>> arguments)
                    : name(std::move(name))
                    , arguments(std::move(arguments)) {}
+            Function(std::string name
+                   , std::initializer_list<AstNode::Expression*> arguments)
+                   : name(std::move(name))
+            {
+                for (auto&& arg : arguments) {
+                    this->arguments.push_back(std::unique_ptr<AstNode::Expression>(arg));
+                }
+            }
 
             std::any accept(Visitor& v) override;
 
@@ -147,6 +168,16 @@ namespace BlsLang {
                  : object(std::move(object))
                  , methodName(std::move(methodName))
                  , arguments(std::move(arguments)) {}
+            Method(std::string object
+                 , std::string methodName
+                 , std::initializer_list<AstNode::Expression*> arguments)
+                 : object(std::move(object))
+                 , methodName(std::move(methodName))
+            {
+                for (auto&& arg : arguments) {
+                    this->arguments.push_back(std::unique_ptr<AstNode::Expression>(arg));
+                }
+            }
 
             std::any accept(Visitor& v) override;
 
@@ -167,6 +198,8 @@ namespace BlsLang {
             Group() = default;
             Group(std::unique_ptr<AstNode::Expression> expression)
                 : expression(std::move(expression)) {}
+            Group(AstNode::Expression* expression)
+                : expression(expression) {}
             
             std::any accept(Visitor& v) override;
 
@@ -187,6 +220,12 @@ namespace BlsLang {
                 : op(std::move(op))
                 , expression(std::move(expression))
                 , prefix(std::move(prefix)) {}
+            Unary(std::string op
+                , AstNode::Expression* expression
+                , bool prefix = true)
+                : op(std::move(op))
+                , expression(expression)
+                , prefix(prefix) {}
         
             std::any accept(Visitor& v) override;
 
@@ -211,6 +250,12 @@ namespace BlsLang {
                  : op(std::move(op))
                  , left(std::move(left))
                  , right(std::move(right)) {}
+            Binary(std::string op
+                 , AstNode::Expression* left
+                 , AstNode::Expression* right)
+                 : op(std::move(op))
+                 , left(left)
+                 , right(right) {}
             
             std::any accept(Visitor& v) override;
 
@@ -244,6 +289,8 @@ namespace BlsLang {
             Expression() = default;
             Expression(std::unique_ptr<AstNode::Expression> expression)
                      : expression(std::move(expression)) {}
+            Expression(AstNode::Expression* expression)
+                     : expression(expression) {}
 
             std::any accept(Visitor& v) override;
 
@@ -262,6 +309,10 @@ namespace BlsLang {
                      , std::unique_ptr<AstNode::Expression> value)
                      : recipient(std::move(recipient))
                      , value(std::move(value)) {}
+            Assignment(AstNode::Expression* recipient
+                     , AstNode::Expression* value)
+                     : recipient(recipient)
+                     , value(value) {}
 
             std::any accept(Visitor& v) override;
 
@@ -284,6 +335,12 @@ namespace BlsLang {
                       : name(std::move(name))
                       , type(std::move(type))
                       , value(std::move(value)) {}
+            Declaration(std::string name
+                      , AstNode::Specifier::Type* type
+                      , AstNode::Expression* value)
+                      : name(std::move(name))
+                      , type(type)
+                      , value(value) {}
 
             std::any accept(Visitor& v) override;
 
@@ -304,6 +361,8 @@ namespace BlsLang {
             Return() = default;
             Return(std::optional<std::unique_ptr<AstNode::Expression>> value)
                  : value(std::move(value)) {}
+            Return(AstNode::Expression* value = nullptr)
+                 : value(value) {}
 
             std::any accept(Visitor& v) override;
 
@@ -322,6 +381,14 @@ namespace BlsLang {
                 , std::vector<std::unique_ptr<AstNode::Statement>> block)
                 : condition(std::move(condition))
                 , block(std::move(block)) {}
+            While(AstNode::Expression* condition
+                , std::initializer_list<AstNode::Statement*> block)
+                : condition(condition)
+            {
+                for (auto stmt : block){
+                    this->block.push_back(std::unique_ptr<AstNode::Statement>(stmt));
+                }
+            }
 
             std::any accept(Visitor& v) override;
 
@@ -346,6 +413,18 @@ namespace BlsLang {
               , condition(std::move(condition))
               , incrementExpression(std::move(incrementExpression))
               , block(std::move(block)) {}
+            For(std::optional<AstNode::Statement*> initStatement
+              , std::optional<AstNode::Statement*> condition
+              , std::optional<AstNode::Expression*> incrementExpression
+              , std::initializer_list<AstNode::Statement*> block)
+              : initStatement(initStatement)
+              , condition(condition)
+              , incrementExpression(incrementExpression)
+            {
+                for (auto stmt : block) {
+                    this->block.push_back(std::unique_ptr<AstNode::Statement>(stmt));
+                }
+            }
             
             std::any accept(Visitor& v) override;
 
@@ -374,6 +453,22 @@ namespace BlsLang {
              , block(std::move(block))
              , elseIfStatements(std::move(elseIfStatements))
              , elseBlock(std::move(elseBlock)) {}
+            If(AstNode::Expression* condition
+             , std::initializer_list<AstNode::Statement*> block
+             , std::initializer_list<AstNode::Statement::If*> elseIfStatements
+             , std::initializer_list<AstNode::Statement*> elseBlock)
+             : condition(condition)
+            {
+                for (auto stmt : block) {
+                    this->block.push_back(std::unique_ptr<AstNode::Statement>(stmt));
+                }
+                for (auto stmt : elseIfStatements) {
+                    this->elseIfStatements.push_back(std::unique_ptr<AstNode::Statement::If>(stmt));
+                }
+                for (auto stmt : elseBlock) {
+                    this->elseBlock.push_back(std::unique_ptr<AstNode::Statement>(stmt));
+                }
+            }
             
             std::any accept(Visitor& v) override;
 
@@ -407,6 +502,24 @@ namespace BlsLang {
                    , parameterTypes(std::move(parameterTypes))
                    , parameters(std::move(parameters))
                    , statements(std::move(statements)) {}
+            Function(std::string name
+                   , std::optional<AstNode::Specifier::Type*> returnType
+                   , std::initializer_list<AstNode::Specifier::Type*> parameterTypes
+                   , std::vector<std::string> parameters
+                   , std::initializer_list<AstNode::Statement*> statements)
+                   : name(std::move(name))
+                   , returnType(std::move(returnType))
+                   , parameterTypes()
+                   , parameters(std::move(parameters))
+                   , statements()
+            {
+                for (auto pt : parameterTypes) {
+                    this->parameterTypes.push_back(std::unique_ptr<AstNode::Specifier::Type>(pt));
+                }
+                for (auto stmt : statements) {
+                    this->statements.push_back(std::unique_ptr<AstNode::Statement>(stmt));
+                }
+            }
             virtual ~Function() = default;
 
             auto& getName() { return name; }
@@ -436,6 +549,17 @@ namespace BlsLang {
                    , std::move(parameterTypes)
                    , std::move(parameters)
                    , std::move(statements)) {}
+            Procedure(std::string name
+                    , AstNode::Specifier::Type* returnType
+                    , std::initializer_list<AstNode::Specifier::Type*> parameterTypes
+                    , std::vector<std::string> parameters
+                    , std::initializer_list<AstNode::Statement*> statements)
+            : 
+            Function(std::move(name)
+                   , std::move(returnType)
+                   , std::move(parameterTypes)
+                   , std::move(parameters)
+                   , std::move(statements)) {}
             
             std::any accept(Visitor& v) override;
 
@@ -456,7 +580,17 @@ namespace BlsLang {
                    , std::move(parameterTypes)
                    , std::move(parameters)
                    , std::move(statements)) {}
-            
+            Oblock(std::string name
+                 , std::initializer_list<AstNode::Specifier::Type*> parameterTypes
+                 , std::vector<std::string> parameters
+                 , std::initializer_list<AstNode::Statement*> statements)
+            : 
+            Function(std::move(name)
+                   , std::move(std::nullopt)
+                   , std::move(parameterTypes)
+                   , std::move(parameters)
+                   , std::move(statements)) {}
+
             std::any accept(Visitor& v) override;
         
         private:
@@ -468,7 +602,13 @@ namespace BlsLang {
             Setup() = default;
             Setup(std::vector<std::unique_ptr<AstNode::Statement>> statements)
                 : statements(std::move(statements)) {}
-            
+            Setup(std::initializer_list<AstNode::Statement*> statements)
+            {
+                for (auto stmt : statements) {
+                    this->statements.push_back(std::unique_ptr<AstNode::Statement>(stmt));
+                }
+            }
+
             std::any accept(Visitor& v) override;
 
             auto& getStatements() { return statements; }
@@ -488,6 +628,18 @@ namespace BlsLang {
                  : procedures(std::move(procedures))
                  , oblocks(std::move(oblocks))
                  , setup(std::move(setup)) {}
+            Source(std::initializer_list<AstNode::Function*> procedures
+                 , std::initializer_list<AstNode::Function*> oblocks
+                 , AstNode::Setup* setup)
+            {
+                for (auto proc : procedures) {
+                    this->procedures.push_back(std::unique_ptr<AstNode::Function>(proc));
+                }
+                for (auto obl : oblocks) {
+                    this->oblocks.push_back(std::unique_ptr<AstNode::Function>(obl));
+                }
+                this->setup.reset(setup);
+            }
 
             std::any accept(Visitor& v) override;
 
