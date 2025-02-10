@@ -177,8 +177,8 @@ std::unique_ptr<AstNode::Statement::For> Parser::parseForStatement() {
             return std::nullopt;
         }
     };
-    std::optional<std::unique_ptr<AstNode::Statement>> initStatement = parseInnerStatement();
-    std::optional<std::unique_ptr<AstNode::Statement>> condition = parseInnerStatement();
+    auto initStatement = parseInnerStatement();
+    auto condition = parseInnerStatement();
     std::optional<std::unique_ptr<AstNode::Expression>> incrementExpression = parseExpression();
     matchExpectedSymbol(PARENTHESES_CLOSE, "after for statement condition statements.");
     std::vector<std::unique_ptr<AstNode::Statement>> block = parseBlock();
@@ -404,6 +404,9 @@ std::unique_ptr<AstNode::Specifier::Type> Parser::parseTypeSpecifier() {
     auto& name = ts.at(-1).getLiteral();
     std::vector<std::unique_ptr<AstNode::Specifier::Type>> typeArgs;
     if (ts.match(TYPE_DELIMITER_OPEN)) {
+        if (!CONTAINER_TYPES.contains(name)) {
+            throw ParseException(invalidContainerMessage(), ts.getLine(), ts.getColumn());
+        }
         do {
             typeArgs.push_back(parseTypeSpecifier());
         } while (ts.match(COMMA));
@@ -418,43 +421,19 @@ bool Parser::peekTypedDeclaration() {
 
 bool Parser::peekNestedTypeSpecifier() {
     if (!ts.peek(Token::Type::IDENTIFIER, TYPE_DELIMITER_OPEN)) return false;
+    return CONTAINER_TYPES.contains(ts.at(0).getLiteral());
+}
 
-    size_t offset = 2;
-    auto prevToken = std::string(TYPE_DELIMITER_OPEN);
-    
-    /* 
-       Our concern is to not disturb an operator chain (ie. a < b < c)
-       as that will be dealt with by the binary expression parsing methods.
-       
-       If at any point a token other than '<' or '>' succeeds an identifier,
-       the expression will be considered an invalid attempt at writing a 
-       nested type specifier and return true.
-       
-       If at any point a token other than an identifier succeeds a '<' token,
-       the expression will be considered an operator chain expression and return false.
-       
-       If at any point a '>' token succeeds another '>' token, the expression
-       will be considered a nested type specifier and return true. If any other
-       token succeeds the '>' token, it will be considered an operator chain
-       expression and return false.
-    */
-    while (!ts.outOfRange(offset)) {
-        auto& currentToken = ts.at(offset);
-        auto currentType = currentToken.getType();
-        auto& currentLiteral = currentToken.getLiteral();
-        if (prevToken == "<" && currentType != Token::Type::IDENTIFIER) {
-            return false;
-        }
-        else if (prevToken == ">") {
-            return currentLiteral == ">";
-        }
-        else if (currentLiteral != "<" && currentLiteral != ">") {
-            return true;
-        }
-        prevToken = currentLiteral;
-        offset++;
-    }
-    return false;
+constexpr const char * const Parser::invalidContainerMessage() {
+    return "Invalid container type. Container must be one of: { "
+    #define CONTAINER_BEGIN(name, _) #name ", " 
+    #define METHOD(__, ___)
+    #define CONTAINER_END
+    #include "CONTAINER_TYPES.LIST"
+    #undef CONTAINER_BEGIN
+    #undef METHOD
+    #undef CONTAINER_END
+    "\b\b }";
 }
 
 void Parser::matchExpectedSymbol(std::string&& symbol, std::string&& message) {

@@ -1,6 +1,19 @@
 #pragma once
+#include <unordered_set>
+#include <string>
 
 namespace BlsLang {
+    
+    const static std::unordered_set<std::string> CONTAINER_TYPES = {
+        #define CONTAINER_BEGIN(name, _) \
+        #name,
+        #define METHOD(__, ___)
+        #define CONTAINER_END
+        #include "CONTAINER_TYPES.LIST"
+        #undef CONTAINER_BEGIN
+        #undef METHOD
+        #undef CONTAINER_END
+    };
 
     #define DEVTYPE_BEGIN(typename) \
     constexpr auto DEVTYPE_##typename (#typename);
@@ -16,9 +29,6 @@ namespace BlsLang {
     constexpr auto PRIMITIVE_FLOAT                      ("float");
     constexpr auto PRIMITIVE_STRING                     ("string");
 
-    constexpr auto CONTAINER_ARRAY                      ("array");
-    constexpr auto CONTAINER_MAP                        ("map");
-        
     constexpr auto LITERAL_TRUE                         ("true");
     constexpr auto LITERAL_FALSE                        ("false");
 

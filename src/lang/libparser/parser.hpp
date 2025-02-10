@@ -41,6 +41,7 @@ namespace BlsLang {
             // helpers
             bool peekTypedDeclaration();
             bool peekNestedTypeSpecifier();
+            constexpr const char * const invalidContainerMessage();
             void matchExpectedSymbol(std::string&& symbol, std::string&& message);
     };
 
