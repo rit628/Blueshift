@@ -1,6 +1,7 @@
 #include "ast.hpp"
 #include "visitor.hpp"
 #include <memory>
+#include <ostream>
 #include <variant>
 
 using namespace BlsLang;
@@ -14,6 +15,8 @@ std::any Node::accept(Visitor& v) { return v.visit(*this); }
 
 template<class... Ts>
 struct overloads : Ts... { using Ts::operator()...; };
+
+// TODO: convert all of these print functions into a single print visitor
 
 void AstNode::Specifier::Type::print(std::ostream& os) const {
     os << "AstNode::Specifier::Type {\n";
@@ -35,6 +38,16 @@ void AstNode::Expression::Literal::print(std::ostream& os) const {
     os << "AstNode::Expression::Literal {\n";
     os << "  literal = ";
     std::visit(visitor, literal);
+    os << "\n}" << std::endl;
+}
+
+void AstNode::Expression::List::print(std::ostream& os) const {
+    os << "AstNode::Expression::List {\n";
+    os << "  type = " << ((type == AstNode::Expression::List::LIST_TYPE::ARRAY) ? "array" : "set") << "\n";
+    os << "  elements = [";
+    for (auto&& element : elements) {
+        os << *element;
+    }
     os << "\n}" << std::endl;
 }
 

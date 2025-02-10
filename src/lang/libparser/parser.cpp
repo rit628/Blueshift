@@ -347,9 +347,17 @@ std::unique_ptr<AstNode::Expression> Parser::parsePrimaryExpression() {
         cleanLiteral(literal);
         return std::make_unique<AstNode::Expression::Literal>(std::move(literal));
     }
-    // else if (ts.match(BRACKET_OPEN)) { //TODO: list literal
-        
-    // }
+    else if (ts.match(BRACKET_OPEN)) {
+        std::vector<std::unique_ptr<AstNode::Expression>> elements;
+        if (!ts.peek(BRACKET_CLOSE)) {
+            do {
+                elements.push_back(parseExpression());
+            } while (ts.match(COMMA));
+        }
+        matchExpectedSymbol(BRACKET_CLOSE, "at end of list expression.");
+        return std::make_unique<AstNode::Expression::List>(AstNode::Expression::List::LIST_TYPE::ARRAY
+                                                         , std::move(elements));
+    }
     else if (ts.match(PARENTHESES_OPEN)) {
         auto innerExp = parseExpression();
         matchExpectedSymbol(PARENTHESES_CLOSE, "after grouped expression.");

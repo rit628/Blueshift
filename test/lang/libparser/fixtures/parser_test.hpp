@@ -441,14 +441,32 @@ namespace BlsLang {
         // Check if the literal values match (size_t, double, bool, std::string)
         if (std::holds_alternative<size_t>(expectedLiteral.getLiteral())) {
             EXPECT_EQ(std::get<size_t>(expectedLiteral.getLiteral()), std::get<size_t>(ast.getLiteral()));
-        } else if (std::holds_alternative<double>(expectedLiteral.getLiteral())) {
+        }
+        else if (std::holds_alternative<double>(expectedLiteral.getLiteral())) {
             EXPECT_EQ(std::get<double>(expectedLiteral.getLiteral()), std::get<double>(ast.getLiteral()));
-        } else if (std::holds_alternative<bool>(expectedLiteral.getLiteral())) {
+        }
+        else if (std::holds_alternative<bool>(expectedLiteral.getLiteral())) {
             EXPECT_EQ(std::get<bool>(expectedLiteral.getLiteral()), std::get<bool>(ast.getLiteral()));
-        } else if (std::holds_alternative<std::string>(expectedLiteral.getLiteral())) {
+        }
+        else if (std::holds_alternative<std::string>(expectedLiteral.getLiteral())) {
             EXPECT_EQ(std::get<std::string>(expectedLiteral.getLiteral()), std::get<std::string>(ast.getLiteral()));
         }
     
+        return true;
+    }
+
+    inline std::any ParserTest::TestVisitor::visit(AstNode::Expression::List& ast) {
+        auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
+        auto& expectedList = dynamic_cast<AstNode::Expression::List&>(*toCast);
+
+        EXPECT_EQ(expectedList.getType(), ast.getType());
+        EXPECT_EQ(expectedList.getElements().size(), ast.getElements().size());
+        for (size_t i = 0; i < expectedList.getElements().size(); i++) {
+            expectedVisits.push(std::move(expectedList.getElements().at(i)));
+            ast.getElements().at(i)->accept(*this);
+            expectedVisits.pop();
+        }
+
         return true;
     }
     

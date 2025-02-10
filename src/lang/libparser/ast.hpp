@@ -67,6 +67,7 @@ namespace BlsLang {
     class AstNode::Expression : public AstNode {
         public:
             class Literal;
+            class List;
             class Access;
             class Function;
             class Method;
@@ -93,6 +94,40 @@ namespace BlsLang {
             void print(std::ostream& os) const override;
 
             std::variant<size_t, double, bool, std::string> literal;
+    };
+
+    class AstNode::Expression::List : public AstNode::Expression {
+        public:
+            enum class LIST_TYPE : uint8_t {
+                ARRAY,
+                SET
+            };
+
+            List() = default;
+            List(LIST_TYPE type
+               , std::vector<std::unique_ptr<AstNode::Expression>> elements)
+               : type(type)
+               , elements(std::move(elements)) {}
+            List(LIST_TYPE type
+               , std::initializer_list<AstNode::Expression*> elements)
+               : type(type)
+               , elements()
+            {
+                for (auto&& element : elements) {
+                    this->elements.push_back(std::unique_ptr<AstNode::Expression>(element));
+                }
+            }
+
+            std::any accept(Visitor& v) override;
+
+            auto& getType() { return type; }
+            auto& getElements() { return elements; }
+
+        private:
+            void print(std::ostream& os) const override;
+
+            LIST_TYPE type;
+            std::vector<std::unique_ptr<AstNode::Expression>> elements;
     };
 
     class AstNode::Expression::Access : public AstNode::Expression {
