@@ -1,6 +1,7 @@
 array<int, array<int>> sum(int a, int b) {
     int x = 5;
     array<int> y = [1, 2, 3];
+    map<int> z = {2 : 4, 3 : 4};
 
     if (a) {
         x = 1;

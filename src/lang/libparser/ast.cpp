@@ -51,6 +51,15 @@ void AstNode::Expression::List::print(std::ostream& os) const {
     os << "\n}" << std::endl;
 }
 
+void AstNode::Expression::Map::print(std::ostream& os) const {
+    os << "AstNode::Expression::Map {\n";
+    os << "  elements = [";
+    for (auto&& element : elements) {
+        os << *element.first << " : " << *element.second;
+    }
+    os << "\n}" << std::endl;
+}
+
 void AstNode::Expression::Access::print(std::ostream& os) const {
     os << "AstNode::Expression::Access {\n";
     os << "  object = " << object;

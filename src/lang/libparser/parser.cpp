@@ -347,7 +347,7 @@ std::unique_ptr<AstNode::Expression> Parser::parsePrimaryExpression() {
         cleanLiteral(literal);
         return std::make_unique<AstNode::Expression::Literal>(std::move(literal));
     }
-    else if (ts.match(BRACKET_OPEN)) {
+    else if (ts.match(BRACKET_OPEN)) { // list expression
         std::vector<std::unique_ptr<AstNode::Expression>> elements;
         if (!ts.peek(BRACKET_CLOSE)) {
             do {
@@ -357,6 +357,36 @@ std::unique_ptr<AstNode::Expression> Parser::parsePrimaryExpression() {
         matchExpectedSymbol(BRACKET_CLOSE, "at end of list expression.");
         return std::make_unique<AstNode::Expression::List>(AstNode::Expression::List::LIST_TYPE::ARRAY
                                                          , std::move(elements));
+    }
+    else if (ts.match(BRACE_OPEN)) {
+        if (ts.peek(BRACE_CLOSE)) { // No elements, default to set
+            return std::make_unique<AstNode::Expression::List>(AstNode::Expression::List::LIST_TYPE::SET
+                                                             , std::vector<std::unique_ptr<AstNode::Expression>>());
+        }
+        auto key = parseExpression();
+        if (ts.match(COLON)) { // map expression
+            std::vector<std::pair<std::unique_ptr<AstNode::Expression>, std::unique_ptr<AstNode::Expression>>> elements;
+            auto value = parseExpression();
+            elements.push_back(std::make_pair(std::move(key), std::move(value)));
+            while (ts.match(COMMA)) {
+                key = parseExpression();
+                matchExpectedSymbol(COLON, "after key in map expression.");
+                value = parseExpression();
+                elements.push_back(std::make_pair(std::move(key), std::move(value)));
+            }
+            matchExpectedSymbol(BRACE_CLOSE, "at end of map expression.");
+            return std::make_unique<AstNode::Expression::Map>(std::move(elements));
+        }
+        else { // set expression
+            std::vector<std::unique_ptr<AstNode::Expression>> elements;
+            elements.push_back(std::move(key));
+            while (ts.match(COMMA)) {
+                elements.push_back(parseExpression());
+            }
+            matchExpectedSymbol(BRACE_CLOSE, "at end of set expression.");
+            return std::make_unique<AstNode::Expression::List>(AstNode::Expression::List::LIST_TYPE::SET
+                                                             , std::move(elements));
+        }
     }
     else if (ts.match(PARENTHESES_OPEN)) {
         auto innerExp = parseExpression();

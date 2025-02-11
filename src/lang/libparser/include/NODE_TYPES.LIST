@@ -24,6 +24,7 @@ AST_NODE(AstNode::Expression::Group)
 AST_NODE(AstNode::Expression::Method)
 AST_NODE(AstNode::Expression::Function)
 AST_NODE(AstNode::Expression::Access)
+AST_NODE(AstNode::Expression::Map)
 AST_NODE(AstNode::Expression::List)
 AST_NODE(AstNode::Expression::Literal)
 

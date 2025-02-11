@@ -469,6 +469,27 @@ namespace BlsLang {
 
         return true;
     }
+
+    inline std::any ParserTest::TestVisitor::visit(AstNode::Expression::Map& ast) {
+        auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
+        auto& expectedMap = dynamic_cast<AstNode::Expression::Map&>(*toCast);
+
+        EXPECT_EQ(expectedMap.getElements().size(), ast.getElements().size());
+        for (size_t i = 0; i < expectedMap.getElements().size(); i++) {
+            auto& expectedPair = expectedMap.getElements().at(i);
+            auto& pair = ast.getElements().at(i);
+
+            expectedVisits.push(std::move(pair.first));
+            pair.first->accept(*this);
+            expectedVisits.pop();
+
+            expectedVisits.push(std::move(pair.second));
+            pair.second->accept(*this);
+            expectedVisits.pop();
+        }
+
+        return true;
+    }
     
     inline std::any ParserTest::TestVisitor::visit(AstNode::Specifier::Type& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();

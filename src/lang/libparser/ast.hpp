@@ -68,6 +68,7 @@ namespace BlsLang {
         public:
             class Literal;
             class List;
+            class Map;
             class Access;
             class Function;
             class Method;
@@ -128,6 +129,33 @@ namespace BlsLang {
 
             LIST_TYPE type;
             std::vector<std::unique_ptr<AstNode::Expression>> elements;
+    };
+
+    class AstNode::Expression::Map : public AstNode::Expression {
+        public:
+            Map() = default;
+            Map(std::vector<std::pair<std::unique_ptr<AstNode::Expression>, std::unique_ptr<AstNode::Expression>>> elements)
+              : elements(std::move(elements)) {}
+            Map(std::initializer_list<std::initializer_list<AstNode::Expression*>> elements) {
+                for (const auto& pair : elements) {
+                    if (pair.size() != 2) {
+                        throw std::invalid_argument("Initializer list must consist only of pairs.");
+                    }
+                    auto it = pair.begin();
+                    auto key = std::unique_ptr<AstNode::Expression>(*it);
+                    auto value = std::unique_ptr<AstNode::Expression>(*(++it));
+                    this->elements.push_back(std::make_pair(std::move(key), std::move(value)));
+                }
+            }
+
+            std::any accept(Visitor& v) override;
+
+            auto& getElements() { return elements; }
+
+        private:
+            void print(std::ostream& os) const override;
+
+            std::vector<std::pair<std::unique_ptr<AstNode::Expression>, std::unique_ptr<AstNode::Expression>>> elements;
     };
 
     class AstNode::Expression::Access : public AstNode::Expression {

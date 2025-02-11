@@ -53,6 +53,8 @@ namespace BlsLang {
 
     constexpr auto COMMA                                (",");
 
+    constexpr auto COLON                                (":");
+
     constexpr auto SEMICOLON                            (";");
     
     constexpr auto MEMBER_ACCESS                        (".");
