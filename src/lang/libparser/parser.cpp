@@ -383,8 +383,7 @@ std::unique_ptr<AstNode::Expression> Parser::parsePrimaryExpression() {
     }
     else if (ts.match(BRACE_OPEN)) {
         if (ts.peek(BRACE_CLOSE)) { // No elements, default to set
-            return std::make_unique<AstNode::Expression::List>(std::vector<std::unique_ptr<AstNode::Expression>>()
-                                                             , AstNode::Expression::List::LIST_TYPE::SET);
+            return std::make_unique<AstNode::Expression::Set>(std::vector<std::unique_ptr<AstNode::Expression>>());
         }
         auto key = parseExpression();
         if (ts.match(COLON)) { // map expression
@@ -407,8 +406,7 @@ std::unique_ptr<AstNode::Expression> Parser::parsePrimaryExpression() {
                 elements.push_back(parseExpression());
             }
             matchExpectedSymbol(BRACE_CLOSE, "at end of set expression.");
-            return std::make_unique<AstNode::Expression::List>(std::move(elements)
-                                                             , AstNode::Expression::List::LIST_TYPE::SET);
+            return std::make_unique<AstNode::Expression::Set>(std::move(elements));
         }
     }
     else if (ts.match(PARENTHESES_OPEN)) {

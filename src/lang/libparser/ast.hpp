@@ -68,6 +68,7 @@ namespace BlsLang {
         public:
             class Literal;
             class List;
+            class Set;
             class Map;
             class Access;
             class Function;
@@ -99,20 +100,10 @@ namespace BlsLang {
 
     class AstNode::Expression::List : public AstNode::Expression {
         public:
-            enum class LIST_TYPE : uint8_t {
-                ARRAY,
-                SET
-            };
-
             List() = default;
-            List(std::vector<std::unique_ptr<AstNode::Expression>> elements
-               , LIST_TYPE type = LIST_TYPE::ARRAY)
-               : elements(std::move(elements))
-               , type(type) {}
-            List(std::initializer_list<AstNode::Expression*> elements
-               , LIST_TYPE type = LIST_TYPE::ARRAY)
-               : elements()
-               , type(type)
+            List(std::vector<std::unique_ptr<AstNode::Expression>> elements)
+               : elements(std::move(elements)) {}
+            List(std::initializer_list<AstNode::Expression*> elements)
             {
                 for (auto&& element : elements) {
                     this->elements.push_back(std::unique_ptr<AstNode::Expression>(element));
@@ -121,14 +112,34 @@ namespace BlsLang {
 
             std::any accept(Visitor& v) override;
 
-            auto& getType() { return type; }
             auto& getElements() { return elements; }
 
         private:
             void print(std::ostream& os) const override;
 
             std::vector<std::unique_ptr<AstNode::Expression>> elements;
-            LIST_TYPE type;
+    };
+
+    class AstNode::Expression::Set : public AstNode::Expression {
+        public:
+            Set() = default;
+            Set(std::vector<std::unique_ptr<AstNode::Expression>> elements)
+               : elements(std::move(elements)) {}
+            Set(std::initializer_list<AstNode::Expression*> elements)
+            {
+                for (auto&& element : elements) {
+                    this->elements.push_back(std::unique_ptr<AstNode::Expression>(element));
+                }
+            }
+
+            std::any accept(Visitor& v) override;
+
+            auto& getElements() { return elements; }
+
+        private:
+            void print(std::ostream& os) const override;
+
+            std::vector<std::unique_ptr<AstNode::Expression>> elements;
     };
 
     class AstNode::Expression::Map : public AstNode::Expression {

@@ -21,15 +21,15 @@ namespace BlsLang {
     }
 
     GROUP_TEST_F(ParserTest, SpecifierTests, ContainerType) {
-        // Example: array<int>
+        // Example: list<int>
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, "array", 0, 1, 1),
+            Token(Token::Type::IDENTIFIER, "list", 0, 1, 1),
             Token(Token::Type::OPERATOR, TYPE_DELIMITER_OPEN, 1, 1, 2),
             Token(Token::Type::IDENTIFIER, PRIMITIVE_INT, 2, 1, 3),
             Token(Token::Type::OPERATOR, TYPE_DELIMITER_CLOSE, 3, 1, 4)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Specifier::Type(
-            "array",
+            "list",
             {
                 new AstNode::Specifier::Type(
                     PRIMITIVE_INT,
@@ -42,19 +42,19 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, SpecifierTests, NestedContainerType) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, "array", 0, 1, 1),
+            Token(Token::Type::IDENTIFIER, "list", 0, 1, 1),
             Token(Token::Type::OPERATOR, TYPE_DELIMITER_OPEN, 1, 1, 2),
-            Token(Token::Type::IDENTIFIER, "array", 2, 1, 3),
+            Token(Token::Type::IDENTIFIER, "list", 2, 1, 3),
             Token(Token::Type::OPERATOR, TYPE_DELIMITER_OPEN, 3, 1, 4),
             Token(Token::Type::IDENTIFIER, PRIMITIVE_FLOAT, 4, 1, 5),
             Token(Token::Type::OPERATOR, TYPE_DELIMITER_CLOSE, 5, 1, 6),
             Token(Token::Type::OPERATOR, TYPE_DELIMITER_CLOSE, 6, 1, 7)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Specifier::Type(
-            "array",
+            "list",
             {
                 new AstNode::Specifier::Type(
-                    "array",
+                    "list",
                     {
                         new AstNode::Specifier::Type(PRIMITIVE_FLOAT, {})
                     }

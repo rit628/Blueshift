@@ -43,7 +43,15 @@ void AstNode::Expression::Literal::print(std::ostream& os) const {
 
 void AstNode::Expression::List::print(std::ostream& os) const {
     os << "AstNode::Expression::List {\n";
-    os << "  type = " << ((type == AstNode::Expression::List::LIST_TYPE::ARRAY) ? "array" : "set") << "\n";
+    os << "  elements = [";
+    for (auto&& element : elements) {
+        os << *element;
+    }
+    os << "\n}" << std::endl;
+}
+
+void AstNode::Expression::Set::print(std::ostream& os) const {
+    os << "AstNode::Expression::Set {\n";
     os << "  elements = [";
     for (auto&& element : elements) {
         os << *element;

@@ -1,7 +1,13 @@
-CONTAINER_BEGIN(array, std::vector)
+CONTAINER_BEGIN(list, std::vector)
     METHOD(operator[], at)
     METHOD(append, push_back)
     METHOD(pop, pop_back)
+CONTAINER_END
+
+CONTAINER_BEGIN(set, std::unordered_set)
+    METHOD(operator[], at)
+    METHOD(add, emplace)
+    METHOD(remove, erase)
 CONTAINER_END
 
 CONTAINER_BEGIN(map, std::unordered_map)

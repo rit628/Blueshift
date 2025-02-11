@@ -475,10 +475,23 @@ namespace BlsLang {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedList = dynamic_cast<AstNode::Expression::List&>(*toCast);
 
-        EXPECT_EQ(expectedList.getType(), ast.getType());
         EXPECT_EQ(expectedList.getElements().size(), ast.getElements().size());
         for (size_t i = 0; i < expectedList.getElements().size(); i++) {
             expectedVisits.push(std::move(expectedList.getElements().at(i)));
+            ast.getElements().at(i)->accept(*this);
+            expectedVisits.pop();
+        }
+
+        return true;
+    }
+
+    inline std::any ParserTest::TestVisitor::visit(AstNode::Expression::Set& ast) {
+        auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
+        auto& expectedSet = dynamic_cast<AstNode::Expression::Set&>(*toCast);
+
+        EXPECT_EQ(expectedSet.getElements().size(), ast.getElements().size());
+        for (size_t i = 0; i < expectedSet.getElements().size(); i++) {
+            expectedVisits.push(std::move(expectedSet.getElements().at(i)));
             ast.getElements().at(i)->accept(*this);
             expectedVisits.pop();
         }

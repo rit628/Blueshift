@@ -1,4 +1,4 @@
-array<int, array<int>> sum(int a, int b) {
+list<int, list<int>> sum(int a, int b) {
     do {
         int a = 1;
         break;
@@ -6,7 +6,7 @@ array<int, array<int>> sum(int a, int b) {
     } while(a);
     /*
     int x = 5;
-    array<int> y = [1, 2, 3];
+    list<int> y = [1, 2, 3];
     map<int> z = {2 : 4, 3 : 4};
 
     if (a) {
