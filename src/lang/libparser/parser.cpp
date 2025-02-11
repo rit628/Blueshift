@@ -121,6 +121,14 @@ std::unique_ptr<AstNode::Statement> Parser::parseStatement() {
     else if (ts.peek(RESERVED_RETURN)) {
         return parseReturnStatement();
     }
+    else if (ts.match(RESERVED_BREAK)) {
+        matchExpectedSymbol(SEMICOLON, "after break statement.");
+        return std::make_unique<AstNode::Statement::Break>();
+    }
+    else if (ts.match(RESERVED_CONTINUE)) {
+        matchExpectedSymbol(SEMICOLON, "after continue statement.");
+        return std::make_unique<AstNode::Statement::Continue>();
+    }
     else if (peekTypedDeclaration()) {
         return parseDeclarationStatement();
     }

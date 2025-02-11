@@ -39,6 +39,8 @@ namespace BlsLang {
     constexpr auto RESERVED_DO                          ("do");
     constexpr auto RESERVED_WHILE                       ("while");
     constexpr auto RESERVED_RETURN                      ("return");
+    constexpr auto RESERVED_BREAK                       ("break");
+    constexpr auto RESERVED_CONTINUE                    ("continue");
 
     constexpr auto RESERVED_OBLOCK                      ("oblock");
     constexpr auto RESERVED_SETUP                       ("setup");

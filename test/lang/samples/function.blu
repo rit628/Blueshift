@@ -1,6 +1,8 @@
 array<int, array<int>> sum(int a, int b) {
     do {
         int a = 1;
+        break;
+        continue;
     } while(a);
     /*
     int x = 5;

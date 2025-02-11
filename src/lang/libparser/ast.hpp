@@ -127,8 +127,8 @@ namespace BlsLang {
         private:
             void print(std::ostream& os) const override;
 
-            LIST_TYPE type;
             std::vector<std::unique_ptr<AstNode::Expression>> elements;
+            LIST_TYPE type;
     };
 
     class AstNode::Expression::Map : public AstNode::Expression {
@@ -344,6 +344,8 @@ namespace BlsLang {
             class Expression;
             class Assignment;
             class Declaration;
+            class Continue;
+            class Break;
             class Return;
             class While;
             class For;
@@ -422,6 +424,26 @@ namespace BlsLang {
             std::string name;
             std::unique_ptr<AstNode::Specifier::Type> type;
             std::optional<std::unique_ptr<AstNode::Expression>> value;
+    };
+
+    class AstNode::Statement::Continue : public AstNode::Statement {
+        public:
+            Continue() = default;
+
+            std::any accept(Visitor& v) override;
+
+        private:
+            void print(std::ostream& os) const override;
+    };
+
+    class AstNode::Statement::Break : public AstNode::Statement {
+        public:
+            Break() = default;
+
+            std::any accept(Visitor& v) override;
+
+        private:
+            void print(std::ostream& os) const override;
     };
 
     class AstNode::Statement::Return : public AstNode::Statement {

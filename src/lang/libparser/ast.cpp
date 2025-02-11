@@ -110,6 +110,14 @@ void AstNode::Statement::Declaration::print(std::ostream& os) const {
     os << "\n}" << std::endl;
 }
 
+void AstNode::Statement::Continue::print(std::ostream& os) const {
+    os << "AstNode::Statement::Continue {}" << std::endl; 
+}
+
+void AstNode::Statement::Break::print(std::ostream& os) const {
+    os << "AstNode::Statement::Break {}" << std::endl; 
+}
+
 void AstNode::Statement::Return::print(std::ostream& os) const {
     os << "AstNode::Statement::Return {\n  value = ";
     (value) ? os << **value : os << "";
