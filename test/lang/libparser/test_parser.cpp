@@ -998,6 +998,11 @@ namespace BlsLang {
         TEST_PARSE_SOURCE(sampleTokens, std::move(expectedAst));
     }
 
+    GROUP_TEST_F(ParserTest, SourceTests, EmptySource) {
+        std::vector<Token> sampleTokens {};
+        EXPECT_THROW(TEST_PARSE_SOURCE(sampleTokens, nullptr), SyntaxError);
+    }
+
     GROUP_TEST_F(ParserTest, SourceTests, InvalidTopLevelElement) {
         std::vector<Token> sampleTokens {
             Token(Token::Type::OPERATOR, "?", 0, 1, 1)
