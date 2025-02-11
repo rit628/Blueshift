@@ -12,6 +12,7 @@ namespace BlsLang {
 
     class Lexer {
         public:
+            friend class LexerTest;
             std::vector<Token> lex(const std::string& input);
 
         private:
