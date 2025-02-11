@@ -73,11 +73,11 @@ Token Lexer::lexString() {
     while (!cs.match(STRING_QUOTE)) {
         if (cs.peek(ESCAPE_SLASH)) {  // consume escape sequence
             if (!cs.match(ESCAPE_SLASH, ESCAPE_CHARS)) {
-                throw LexException("Invalid escape sequence.", cs.getLine(), cs.getColumn());
+                throw SyntaxError("Invalid escape sequence.", cs.getLine(), cs.getColumn());
             }
         }
         else if (cs.empty() || !cs.match(STRING_LITERALS)) {  // consume string content
-            throw LexException("Unterminated string literal.", cs.getLine(), cs.getColumn());
+            throw SyntaxError("Unterminated string literal.", cs.getLine(), cs.getColumn());
         }
     }
     return cs.emit(Token::Type::STRING);
@@ -90,7 +90,7 @@ Token Lexer::lexComment() {
     else if (cs.match(COMMENT_SLASH, COMMENT_STAR)) { // multiline comment
         while (!cs.match(COMMENT_STAR, COMMENT_SLASH)) {
             if (cs.empty()) {
-                throw LexException("Unterminated mutiline comment.", cs.getLine(), cs.getColumn());
+                throw SyntaxError("Unterminated mutiline comment.", cs.getLine(), cs.getColumn());
             }
             cs.match(COMMENT_CONTENTS_MULTILINE);
         }
@@ -107,5 +107,5 @@ Token Lexer::lexOperator() {
      || cs.match(OPERATOR_GENERIC)) {
         return cs.emit(Token::Type::OPERATOR);
     }
-    throw LexException("Illegal character or end of file.", cs.getLine(), cs.getColumn());
+    throw SyntaxError("Illegal character or end of file.", cs.getLine(), cs.getColumn());
 }

@@ -374,7 +374,7 @@ namespace BlsLang {
         std::vector<Token> exp_tokens {
             Token(Token::Type::STRING, "\"\\\"", 0, 1, 1),
         };
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens, false), LexException);
+        EXPECT_THROW(TEST_LEX(test_str, exp_tokens, false), SyntaxError);
     }
 
     GROUP_TEST_F(LexerTest, StringTests, LiteralEmptyString) {
@@ -390,7 +390,7 @@ namespace BlsLang {
         std::vector<Token> exp_tokens {
             Token(Token::Type::STRING, "\"\\q\\w\\e\\1\\2\\`\\&\"", 0, 1, 1),
         };
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), LexException);
+        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), SyntaxError);
     }
 
     GROUP_TEST_F(LexerTest, StringTests, Unterminated) {
@@ -398,7 +398,7 @@ namespace BlsLang {
         std::vector<Token> exp_tokens {
             Token(Token::Type::STRING, "\"unterminated", 0, 1, 1),
         };
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), LexException);
+        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), SyntaxError);
     }
 
     GROUP_TEST_F(LexerTest, StringTests, UnescapedNestedString) {
@@ -414,7 +414,7 @@ namespace BlsLang {
         std::vector<Token> exp_tokens {
             Token(Token::Type::STRING, "\"\n\"", 0, 1, 1),
         };
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), LexException);
+        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), SyntaxError);
     }
 
     GROUP_TEST_F(LexerTest, StringTests, StringLiteralBrokenByCarriageReturn) {
@@ -422,7 +422,7 @@ namespace BlsLang {
         std::vector<Token> exp_tokens {
             Token(Token::Type::STRING, "\"\r\"", 0, 1, 1),
         };
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), LexException);
+        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), SyntaxError);
     }
 
     // Comment Tests
@@ -445,7 +445,7 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, CommentTests, UnclosedComment) {
         std::string test_str = R"(/* Multiline comment unclosed)";
         std::vector<Token> exp_tokens {};
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), LexException);
+        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), SyntaxError);
     }
 
     GROUP_TEST_F(LexerTest, CommentTests, NestedComments) {
