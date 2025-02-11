@@ -1,6 +1,17 @@
 array<int, array<int>> sum(int a, int b) {
     int x = 5;
     array<int> y = [1, 2, 3];
+
+    if (a) {
+        x = 1;
+    }
+    else if (b) {
+        x = 2;
+    }
+    else {
+        x = 2;
+    }
+
     /*int result = a + b;
     print(result);
     return result;

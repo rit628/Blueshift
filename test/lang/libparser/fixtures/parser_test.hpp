@@ -177,7 +177,7 @@ namespace BlsLang {
     
         auto& expectedElseIf = expectedIf.getElseIfStatements();
         auto& elseIf = ast.getElseIfStatements();
-        EXPECT_EQ(expectedElseIf, elseIf);
+        EXPECT_EQ(expectedElseIf.size(), elseIf.size());
         for (size_t i = 0; i < expectedElseIf.size(); i++) {
             expectedVisits.push(std::move(expectedElseIf.at(i)));
             elseIf.at(i)->accept(*this);

@@ -197,7 +197,7 @@ std::unique_ptr<AstNode::Statement::If> Parser::parseIfStatement() {
     auto block = parseBlock();
     std::vector<std::unique_ptr<AstNode::Statement::If>> elseIfStatements;
     while (ts.peek(RESERVED_ELSE, RESERVED_IF)) {
-        elseIfStatements.push_back(parseIfStatement());
+        elseIfStatements.push_back(parseElseIfStatement());
     }
     std::vector<std::unique_ptr<AstNode::Statement>> elseBlock;
     if (ts.match(RESERVED_ELSE)) {
