@@ -60,7 +60,8 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, IntegerTests, NegativeInteger) {
         std::string test_str = R"(-450600)";
         std::vector<Token> exp_tokens {
-            Token(Token::Type::INTEGER, "-450600", 0, 1, 1),
+            Token(Token::Type::OPERATOR, "-", 0, 1, 1),
+            Token(Token::Type::INTEGER, "450600", 1, 1, 2),
         };
         TEST_LEX(test_str, exp_tokens);
     }
@@ -68,7 +69,8 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, IntegerTests, NegativeZero) {
         std::string test_str = R"(-0)";
         std::vector<Token> exp_tokens {
-            Token(Token::Type::INTEGER, "-0", 0, 1, 1),
+            Token(Token::Type::OPERATOR, "-", 0, 1, 1),
+            Token(Token::Type::INTEGER, "0", 1, 1, 2),
         };
         TEST_LEX(test_str, exp_tokens);
     }
@@ -197,7 +199,8 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, FloatTests, NegativeDecimal) {
         std::string test_str = R"(-1.1)";
         std::vector<Token> exp_tokens {
-            Token(Token::Type::FLOAT, "-1.1", 0, 1, 1),
+            Token(Token::Type::OPERATOR, "-", 0, 1, 1),
+            Token(Token::Type::FLOAT, "1.1", 1, 1, 2),
         };
         TEST_LEX(test_str, exp_tokens);
     }
@@ -205,7 +208,8 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, FloatTests, NegativeDecimalFracOnly) {
         std::string test_str = R"(-.1)";
         std::vector<Token> exp_tokens {
-            Token(Token::Type::FLOAT, "-.1", 0, 1, 1),
+            Token(Token::Type::OPERATOR, "-", 0, 1, 1),
+            Token(Token::Type::FLOAT, ".1", 1, 1, 2),
         };
         TEST_LEX(test_str, exp_tokens);
     }
@@ -229,7 +233,8 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, FloatTests, NegativeZeroDecimal) {
         std::string test_str = R"(-0.0)";
         std::vector<Token> exp_tokens {
-            Token(Token::Type::FLOAT, "-0.0", 0, 1, 1),
+            Token(Token::Type::OPERATOR, "-", 0, 1, 1),
+            Token(Token::Type::FLOAT, "0.0", 1, 1, 2),
         };
         TEST_LEX(test_str, exp_tokens);
     }
@@ -237,7 +242,8 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, FloatTests, NegativeZeroDecimalFracOnly) {
         std::string test_str = R"(-.0)";
         std::vector<Token> exp_tokens {
-            Token(Token::Type::FLOAT, "-.0", 0, 1, 1),
+            Token(Token::Type::OPERATOR, "-", 0, 1, 1),
+            Token(Token::Type::FLOAT, ".0", 1, 1, 2),
         };
         TEST_LEX(test_str, exp_tokens);
     }
@@ -368,7 +374,7 @@ namespace BlsLang {
         std::vector<Token> exp_tokens {
             Token(Token::Type::STRING, "\"\\\"", 0, 1, 1),
         };
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens, false), LexException);
+        EXPECT_THROW(TEST_LEX(test_str, exp_tokens, false), SyntaxError);
     }
 
     GROUP_TEST_F(LexerTest, StringTests, LiteralEmptyString) {
@@ -384,7 +390,7 @@ namespace BlsLang {
         std::vector<Token> exp_tokens {
             Token(Token::Type::STRING, "\"\\q\\w\\e\\1\\2\\`\\&\"", 0, 1, 1),
         };
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), LexException);
+        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), SyntaxError);
     }
 
     GROUP_TEST_F(LexerTest, StringTests, Unterminated) {
@@ -392,7 +398,7 @@ namespace BlsLang {
         std::vector<Token> exp_tokens {
             Token(Token::Type::STRING, "\"unterminated", 0, 1, 1),
         };
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), LexException);
+        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), SyntaxError);
     }
 
     GROUP_TEST_F(LexerTest, StringTests, UnescapedNestedString) {
@@ -408,7 +414,7 @@ namespace BlsLang {
         std::vector<Token> exp_tokens {
             Token(Token::Type::STRING, "\"\n\"", 0, 1, 1),
         };
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), LexException);
+        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), SyntaxError);
     }
 
     GROUP_TEST_F(LexerTest, StringTests, StringLiteralBrokenByCarriageReturn) {
@@ -416,7 +422,7 @@ namespace BlsLang {
         std::vector<Token> exp_tokens {
             Token(Token::Type::STRING, "\"\r\"", 0, 1, 1),
         };
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), LexException);
+        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), SyntaxError);
     }
 
     // Comment Tests
@@ -439,7 +445,7 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, CommentTests, UnclosedComment) {
         std::string test_str = R"(/* Multiline comment unclosed)";
         std::vector<Token> exp_tokens {};
-        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), LexException);
+        EXPECT_THROW(TEST_LEX(test_str, exp_tokens), SyntaxError);
     }
 
     GROUP_TEST_F(LexerTest, CommentTests, NestedComments) {
@@ -676,7 +682,8 @@ namespace BlsLang {
     GROUP_TEST_F(LexerTest, ExampleTests, NegativeFloatWithMethodCall) {
         std::string test_str = R"(-1.0.toString())";
         std::vector<Token> exp_tokens {
-            Token(Token::Type::FLOAT, "-1.0", 0, 1, 1),
+            Token(Token::Type::OPERATOR, "-", 0, 1, 1),
+            Token(Token::Type::FLOAT, "1.0", 1, 1, 2),
             Token(Token::Type::OPERATOR, ".", 4, 1, 5),
             Token(Token::Type::IDENTIFIER, "toString", 5, 1, 6),
             Token(Token::Type::OPERATOR, "(", 13, 1, 14),

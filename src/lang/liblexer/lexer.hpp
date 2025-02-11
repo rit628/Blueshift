@@ -12,6 +12,7 @@ namespace BlsLang {
 
     class Lexer {
         public:
+            friend class LexerTest;
             std::vector<Token> lex(const std::string& input);
 
         private:
@@ -25,9 +26,9 @@ namespace BlsLang {
             Token lexOperator();
     };
 
-    class LexException : public std::exception {
+    class SyntaxError : public std::exception {
         public:
-            explicit LexException(const std::string& message, size_t line, size_t col) {
+            explicit SyntaxError(const std::string& message, size_t line, size_t col) {
                 std::ostringstream os;
                 os << "Ln " << line << ", Col " << col << ": " << message;
                 this->message = os.str();
