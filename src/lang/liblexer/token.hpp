@@ -42,7 +42,7 @@ namespace BlsLang {
 
         private:
             enum Type type;
-            const std::string literal;
+            std::string literal;
             size_t absIdx, lineNum, colNum;
     };
 

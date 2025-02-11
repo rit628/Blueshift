@@ -36,6 +36,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$ENV{ARCHIVE_OUTPUT_DIREC
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$ENV{LIBRARY_OUTPUT_DIRECTORY})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$ENV{RUNTIME_OUTPUT_DIRECTORY})
 
+set(BLS_CONFIG ${CMAKE_SOURCE_DIR}/config)
+
 set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
 set(MASTER_SRC_DIR ${SRC_DIR}/master)
 set(CLIENT_SRC_DIR ${SRC_DIR}/client)
@@ -60,8 +62,13 @@ file(GLOB_RECURSE LIBLEXER_SRC ${LANG_SRC_DIR}/liblexer/*.cpp)
 add_library(lexer STATIC ${LIBLEXER_SRC})
 target_link_libraries(lexer ${BOOST_LIB_DEPS})
 
+file(GLOB_RECURSE LIBPARSER_SRC ${LANG_SRC_DIR}/libparser/*.cpp)
+add_library(parser STATIC ${LIBPARSER_SRC})
+target_include_directories(parser PUBLIC ${BLS_CONFIG} ${LANG_SRC_DIR})
+target_link_libraries(parser ${BOOST_LIB_DEPS})
+
 add_executable(lang ${LANG_SRC_DIR}/main.cpp)
-target_link_libraries(lang lexer ${BOOST_LIB_DEPS})
+target_link_libraries(lang lexer parser ${BOOST_LIB_DEPS})
 
 # TESTS
 enable_testing()
@@ -72,6 +79,11 @@ add_executable(test_liblexer ${LIBLEXER_TESTS})
 target_include_directories(test_liblexer PUBLIC ${TEST_DEPS} ${LANG_SRC_DIR}/liblexer)
 target_link_libraries(test_liblexer lexer GTest::gtest_main)
 
+file(GLOB_RECURSE LIBPARSER_TESTS ${LANG_TEST_DIR}/libparser/*.cpp)
+add_executable(test_libparser ${LIBPARSER_TESTS})
+target_include_directories(test_libparser PUBLIC ${TEST_DEPS} ${LANG_SRC_DIR}/libparser)
+target_link_libraries(test_libparser parser GTest::gtest_main)
+
 # MASTER TESTS
 file(GLOB_RECURSE LIBTSQ_TESTS ${MASTER_TEST_DIR}/libTSQ/*.cpp)
 add_executable(test_libTSQ ${LIBTSQ_TESTS})
@@ -80,4 +92,5 @@ target_link_libraries(test_libTSQ TSQ GTest::gtest_main)
 
 include(GoogleTest)
 gtest_discover_tests(test_liblexer)
+gtest_discover_tests(test_libparser)
 gtest_discover_tests(test_libTSQ)
