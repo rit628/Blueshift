@@ -10,16 +10,20 @@ PROJECT_PREFIX = os.environ.get("PROJECT_PREFIX")
 NETWORK_NAME = os.environ.get("NETWORK_NAME")
 DEFAULT_NUM_CLIENTS = os.environ.get("NUM_CLIENTS")
 
+def supressPythonErrors():
+    pass
+
 def clean_shutdown(base_cmd):
     subprocess.run(base_cmd + ["down"])
 
 def run(args):
+    sys.stderr = supressPythonErrors()
     if args.local:
         bin_dir = os.environ.get("RUNTIME_OUTPUT_DIRECTORY")
         executable = os.path.join("." ,"build", bin_dir, args.binary)
-        subprocess.run([executable, *args.binary_args])
+        subprocess.run([executable, *args.binary_args], check=True)
     else:
-        subprocess.run(["docker", "compose", "run", "--rm", "builder",  "run", "-l", args.binary, *args.binary_args])
+        subprocess.run(["docker", "compose", "run", "--rm", "builder",  "run", "-l", args.binary, *args.binary_args], check=True)
 
 def deploy(args):
     base_cmd = ["docker", "compose"]
@@ -34,6 +38,7 @@ def deploy(args):
     subprocess.run(command)
 
 def build(args):
+    sys.stderr = supressPythonErrors()
     build_args = []
     if args.image_build:
         subprocess.run(["docker", "compose", "build"])
@@ -41,21 +46,24 @@ def build(args):
         build_args.append("--clean")
         subprocess.run(["rm", "-rf", "build"])
     
-    subprocess.run(["cmake", "-S", ".", "-B", "build"])
+    if not args.no_local_generation:
+        subprocess.run(["cmake", "-S", ".", "-B", "build"], check=True)
+
     if args.local:
-        subprocess.run(["make", *args.make], cwd="./build")
+        subprocess.run(["make", *args.make], cwd="./build", check=True)
     else:
-        subprocess.run(["docker", "compose", "run", "--rm", "builder",  "build", "-l", *build_args, *args.make])
+        subprocess.run(["docker", "compose", "run", "--rm", "builder",  "build", "-l", *build_args, *args.make], check=True)
 
 def test(args):
+    sys.stderr = supressPythonErrors()
     os.environ["GTEST_COLOR"] = "1"
     ctest_args = [args.verbose]
     ctest_args = list(filter(None, ctest_args))
     if args.local:
         fail_output = ["--output-on-failure"] if not args.no_output_on_failure else []
-        subprocess.run(["ctest", *fail_output, *ctest_args], cwd="./build")
+        subprocess.run(["ctest", *fail_output, *ctest_args], cwd="./build", check=True)
     else:
-        subprocess.run(["docker", "compose", "run", "--rm", "builder", "test", "-l", *ctest_args])
+        subprocess.run(["docker", "compose", "run", "--rm", "builder", "test", "-l", *ctest_args], check=True)
 
 def check_successful_reset_or_force():
     network_id = subprocess.check_output(f"docker network ls | grep {NETWORK_NAME} | awk '{{ print $1 }}'",
@@ -123,6 +131,9 @@ build_parser.add_argument("-l", "--local",
                           action="store_true")
 build_parser.add_argument("-c", "--clean",
                           help="clean build directory before building",
+                          action="store_true")
+build_parser.add_argument("--no-local-generation",
+                          help="disable generation of build artifacts in local environment",
                           action="store_true")
 build_parser.set_defaults(fn=build)
 
