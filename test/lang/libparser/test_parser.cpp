@@ -1,5 +1,6 @@
 #include "ast.hpp"
 #include "fixtures/parser_test.hpp"
+#include "parser.hpp"
 #include "test_macros.hpp"
 #include "include/reserved_tokens.hpp"
 #include <cstddef>
@@ -59,6 +60,26 @@ namespace BlsLang {
                         new AstNode::Specifier::Type(PRIMITIVE_FLOAT, {})
                     }
                 )
+            }
+        ));
+        TEST_PARSE_SPECIFIER(sampleTokens, std::move(expectedAst));
+    }
+
+    GROUP_TEST_F(ParserTest, SpecifierTests, MultipleTypeArguments) {
+        // map<int, string>
+        std::vector<Token> sampleTokens {
+            Token(Token::Type::IDENTIFIER, "map", 0, 1, 1),
+            Token(Token::Type::OPERATOR, TYPE_DELIMITER_OPEN, 1, 1, 2),
+            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT, 2, 1, 3),
+            Token(Token::Type::OPERATOR, COMMA, 3, 1, 4),
+            Token(Token::Type::IDENTIFIER, PRIMITIVE_STRING, 4, 1, 5),
+            Token(Token::Type::OPERATOR, TYPE_DELIMITER_CLOSE, 5, 1, 6)
+        };
+        auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Specifier::Type(
+            "map",
+            {
+                new AstNode::Specifier::Type(PRIMITIVE_INT, {}),
+                new AstNode::Specifier::Type(PRIMITIVE_STRING, {})
             }
         ));
         TEST_PARSE_SPECIFIER(sampleTokens, std::move(expectedAst));
@@ -162,6 +183,31 @@ namespace BlsLang {
         TEST_PARSE_EXPRESSION(sampleTokens, std::move(expectedAst));
     }
 
+    GROUP_TEST_F(ParserTest, ExpressionTests, GroupedBinaryExpression) {
+        // (a + b) * c
+        std::vector<Token> sampleTokens {
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 0, 1, 1),
+            Token(Token::Type::IDENTIFIER, "a", 1, 1, 2),
+            Token(Token::Type::OPERATOR, ARITHMETIC_ADDITION, 2, 1, 3),
+            Token(Token::Type::IDENTIFIER, "b", 3, 1, 4),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 4, 1, 5),
+            Token(Token::Type::OPERATOR, ARITHMETIC_MULTIPLICATION, 5, 1, 6),
+            Token(Token::Type::IDENTIFIER, "c", 6, 1, 7)
+        };
+        auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Binary(
+            ARITHMETIC_MULTIPLICATION,
+            new AstNode::Expression::Group(
+                new AstNode::Expression::Binary(
+                    ARITHMETIC_ADDITION,
+                    new AstNode::Expression::Access("a"),
+                    new AstNode::Expression::Access("b")
+                )
+            ),
+            new AstNode::Expression::Access("c")
+        ));
+        TEST_PARSE_EXPRESSION(sampleTokens, std::move(expectedAst));
+    }
+
     GROUP_TEST_F(ParserTest, ExpressionTests, UnaryNegative) {
         std::vector<Token> sampleTokens {
             Token(Token::Type::OPERATOR, UNARY_NEGATIVE, 0, 1, 1),
@@ -222,6 +268,34 @@ namespace BlsLang {
         TEST_PARSE_EXPRESSION(sampleTokens, std::move(expectedAst));
     }
 
+    GROUP_TEST_F(ParserTest, ExpressionTests, NestedFunctionCallExpression) {
+        // foo(bar(1), baz(2))
+        std::vector<Token> sampleTokens {
+            Token(Token::Type::IDENTIFIER, "foo", 0, 1, 1),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 1, 1, 2),
+                // First argument: bar(1)
+                Token(Token::Type::IDENTIFIER, "bar", 2, 1, 3),
+                Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 3, 1, 4),
+                Token(Token::Type::INTEGER, "1", 4, 1, 5),
+                Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 5, 1, 6),
+                Token(Token::Type::OPERATOR, COMMA, 6, 1, 7),
+                // Second argument: baz(2)
+                Token(Token::Type::IDENTIFIER, "baz", 7, 1, 8),
+                Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 8, 1, 9),
+                Token(Token::Type::INTEGER, "2", 9, 1, 10),
+                Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 10, 1, 11),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 11, 1, 12)
+        };
+        auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Function(
+            "foo",
+            {
+                new AstNode::Expression::Function("bar", { new AstNode::Expression::Literal((size_t)1) }),
+                new AstNode::Expression::Function("baz", { new AstNode::Expression::Literal((size_t)2) })
+            }
+        ));
+        TEST_PARSE_EXPRESSION(sampleTokens, std::move(expectedAst));
+    }
+
     GROUP_TEST_F(ParserTest, ExpressionTests, MethodCallExpression) {
         std::vector<Token> sampleTokens {
             Token(Token::Type::IDENTIFIER, "obj", 0, 1, 1),
@@ -241,6 +315,41 @@ namespace BlsLang {
         TEST_PARSE_EXPRESSION(sampleTokens, std::move(expectedAst));
     }
 
+    GROUP_TEST_F(ParserTest, ExpressionTests, MethodCallMultipleArguments) {
+        // obj.method(10, 20)
+        std::vector<Token> sampleTokens {
+            Token(Token::Type::IDENTIFIER, "obj", 0, 1, 1),
+            Token(Token::Type::OPERATOR, MEMBER_ACCESS, 1, 1, 2),
+            Token(Token::Type::IDENTIFIER, "method", 2, 1, 3),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 3, 1, 4),
+            Token(Token::Type::INTEGER, "10", 4, 1, 5),
+            Token(Token::Type::OPERATOR, COMMA, 5, 1, 6),
+            Token(Token::Type::INTEGER, "20", 6, 1, 7),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 7, 1, 8)
+        };
+        auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Method(
+            "obj", "method",
+            {
+                new AstNode::Expression::Literal((size_t)10),
+                new AstNode::Expression::Literal((size_t)20)
+            }
+        ));
+        TEST_PARSE_EXPRESSION(sampleTokens, std::move(expectedAst));
+    }
+
+    GROUP_TEST_F(ParserTest, ExpressionTests, MemberAccessExpression) {
+        // obj.field
+        std::vector<Token> sampleTokens {
+            Token(Token::Type::IDENTIFIER, "obj", 0, 1, 1),
+            Token(Token::Type::OPERATOR, MEMBER_ACCESS, 1, 1, 2),
+            Token(Token::Type::IDENTIFIER, "field", 2, 1, 3)
+        };
+        auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Access(
+            "obj", "field"
+        ));
+        TEST_PARSE_EXPRESSION(sampleTokens, std::move(expectedAst));
+    }
+
     GROUP_TEST_F(ParserTest, ExpressionTests, AccessSubscript) {
         std::vector<Token> sampleTokens {
             Token(Token::Type::IDENTIFIER, "arr", 0, 1, 1),
@@ -253,6 +362,14 @@ namespace BlsLang {
             new AstNode::Expression::Literal((size_t) 0)
         ));
         TEST_PARSE_EXPRESSION(sampleTokens, std::move(expectedAst));
+    }
+
+    GROUP_TEST_F(ParserTest, ExpressionTests, UnmatchedParenthesis) {
+        std::vector<Token> sampleTokens {
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 0, 1, 1),
+            Token(Token::Type::INTEGER, "42", 1, 1, 2)
+        };
+        EXPECT_THROW(TEST_PARSE_EXPRESSION(sampleTokens, nullptr), ParseException);
     }
 
     GROUP_TEST_F(ParserTest, StatementTests, ExpressionStatement) {
@@ -524,6 +641,48 @@ namespace BlsLang {
         TEST_PARSE_STATEMENT(sampleTokens, std::move(expectedAst));
     }
 
+    GROUP_TEST_F(ParserTest, StatementTests, EmptyForStatement) {
+        // For loop with empty init, condition, and increment: for (;;){ foo(); }
+        std::vector<Token> sampleTokens {
+            Token(Token::Type::IDENTIFIER, RESERVED_FOR, 0, 1, 1),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 1, 1, 2),
+            // Empty init statement
+            Token(Token::Type::OPERATOR, SEMICOLON, 2, 1, 3),
+            // Empty condition
+            Token(Token::Type::OPERATOR, SEMICOLON, 3, 1, 4),
+            // Empty increment expression, then closing parenthesis
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 4, 1, 5),
+            Token(Token::Type::OPERATOR, BRACE_OPEN, 5, 1, 6),
+                // Block: foo();
+                Token(Token::Type::IDENTIFIER, "foo", 6, 1, 7),
+                Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 7, 1, 8),
+                Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 8, 1, 9),
+                Token(Token::Type::OPERATOR, SEMICOLON, 9, 1, 10),
+            Token(Token::Type::OPERATOR, BRACE_CLOSE, 10, 1, 11)
+        };
+        auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Statement::For(
+            std::nullopt,
+            std::nullopt,
+            std::nullopt,
+            {
+                new AstNode::Statement::Expression(
+                    new AstNode::Expression::Function("foo", {})
+                )
+            }
+        ));
+        TEST_PARSE_STATEMENT(sampleTokens, std::move(expectedAst));
+    }
+
+    GROUP_TEST_F(ParserTest, StatementTests, MissingSemicolonStatement) {
+        std::vector<Token> sampleTokens {
+            Token(Token::Type::IDENTIFIER, "x", 0, 1, 1),
+            Token(Token::Type::OPERATOR, ASSIGNMENT, 1, 1, 2),
+            Token(Token::Type::INTEGER, "5", 2, 1, 3)
+        };
+        EXPECT_THROW(TEST_PARSE_STATEMENT(sampleTokens, nullptr), ParseException);
+    }
+
+
     GROUP_TEST_F(ParserTest, FunctionTests, Procedure) {
         // int main() { return 0; }
         std::vector<Token> sampleTokens {
@@ -657,6 +816,17 @@ namespace BlsLang {
             }
         ));
         TEST_PARSE_FUNCTION(sampleTokens, std::move(expectedAst));
+    }
+
+    GROUP_TEST_F(ParserTest, FunctionTests, MissingFunctionName) {
+        std::vector<Token> sampleTokens {
+            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT, 0, 1, 1),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 1, 1, 2),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 2, 1, 3),
+            Token(Token::Type::OPERATOR, BRACE_OPEN, 3, 1, 4),
+            Token(Token::Type::OPERATOR, BRACE_CLOSE, 4, 1, 5)
+        };
+        EXPECT_THROW(TEST_PARSE_FUNCTION(sampleTokens, nullptr), ParseException);
     }
 
     GROUP_TEST_F(ParserTest, SourceTests, FullSource) {
@@ -826,4 +996,12 @@ namespace BlsLang {
         ));
         TEST_PARSE_SOURCE(sampleTokens, std::move(expectedAst));
     }
+
+    GROUP_TEST_F(ParserTest, SourceTests, InvalidTopLevelElement) {
+        std::vector<Token> sampleTokens {
+            Token(Token::Type::OPERATOR, "?", 0, 1, 1)
+        };
+        EXPECT_THROW(TEST_PARSE_SOURCE(sampleTokens, nullptr), ParseException);
+    }
+    
 }
