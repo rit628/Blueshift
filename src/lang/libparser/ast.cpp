@@ -117,7 +117,8 @@ void AstNode::Statement::Return::print(std::ostream& os) const {
 }
 
 void AstNode::Statement::While::print(std::ostream& os) const {
-    os << "AstNode::Statement::While {\n  condition = " << *condition << "\n  block = [";
+    os << "AstNode::Statement::While {\n  type = " << ((type == AstNode::Statement::While::LOOP_TYPE::DO) ? "do" : "while");
+    os << "  condition = " << *condition << "\n  block = [";
     for (auto&& stmt : block) os << " " << *stmt;
     os << " ]\n}" << std::endl;
 }

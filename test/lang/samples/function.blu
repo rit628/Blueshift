@@ -1,4 +1,8 @@
 array<int, array<int>> sum(int a, int b) {
+    do {
+        int a = 1;
+    } while(a);
+    /*
     int x = 5;
     array<int> y = [1, 2, 3];
     map<int> z = {2 : 4, 3 : 4};
@@ -11,7 +15,7 @@ array<int, array<int>> sum(int a, int b) {
     }
     else {
         x = 2;
-    }
+    }*/
 
     /*int result = a + b;
     print(result);

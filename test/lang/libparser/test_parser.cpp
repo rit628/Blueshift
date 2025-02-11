@@ -115,7 +115,6 @@ namespace BlsLang {
             Token(Token::Type::OPERATOR, BRACKET_CLOSE, 6, 1, 7)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::List(
-            AstNode::Expression::List::LIST_TYPE::ARRAY,
             {
                 new AstNode::Expression::Literal((size_t)1),
                 new AstNode::Expression::Literal((size_t)2),

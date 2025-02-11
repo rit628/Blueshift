@@ -105,14 +105,14 @@ namespace BlsLang {
             };
 
             List() = default;
-            List(LIST_TYPE type
-               , std::vector<std::unique_ptr<AstNode::Expression>> elements)
-               : type(type)
-               , elements(std::move(elements)) {}
-            List(LIST_TYPE type
-               , std::initializer_list<AstNode::Expression*> elements)
-               : type(type)
-               , elements()
+            List(std::vector<std::unique_ptr<AstNode::Expression>> elements
+               , LIST_TYPE type = LIST_TYPE::ARRAY)
+               : elements(std::move(elements))
+               , type(type) {}
+            List(std::initializer_list<AstNode::Expression*> elements
+               , LIST_TYPE type = LIST_TYPE::ARRAY)
+               : elements()
+               , type(type)
             {
                 for (auto&& element : elements) {
                     this->elements.push_back(std::unique_ptr<AstNode::Expression>(element));
@@ -444,14 +444,24 @@ namespace BlsLang {
 
     class AstNode::Statement::While : public AstNode::Statement {
         public:
+            enum class LOOP_TYPE : uint8_t {
+                WHILE,
+                DO
+            };
+
             While() = default;
             While(std::unique_ptr<AstNode::Expression> condition
-                , std::vector<std::unique_ptr<AstNode::Statement>> block)
+                , std::vector<std::unique_ptr<AstNode::Statement>> block
+                , LOOP_TYPE type = LOOP_TYPE::WHILE)
                 : condition(std::move(condition))
-                , block(std::move(block)) {}
+                , block(std::move(block))
+                , type(type) {}
             While(AstNode::Expression* condition
-                , std::initializer_list<AstNode::Statement*> block)
+                , std::initializer_list<AstNode::Statement*> block
+                , LOOP_TYPE type = LOOP_TYPE::WHILE)
                 : condition(condition)
+                , block()
+                , type(type)
             {
                 for (auto stmt : block){
                     this->block.push_back(std::unique_ptr<AstNode::Statement>(stmt));
@@ -462,12 +472,14 @@ namespace BlsLang {
 
             auto& getCondition() { return condition; }
             auto& getBlock() { return block; }
+            auto& getType() { return type; }
 
         private:
             void print(std::ostream& os) const override;
 
             std::unique_ptr<AstNode::Expression> condition;
             std::vector<std::unique_ptr<AstNode::Statement>> block;
+            LOOP_TYPE type;
     };
 
     class AstNode::Statement::For : public AstNode::Statement {

@@ -36,6 +36,7 @@ namespace BlsLang {
     constexpr auto RESERVED_IF                          ("if");
     constexpr auto RESERVED_ELSE                        ("else");
     constexpr auto RESERVED_FOR                         ("for");
+    constexpr auto RESERVED_DO                          ("do");
     constexpr auto RESERVED_WHILE                       ("while");
     constexpr auto RESERVED_RETURN                      ("return");
 

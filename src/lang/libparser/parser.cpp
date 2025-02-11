@@ -115,6 +115,9 @@ std::unique_ptr<AstNode::Statement> Parser::parseStatement() {
     else if (ts.peek(RESERVED_WHILE)) {
         return parseWhileStatement();
     }
+    else if (ts.peek(RESERVED_DO)) {
+        return parseDoWhileStatement();
+    }
     else if (ts.peek(RESERVED_RETURN)) {
         return parseReturnStatement();
     }
@@ -162,6 +165,19 @@ std::unique_ptr<AstNode::Statement::While> Parser::parseWhileStatement() {
     matchExpectedSymbol(PARENTHESES_CLOSE, "after while statement condition.");
     auto block = parseBlock();
     return std::make_unique<AstNode::Statement::While>(std::move(condition), std::move(block));
+}
+
+std::unique_ptr<AstNode::Statement::While> Parser::parseDoWhileStatement() {
+    ts.match(RESERVED_DO);
+    auto block = parseBlock();
+    matchExpectedSymbol(RESERVED_WHILE, "after 'do' block.");
+    matchExpectedSymbol(PARENTHESES_OPEN, "after 'while'.");
+    auto condition = parseExpression();
+    matchExpectedSymbol(PARENTHESES_CLOSE, "after while statement condition.");
+    matchExpectedSymbol(SEMICOLON, "after while statement condition.");
+    return std::make_unique<AstNode::Statement::While>(std::move(condition)
+                                                     , std::move(block)
+                                                     , AstNode::Statement::While::LOOP_TYPE::DO);
 }
 
 std::unique_ptr<AstNode::Statement::For> Parser::parseForStatement() {
@@ -355,13 +371,12 @@ std::unique_ptr<AstNode::Expression> Parser::parsePrimaryExpression() {
             } while (ts.match(COMMA));
         }
         matchExpectedSymbol(BRACKET_CLOSE, "at end of list expression.");
-        return std::make_unique<AstNode::Expression::List>(AstNode::Expression::List::LIST_TYPE::ARRAY
-                                                         , std::move(elements));
+        return std::make_unique<AstNode::Expression::List>(std::move(elements));
     }
     else if (ts.match(BRACE_OPEN)) {
         if (ts.peek(BRACE_CLOSE)) { // No elements, default to set
-            return std::make_unique<AstNode::Expression::List>(AstNode::Expression::List::LIST_TYPE::SET
-                                                             , std::vector<std::unique_ptr<AstNode::Expression>>());
+            return std::make_unique<AstNode::Expression::List>(std::vector<std::unique_ptr<AstNode::Expression>>()
+                                                             , AstNode::Expression::List::LIST_TYPE::SET);
         }
         auto key = parseExpression();
         if (ts.match(COLON)) { // map expression
@@ -384,8 +399,8 @@ std::unique_ptr<AstNode::Expression> Parser::parsePrimaryExpression() {
                 elements.push_back(parseExpression());
             }
             matchExpectedSymbol(BRACE_CLOSE, "at end of set expression.");
-            return std::make_unique<AstNode::Expression::List>(AstNode::Expression::List::LIST_TYPE::SET
-                                                             , std::move(elements));
+            return std::make_unique<AstNode::Expression::List>(std::move(elements)
+                                                             , AstNode::Expression::List::LIST_TYPE::SET);
         }
     }
     else if (ts.match(PARENTHESES_OPEN)) {

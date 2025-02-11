@@ -242,6 +242,8 @@ namespace BlsLang {
     inline std::any ParserTest::TestVisitor::visit(AstNode::Statement::While& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedWhile = dynamic_cast<AstNode::Statement::While&>(*toCast);
+
+        EXPECT_EQ(expectedWhile.getType(), ast.getType());
     
         auto& expectedCondition = expectedWhile.getCondition();
         auto& condition = ast.getCondition();

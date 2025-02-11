@@ -25,6 +25,7 @@ namespace BlsLang {
             std::unique_ptr<AstNode::Statement::Declaration> parseDeclarationStatement();
             std::unique_ptr<AstNode::Statement::Return> parseReturnStatement();
             std::unique_ptr<AstNode::Statement::While> parseWhileStatement();
+            std::unique_ptr<AstNode::Statement::While> parseDoWhileStatement();
             std::unique_ptr<AstNode::Statement::For> parseForStatement();
             std::unique_ptr<AstNode::Statement::If> parseIfStatement();
             std::unique_ptr<AstNode::Statement::If> parseElseIfStatement();
