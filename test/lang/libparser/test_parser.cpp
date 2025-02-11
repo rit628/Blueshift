@@ -2,6 +2,7 @@
 #include "fixtures/parser_test.hpp"
 #include "parser.hpp"
 #include "test_macros.hpp"
+#include "liblexer/lexer.hpp"
 #include "include/reserved_tokens.hpp"
 #include <cstddef>
 #include <gtest/gtest.h>
@@ -369,7 +370,7 @@ namespace BlsLang {
             Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 0, 1, 1),
             Token(Token::Type::INTEGER, "42", 1, 1, 2)
         };
-        EXPECT_THROW(TEST_PARSE_EXPRESSION(sampleTokens, nullptr), ParseException);
+        EXPECT_THROW(TEST_PARSE_EXPRESSION(sampleTokens, nullptr), SyntaxError);
     }
 
     GROUP_TEST_F(ParserTest, StatementTests, ExpressionStatement) {
@@ -679,7 +680,7 @@ namespace BlsLang {
             Token(Token::Type::OPERATOR, ASSIGNMENT, 1, 1, 2),
             Token(Token::Type::INTEGER, "5", 2, 1, 3)
         };
-        EXPECT_THROW(TEST_PARSE_STATEMENT(sampleTokens, nullptr), ParseException);
+        EXPECT_THROW(TEST_PARSE_STATEMENT(sampleTokens, nullptr), SyntaxError);
     }
 
 
@@ -826,7 +827,7 @@ namespace BlsLang {
             Token(Token::Type::OPERATOR, BRACE_OPEN, 3, 1, 4),
             Token(Token::Type::OPERATOR, BRACE_CLOSE, 4, 1, 5)
         };
-        EXPECT_THROW(TEST_PARSE_FUNCTION(sampleTokens, nullptr), ParseException);
+        EXPECT_THROW(TEST_PARSE_FUNCTION(sampleTokens, nullptr), SyntaxError);
     }
 
     GROUP_TEST_F(ParserTest, SourceTests, FullSource) {
@@ -1001,7 +1002,7 @@ namespace BlsLang {
         std::vector<Token> sampleTokens {
             Token(Token::Type::OPERATOR, "?", 0, 1, 1)
         };
-        EXPECT_THROW(TEST_PARSE_SOURCE(sampleTokens, nullptr), ParseException);
+        EXPECT_THROW(TEST_PARSE_SOURCE(sampleTokens, nullptr), SyntaxError);
     }
-    
+
 }

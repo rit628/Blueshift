@@ -1,6 +1,7 @@
 #include "parser.hpp"
 #include "ast.hpp"
 #include "liblexer/token.hpp"
+#include "liblexer/lexer.hpp"
 #include "include/reserved_tokens.hpp"
 #include <cstddef>
 #include <memory>
@@ -25,7 +26,7 @@ std::unique_ptr<AstNode::Source> Parser::parseSource() {
     while (!ts.empty()) {
         if (ts.peek(RESERVED_SETUP)) {
             if (setup != nullptr) {
-                throw ParseException("Only one setup function allowed per source file.", ts.getLine(), ts.getColumn());
+                throw SyntaxError("Only one setup function allowed per source file.", ts.getLine(), ts.getColumn());
             }
             setup = parseSetup();
         }
@@ -36,12 +37,12 @@ std::unique_ptr<AstNode::Source> Parser::parseSource() {
             procedures.push_back(parseFunction());
         }
         else {
-            throw ParseException("Invalid top level element.", ts.getLine(), ts.getColumn());
+            throw SyntaxError("Invalid top level element.", ts.getLine(), ts.getColumn());
         }
     }
 
     if (setup == nullptr) {
-        throw ParseException("No setup function found in file.", ts.getLine(), ts.getColumn());
+        throw SyntaxError("No setup function found in file.", ts.getLine(), ts.getColumn());
     }
 
     return std::make_unique<AstNode::Source>(std::move(procedures)
@@ -61,7 +62,7 @@ std::unique_ptr<AstNode::Function> Parser::parseFunction() {
         returnType = parseTypeSpecifier();
     }
     if (!ts.match(Token::Type::IDENTIFIER)) {
-        throw ParseException("Expected valid identifier for function name.", ts.getLine(), ts.getColumn());
+        throw SyntaxError("Expected valid identifier for function name.", ts.getLine(), ts.getColumn());
     }
     auto& name = ts.at(-1).getLiteral();
     std::vector<std::unique_ptr<AstNode::Specifier::Type>> parameterTypes;
@@ -74,7 +75,7 @@ std::unique_ptr<AstNode::Function> Parser::parseFunction() {
                 parameters.push_back(std::move(ts.at(-1).getLiteral()));
             }
             else {
-                throw ParseException("Invalid function parameter.", ts.getLine(), ts.getColumn());
+                throw SyntaxError("Invalid function parameter.", ts.getLine(), ts.getColumn());
             }
         } while (ts.match(COMMA));
     }
@@ -151,7 +152,7 @@ std::unique_ptr<AstNode::Statement> Parser::parseAssignmentExpressionStatement()
 std::unique_ptr<AstNode::Statement::Declaration> Parser::parseDeclarationStatement() {
     auto type = parseTypeSpecifier();
     if (!ts.match(Token::Type::IDENTIFIER)) {
-        throw ParseException("Expected valid identifier for variable name.", ts.getLine(), ts.getColumn());
+        throw SyntaxError("Expected valid identifier for variable name.", ts.getLine(), ts.getColumn());
     }
     auto& name = ts.at(-1).getLiteral();
     auto rhs = (ts.match(ASSIGNMENT)) ? std::make_optional(parseExpression()) : std::nullopt;
@@ -443,7 +444,7 @@ std::unique_ptr<AstNode::Expression> Parser::parsePrimaryExpression() {
         auto& object = ts.at(-1).getLiteral();
         if (ts.match(MEMBER_ACCESS)) { // member access
             if (!ts.match(Token::Type::IDENTIFIER)) {
-                throw ParseException("Expected data member or method call after '.' operator.", ts.getLine(), ts.getColumn());
+                throw SyntaxError("Expected data member or method call after '.' operator.", ts.getLine(), ts.getColumn());
             }
             auto& member = ts.at(-1).getLiteral();
             return std::make_unique<AstNode::Expression::Access>(std::move(object), std::move(member));
@@ -455,7 +456,7 @@ std::unique_ptr<AstNode::Expression> Parser::parsePrimaryExpression() {
         }
         return std::make_unique<AstNode::Expression::Access>(std::move(object));
     }
-    throw ParseException("Invalid Expression.", ts.getLine(), ts.getColumn());
+    throw SyntaxError("Invalid Expression.", ts.getLine(), ts.getColumn());
 }
 
 std::unique_ptr<AstNode::Specifier> Parser::parseSpecifier() {
@@ -464,13 +465,13 @@ std::unique_ptr<AstNode::Specifier> Parser::parseSpecifier() {
 
 std::unique_ptr<AstNode::Specifier::Type> Parser::parseTypeSpecifier() {
     if (!ts.match(Token::Type::IDENTIFIER)) {
-        throw ParseException("Invalid type specifier.", ts.getLine(), ts.getColumn());
+        throw SyntaxError("Invalid type specifier.", ts.getLine(), ts.getColumn());
     }
     auto& name = ts.at(-1).getLiteral();
     std::vector<std::unique_ptr<AstNode::Specifier::Type>> typeArgs;
     if (ts.match(TYPE_DELIMITER_OPEN)) {
         if (!CONTAINER_TYPES.contains(name)) {
-            throw ParseException(invalidContainerMessage(), ts.getLine(), ts.getColumn());
+            throw SyntaxError(invalidContainerMessage(), ts.getLine(), ts.getColumn());
         }
         do {
             typeArgs.push_back(parseTypeSpecifier());
@@ -520,6 +521,6 @@ constexpr const char * const Parser::invalidContainerMessage() {
 
 void Parser::matchExpectedSymbol(std::string&& symbol, std::string&& message) {
     if (!ts.match(symbol)) {
-        throw ParseException("Expected '" + symbol + "' " + message, ts.getLine(), ts.getColumn());
+        throw SyntaxError("Expected '" + symbol + "' " + message, ts.getLine(), ts.getColumn());
     }
 }

@@ -4,7 +4,6 @@
 #include "token_stream.hpp"
 #include <memory>
 #include <vector>
-#include <sstream>
 
 namespace BlsLang {
     
@@ -46,20 +45,6 @@ namespace BlsLang {
             bool peekNestedTypeSpecifier();
             constexpr const char * const invalidContainerMessage();
             void matchExpectedSymbol(std::string&& symbol, std::string&& message);
-    };
-
-    class ParseException : public std::exception {
-        public:
-            explicit ParseException(const std::string& message, size_t line, size_t col) {
-                std::ostringstream os;
-                os << "Ln " << line << ", Col " << col << ": " << message;
-                this->message = os.str();
-            }
-        
-            const char* what() const noexcept override { return message.c_str(); }
-
-        private:
-            std::string message;
     };
 
 }
