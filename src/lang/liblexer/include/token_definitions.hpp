@@ -7,7 +7,6 @@ namespace BlsLang {
     const static boost::regex IDENTIFIER_END                        (R"([A-Za-z0-9_])");
 
     const static char ZERO                                          ('0');
-    const static char NEGATIVE_SIGN                                 ('-');
     const static char DECIMAL_POINT                                 ('.');
     const static boost::regex NUMERIC_DIGIT                         (R"([0-9])");
     const static boost::regex OCTAL_DIGIT                           (R"([0-7])");

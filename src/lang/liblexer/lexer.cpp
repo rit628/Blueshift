@@ -24,10 +24,7 @@ Token Lexer::lexToken() {
     if (cs.peek(IDENTIFIER_START)) {
         return lexIdentifier();
     }
-    else if (cs.peek(NUMERIC_DIGIT)
-          || cs.peek(NEGATIVE_SIGN, NUMERIC_DIGIT)
-          || cs.peek(DECIMAL_POINT, NUMERIC_DIGIT)
-          || cs.peek(NEGATIVE_SIGN, DECIMAL_POINT, NUMERIC_DIGIT)) {
+    else if (cs.peek(NUMERIC_DIGIT) || cs.peek(DECIMAL_POINT, NUMERIC_DIGIT)) {
         return lexNumber();
     }
     else if (cs.peek(STRING_QUOTE)) {
@@ -49,8 +46,6 @@ Token Lexer::lexIdentifier() {
 }
 
 Token Lexer::lexNumber() {
-    cs.match(NEGATIVE_SIGN); // consume negative sign
-    
     Token::Type tokenType = Token::Type::INTEGER;
 
     if (cs.match(ZERO, HEX_START, HEX_DIGIT)) { // hexadecmial literal
