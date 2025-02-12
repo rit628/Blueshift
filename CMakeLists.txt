@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.24)
 
 set(CMAKE_C_COMPILER clang)
 set(CMAKE_CXX_COMPILER clang++)
@@ -21,7 +21,7 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 # Boost
-set(REQUIRED_BOOST_LIBS asio thread regex)
+set(REQUIRED_BOOST_LIBS asio thread regex type_index)
 list(TRANSFORM REQUIRED_BOOST_LIBS PREPEND Boost:: OUTPUT_VARIABLE BOOST_LIB_DEPS)
 FetchContent_Declare(
     Boost
@@ -50,6 +50,19 @@ set(LANG_TEST_DIR ${TEST_DIR}/lang)
 # MASTER LIBS AND EXECUTABLE
 file(GLOB_RECURSE LIBTSQ_SRC ${MASTER_SRC_DIR}/libTSQ/*.cpp)
 add_library(TSQ STATIC ${LIBTSQ_SRC})
+
+file(GLOB_RECURSE LIBDM_SRC ${MASTER_SRC_DIR}/libDM/*.cpp)
+add_library(dynamic_message STATIC ${LIBDM_SRC})
+target_link_libraries(dynamic_message ${BOOST_LIB_DEPS})
+
+file(GLOB_RECURSE LIBVM_SRC ${MASTER_SRC_DIR}/libVM/*.cpp)
+add_library(virtual_machine STATIC ${LIBVM_SRC})
+target_link_libraries(virtual_machine dynamic_message)
+
+file(GLOB_RECURSE LIBBYTEPROC_SRC ${MASTER_SRC_DIR}/libByteproc/*.cpp)
+add_library(byteproc STATIC ${LIBBYTEPROC_SRC})
+target_link_libraries(byteproc virtual_machine)
+
 add_executable(master ${MASTER_SRC_DIR}/main.cpp)
 
 # CLIENT LIBS AND EXECUTABLE
@@ -78,6 +91,19 @@ add_executable(test_libTSQ ${LIBTSQ_TESTS})
 target_include_directories(test_libTSQ PUBLIC ${TEST_DEPS} ${MASTER_SRC_DIR}/libTSQ)
 target_link_libraries(test_libTSQ TSQ GTest::gtest_main)
 
+file(GLOB_RECURSE LIBDM_TESTS ${MASTER_TEST_DIR}/libDM/*.cpp)
+add_executable(test_libDM ${LIBDM_TESTS})
+target_include_directories(test_libDM PUBLIC ${TEST_DEPS} ${MASTER_SRC_DIR}/libDM)
+target_link_libraries(test_libDM dynamic_message GTest::gtest_main)
+
+file(GLOB_RECURSE LIBVM_TESTS ${MASTER_TEST_DIR}/libVM/*.cpp)
+add_executable(test_libVM ${LIBVM_TESTS})
+target_include_directories(test_libVM PUBLIC ${TEST_DEPS} ${MASTER_SRC_DIR}/libByteproc)
+target_link_libraries(test_libVM byteproc GTest::gtest_main)
+
+
 include(GoogleTest)
 gtest_discover_tests(test_liblexer)
 gtest_discover_tests(test_libTSQ)
+gtest_discover_tests(test_libDM)
+gtest_discover_tests(test_libVM)
