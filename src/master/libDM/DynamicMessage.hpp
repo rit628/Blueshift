@@ -255,7 +255,7 @@ class DynamicMessage{
             desc.descType = Desctype::BOOL; 
         }
         else{
-            throw std::invalid_argument("Object of unknown type " + (type_name) + " attempted to be serialized"); 
+            throw std::invalid_argument("Object of unknown type ll " + (type_name) + " attempted to be serialized"); 
         }
 
         desc.numElements = 1; 
