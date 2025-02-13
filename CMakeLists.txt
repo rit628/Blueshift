@@ -106,4 +106,7 @@ include(GoogleTest)
 gtest_discover_tests(test_liblexer)
 gtest_discover_tests(test_libTSQ)
 gtest_discover_tests(test_libDM)
-gtest_discover_tests(test_libVM)
+gtest_discover_tests(
+    test_libVM
+    WORKING_DIRECTORY ${MASTER_TEST_DIR}/libVM
+)
