@@ -1,6 +1,6 @@
-#include "VirtualMachine.h"
-#include "VariantOperator.h"
-#include "../Common/Common.h"
+#include "VirtualMachine.hpp"
+#include "VariantOperator.hpp"
+#include "../libCommon/Common.hpp"
 
 
 // VM Constructor object. Instantiates the name, in_code, cntrl, code offset
@@ -252,7 +252,7 @@ void VM::actionHeap(Instruction &instr){
                 this->vm_stack.push_back(newHeapObj); 
             }
             else{
-                throw std::invalid_argument("Failed to intialize Heap object of ID: " + instr.arg2); 
+                throw std::invalid_argument("Failed to intialize Heap object of ID: " + stringify(instr.arg2)); 
             }
 
             break; 
