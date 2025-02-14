@@ -1,0 +1,7 @@
+mkscope
+push 20
+push 30
+add 
+println
+endscope
+end 
