@@ -5,6 +5,8 @@
 #include <unordered_map> 
 #include <iostream> 
 #include "../libVM/HeapDescriptors.hpp"
+#include <cstring> 
+#include <boost/type_index.hpp>
 
 
 // Dynamic Message metadata elements 
@@ -498,6 +500,36 @@ class DynamicMessage{
         Dynamic Message -> Heap Tree PIPELINE (all Dynamic Messages -> Map Heap Descriptor)
     */
 
+    std::string getContType(Primtype type){
+        switch(type){
+            case(Primtype::FLOAT) : {
+                return "FLOAT"; 
+            }
+            case(Primtype::INT) : {
+                return "INT"; 
+            }
+            case(Primtype::CHAR) : {
+                return "CHAR"; 
+            }
+            case(Primtype::BOOL) : {
+                return "BOOL"; 
+            }
+            case(Primtype::STRING) : {
+                return "STRING"; 
+            }
+            case(Primtype::VECTOR) : {
+                return "VECTOR"; 
+            }
+            case(Primtype::MAP) : {
+                return "MAP"; 
+            }
+            default : {
+                return "NONE"; 
+            }
+        }
+
+    }
+
     std::shared_ptr<HeapDescriptor> toTree(){
         auto global_map = std::make_shared<MapDescriptor>("ANY");
 
@@ -542,36 +574,7 @@ class DynamicMessage{
 
         int count = obj_desc.numElements;
         Primtype cont_type = obj_desc.contained_type; 
-        std::string josh; 
-
-        switch(cont_type) {
-            case(Primtype::INT) : {
-                josh = "INT"; 
-                break; 
-            }
-
-            case(Primtype::FLOAT) : {
-                josh = "FLOAT"; 
-                break; 
-            }
-
-            case(Primtype::CHAR) : {
-                josh = "CHAR"; 
-                break; 
-            }
-
-            case(Primtype::MAP) : {
-                josh = "MAP"; 
-                break; 
-            }
-
-            case(Primtype::VECTOR) : {
-                josh = "VECTOR"; 
-                break; 
-            }
-
-
-        }
+        std::string josh = getContType(cont_type); 
 
         auto map_object = std::make_shared<MapDescriptor>(josh); 
 
@@ -613,31 +616,9 @@ class DynamicMessage{
         int ptrPos = desc.lumpOffset; 
         int eleCount = desc.numElements; 
 
-        std::string cont_type; 
+        std::string cont_type = getContType(desc.contained_type); 
 
-        switch(desc.contained_type){
-            case(Primtype::CHAR) : {
-                cont_type = "CHAR"; 
-                break; 
-            } 
-            case(Primtype::FLOAT) : {
-                cont_type = "FLOAT"; 
-                break; 
-            }
-            case(Primtype::INT) : { 
-                cont_type = "INT"; 
-                break; 
-            }
-            case(Primtype::VECTOR) : {
-                cont_type = "VECTOR"; 
-                break; 
-            }
-            case(Primtype::MAP) : {
-                cont_type = "MAP"; 
-                break; 
-            }
-        }; 
-
+        
         auto vecDesc = std::make_shared<VectorDescriptor>(cont_type); 
 
         for(int i = 0; i < eleCount; i++){
