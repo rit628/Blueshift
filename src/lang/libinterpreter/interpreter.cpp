@@ -69,18 +69,20 @@ std::any Interpreter::visit(AstNode::Function::Oblock& ast) {}
 std::any Interpreter::visit(AstNode::Setup& ast) {}
 
 std::any Interpreter::visit(AstNode::Statement::If& ast) {
-    if (std::any_cast<bool>(ast.getCondition()->accept(*this))) {
+    auto conditionResult = ast.getCondition()->accept(*this);
+    if (std::get<bool>(resolve(conditionResult))) {
         cs.pushFrame(CallStack<std::string>::Frame::Context::CONDITIONAL);
         for (auto&& statement : ast.getBlock()) {
             statement->accept(*this);
         }
         cs.popFrame();
-        return true;
+        return BlsType(true);
     }
     else {
         for (auto&& elif : ast.getElseIfStatements()) {
-            if (std::any_cast<bool>(elif->accept(*this))) {
-                return true; // short circuit if elif condition is satisfied
+            auto elifResult = elif->accept(*this);
+            if (std::get<bool>(resolve(elifResult))) {
+                return BlsType(true); // short circuit if elif condition is satisfied
             }
         }
         
@@ -89,7 +91,7 @@ std::any Interpreter::visit(AstNode::Statement::If& ast) {
             statement->accept(*this);
         }
         cs.popFrame();
-        return false;
+        return BlsType(false);
     }
 }
 
@@ -116,7 +118,7 @@ std::any Interpreter::visit(AstNode::Statement::While& ast) {
     }
 
     auto conditionResult = condition->accept(*this);
-    while (std::any_cast<bool>(resolve(conditionResult))) {
+    while (std::get<bool>(resolve(conditionResult))) {
         try {
             for (auto&& statement : statements) {
                 statement->accept(*this);
@@ -146,14 +148,14 @@ std::any Interpreter::visit(AstNode::Statement::Return& ast) {
 }
 
 std::any Interpreter::visit(AstNode::Statement::Continue& ast) {
-    if (cs.getContext() != CallStack<std::string>::Frame::Context::LOOP) {
+    if (!cs.checkContext(CallStack<std::string>::Frame::Context::LOOP)) {
         throw std::runtime_error("continue statement outside of loop context.");
     }
     throw ast;
 }
 
 std::any Interpreter::visit(AstNode::Statement::Break& ast) {
-    if (cs.getContext() != CallStack<std::string>::Frame::Context::LOOP) {
+    if (!cs.checkContext(CallStack<std::string>::Frame::Context::LOOP)) {
         throw std::runtime_error("break statement outside of loop context.");
     }
     throw ast;

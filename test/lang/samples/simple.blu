@@ -2,6 +2,29 @@ int main() {
     int i = 4;
     i = 1;
     i = i - 2;
+    
+    if (i > 0) {
+        println("works", true);
+    }
+    else if (i == i) {
+        println("elif works");
+    }
+    else {
+        return false;
+    }
+
+    //continue;
+
+    //break;
+
+    while (i < 10) {
+        println(i);
+        if (i == 8) {
+            break;
+        }
+        i = i + 1;
+    }
+
     return 10.0 % 3.0;
 }
 

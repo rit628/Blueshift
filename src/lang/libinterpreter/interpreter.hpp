@@ -3,11 +3,13 @@
 #include "bls_types.hpp"
 #include "visitor.hpp"
 #include "include/reserved_tokens.hpp"
+#include <iostream>
 #include <any>
 #include <cstring>
 #include <functional>
 #include <string>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 namespace BlsLang {
@@ -63,7 +65,25 @@ namespace BlsLang {
 
         private:
             CallStack<std::string> cs;
-            std::unordered_map<std::string, std::function<std::any(std::vector<BlsType>)>> functions;
+            std::unordered_map<std::string, std::function<std::any(std::vector<BlsType>)>> functions = {
+                {"println", [](std::vector<BlsType> args) -> std::any {
+                    for (auto&& arg : args) {
+                        if (std::holds_alternative<int64_t>(arg)) {
+                            std::cout << std::get<int64_t>(arg) << std::endl;
+                        }
+                        else if (std::holds_alternative<double>(arg)) {
+                            std::cout << std::get<double>(arg) << std::endl;
+                        }
+                        else if (std::holds_alternative<bool>(arg)) {
+                            std::cout << ((std::get<bool>(arg)) ? "true" : "false") << std::endl;
+                        }
+                        else if (std::holds_alternative<std::string>(arg)) {
+                            std::cout << std::get<std::string>(arg) << std::endl;
+                        }
+                    }
+                    return std::monostate();
+                }}
+            };
     };
 
 }

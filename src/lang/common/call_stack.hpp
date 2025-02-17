@@ -12,11 +12,13 @@
 namespace BlsLang {
 
     template<typename T>
-    concept StackType = std::same_as<T, size_t>
-                     || std::same_as<T, std::string>;
+    concept IntAddressable = std::same_as<T, size_t>;
 
     template<typename T>
-    concept IntAddressable = std::same_as<T, size_t>;
+    concept StringAddressable = std::same_as<T, std::string>;
+
+    template<typename T>
+    concept StackType = IntAddressable<T> || StringAddressable<T>;
 
     template<StackType T>
     class CallStack {
@@ -30,8 +32,8 @@ namespace BlsLang {
 
                 using container_t = std::conditional_t<IntAddressable<T>, std::vector<BlsType>, std::unordered_map<T, BlsType>>;
 
-                Frame(Context context) : context(context) {}
-                Frame(size_t returnAddress, std::span<BlsType> arguments, size_t localSize);
+                Frame(Context context) requires StringAddressable<T> : context(context) {}
+                Frame(size_t returnAddress, std::span<BlsType> arguments, size_t localSize) requires IntAddressable<T>;
                 
                 Context context = Context::FUNCTION;
                 size_t returnAddress;
@@ -41,54 +43,62 @@ namespace BlsLang {
 
             CallStack() = default;
 
-            void pushFrame(Frame::Context context);
-            void pushFrame(size_t returnAddress, std::span<BlsType> arguments, size_t localSize);
+            void pushFrame(Frame::Context context) requires StringAddressable<T>;
+            void pushFrame(size_t returnAddress, std::span<BlsType> arguments, size_t localSize) requires IntAddressable<T>;
             size_t popFrame();
-            void pushOperand(BlsType&& operand);
-            BlsType popOperand();
+            void pushOperand(BlsType&& operand) requires IntAddressable<T>;
+            BlsType popOperand() requires IntAddressable<T>;
             void setLocal(T index, BlsType value);
             BlsType& getLocal(T index);
-            Frame::Context getContext();
+            bool checkContext(Frame::Context context) requires StringAddressable<T>;
 
         private:
-            std::stack<Frame> cs;
+            using cstack_t = std::conditional_t<std::same_as<T, std::string>, std::vector<Frame>, std::stack<Frame>>;
+            cstack_t cs;
     };
 
-    template<>
-    inline CallStack<size_t>::Frame::Frame(size_t returnAddress, std::span<BlsType> arguments, size_t localSize) : returnAddress(returnAddress) {
+    template<StackType T>
+    inline CallStack<T>::Frame::Frame(size_t returnAddress, std::span<BlsType> arguments, size_t localSize) requires IntAddressable<T> : returnAddress(returnAddress) {
         locals.reserve(localSize);
         locals.assign(arguments.begin(), arguments.end());
         locals.resize(localSize);
     }
 
-    template<>
-    inline void CallStack<std::string>::pushFrame(Frame::Context context) {
+    template<StackType T>
+    inline void CallStack<T>::pushFrame(Frame::Context context) requires StringAddressable<T> {
         auto frame = Frame(context);
         if (context != Frame::Context::FUNCTION) {
-            frame.locals = cs.top().locals;
+            frame.locals = cs.back().locals; // transfer locals to new context
         }
-        cs.push(frame);
+        cs.push_back(frame);
     }
 
-    template<>
-    inline void CallStack<size_t>::pushFrame(size_t returnAddress, std::span<BlsType> arguments, size_t localSize) {
+    template<StackType T>
+    inline void CallStack<T>::pushFrame(size_t returnAddress, std::span<BlsType> arguments, size_t localSize) requires IntAddressable<T> {
         cs.push(Frame(returnAddress, arguments, localSize));
     }
 
     template<StackType T>
     inline size_t CallStack<T>::popFrame() {
-        auto returnAddress = cs.top().returnAddress;
-        cs.pop();
+        size_t returnAddress;
+        if constexpr (std::is_same<T, std::string>()) {
+            returnAddress = cs.back().returnAddress;
+            cs.pop_back();
+        }
+        else {
+            returnAddress = cs.top().returnAddress;
+            cs.pop();
+        }
         return returnAddress;
     }
 
     template<StackType T>
-    inline void CallStack<T>::pushOperand(BlsType&& operand) {
+    inline void CallStack<T>::pushOperand(BlsType&& operand) requires IntAddressable<T> {
         cs.top().operands.push(operand);
     }
 
     template<StackType T>
-    inline BlsType CallStack<T>::popOperand() {
+    inline BlsType CallStack<T>::popOperand() requires IntAddressable<T> {
         auto& operands = cs.top().operands;
         auto operand = operands.top();
         operands.pop();
@@ -102,12 +112,22 @@ namespace BlsLang {
 
     template<StackType T>
     inline BlsType& CallStack<T>::getLocal(T index) {
-        return cs.top().locals[index];
+        if constexpr (std::is_same<T, std::string>()) {
+            return cs.back().locals[index];
+        }
+        else {
+            return cs.top().locals[index];
+        }
     }
 
-    template<>
-    inline CallStack<std::string>::Frame::Context CallStack<std::string>::getContext() {
-        return cs.top().context;
+    template<StackType T>
+    inline bool CallStack<T>::checkContext(Frame::Context context) requires StringAddressable<T> {
+        for (auto it = cs.rbegin(); it != cs.rend(); it++) {
+            if (it->context == context) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }
