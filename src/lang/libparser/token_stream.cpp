@@ -1,5 +1,4 @@
 #include "token_stream.hpp"
-#include "liblexer/token.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <stdexcept>

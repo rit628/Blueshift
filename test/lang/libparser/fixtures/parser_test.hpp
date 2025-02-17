@@ -106,6 +106,15 @@ namespace BlsLang {
 
         EXPECT_EQ(expectedProcedure.getName(), ast.getName());
         EXPECT_EQ(expectedProcedure.getParameters(), ast.getParameters());
+
+        auto& expectedParameterTypes = expectedProcedure.getParameterTypes();
+        auto& parameterTypes = ast.getParameterTypes();
+        for (size_t i = 0; i < expectedParameterTypes.size(); i++) {
+            expectedVisits.push(std::move(expectedParameterTypes.at(i)));
+            parameterTypes.at(i)->accept(*this);
+            expectedVisits.pop();
+        }
+
         expectedVisits.push(std::move(*expectedProcedure.getReturnType()));
         ast.getReturnType()->get()->accept(*this);
         expectedVisits.pop();
@@ -128,6 +137,14 @@ namespace BlsLang {
     
         EXPECT_EQ(expectedOblock.getName(), ast.getName());
         EXPECT_EQ(expectedOblock.getParameters(), ast.getParameters());
+
+        auto& expectedParameterTypes = expectedOblock.getParameterTypes();
+        auto& parameterTypes = ast.getParameterTypes();
+        for (size_t i = 0; i < expectedParameterTypes.size(); i++) {
+            expectedVisits.push(std::move(expectedParameterTypes.at(i)));
+            parameterTypes.at(i)->accept(*this);
+            expectedVisits.pop();
+        }
     
         auto& expectedStatements = expectedOblock.getStatements();
         auto& statements = ast.getStatements();

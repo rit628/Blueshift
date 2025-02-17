@@ -1,11 +1,9 @@
 #include "parser.hpp"
 #include "ast.hpp"
-#include "liblexer/token.hpp"
-#include "liblexer/lexer.hpp"
 #include "include/reserved_tokens.hpp"
+#include "error_types.hpp"
 #include <cstddef>
 #include <memory>
-#include <optional>
 #include <string>
 #include <utility>
 #include <vector>

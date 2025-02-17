@@ -637,6 +637,7 @@ namespace BlsLang {
 
             auto& getName() { return name; }
             auto& getReturnType() { return returnType; }
+            auto& getParameterTypes() { return parameterTypes; }
             auto& getParameters() { return parameters; }
             auto& getStatements() { return statements; }
         

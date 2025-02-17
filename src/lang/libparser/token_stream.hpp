@@ -1,5 +1,5 @@
 #pragma once
-#include "liblexer/token.hpp"
+#include "token.hpp"
 #include <cstddef>
 #include <vector>
 #include <string>
