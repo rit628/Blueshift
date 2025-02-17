@@ -1,0 +1,10 @@
+int main() {
+    int i = 4;
+    i = 1;
+    i = i - 2;
+    return 10.0 % 3.0;
+}
+
+setup() {
+    main();
+}

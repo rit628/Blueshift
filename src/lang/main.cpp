@@ -1,3 +1,4 @@
+#include "libinterpreter/interpreter.hpp"
 #include "liblexer/lexer.hpp"
 #include "libparser/parser.hpp"
 #include <fstream>
@@ -20,7 +21,7 @@ int main() {
     too 1.2 .1 -1.2 -.3 -0.5 hooray now time for 
     the ops <= >= != == += -= *= /= ^= %= ++ -- && || . () $ yipee!)";
     std::ifstream file;
-    file.open("test/lang/samples/function.blu");
+    file.open("test/lang/samples/simple.blu");
     std::stringstream ss;
     ss << file.rdbuf();
     auto ret = lexer.lex(ss.str());
@@ -30,5 +31,10 @@ int main() {
     }
 
     BlsLang::Parser parser;
-    std::cout << *parser.parse(ret);
+    auto ast = parser.parse(ret);
+
+    std::cout << *ast;
+    
+    BlsLang::Interpreter interpreter;
+    ast->accept(interpreter);
 }
