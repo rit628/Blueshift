@@ -49,6 +49,8 @@ set(MASTER_TEST_DIR ${TEST_DIR}/master)
 set(CLIENT_TEST_DIR ${TEST_DIR}/client)
 set(LANG_TEST_DIR ${TEST_DIR}/lang)
 
+set(LANG_COMMON ${LANG_SRC_DIR}/common)
+
 # MASTER LIBS AND EXECUTABLE
 file(GLOB_RECURSE LIBTSQ_SRC ${MASTER_SRC_DIR}/libTSQ/*.cpp)
 add_library(TSQ STATIC ${LIBTSQ_SRC})
@@ -72,14 +74,20 @@ add_executable(master ${MASTER_SRC_DIR}/main.cpp)
 add_executable(client ${CLIENT_SRC_DIR}/main.cpp)
 
 # LANG LIBS AND EXECUTABLE
+file(GLOB_RECURSE LANG_COMMON_SRC ${LANG_COMMON}/*.cpp)
+add_library(lang_common STATIC ${LANG_COMMON_SRC})
+target_include_directories(lang_common PUBLIC ${BLS_CONFIG})
+target_link_libraries(lang_common ${BOOST_LIB_DEPS})
+
 file(GLOB_RECURSE LIBLEXER_SRC ${LANG_SRC_DIR}/liblexer/*.cpp)
 add_library(lexer STATIC ${LIBLEXER_SRC})
-target_link_libraries(lexer ${BOOST_LIB_DEPS})
+target_include_directories(lexer PUBLIC ${BLS_CONFIG} ${LANG_COMMON})
+target_link_libraries(lexer lang_common ${BOOST_LIB_DEPS})
 
 file(GLOB_RECURSE LIBPARSER_SRC ${LANG_SRC_DIR}/libparser/*.cpp)
 add_library(parser STATIC ${LIBPARSER_SRC})
-target_include_directories(parser PUBLIC ${BLS_CONFIG} ${LANG_SRC_DIR})
-target_link_libraries(parser ${BOOST_LIB_DEPS})
+target_include_directories(parser PUBLIC ${BLS_CONFIG} ${LANG_COMMON})
+target_link_libraries(parser lang_common ${BOOST_LIB_DEPS})
 
 add_executable(lang ${LANG_SRC_DIR}/main.cpp)
 target_link_libraries(lang lexer parser ${BOOST_LIB_DEPS})
@@ -90,13 +98,13 @@ enable_testing()
 # LANG TESTS
 file(GLOB_RECURSE LIBLEXER_TESTS ${LANG_TEST_DIR}/liblexer/*.cpp)
 add_executable(test_liblexer ${LIBLEXER_TESTS})
-target_include_directories(test_liblexer PUBLIC ${TEST_DEPS} ${LANG_SRC_DIR}/liblexer)
-target_link_libraries(test_liblexer lexer GTest::gtest_main)
+target_include_directories(test_liblexer PUBLIC ${TEST_DEPS} ${LANG_COMMON} ${LANG_SRC_DIR}/liblexer)
+target_link_libraries(test_liblexer lexer lang_common GTest::gtest_main)
 
 file(GLOB_RECURSE LIBPARSER_TESTS ${LANG_TEST_DIR}/libparser/*.cpp)
 add_executable(test_libparser ${LIBPARSER_TESTS})
-target_include_directories(test_libparser PUBLIC ${TEST_DEPS} ${LANG_SRC_DIR}/libparser)
-target_link_libraries(test_libparser parser GTest::gtest_main)
+target_include_directories(test_libparser PUBLIC ${TEST_DEPS} ${LANG_COMMON} ${LANG_SRC_DIR}/libparser)
+target_link_libraries(test_libparser parser lang_common GTest::gtest_main)
 
 # MASTER TESTS
 file(GLOB_RECURSE LIBTSQ_TESTS ${MASTER_TEST_DIR}/libTSQ/*.cpp)

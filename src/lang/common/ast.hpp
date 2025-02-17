@@ -26,10 +26,7 @@ namespace BlsLang {
             virtual std::any accept(Visitor& v) = 0;
             virtual ~AstNode() = default;
 
-            friend std::ostream& operator<<(std::ostream& os, const AstNode& node) { node.print(os); return os; }
-        
-        private:
-            virtual void print(std::ostream& os) const = 0;
+            friend std::ostream& operator<<(std::ostream& os, const AstNode& node);
     };
 
     class AstNode::Specifier : public AstNode {
@@ -58,8 +55,6 @@ namespace BlsLang {
             auto& getTypeArgs() { return typeArgs; }
         
         private:
-            void print(std::ostream& os) const override;
-
             std::string name;
             std::vector<std::unique_ptr<AstNode::Specifier::Type>> typeArgs;
     };
@@ -93,8 +88,6 @@ namespace BlsLang {
             auto& getLiteral() { return literal; }
 
         private:
-            void print(std::ostream& os) const override;
-
             std::variant<size_t, double, bool, std::string> literal;
     };
 
@@ -115,8 +108,6 @@ namespace BlsLang {
             auto& getElements() { return elements; }
 
         private:
-            void print(std::ostream& os) const override;
-
             std::vector<std::unique_ptr<AstNode::Expression>> elements;
     };
 
@@ -137,8 +128,6 @@ namespace BlsLang {
             auto& getElements() { return elements; }
 
         private:
-            void print(std::ostream& os) const override;
-
             std::vector<std::unique_ptr<AstNode::Expression>> elements;
     };
 
@@ -164,8 +153,6 @@ namespace BlsLang {
             auto& getElements() { return elements; }
 
         private:
-            void print(std::ostream& os) const override;
-
             std::vector<std::pair<std::unique_ptr<AstNode::Expression>, std::unique_ptr<AstNode::Expression>>> elements;
     };
 
@@ -198,8 +185,6 @@ namespace BlsLang {
             auto& getMember() { return member; }
 
         private:
-            void print(std::ostream& os) const override;
-
             std::string object;
             std::optional<std::unique_ptr<AstNode::Expression>> subscript;
             std::optional<std::string> member;
@@ -227,8 +212,6 @@ namespace BlsLang {
             auto& getArguments() { return arguments; }
 
         private:
-            void print(std::ostream& os) const override;
-
             std::string name;
             std::vector<std::unique_ptr<AstNode::Expression>> arguments;
     };
@@ -260,8 +243,6 @@ namespace BlsLang {
             auto& getArguments() { return arguments; }
 
         private:
-            void print(std::ostream& os) const override;
-
             std::string object;
             std::string methodName;
             std::vector<std::unique_ptr<AstNode::Expression>> arguments;
@@ -280,8 +261,6 @@ namespace BlsLang {
             auto& getExpression() { return expression; }
 
         private:
-            void print(std::ostream& os) const override;
-
             std::unique_ptr<AstNode::Expression> expression;
     };
 
@@ -313,8 +292,6 @@ namespace BlsLang {
             auto getPosition() { return position; }
 
         private:
-            void print(std::ostream& os) const override;
-
             std::string op;
             std::unique_ptr<AstNode::Expression> expression;
             OPERATOR_POSITION position;
@@ -343,8 +320,6 @@ namespace BlsLang {
             auto& getRight() { return right; }
 
         private:
-            void print(std::ostream& os) const override;
-
             std::string op;
             std::unique_ptr<AstNode::Expression> left;
             std::unique_ptr<AstNode::Expression> right;
@@ -378,8 +353,6 @@ namespace BlsLang {
             auto& getExpression() { return expression; }
 
         private:
-            void print(std::ostream& os) const override;
-
             std::unique_ptr<AstNode::Expression> expression;
     };
 
@@ -401,8 +374,6 @@ namespace BlsLang {
             auto& getValue() { return value; }
 
         private:
-            void print(std::ostream& os) const override;
-
             std::unique_ptr<AstNode::Expression> recipient;
             std::unique_ptr<AstNode::Expression> value;
     };
@@ -430,8 +401,6 @@ namespace BlsLang {
             auto& getValue() { return value; }
 
         private:
-            void print(std::ostream& os) const override;
-
             std::string name;
             std::unique_ptr<AstNode::Specifier::Type> type;
             std::optional<std::unique_ptr<AstNode::Expression>> value;
@@ -442,9 +411,6 @@ namespace BlsLang {
             Continue() = default;
 
             std::any accept(Visitor& v) override;
-
-        private:
-            void print(std::ostream& os) const override;
     };
 
     class AstNode::Statement::Break : public AstNode::Statement {
@@ -452,9 +418,6 @@ namespace BlsLang {
             Break() = default;
 
             std::any accept(Visitor& v) override;
-
-        private:
-            void print(std::ostream& os) const override;
     };
 
     class AstNode::Statement::Return : public AstNode::Statement {
@@ -470,8 +433,6 @@ namespace BlsLang {
             auto& getValue() { return value; }
 
         private:
-            void print(std::ostream& os) const override;
-
             std::optional<std::unique_ptr<AstNode::Expression>> value;
     };
 
@@ -508,8 +469,6 @@ namespace BlsLang {
             auto& getType() { return type; }
 
         private:
-            void print(std::ostream& os) const override;
-
             std::unique_ptr<AstNode::Expression> condition;
             std::vector<std::unique_ptr<AstNode::Statement>> block;
             LOOP_TYPE type;
@@ -547,8 +506,6 @@ namespace BlsLang {
             auto& getBlock() { return block; }
 
         private:
-            void print(std::ostream& os) const override;
-
             std::optional<std::unique_ptr<AstNode::Statement>> initStatement;
             std::optional<std::unique_ptr<AstNode::Statement>> condition;
             std::optional<std::unique_ptr<AstNode::Expression>> incrementExpression;
@@ -591,8 +548,6 @@ namespace BlsLang {
             auto& getElseBlock() { return elseBlock; }
 
         private:
-            void print(std::ostream& os) const override;
-
             std::unique_ptr<AstNode::Expression> condition;
             std::vector<std::unique_ptr<AstNode::Statement>> block;
             std::vector<std::unique_ptr<AstNode::Statement::If>> elseIfStatements;
@@ -637,6 +592,7 @@ namespace BlsLang {
 
             auto& getName() { return name; }
             auto& getReturnType() { return returnType; }
+            auto& getParameterTypes() { return parameterTypes; }
             auto& getParameters() { return parameters; }
             auto& getStatements() { return statements; }
         
@@ -675,9 +631,6 @@ namespace BlsLang {
                    , std::move(statements)) {}
             
             std::any accept(Visitor& v) override;
-
-        private:
-            void print(std::ostream& os) const override;
     };
 
     class AstNode::Function::Oblock : public AstNode::Function {
@@ -705,9 +658,6 @@ namespace BlsLang {
                    , std::move(statements)) {}
 
             std::any accept(Visitor& v) override;
-        
-        private:
-            void print(std::ostream& os) const override;
     };
 
     class AstNode::Setup : public AstNode {
@@ -727,8 +677,6 @@ namespace BlsLang {
             auto& getStatements() { return statements; }
                     
         private:
-            void print(std::ostream& os) const override;
-
             std::vector<std::unique_ptr<AstNode::Statement>> statements;
     };
 
@@ -761,8 +709,6 @@ namespace BlsLang {
             auto& getSetup() { return setup; }
         
         private:
-            void print(std::ostream& os) const override;
-
             std::vector<std::unique_ptr<AstNode::Function>> procedures;
             std::vector<std::unique_ptr<AstNode::Function>> oblocks;
             std::unique_ptr<AstNode::Setup> setup;

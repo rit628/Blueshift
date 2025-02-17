@@ -1,6 +1,7 @@
 #include "fixtures/lexer_test.hpp"
 #include "test_macros.hpp"
 #include "token.hpp"
+#include "error_types.hpp"
 #include <gtest/gtest.h>
 #include <string>
 #include <vector>
