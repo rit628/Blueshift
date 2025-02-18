@@ -3,6 +3,7 @@
 #include "bls_types.hpp"
 #include "visitor.hpp"
 #include "include/reserved_tokens.hpp"
+#include <cstdint>
 #include <iostream>
 #include <any>
 #include <cstring>
@@ -16,7 +17,7 @@ namespace BlsLang {
     
     class Interpreter : public Visitor {
         public:
-            enum class OPERATOR : uint8_t {
+            enum class BINARY_OPERATOR : uint8_t {
                 AND
               , OR
               , LT
@@ -34,22 +35,38 @@ namespace BlsLang {
               , COUNT
             };
 
-            constexpr OPERATOR getOpEnum(std::string_view op) {
-                if (op == LOGICAL_AND) return OPERATOR::AND;
-                if (op == LOGICAL_OR) return OPERATOR::OR;
-                if (op == COMPARISON_LT) return OPERATOR::LT;
-                if (op == COMPARISON_LE) return OPERATOR::LE;
-                if (op == COMPARISON_GT) return OPERATOR::GT;
-                if (op == COMPARISON_GE) return OPERATOR::GE;
-                if (op == COMPARISON_NE) return OPERATOR::NE;
-                if (op == COMPARISON_EQ) return OPERATOR::EQ;
-                if (op == ARITHMETIC_ADDITION) return OPERATOR::ADD;
-                if (op == ARITHMETIC_SUBTRACTION) return OPERATOR::SUB;
-                if (op == ARITHMETIC_MULTIPLICATION) return OPERATOR::MUL;
-                if (op == ARITHMETIC_DIVISION) return OPERATOR::DIV;
-                if (op == ARITHMETIC_REMAINDER) return OPERATOR::MOD;
-                if (op == ARITHMETIC_EXPONENTIATION) return OPERATOR::EXP;
-                return OPERATOR::COUNT;
+            enum class UNARY_OPERATOR : uint8_t {
+                NOT
+              , NEG
+              , INC
+              , DEC
+              , COUNT
+            };
+
+            constexpr BINARY_OPERATOR getBinOpEnum(std::string_view op) {
+                if (op == LOGICAL_AND) return BINARY_OPERATOR::AND;
+                if (op == LOGICAL_OR) return BINARY_OPERATOR::OR;
+                if (op == COMPARISON_LT) return BINARY_OPERATOR::LT;
+                if (op == COMPARISON_LE) return BINARY_OPERATOR::LE;
+                if (op == COMPARISON_GT) return BINARY_OPERATOR::GT;
+                if (op == COMPARISON_GE) return BINARY_OPERATOR::GE;
+                if (op == COMPARISON_NE) return BINARY_OPERATOR::NE;
+                if (op == COMPARISON_EQ) return BINARY_OPERATOR::EQ;
+                if (op == ARITHMETIC_ADDITION) return BINARY_OPERATOR::ADD;
+                if (op == ARITHMETIC_SUBTRACTION) return BINARY_OPERATOR::SUB;
+                if (op == ARITHMETIC_MULTIPLICATION) return BINARY_OPERATOR::MUL;
+                if (op == ARITHMETIC_DIVISION) return BINARY_OPERATOR::DIV;
+                if (op == ARITHMETIC_REMAINDER) return BINARY_OPERATOR::MOD;
+                if (op == ARITHMETIC_EXPONENTIATION) return BINARY_OPERATOR::EXP;
+                return BINARY_OPERATOR::COUNT;
+            }
+
+            constexpr UNARY_OPERATOR getUnOpEnum(std::string_view op) {
+                if (op == UNARY_NOT) return UNARY_OPERATOR::NOT;
+                if (op == UNARY_NEGATIVE) return UNARY_OPERATOR::NEG;
+                if (op == UNARY_INCREMENT) return UNARY_OPERATOR::INC;
+                if (op == UNARY_DECREMENT) return UNARY_OPERATOR::DEC;
+                return UNARY_OPERATOR::COUNT;
             }
 
             Interpreter() = default;

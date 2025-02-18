@@ -95,7 +95,47 @@ std::any Interpreter::visit(AstNode::Statement::If& ast) {
     }
 }
 
-std::any Interpreter::visit(AstNode::Statement::For& ast) {}
+std::any Interpreter::visit(AstNode::Statement::For& ast) {
+    auto& initStatement = ast.getInitStatement();
+    auto& condition = ast.getCondition();
+    auto& incrementExpression = ast.getIncrementExpression();
+    auto& statements = ast.getBlock();
+
+    cs.pushFrame(CallStack<std::string>::Frame::Context::LOOP);
+    std::function<void()> initExec = []() {};
+    std::function<bool()> conditionExec = []() { return true; };
+    std::function<void()> incrementExec = []() {};
+
+    if (initStatement.has_value()) {
+        initExec = [&initStatement, this]() { initStatement->get()->accept(*this); };
+    }
+    if (condition.has_value()) {
+        conditionExec = [&condition, this]() {
+            auto conditionResult = condition->get()->accept(*this);
+            return std::get<bool>(resolve(conditionResult));
+        };
+    }
+    if (incrementExpression.has_value()) {
+        incrementExec = [&incrementExpression, this]() { incrementExpression->get()->accept(*this); };
+    }
+
+    for (initExec(); conditionExec(); incrementExec()) {
+        try {
+            for (auto&& statement : statements) {
+                statement->accept(*this);
+            }
+        }
+        catch (AstNode::Statement::Continue& c) {
+            continue;
+        }
+        catch (AstNode::Statement::Break& b) {
+            break;
+        }
+    }
+    
+    cs.popFrame();
+    return std::monostate();
+}
 
 std::any Interpreter::visit(AstNode::Statement::While& ast) {
     auto& type = ast.getType();
@@ -117,16 +157,17 @@ std::any Interpreter::visit(AstNode::Statement::While& ast) {
         }
     }
 
-    auto conditionResult = condition->accept(*this);
-    while (std::get<bool>(resolve(conditionResult))) {
+    auto conditionExec = [&condition, this]() {
+        auto conditionResult = condition->accept(*this);
+        return std::get<bool>(resolve(conditionResult));
+    };
+    while (conditionExec()) {
         try {
             for (auto&& statement : statements) {
                 statement->accept(*this);
             }
-            conditionResult = condition->accept(*this);
         }
         catch (AstNode::Statement::Continue& c) {
-            conditionResult = condition->accept(*this);
             continue;
         }
         catch (AstNode::Statement::Break& b) {
@@ -191,70 +232,112 @@ std::any Interpreter::visit(AstNode::Expression::Binary& ast) {
     auto& lhs = resolve(lRes);
     auto& rhs = resolve(rRes);
 
-    auto op = getOpEnum(ast.getOp());
+    auto op = getBinOpEnum(ast.getOp());
     switch (op) {
-        case Interpreter::OPERATOR::OR:
+        case Interpreter::BINARY_OPERATOR::OR:
             return lhs || rhs;
         break;
 
-        case Interpreter::OPERATOR::AND:
+        case Interpreter::BINARY_OPERATOR::AND:
             return lhs && rhs;
         break;
 
-        case Interpreter::OPERATOR::LT:
+        case Interpreter::BINARY_OPERATOR::LT:
             return lhs < rhs;
         break;
         
-        case Interpreter::OPERATOR::LE:
+        case Interpreter::BINARY_OPERATOR::LE:
             return lhs <= rhs;
         break;
 
-        case Interpreter::OPERATOR::GT:
+        case Interpreter::BINARY_OPERATOR::GT:
             return lhs > rhs;
         break;
 
-        case Interpreter::OPERATOR::GE:
+        case Interpreter::BINARY_OPERATOR::GE:
             return lhs >= rhs;
         break;
 
-        case Interpreter::OPERATOR::NE:
+        case Interpreter::BINARY_OPERATOR::NE:
             return lhs != rhs;
         break;
 
-        case Interpreter::OPERATOR::EQ:
+        case Interpreter::BINARY_OPERATOR::EQ:
             return lhs == rhs;
         break;
 
-        case Interpreter::OPERATOR::ADD:
+        case Interpreter::BINARY_OPERATOR::ADD:
             return lhs + rhs;
         break;
         
-        case Interpreter::OPERATOR::SUB:
+        case Interpreter::BINARY_OPERATOR::SUB:
             return lhs - rhs;
         break;
 
-        case Interpreter::OPERATOR::MUL:
+        case Interpreter::BINARY_OPERATOR::MUL:
             return lhs * rhs;
         break;
 
-        case Interpreter::OPERATOR::DIV:
+        case Interpreter::BINARY_OPERATOR::DIV:
             return lhs / rhs;
         break;
 
-        case Interpreter::OPERATOR::MOD:
+        case Interpreter::BINARY_OPERATOR::MOD:
             return lhs % rhs;
         break;
         
-        case Interpreter::OPERATOR::EXP:
+        case Interpreter::BINARY_OPERATOR::EXP:
             return lhs ^ rhs;
         break;
 
         default:
-            throw std::runtime_error("Invalid operand supplied.");
+            throw std::runtime_error("Invalid operator supplied.");
     }
 }
 
-std::any Interpreter::visit(AstNode::Expression::Unary& ast) {}
+std::any Interpreter::visit(AstNode::Expression::Unary& ast) {
+    auto expression = ast.getExpression()->accept(*this);
+    auto& object = resolve(expression);
+    auto op = getUnOpEnum(ast.getOp());
+    auto position = ast.getPosition();
+    
+    switch (op) {
+        case Interpreter::UNARY_OPERATOR::NOT:
+            return !object;
+        break;
+
+        case Interpreter::UNARY_OPERATOR::NEG:
+            return -object;
+        break;
+
+        case Interpreter::UNARY_OPERATOR::INC:
+            if (position == AstNode::Expression::Unary::OPERATOR_POSITION::PREFIX) {
+                object = object + 1;
+                return object;
+            }
+            else {
+                auto objCopy = object;
+                object = object + 1;
+                return objCopy;
+            }
+        break;
+
+        case Interpreter::UNARY_OPERATOR::DEC:
+            if (position == AstNode::Expression::Unary::OPERATOR_POSITION::PREFIX) {
+                object = object - 1;
+                return object;
+            }
+            else {
+                auto objCopy = object;
+                object = object - 1;
+                return objCopy;
+            }
+        break;
+
+        default:
+            throw std::runtime_error("Invalid operator supplied.");
+    }
+}
 
 std::any Interpreter::visit(AstNode::Expression::Group& ast) {}
 

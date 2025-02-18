@@ -87,6 +87,28 @@ namespace BlsLang {
   //  heap descriptor here
   >;
 
+  inline BlsType operator!(const BlsType& operand) {
+    return std::visit([](const auto& a) -> BlsType {
+      if constexpr (Boolean<decltype(a)>) {
+        return !a;
+      }
+      else {
+        throw std::runtime_error("Operand of '!' must have boolean type.");
+      }
+    }, operand);
+  }
+
+  inline BlsType operator-(const BlsType& operand) {
+    return std::visit([](const auto& a) -> BlsType {
+      if constexpr (Numeric<decltype(a)>) {
+        return -a;
+      }
+      else {
+        throw std::runtime_error("Operand of '-' must have integer or float type.");
+      }
+    }, operand);
+  }
+
   inline BlsType operator||(const BlsType& lhs, const BlsType& rhs) {
     return std::visit([](const auto& a, const auto& b) -> BlsType {
         if constexpr (Boolean<decltype(a)> && Boolean<decltype(b)>) {
