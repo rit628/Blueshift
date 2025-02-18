@@ -334,25 +334,6 @@ namespace BlsLang {
         return true;
     }
     
-    inline std::any ParserTest::Tester::visit(AstNode::Statement::Assignment& ast) {
-        auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
-        auto& expectedAssignment = dynamic_cast<AstNode::Statement::Assignment&>(*toCast);
-    
-        auto& expectedRecipient = expectedAssignment.getRecipient();
-        auto& recipient = ast.getRecipient();
-        expectedVisits.push(std::move(expectedRecipient));
-        recipient->accept(*this);
-        expectedVisits.pop();
-    
-        auto& expectedValue = expectedAssignment.getValue();
-        auto& value = ast.getValue();
-        expectedVisits.push(std::move(expectedValue));
-        value->accept(*this);
-        expectedVisits.pop();
-    
-        return true;
-    }
-    
     inline std::any ParserTest::Tester::visit(AstNode::Statement::Expression& ast) {
         auto& toCast = (expectedVisits.empty()) ? *expectedAst : *expectedVisits.top();
         auto& expectedExpressionStatement = dynamic_cast<AstNode::Statement::Expression&>(toCast);

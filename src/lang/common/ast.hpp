@@ -328,7 +328,6 @@ namespace BlsLang {
     class AstNode::Statement : public AstNode {
         public:
             class Expression;
-            class Assignment;
             class Declaration;
             class Continue;
             class Break;
@@ -354,28 +353,6 @@ namespace BlsLang {
 
         private:
             std::unique_ptr<AstNode::Expression> expression;
-    };
-
-    class AstNode::Statement::Assignment : public AstNode::Statement {
-        public:
-            Assignment() = default;
-            Assignment(std::unique_ptr<AstNode::Expression> recipient
-                     , std::unique_ptr<AstNode::Expression> value)
-                     : recipient(std::move(recipient))
-                     , value(std::move(value)) {}
-            Assignment(AstNode::Expression* recipient
-                     , AstNode::Expression* value)
-                     : recipient(recipient)
-                     , value(value) {}
-
-            std::any accept(Visitor& v) override;
-
-            auto& getRecipient() { return recipient; }
-            auto& getValue() { return value; }
-
-        private:
-            std::unique_ptr<AstNode::Expression> recipient;
-            std::unique_ptr<AstNode::Expression> value;
     };
 
     class AstNode::Statement::Declaration : public AstNode::Statement {

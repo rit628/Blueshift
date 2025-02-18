@@ -130,15 +130,6 @@ std::any Printer::visit(AstNode::Statement::Expression& ast) {
     return true;
 }
 
-std::any Printer::visit(AstNode::Statement::Assignment& ast) {
-    os << "AstNode::Statement::Assignment {\n  recipient = ";
-    ast.getRecipient()->accept(*this);
-    os << "\n  value = ";
-    ast.getValue()->accept(*this);
-    os << "\n}" << std::endl;
-    return true;
-}
-
 std::any Printer::visit(AstNode::Statement::Declaration& ast) {
     os << "AstNode::Statement::Declaration {\n  name = " << ast.getName();
     os << "\n  type = ";

@@ -92,7 +92,7 @@ namespace BlsLang {
     constexpr auto ASSIGNMENT_SUBTRACTION               ("-=");
     constexpr auto ASSIGNMENT_MULTIPLICATION            ("*=");
     constexpr auto ASSIGNMENT_DIVISION                  ("/=");
-    constexpr auto ASSIGNMENT_EXPONENTIATION            ("^=");
     constexpr auto ASSIGNMENT_REMAINDER                 ("%=");
+    constexpr auto ASSIGNMENT_EXPONENTIATION            ("^=");
 
 }

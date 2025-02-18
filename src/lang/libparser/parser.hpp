@@ -20,7 +20,7 @@ namespace BlsLang {
             std::unique_ptr<AstNode::Function> parseFunction();
             std::vector<std::unique_ptr<AstNode::Statement>> parseBlock();
             std::unique_ptr<AstNode::Statement> parseStatement();
-            std::unique_ptr<AstNode::Statement> parseAssignmentExpressionStatement();
+            std::unique_ptr<AstNode::Statement::Expression> parseExpressionStatement();
             std::unique_ptr<AstNode::Statement::Declaration> parseDeclarationStatement();
             std::unique_ptr<AstNode::Statement::Return> parseReturnStatement();
             std::unique_ptr<AstNode::Statement::While> parseWhileStatement();
@@ -29,6 +29,7 @@ namespace BlsLang {
             std::unique_ptr<AstNode::Statement::If> parseIfStatement();
             std::unique_ptr<AstNode::Statement::If> parseElseIfStatement();
             std::unique_ptr<AstNode::Expression> parseExpression();
+            std::unique_ptr<AstNode::Expression> parseAssignmentExpression();
             std::unique_ptr<AstNode::Expression> parseLogicalExpression();
             std::unique_ptr<AstNode::Expression> parseComparisonExpression();
             std::unique_ptr<AstNode::Expression> parseAdditiveExpression();

@@ -132,19 +132,14 @@ std::unique_ptr<AstNode::Statement> Parser::parseStatement() {
         return parseDeclarationStatement();
     }
     else {
-        return parseAssignmentExpressionStatement();
+        return parseExpressionStatement();
     }
 }
 
-std::unique_ptr<AstNode::Statement> Parser::parseAssignmentExpressionStatement() {
-    auto lhs = parseExpression();
-    if (ts.match(ASSIGNMENT)) {
-        auto rhs = parseExpression();
-        matchExpectedSymbol(SEMICOLON, "at end of assignment.");
-        return std::make_unique<AstNode::Statement::Assignment>(std::move(lhs), std::move(rhs));
-    }
+std::unique_ptr<AstNode::Statement::Expression> Parser::parseExpressionStatement() {
+    auto expression = parseExpression();
     matchExpectedSymbol(SEMICOLON, "at end of expression.");
-    return std::make_unique<AstNode::Statement::Expression>(std::move(lhs));
+    return std::make_unique<AstNode::Statement::Expression>(std::move(expression));
 }
 
 std::unique_ptr<AstNode::Statement::Declaration> Parser::parseDeclarationStatement() {
@@ -195,7 +190,7 @@ std::unique_ptr<AstNode::Statement::For> Parser::parseForStatement() {
             return parseDeclarationStatement();
         }
         else if (!ts.match(SEMICOLON)) {
-            return parseAssignmentExpressionStatement();
+            return parseExpressionStatement();
         }
         else {
             return std::nullopt;
@@ -245,7 +240,26 @@ std::unique_ptr<AstNode::Statement::If> Parser::parseElseIfStatement() {
 }
 
 std::unique_ptr<AstNode::Expression> Parser::parseExpression() {
-    return parseLogicalExpression();
+    return parseAssignmentExpression();
+}
+
+std::unique_ptr<AstNode::Expression> Parser::parseAssignmentExpression() {
+    auto lhs = parseLogicalExpression();
+    while (ts.match(ASSIGNMENT)
+        || ts.match(ASSIGNMENT_ADDITION)
+        || ts.match(ASSIGNMENT_SUBTRACTION)
+        || ts.match(ASSIGNMENT_MULTIPLICATION)
+        || ts.match(ASSIGNMENT_DIVISION)
+        || ts.match(ASSIGNMENT_REMAINDER)
+        || ts.match(ASSIGNMENT_EXPONENTIATION)) {
+            
+        auto& op = ts.at(-1).getLiteral();
+        auto rhs = parseLogicalExpression();
+
+        auto compoundExpression = std::make_unique<AstNode::Expression::Binary>(std::move(op), std::move(lhs), std::move(rhs));
+        lhs = std::move(compoundExpression);
+    }
+    return lhs;
 }
 
 std::unique_ptr<AstNode::Expression> Parser::parseLogicalExpression() {
