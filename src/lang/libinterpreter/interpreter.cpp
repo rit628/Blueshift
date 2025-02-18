@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <functional>
 #include <iostream>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <variant>
@@ -20,7 +21,7 @@ std::any Interpreter::visit(AstNode::Source& ast) {
         procedure->accept(*this);
     }
 
-    // leave oblocks and setup for later
+    // leave oblocks and setup for later; use temporary setup for testing
     const auto visitor = overloads {
         [](std::monostate value) { std::cout << "retVal = void" << std::endl; },
         [](bool value) { std::cout << "retVal = " << ((value) ? "true" : "false") << std::endl; },
@@ -69,8 +70,12 @@ std::any Interpreter::visit(AstNode::Function::Oblock& ast) {}
 std::any Interpreter::visit(AstNode::Setup& ast) {}
 
 std::any Interpreter::visit(AstNode::Statement::If& ast) {
-    auto conditionResult = ast.getCondition()->accept(*this);
-    if (std::get<bool>(resolve(conditionResult))) {
+    auto checkCondition = [this](AstNode& expr) -> bool {
+        auto conditionResult = expr.accept(*this);
+        return std::get<bool>(resolve(conditionResult));
+    };
+
+    if (checkCondition(*ast.getCondition())) {
         cs.pushFrame(CallStack<std::string>::Frame::Context::CONDITIONAL);
         for (auto&& statement : ast.getBlock()) {
             statement->accept(*this);
@@ -80,8 +85,7 @@ std::any Interpreter::visit(AstNode::Statement::If& ast) {
     }
     else {
         for (auto&& elif : ast.getElseIfStatements()) {
-            auto elifResult = elif->accept(*this);
-            if (std::get<bool>(resolve(elifResult))) {
+            if (checkCondition(*elif)) {
                 return BlsType(true); // short circuit if elif condition is satisfied
             }
         }
@@ -339,7 +343,9 @@ std::any Interpreter::visit(AstNode::Expression::Unary& ast) {
     }
 }
 
-std::any Interpreter::visit(AstNode::Expression::Group& ast) {}
+std::any Interpreter::visit(AstNode::Expression::Group& ast) {
+    return ast.getExpression()->accept(*this);
+}
 
 std::any Interpreter::visit(AstNode::Expression::Method& ast) {}
 
