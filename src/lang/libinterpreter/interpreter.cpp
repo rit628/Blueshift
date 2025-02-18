@@ -219,13 +219,6 @@ std::any Interpreter::visit(AstNode::Statement::Declaration& ast) {
     return std::monostate();
 }
 
-std::any Interpreter::visit(AstNode::Statement::Assignment& ast) {
-    auto recipient = ast.getRecipient()->accept(*this);
-    auto value = ast.getValue()->accept(*this);
-    resolve(recipient) = resolve(value);
-    return std::monostate();
-}
-
 std::any Interpreter::visit(AstNode::Statement::Expression& ast) {
     return ast.getExpression()->accept(*this);
 }
@@ -292,6 +285,34 @@ std::any Interpreter::visit(AstNode::Expression::Binary& ast) {
         
         case Interpreter::BINARY_OPERATOR::EXP:
             return lhs ^ rhs;
+        break;
+
+        case Interpreter::BINARY_OPERATOR::ASSIGN:
+            return lhs = rhs;
+        break;
+
+        case Interpreter::BINARY_OPERATOR::ASSIGN_ADD:
+            return lhs = lhs + rhs;
+        break;
+
+        case Interpreter::BINARY_OPERATOR::ASSIGN_SUB:
+            return lhs = lhs - rhs;
+        break;
+
+        case Interpreter::BINARY_OPERATOR::ASSIGN_MUL:
+            return lhs = lhs * rhs;
+        break;
+
+        case Interpreter::BINARY_OPERATOR::ASSIGN_DIV:
+            return lhs = lhs / rhs;
+        break;
+
+        case Interpreter::BINARY_OPERATOR::ASSIGN_MOD:
+            return lhs = lhs % rhs;
+        break;
+
+        case Interpreter::BINARY_OPERATOR::ASSIGN_EXP:
+            return lhs = lhs ^ rhs;
         break;
 
         default:

@@ -13,6 +13,14 @@ int main() {
         return false;
     }
 
+    int j = 2;
+
+    println(j);
+
+    j+=2;
+
+    println(j);
+
     //continue;
 
     //break;

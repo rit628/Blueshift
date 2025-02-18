@@ -32,6 +32,13 @@ namespace BlsLang {
               , DIV
               , MOD
               , EXP
+              , ASSIGN
+              , ASSIGN_ADD
+              , ASSIGN_SUB
+              , ASSIGN_MUL
+              , ASSIGN_DIV
+              , ASSIGN_MOD
+              , ASSIGN_EXP
               , COUNT
             };
 
@@ -58,6 +65,13 @@ namespace BlsLang {
                 if (op == ARITHMETIC_DIVISION) return BINARY_OPERATOR::DIV;
                 if (op == ARITHMETIC_REMAINDER) return BINARY_OPERATOR::MOD;
                 if (op == ARITHMETIC_EXPONENTIATION) return BINARY_OPERATOR::EXP;
+                if (op == ASSIGNMENT) return BINARY_OPERATOR::ASSIGN;
+                if (op == ASSIGNMENT_ADDITION) return BINARY_OPERATOR::ASSIGN_ADD;
+                if (op == ASSIGNMENT_SUBTRACTION) return BINARY_OPERATOR::ASSIGN_SUB;
+                if (op == ASSIGNMENT_MULTIPLICATION) return BINARY_OPERATOR::ASSIGN_MUL;
+                if (op == ASSIGNMENT_DIVISION) return BINARY_OPERATOR::ASSIGN_DIV;
+                if (op == ASSIGNMENT_REMAINDER) return BINARY_OPERATOR::ASSIGN_MOD;
+                if (op == ASSIGNMENT_EXPONENTIATION) return BINARY_OPERATOR::ASSIGN_EXP;
                 return BINARY_OPERATOR::COUNT;
             }
 
