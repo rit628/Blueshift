@@ -164,6 +164,36 @@ namespace BlsLang {
         TEST_PARSE_EXPRESSION(sampleTokens, std::move(expectedAst));
     }
 
+    GROUP_TEST_F(ParserTest, ExpressionTests, BinaryAssignment) {
+        std::vector<Token> sampleTokens {
+            Token(Token::Type::IDENTIFIER, "a", 0, 1, 1),
+            Token(Token::Type::OPERATOR, ASSIGNMENT, 1, 1, 2),
+            Token(Token::Type::INTEGER, "10", 2, 1, 3),
+            Token(Token::Type::OPERATOR, SEMICOLON, 3, 1, 4)
+        };
+        auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Binary(
+            ASSIGNMENT,
+            new AstNode::Expression::Access("a"),
+            new AstNode::Expression::Literal((size_t) 10)
+        ));
+        TEST_PARSE_EXPRESSION(sampleTokens, std::move(expectedAst));
+    }
+
+    GROUP_TEST_F(ParserTest, ExpressionTests, BinaryCompoundAssignment) {
+        std::vector<Token> sampleTokens {
+            Token(Token::Type::IDENTIFIER, "a", 0, 1, 1),
+            Token(Token::Type::OPERATOR, ASSIGNMENT_ADDITION, 1, 1, 2),
+            Token(Token::Type::INTEGER, "10", 2, 1, 3),
+            Token(Token::Type::OPERATOR, SEMICOLON, 3, 1, 4)
+        };
+        auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Binary(
+            ASSIGNMENT_ADDITION,
+            new AstNode::Expression::Access("a"),
+            new AstNode::Expression::Literal((size_t) 10)
+        ));
+        TEST_PARSE_EXPRESSION(sampleTokens, std::move(expectedAst));
+    }
+
     GROUP_TEST_F(ParserTest, ExpressionTests, ComplexBinaryExpression) {
         std::vector<Token> sampleTokens {
             Token(Token::Type::INTEGER, "1", 0, 1, 1),
@@ -386,20 +416,6 @@ namespace BlsLang {
         ));
         TEST_PARSE_STATEMENT(sampleTokens, std::move(expectedAst));
     }
-
-    GROUP_TEST_F(ParserTest, StatementTests, AssignmentStatement) {
-        std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, "a", 0, 1, 1),
-            Token(Token::Type::OPERATOR, ASSIGNMENT, 1, 1, 2),
-            Token(Token::Type::INTEGER, "10", 2, 1, 3),
-            Token(Token::Type::OPERATOR, SEMICOLON, 3, 1, 4)
-        };
-        auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Statement::Assignment(
-            new AstNode::Expression::Access("a"),
-            new AstNode::Expression::Literal((size_t) 10)
-        ));
-        TEST_PARSE_STATEMENT(sampleTokens, std::move(expectedAst));
-    }
     
     GROUP_TEST_F(ParserTest, StatementTests, DeclarationStatement) {
         // Declaration statement: int x = 10;
@@ -466,17 +482,19 @@ namespace BlsLang {
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Statement::If(
             new AstNode::Expression::Access("a"),
             {
-                new AstNode::Statement::Assignment(
+                new AstNode::Statement::Expression(new AstNode::Expression::Binary(
+                    ASSIGNMENT,
                     new AstNode::Expression::Access("b"),
                     new AstNode::Expression::Literal((size_t) 1)
-                )
+                ))
             },
             {},
             {
-                new AstNode::Statement::Assignment(
+                new AstNode::Statement::Expression(new AstNode::Expression::Binary(
+                    ASSIGNMENT,
                     new AstNode::Expression::Access("b"),
                     new AstNode::Expression::Literal((size_t) 2)
-                )
+                ))
             }
         ));
         TEST_PARSE_STATEMENT(sampleTokens, std::move(expectedAst));
@@ -517,29 +535,32 @@ namespace BlsLang {
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Statement::If(
             new AstNode::Expression::Access("a"),
             {
-                new AstNode::Statement::Assignment(
+                new AstNode::Statement::Expression(new AstNode::Expression::Binary(
+                    ASSIGNMENT,
                     new AstNode::Expression::Access("x"),
                     new AstNode::Expression::Literal((size_t)1)
-                )
+                ))
             },
             {
                 new AstNode::Statement::If(
                     new AstNode::Expression::Access("b"),
                     {
-                        new AstNode::Statement::Assignment(
+                        new AstNode::Statement::Expression(new AstNode::Expression::Binary(
+                            ASSIGNMENT,
                             new AstNode::Expression::Access("x"),
                             new AstNode::Expression::Literal((size_t)2)
-                        )
+                        ))
                     },
                     {},
                     {}
                 )
             },
             {
-                new AstNode::Statement::Assignment(
+                new AstNode::Statement::Expression(new AstNode::Expression::Binary(
+                    ASSIGNMENT,
                     new AstNode::Expression::Access("x"),
                     new AstNode::Expression::Literal((size_t)3)
-                )
+                ))
             }
         ));
         TEST_PARSE_STATEMENT(sampleTokens, std::move(expectedAst));
@@ -564,14 +585,15 @@ namespace BlsLang {
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Statement::While(
             new AstNode::Expression::Access("a"),
             {
-                new AstNode::Statement::Assignment(
+                new AstNode::Statement::Expression(new AstNode::Expression::Binary(
+                    ASSIGNMENT,
                     new AstNode::Expression::Access("a"),
                     new AstNode::Expression::Binary(
                         ARITHMETIC_SUBTRACTION,
                         new AstNode::Expression::Access("a"),
                         new AstNode::Expression::Literal((size_t) 1)
                     )
-                )
+                ))
             }
         ));
         TEST_PARSE_STATEMENT(sampleTokens, std::move(expectedAst));
@@ -629,14 +651,15 @@ namespace BlsLang {
                 AstNode::Expression::Unary::OPERATOR_POSITION::POSTFIX
             ),
             {
-                new AstNode::Statement::Assignment(
+                new AstNode::Statement::Expression(new AstNode::Expression::Binary(
+                    ASSIGNMENT,
                     new AstNode::Expression::Access("sum"),
                     new AstNode::Expression::Binary(
                         ARITHMETIC_ADDITION,
                         new AstNode::Expression::Access("sum"),
                         new AstNode::Expression::Access("i")
                     )
-                )
+                ))
             }
         ));
         TEST_PARSE_STATEMENT(sampleTokens, std::move(expectedAst));
@@ -774,10 +797,11 @@ namespace BlsLang {
             {},
             {},
             {
-                new AstNode::Statement::Assignment(
+                new AstNode::Statement::Expression(new AstNode::Expression::Binary(
+                    ASSIGNMENT,
                     new AstNode::Expression::Access("a"),
                     new AstNode::Expression::Literal((size_t) 1)
-                )
+                ))
             }
         ));
         TEST_PARSE_FUNCTION(sampleTokens, std::move(expectedAst));
@@ -806,14 +830,16 @@ namespace BlsLang {
             {},
             {},
             {
-                new AstNode::Statement::Assignment(
+                new AstNode::Statement::Expression(new AstNode::Expression::Binary(
+                    ASSIGNMENT,
                     new AstNode::Expression::Access("x"),
                     new AstNode::Expression::Literal((size_t)0)
-                ),
-                new AstNode::Statement::Assignment(
+                )),
+                new AstNode::Statement::Expression(new AstNode::Expression::Binary(
+                    ASSIGNMENT,
                     new AstNode::Expression::Access("y"),
                     new AstNode::Expression::Literal((size_t)0)
-                )
+                ))
             }
         ));
         TEST_PARSE_FUNCTION(sampleTokens, std::move(expectedAst));
@@ -892,10 +918,11 @@ namespace BlsLang {
                     {},
                     {},
                     {
-                        new AstNode::Statement::Assignment(
+                        new AstNode::Statement::Expression(new AstNode::Expression::Binary(
+                            ASSIGNMENT,
                             new AstNode::Expression::Access("a"),
                             new AstNode::Expression::Literal((size_t) 1)
-                        )
+                        ))
                     }
                 )
             },
@@ -986,10 +1013,11 @@ namespace BlsLang {
                     {},
                     {},
                     {
-                        new AstNode::Statement::Assignment(
+                        new AstNode::Statement::Expression(new AstNode::Expression::Binary(
+                            ASSIGNMENT,
                             new AstNode::Expression::Access("flag"),
                             new AstNode::Expression::Literal(true)
-                        )
+                        ))
                     }
                 )
             },

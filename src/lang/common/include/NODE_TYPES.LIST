@@ -17,7 +17,6 @@ AST_NODE(AstNode::Statement::Return)
 AST_NODE(AstNode::Statement::Break)
 AST_NODE(AstNode::Statement::Continue)
 AST_NODE(AstNode::Statement::Declaration)
-AST_NODE(AstNode::Statement::Assignment)
 AST_NODE(AstNode::Statement::Expression)
 
 AST_NODE(AstNode::Expression::Binary)
