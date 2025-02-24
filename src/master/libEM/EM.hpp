@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../libTSQ/TSQ.hpp"
-#include "../libDm/DynamicMessage.hpp"
+#include "../libDM/DynamicMessage.hpp"
 #include <unordered_map>
 #include <map>
 #include <memory>
