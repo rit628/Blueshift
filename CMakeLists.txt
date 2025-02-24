@@ -21,7 +21,7 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 # Boost
-set(REQUIRED_BOOST_LIBS asio thread regex type_index)
+set(REQUIRED_BOOST_LIBS asio thread regex lockfree type_index)
 list(TRANSFORM REQUIRED_BOOST_LIBS PREPEND Boost:: OUTPUT_VARIABLE BOOST_LIB_DEPS)
 FetchContent_Declare(
     Boost
@@ -66,8 +66,15 @@ target_link_libraries(virtual_machine dynamic_message)
 file(GLOB_RECURSE LIBBYTEPROC_SRC ${MASTER_SRC_DIR}/libByteproc/*.cpp)
 add_library(byteproc STATIC ${LIBBYTEPROC_SRC})
 target_link_libraries(byteproc virtual_machine)
+target_link_libraries(TSQ ${BOOST_LIB_DEPS})
+
+file(GLOB_RECURSE LIBEM_SRC ${MASTER_SRC_DIR}/libEM/*.cpp)
+add_library(EM STATIC ${LIBEM_SRC})
+target_include_directories(EM PUBLIC ${BLS_CONFIG} ${LANG_SRC_DIR})
+target_link_libraries(EM ${BOOST_LIB_DEPS})
 
 add_executable(master ${MASTER_SRC_DIR}/main.cpp)
+target_link_libraries(master TSQ EM ${BOOST_LIB_DEPS})
 
 
 # CLIENT LIBS AND EXECUTABLE
@@ -122,6 +129,11 @@ add_executable(test_libVM ${LIBVM_TESTS})
 target_include_directories(test_libVM PUBLIC ${TEST_DEPS} ${MASTER_SRC_DIR}/libByteproc ${MASTER_SRC_DIR}/libVM)
 target_link_libraries(test_libVM byteproc virtual_machine GTest::gtest_main)
 
+file(GLOB_RECURSE LIBEM_TESTS ${MASTER_TEST_DIR}/libEM/*.cpp)
+add_executable(test_libEM ${LIBEM_TESTS})
+target_include_directories(test_libEM PUBLIC ${TEST_DEPS} ${MASTER_SRC_DIR}/libEM)
+target_link_libraries(test_libEM EM GTest::gtest_main)
+
 include(GoogleTest)
 gtest_discover_tests(test_liblexer)
 gtest_discover_tests(test_libparser)
@@ -131,3 +143,4 @@ gtest_discover_tests(
     test_libVM
     WORKING_DIRECTORY ${MASTER_TEST_DIR}/libVM
 )
+gtest_discover_tests(test_libEM)
