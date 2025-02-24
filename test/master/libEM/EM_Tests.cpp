@@ -1,5 +1,5 @@
 #include "EM.hpp"
-#include "../libDm/DynamicMessage.hpp"
+#include "../libDM/DynamicMessage.hpp"
 #include <gtest/gtest.h>
 
 TEST(ExecutionUnitTest, ConstructorTest) 
