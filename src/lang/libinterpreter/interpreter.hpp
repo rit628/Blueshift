@@ -1,4 +1,5 @@
 #pragma once
+#include "binding_parser.hpp"
 #include "call_stack.hpp"
 #include "bls_types.hpp"
 #include "visitor.hpp"
@@ -17,37 +18,51 @@ namespace BlsLang {
     
     class Interpreter : public Visitor {
         public:
+            Interpreter() = default;
+
+            #define AST_NODE_ABSTRACT(_)
+            #define AST_NODE(Node) \
+            std::any visit(Node& ast) override;
+            #include "include/NODE_TYPES.LIST"
+            #undef AST_NODE_ABSTRACT
+            #undef AST_NODE
+
+            auto& getOblocks() { return oblocks; }
+            auto& getDeviceDescriptors() { return deviceDescriptors; }
+            auto& getOblockDescriptors() { return oblockDescriptors; }
+
+        private:
             enum class BINARY_OPERATOR : uint8_t {
-                AND
-              , OR
-              , LT
-              , LE
-              , GT
-              , GE
-              , EQ
-              , NE
-              , ADD
-              , SUB
-              , MUL
-              , DIV
-              , MOD
-              , EXP
-              , ASSIGN
-              , ASSIGN_ADD
-              , ASSIGN_SUB
-              , ASSIGN_MUL
-              , ASSIGN_DIV
-              , ASSIGN_MOD
-              , ASSIGN_EXP
-              , COUNT
+              AND
+            , OR
+            , LT
+            , LE
+            , GT
+            , GE
+            , EQ
+            , NE
+            , ADD
+            , SUB
+            , MUL
+            , DIV
+            , MOD
+            , EXP
+            , ASSIGN
+            , ASSIGN_ADD
+            , ASSIGN_SUB
+            , ASSIGN_MUL
+            , ASSIGN_DIV
+            , ASSIGN_MOD
+            , ASSIGN_EXP
+            , COUNT
             };
 
             enum class UNARY_OPERATOR : uint8_t {
-                NOT
-              , NEG
-              , INC
-              , DEC
-              , COUNT
+              NOT
+            , NEG
+            , INC
+            , DEC
+            , COUNT
             };
 
             constexpr BINARY_OPERATOR getBinOpEnum(std::string_view op) {
@@ -83,18 +98,8 @@ namespace BlsLang {
                 return UNARY_OPERATOR::COUNT;
             }
 
-            Interpreter() = default;
-
-            #define AST_NODE_ABSTRACT(_)
-            #define AST_NODE(Node) \
-            std::any visit(Node& ast) override;
-            #include "include/NODE_TYPES.LIST"
-            #undef AST_NODE_ABSTRACT
-            #undef AST_NODE
-
             BlsType& resolve(std::any& val);
 
-        private:
             CallStack<std::string> cs;
             std::unordered_map<std::string, std::function<std::any(std::vector<BlsType>)>> functions = {
                 {"println", [](std::vector<BlsType> args) -> std::any {
@@ -115,6 +120,11 @@ namespace BlsLang {
                     return std::monostate();
                 }}
             };
+
+        std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks;
+        std::unordered_map<std::string, DeviceDescriptor> deviceDescriptors;
+        std::vector<OBlockDesc> oblockDescriptors;
+
     };
 
 }

@@ -26,6 +26,7 @@ namespace BlsLang {
             struct Frame {
                 enum class Context : uint8_t {
                     FUNCTION
+                  , SETUP
                   , LOOP
                   , CONDITIONAL
                 };
@@ -67,7 +68,7 @@ namespace BlsLang {
     template<StackType T>
     inline void CallStack<T>::pushFrame(Frame::Context context) requires StringAddressable<T> {
         auto frame = Frame(context);
-        if (context != Frame::Context::FUNCTION) {
+        if (context != Frame::Context::FUNCTION && context != Frame::Context::SETUP) {
             frame.locals = cs.back().locals; // transfer locals to new context
         }
         cs.push_back(frame);

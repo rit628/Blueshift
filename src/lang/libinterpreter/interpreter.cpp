@@ -1,4 +1,5 @@
 #include "interpreter.hpp"
+#include "binding_parser.hpp"
 #include "bls_types.hpp"
 #include "call_stack.hpp"
 #include "ast.hpp"
@@ -21,16 +22,13 @@ std::any Interpreter::visit(AstNode::Source& ast) {
         procedure->accept(*this);
     }
 
-    // leave oblocks and setup for later; use temporary setup for testing
-    const auto visitor = overloads {
-        [](std::monostate value) { std::cout << "retVal = void" << std::endl; },
-        [](bool value) { std::cout << "retVal = " << ((value) ? "true" : "false") << std::endl; },
-        [](auto value) { std::cout << "retVal = " << value << std::endl; }
-    };
-    for (auto&& i : ast.getSetup()->getStatements()) {
-        auto result = i->accept(*this);
-        std::visit(visitor, resolve(result));
+    for (auto&& oblock : ast.getOblocks()) {
+        oblock->accept(*this);
     }
+
+    ast.getSetup()->accept(*this);
+
+    return std::monostate();
 }
 
 std::any Interpreter::visit(AstNode::Function::Procedure& ast) {
@@ -65,9 +63,44 @@ std::any Interpreter::visit(AstNode::Function::Procedure& ast) {
     return std::monostate();
 }
 
-std::any Interpreter::visit(AstNode::Function::Oblock& ast) {}
+std::any Interpreter::visit(AstNode::Function::Oblock& ast) {
+    auto& oblockName = ast.getName();
 
-std::any Interpreter::visit(AstNode::Setup& ast) {}
+    auto oblock = [&ast, this](std::vector<BlsType> args) -> std::vector<BlsType> {
+        auto& oblockName = ast.getName();
+        auto& params = ast.getParameters();
+        auto& statements = ast.getStatements();
+        cs.pushFrame(CallStack<std::string>::Frame::Context::FUNCTION);
+        if (params.size() != args.size()) {
+            throw std::runtime_error("Invalid number of arguments provided to oblock call.");
+        }
+        for (int i = 0; i < params.size(); i++) {
+            cs.setLocal(params.at(i), args.at(i));
+        }
+
+        for (auto&& statement : statements) {
+            statement->accept(*this);
+        }
+
+        std::vector<BlsType> transformedArgs;
+        for (int i = 0; i < params.size(); i++) {
+            transformedArgs.push_back(cs.getLocal(params.at(i)));
+        }
+        cs.popFrame();
+        return transformedArgs;
+    };
+    oblocks.emplace(oblockName, oblock);
+    return std::monostate();
+}
+
+std::any Interpreter::visit(AstNode::Setup& ast) {
+    cs.pushFrame(CallStack<std::string>::Frame::Context::SETUP);
+    for (auto&& statement : ast.getStatements()) {
+        statement->accept(*this);
+    }
+    cs.popFrame();
+    return true;
+}
 
 std::any Interpreter::visit(AstNode::Statement::If& ast) {
     auto checkCondition = [this](AstNode& expr) -> bool {
@@ -209,7 +242,14 @@ std::any Interpreter::visit(AstNode::Statement::Break& ast) {
 std::any Interpreter::visit(AstNode::Statement::Declaration& ast) {
     auto& name = ast.getName();
     auto& value = ast.getValue();
-    if (value.has_value()) {
+    if (cs.checkContext(CallStack<std::string>::Frame::Context::SETUP)) {
+        auto devtype = std::any_cast<TypeIdenfier>(ast.getType()->accept(*this));
+        auto binding = value->get()->accept(*this);
+        auto& bindStr = std::get<std::string>(resolve(binding));
+        auto devDesc = parseDeviceBinding(name, static_cast<DEVTYPE>(devtype.name), bindStr);
+        deviceDescriptors.emplace(name, devDesc);
+    }
+    else if (value.has_value()) {
         auto literal = value->get()->accept(*this);
         cs.setLocal(name, resolve(literal));
     }
@@ -368,11 +408,48 @@ std::any Interpreter::visit(AstNode::Expression::Group& ast) {
     return ast.getExpression()->accept(*this);
 }
 
-std::any Interpreter::visit(AstNode::Expression::Method& ast) {}
+std::any Interpreter::visit(AstNode::Expression::Method& ast) {
+    auto& object = ast.getObject();
+    auto& args = ast.getArguments();
+    std::vector<BlsType> resolvedArgs;
+    for (auto&& arg : args) {
+        auto visited = arg->accept(*this);
+        resolvedArgs.push_back(resolve(visited));
+    }
+    auto& methodName = ast.getMethodName();
+    auto& operable = std::get<std::shared_ptr<HeapDescriptor>>(cs.getLocal(object));
+    if (methodName == "append") {
+        dynamic_cast<VectorDescriptor&>(*operable).append(resolvedArgs.at(0));
+    }
+    else if (methodName == "add") {
+        dynamic_cast<MapDescriptor&>(*operable).emplace(resolvedArgs.at(0), resolvedArgs.at(1));
+    }
+    else if (methodName == "size") {
+        return BlsType(operable->getSize());
+    }
+    else {
+        throw std::runtime_error("invalid method");
+    }
+    return std::monostate();
+}
 
 std::any Interpreter::visit(AstNode::Expression::Function& ast) {
     auto& name = ast.getName();
     auto& args = ast.getArguments();
+    if (cs.checkContext(CallStack<std::string>::Frame::Context::SETUP)) {
+        OBlockDesc desc;
+        desc.name = name;
+        auto& devices = desc.binded_devices;
+        for (auto&& arg : args) {
+            auto* expr = dynamic_cast<AstNode::Expression::Access*>(arg.get());
+            if (expr == nullptr || expr->getMember().has_value() || expr->getSubscript().has_value()) {
+                throw std::runtime_error("Invalid binding in setup()");
+            }
+            devices.push_back(deviceDescriptors.at(expr->getObject()));
+        }
+        oblockDescriptors.push_back(desc);
+        return std::monostate();
+    }
     std::vector<BlsType> argObjects;
     for (auto&& arg : args) {
         auto result = arg->accept(*this);
@@ -387,10 +464,16 @@ std::any Interpreter::visit(AstNode::Expression::Access& ast) {
     auto& member = ast.getMember();
     auto& subscript = ast.getSubscript();
     if (member.has_value()) {
-        throw std::runtime_error("Member access not yet implemented.");
+        auto& accessible = std::get<std::shared_ptr<HeapDescriptor>>(cs.getLocal(object));
+        auto memberName = BlsType(member.value());
+        auto value = accessible->access(memberName);
+        return value;
     }
     else if (subscript.has_value()) {
-        throw std::runtime_error("Subscript access not yet implemented.");
+        auto& subscriptable = std::get<std::shared_ptr<HeapDescriptor>>(cs.getLocal(object));
+        auto index = subscript->get()->accept(*this);
+        auto value = subscriptable->access(resolve(index));
+        return value;
     }
     else {
         return std::ref(cs.getLocal(object));
@@ -407,13 +490,39 @@ std::any Interpreter::visit(AstNode::Expression::Literal& ast) {
     return literal;
 }
 
-std::any Interpreter::visit(AstNode::Expression::List& ast) {}
+std::any Interpreter::visit(AstNode::Expression::List& ast) {
+    auto list = std::make_shared<VectorDescriptor>("ANY");
+    auto& elements = ast.getElements();
+    for (auto&& element : elements) {
+        auto literal = element->accept(*this);
+        list->append(resolve(literal));
+    }
+    return BlsType(list);
+}
 
-std::any Interpreter::visit(AstNode::Expression::Set& ast) {}
+std::any Interpreter::visit(AstNode::Expression::Set& ast) {
+    throw std::runtime_error("no support for sets in phase 0");
+}
 
-std::any Interpreter::visit(AstNode::Expression::Map& ast) {}
+std::any Interpreter::visit(AstNode::Expression::Map& ast) {
+    auto map = std::make_shared<MapDescriptor>("ANY");
+    auto& elements = ast.getElements();
+    for (auto&& element : elements) {
+        auto key = element.first->accept(*this);
+        auto value = element.second->accept(*this);
+        map->emplace(resolve(key), resolve(value));
+    }
+    return BlsType(map);
+}
 
-std::any Interpreter::visit(AstNode::Specifier::Type& ast) {}
+std::any Interpreter::visit(AstNode::Specifier::Type& ast) {
+    TYPE primaryType = getTypeEnum(ast.getName());
+    std::vector<TypeIdenfier> typeArgs;
+    for (auto&& arg : ast.getTypeArgs()) {
+        typeArgs.push_back(std::any_cast<TypeIdenfier>(arg->accept(*this)));
+    }
+    return TypeIdenfier(primaryType, typeArgs);
+}
 
 BlsType& Interpreter::resolve(std::any& val) {
     if (val.type() == typeid(std::reference_wrapper<BlsType>)) {

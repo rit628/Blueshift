@@ -37,4 +37,16 @@ int main() {
     
     BlsLang::Interpreter interpreter;
     ast->accept(interpreter);
+    for (auto&& i : interpreter.getOblockDescriptors()) {
+        std::cout << i.name << std::endl;
+        for (auto&& j : i.binded_devices) {
+            std::cout << j.device_name << std::endl;
+            std::cout << j.controller << std::endl;
+            std::cout << static_cast<int>(j.devtype) << std::endl;
+            for (auto&& k : j.port_maps) {
+                std::cout << static_cast<int>(k) << std::endl;
+            }
+        }
+    }
+    return 0;
 }
