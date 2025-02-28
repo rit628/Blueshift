@@ -1,11 +1,10 @@
 #pragma once
 #include "bls_types.hpp"
-#include <cstdint>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 #include <vector>
 #include <boost/regex.hpp>
-#include <iostream>
 
 namespace BlsLang {
 
@@ -14,7 +13,7 @@ namespace BlsLang {
         DEVTYPE devtype; 
     
         std::string controller; 
-        std::vector<uint8_t> port_maps; 
+        std::unordered_map<std::string, std::string> port_maps; 
     
         bool isInterrupt; 
     
@@ -56,7 +55,7 @@ namespace BlsLang {
     };
 
     inline DeviceDescriptor parseDeviceBinding(const std::string deviceName, DEVTYPE devtype, const std::string& binding) {
-        static boost::regex bindingPattern(R"(([a-zA-Z0-9_\-]+)::[a-zA-Z]+-(\d+)(?:, ?[a-zA-Z]+-(\d+))*)");
+        static boost::regex bindingPattern(R"(([a-zA-Z0-9_\-]+)::([a-zA-Z]+-[^,\- ]+(?:,[a-zA-Z]+-[^,\- ]+)*))");
         boost::smatch bindingContents;
         if (!boost::regex_match(binding, bindingContents, bindingPattern)) {
             throw std::runtime_error("Invalid binding string");
@@ -65,11 +64,20 @@ namespace BlsLang {
         result.device_name = deviceName;
         result.devtype = devtype;
         result.controller = bindingContents[1];
-        for (int i = 2; i < bindingContents.size(); i++) {
-            std::string port = bindingContents[i].str();
-            if (!port.empty()) {
-                result.port_maps.push_back(std::stoi(port));
+        std::string portMap = bindingContents[2];
+        int idx = 0;
+
+        while (idx < portMap.size()) {
+            int delimIdx = portMap.find_first_of('-', idx);
+            std::string role = portMap.substr(idx, delimIdx - idx);
+            idx = delimIdx + 1;
+            delimIdx = portMap.find_first_of(',', idx);
+            if (delimIdx == std::string::npos) {
+                delimIdx = portMap.size();
             }
+            std::string port = portMap.substr(idx, delimIdx - idx);
+            result.port_maps.emplace(std::move(role), std::move(port));
+            idx = delimIdx + 1;
         }
         return result;
     }

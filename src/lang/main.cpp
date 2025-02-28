@@ -44,7 +44,8 @@ int main() {
             std::cout << j.controller << std::endl;
             std::cout << static_cast<int>(j.devtype) << std::endl;
             for (auto&& k : j.port_maps) {
-                std::cout << static_cast<int>(k) << std::endl;
+                std::cout << k.first << std::endl;
+                std::cout << k.second << std::endl;
             }
         }
     }
