@@ -152,9 +152,9 @@ namespace BlsLang {
     return TYPE::COUNT;
   }
 
-  struct TypeIdenfier {
+  struct TypeIdentifier {
     TYPE name;
-    std::vector<TypeIdenfier> args;
+    std::vector<TypeIdentifier> args;
   };
 
   using BlsType = std::variant<

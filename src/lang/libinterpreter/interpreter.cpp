@@ -242,7 +242,7 @@ std::any Interpreter::visit(AstNode::Statement::Declaration& ast) {
     auto& name = ast.getName();
     auto& value = ast.getValue();
     if (cs.checkContext(CallStack<std::string>::Frame::Context::SETUP)) {
-        auto devtype = std::any_cast<TypeIdenfier>(ast.getType()->accept(*this));
+        auto devtype = std::any_cast<TypeIdentifier>(ast.getType()->accept(*this));
         auto binding = value->get()->accept(*this);
         auto& bindStr = std::get<std::string>(resolve(binding));
         auto devDesc = parseDeviceBinding(name, static_cast<DEVTYPE>(devtype.name), bindStr);
@@ -516,11 +516,11 @@ std::any Interpreter::visit(AstNode::Expression::Map& ast) {
 
 std::any Interpreter::visit(AstNode::Specifier::Type& ast) {
     TYPE primaryType = getTypeEnum(ast.getName());
-    std::vector<TypeIdenfier> typeArgs;
+    std::vector<TypeIdentifier> typeArgs;
     for (auto&& arg : ast.getTypeArgs()) {
-        typeArgs.push_back(std::any_cast<TypeIdenfier>(arg->accept(*this)));
+        typeArgs.push_back(std::any_cast<TypeIdentifier>(arg->accept(*this)));
     }
-    return TypeIdenfier(primaryType, typeArgs);
+    return TypeIdentifier(primaryType, typeArgs);
 }
 
 BlsType& Interpreter::resolve(std::any& val) {
