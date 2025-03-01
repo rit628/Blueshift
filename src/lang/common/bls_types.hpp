@@ -312,6 +312,11 @@ namespace BlsLang {
   inline BlsType operator/(const BlsType& lhs, const BlsType& rhs) {
     return std::visit([](const auto& a, const auto& b) -> BlsType {
       if constexpr (Divisible<decltype(a), decltype(b)>) {
+        if constexpr (Numeric<decltype(b)>) {
+          if (b == 0) {
+            throw std::runtime_error("Error: dividing by zero.");
+          }
+        }
         return a / b;
       }
       else {
@@ -323,9 +328,15 @@ namespace BlsLang {
   inline BlsType operator%(const BlsType& lhs, const BlsType& rhs) {
     return std::visit([](const auto& a, const auto& b) -> BlsType {
       if constexpr (Integer<decltype(a)> && Integer<decltype(b)>) {
+        if (b == 0) {
+          throw std::runtime_error("Error: dividing by zero.");
+        }
         return a % b;
       }
       else if constexpr (Numeric<decltype(a)> && Numeric<decltype(b)>) {
+        if (b == 0) {
+          throw std::runtime_error("Error: dividing by zero.");
+        }
         return std::fmod(a, b);
       }
       else {
