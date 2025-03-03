@@ -3,9 +3,9 @@ DEVTYPE_BEGIN(LIGHT)
 DEVTYPE_END
 
 DEVTYPE_BEGIN(MOTOR)
-    ATTRIBUTE(rpm, float)
+    ATTRIBUTE(rpm, double)
 DEVTYPE_END
 
 DEVTYPE_BEGIN(SERVO)
-    ATTRIBUTE(position, float)
+    ATTRIBUTE(position, double)
 DEVTYPE_END
