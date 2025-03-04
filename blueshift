@@ -88,6 +88,7 @@ def check_successful_reset_or_force():
 
 def reset(args):
     subprocess.run(["docker", "compose", "down", "--rmi", "all", "-v", "--remove-orphans"])
+    subprocess.run(["rm", "-rf", "build"])
 
     check_successful_reset_or_force()
 
