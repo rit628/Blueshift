@@ -465,14 +465,12 @@ std::any Interpreter::visit(AstNode::Expression::Access& ast) {
     if (member.has_value()) {
         auto& accessible = std::get<std::shared_ptr<HeapDescriptor>>(cs.getLocal(object));
         auto memberName = BlsType(member.value());
-        auto value = accessible->access(memberName);
-        return value;
+        return std::ref(accessible->access(memberName));
     }
     else if (subscript.has_value()) {
         auto& subscriptable = std::get<std::shared_ptr<HeapDescriptor>>(cs.getLocal(object));
         auto index = subscript->get()->accept(*this);
-        auto value = subscriptable->access(resolve(index));
-        return value;
+        return std::ref(subscriptable->access(resolve(index)));
     }
     else {
         return std::ref(cs.getLocal(object));
