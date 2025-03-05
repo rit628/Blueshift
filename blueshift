@@ -57,7 +57,7 @@ def build(args):
 def test(args):
     sys.stderr = supressPythonErrors()
     os.environ["GTEST_COLOR"] = "1"
-    ctest_args = [args.verbose]
+    ctest_args = [args.verbose, "-R", args.tests_regex]
     ctest_args = list(filter(None, ctest_args))
     if args.local:
         fail_output = ["--output-on-failure"] if not args.no_output_on_failure else []
@@ -88,7 +88,8 @@ def check_successful_reset_or_force():
 
 def reset(args):
     subprocess.run(["docker", "compose", "down", "--rmi", "all", "-v", "--remove-orphans"])
-
+    subprocess.run(["rm", "-rf", "build"])
+    
     check_successful_reset_or_force()
 
     if args.rm_build_cache:
@@ -105,17 +106,17 @@ run_parser.add_argument("binary_args",
                         nargs="*",
                         default=None)
 run_parser.add_argument("-l", "--local",
-                          help="run selected binary on local host instead of in containerized environment",
-                          action="store_true")
+                        help="run selected binary on local host instead of in containerized environment",
+                        action="store_true")
 run_parser.set_defaults(fn=run)
 
 deploy_parser = subparsers.add_parser("deploy", help=f"run {PROJECT_NAME} deployment environment (send SIGINT [ctrl+c] to stop gracefully)")
 deploy_parser.add_argument("-n", "--num-clients",
-                        help="number of clients to create (only used in deployment simulation)",
-                        default=DEFAULT_NUM_CLIENTS)
+                           help="number of clients to create (only used in deployment simulation)",
+                           default=DEFAULT_NUM_CLIENTS)
 deploy_parser.add_argument("-b", "--build",
-                        help="rebuild container images before running",
-                        action="store_true")
+                           help="rebuild container images before running",
+                           action="store_true")
 deploy_parser.set_defaults(fn=deploy)
 
 build_parser = subparsers.add_parser("build", help=f"build {PROJECT_NAME} binaries or deployment images")
@@ -146,8 +147,11 @@ test_parser.add_argument("--no-output-on-failure",
                          help="show condensed output regardless of failed tests",
                          action="store_true")
 test_parser.add_argument("-l", "--local",
-                          help="test on local host only; container builds are not tested",
-                          action="store_true")
+                         help="test on local host only; container builds are not tested",
+                         action="store_true")
+test_parser.add_argument("-R", "--tests-regex",
+                         help="run subset of tests matching regular expression",
+                         default=".*")
 test_parser.set_defaults(fn=test)
 
 reset_parser = subparsers.add_parser("reset", help="resets images and volumes")
