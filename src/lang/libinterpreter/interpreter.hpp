@@ -20,7 +20,7 @@ namespace BlsLang {
         public:
             Interpreter() = default;
 
-            #define AST_NODE_ABSTRACT(_)
+            #define AST_NODE_ABSTRACT(...)
             #define AST_NODE(Node) \
             std::any visit(Node& ast) override;
             #include "include/NODE_TYPES.LIST"

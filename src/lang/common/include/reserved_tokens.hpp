@@ -5,9 +5,9 @@
 namespace BlsLang {
     
     const static std::unordered_set<std::string> CONTAINER_TYPES = {
-        #define CONTAINER_BEGIN(name, _) \
+        #define CONTAINER_BEGIN(name, ...) \
         #name,
-        #define METHOD(__, ___)
+        #define METHOD(...)
         #define CONTAINER_END
         #include "CONTAINER_TYPES.LIST"
         #undef CONTAINER_BEGIN
@@ -18,7 +18,7 @@ namespace BlsLang {
     #define DEVTYPE_BEGIN(typename) \
     constexpr auto DEVTYPE_##typename (#typename); \
     constexpr auto VTYPE_##typename ("v" #typename);
-    #define ATTRIBUTE(_, __)
+    #define ATTRIBUTE(...)
     #define DEVTYPE_END
     #include "DEVTYPES.LIST"
     #undef DEVTYPE_BEGIN

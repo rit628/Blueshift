@@ -6,7 +6,7 @@ namespace BlsLang {
 
     class Visitor {
         public:
-            #define AST_NODE_ABSTRACT(_)
+            #define AST_NODE_ABSTRACT(...)
             #define AST_NODE(Node) \
             virtual std::any visit(Node& ast) = 0;
             #include "include/NODE_TYPES.LIST"

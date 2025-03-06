@@ -521,8 +521,8 @@ bool Parser::peekNestedTypeSpecifier() {
 
 constexpr const char * const Parser::invalidContainerMessage() {
     return "Invalid container type. Container must be one of: { "
-    #define CONTAINER_BEGIN(name, _) #name ", " 
-    #define METHOD(__, ___)
+    #define CONTAINER_BEGIN(name, ...) #name ", " 
+    #define METHOD(...)
     #define CONTAINER_END
     #include "CONTAINER_TYPES.LIST"
     #undef CONTAINER_BEGIN

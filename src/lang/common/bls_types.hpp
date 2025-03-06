@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+#include <unordered_map>
 #include <variant>
 #include <cstdint>
 #include <concepts>
@@ -14,12 +15,67 @@ namespace BlsLang {
 
   template<typename T>
   concept Boolean = std::same_as<std::remove_cv_t<std::remove_reference_t<T>>, bool>;
-
+  
   template<typename T>
   concept Integer = !Boolean<T> && std::is_integral_v<std::remove_cv_t<std::remove_reference_t<T>>>;
-
+  
   template<typename T>
   concept Float = std::is_floating_point_v<std::remove_cv_t<std::remove_reference_t<T>>>;
+  
+  template<typename T>
+  concept String = std::same_as<std::remove_cv_t<std::remove_reference_t<T>>, std::string>;
+  
+  template <typename T>
+  struct is_vector : std::false_type {};
+  
+  template <typename T>
+  struct is_vector<std::vector<T>> : std::true_type {};
+  
+  template <typename T>
+  concept List = is_vector<T>::value;
+  
+  template <typename T>
+  struct is_map : std::false_type {};
+  
+  template <typename T, typename U>
+  struct is_map<std::unordered_map<T, U>> : std::true_type {};
+  
+  template <typename T>
+  concept Map = is_map<T>::value;
+  
+  template<typename T>
+  concept BlueshiftType = Boolean<T> || Integer<T> || Float<T> || String<T> || List<T> || Map<T>;
+
+  // primary template; retain type
+  template<BlueshiftType T>
+  struct Convert { using type = T; };
+
+  // partial specialization for integer types; convert to int64_t
+  template<Integer T>
+  struct Convert<T> { using type = int64_t; };
+
+  // partial specialization for floating point types; convert to double
+  template<Float T>
+  struct Convert<T> { using type = double; };
+
+  // partial specialization for vector<T>; convert T to Tp and hence vector<T> to vector<Tp>
+  template<typename T>
+  struct Convert<std::vector<T>> {
+      using Tp = Convert<T>::type;
+      using type = std::vector<Tp>;
+  };
+
+  // partial specialization for unordered_map<K, V>; convert K to Kp and V to Vp and hence unordered_map<K, V> to unordered_map<Kp, Vp>
+  template<typename K, typename V>
+  struct Convert<std::unordered_map<K, V>> {
+    using Kp = Convert<K>::type;
+    using Vp = Convert<V>::type;
+    using type = std::unordered_map<Kp, Vp>;
+  };
+
+  // alias template for convenience
+  template<typename T>
+  using converted_t = Convert<T>::type;
 
   template<typename T>
   concept Numeric = Integer<T> || Float<T>;
@@ -67,16 +123,35 @@ namespace BlsLang {
   }
   && BinaryOperable<T, U>;
 
-  #define DEVTYPE_BEGIN(name) \
-  struct name { 
-  #define ATTRIBUTE(name, type) \
-  type name;
-  #define DEVTYPE_END \
-  };
-  #include "DEVTYPES.LIST"
-  #undef DEVTYPE_BEGIN
-  #undef ATTRIBUTE
-  #undef DEVTYPE_END
+  namespace TypeDef {
+    /* string aliases */
+    using string = std::string;
+
+    /* vector aliases */
+    template<typename T>
+    using list = std::vector<T>;
+    template<typename T>
+    using vector = std::vector<T>;
+
+    /* map aliases */
+    template<typename K, typename V>
+    using map = std::unordered_map<K, V>;
+    template<typename K, typename V>
+    using unordered_map = std::unordered_map<K, V>;
+  
+    #define DEVTYPE_BEGIN(name) \
+    struct name { 
+    #define ATTRIBUTE(name, type...) \
+      using name##_t = converted_t<type>; \
+      name##_t name;
+    #define DEVTYPE_END \
+    };
+    #include "DEVTYPES.LIST"
+    #undef DEVTYPE_BEGIN
+    #undef ATTRIBUTE
+    #undef DEVTYPE_END
+
+  }
 
   enum class TYPE {
       void_t
@@ -87,7 +162,7 @@ namespace BlsLang {
 
     #define CONTAINER_BEGIN(name, _) \
     , name##_t
-    #define METHOD(_, __)
+    #define METHOD(...)
     #define CONTAINER_END
     #include "CONTAINER_TYPES.LIST"
     #undef CONTAINER_BEGIN
@@ -96,7 +171,7 @@ namespace BlsLang {
 
     #define DEVTYPE_BEGIN(name) \
     , name
-    #define ATTRIBUTE(_, __)
+    #define ATTRIBUTE(...)
     #define DEVTYPE_END 
     #include "DEVTYPES.LIST"
     #undef DEVTYPE_BEGIN
@@ -108,7 +183,7 @@ namespace BlsLang {
   enum class CONTAINER_TYPE {
     #define CONTAINER_BEGIN(name, _) \
     name = static_cast<int>(TYPE::name##_t),
-    #define METHOD(_, __)
+    #define METHOD(...)
     #define CONTAINER_END
     #include "CONTAINER_TYPES.LIST"
     #undef CONTAINER_BEGIN
@@ -119,7 +194,7 @@ namespace BlsLang {
   enum class DEVTYPE {
     #define DEVTYPE_BEGIN(name) \
     name = static_cast<int>(TYPE::name),
-    #define ATTRIBUTE(_, __)
+    #define ATTRIBUTE(...)
     #define DEVTYPE_END 
     #include "DEVTYPES.LIST"
     #undef DEVTYPE_BEGIN
@@ -135,7 +210,7 @@ namespace BlsLang {
     if (type == "string") { return TYPE::string_t; }
     #define CONTAINER_BEGIN(name, _) \
     if (type == #name) { return TYPE::name##_t; }
-    #define METHOD(_, __)
+    #define METHOD(...)
     #define CONTAINER_END
     #include "CONTAINER_TYPES.LIST"
     #undef CONTAINER_BEGIN
@@ -143,7 +218,7 @@ namespace BlsLang {
     #undef CONTAINER_END
     #define DEVTYPE_BEGIN(name) \
     if (type == #name) { return TYPE::name; }
-    #define ATTRIBUTE(_, __)
+    #define ATTRIBUTE(...)
     #define DEVTYPE_END 
     #include "DEVTYPES.LIST"
     #undef DEVTYPE_BEGIN
