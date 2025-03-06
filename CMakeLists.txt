@@ -109,8 +109,13 @@ add_library(interpreter STATIC ${LIBINTERPRETER_SRC})
 target_include_directories(interpreter PUBLIC ${BLS_CONFIG} ${LANG_COMMON})
 target_link_libraries(interpreter lang_common ${BOOST_LIB_DEPS})
 
+file(GLOB_RECURSE LIBANALYZER_SRC ${LANG_SRC_DIR}/libanalyzer/*.cpp)
+add_library(analyzer STATIC ${LIBANALYZER_SRC})
+target_include_directories(analyzer PUBLIC ${BLS_CONFIG} ${LANG_COMMON})
+target_link_libraries(analyzer lang_common ${BOOST_LIB_DEPS})
+
 add_executable(lang ${LANG_SRC_DIR}/main.cpp)
-target_link_libraries(lang lexer parser interpreter ${BOOST_LIB_DEPS})
+target_link_libraries(lang lexer parser interpreter analyzer ${BOOST_LIB_DEPS})
 
 # TESTS
 enable_testing()
