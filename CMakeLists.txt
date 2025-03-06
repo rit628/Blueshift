@@ -98,6 +98,11 @@ add_library(interpreter STATIC ${LIBINTERPRETER_SRC})
 target_include_directories(interpreter PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
 target_link_libraries(interpreter lang_common ${BOOST_LIB_DEPS})
 
+file(GLOB_RECURSE LIBANALYZER_SRC ${LANG_SRC_DIR}/libanalyzer/*.cpp)
+add_library(analyzer STATIC ${LIBANALYZER_SRC})
+target_include_directories(analyzer PUBLIC ${BLS_CONFIG} ${LANG_COMMON})
+target_link_libraries(analyzer lang_common ${BOOST_LIB_DEPS})
+
 file(GLOB_RECURSE LIBCOMPILER_SRC ${LANG_SRC_DIR}/libcompiler/*.cpp)
 add_library(compiler STATIC ${LIBCOMPILER_SRC})
 target_include_directories(compiler PUBLIC ${BLS_CONFIG} ${LANG_COMMON} ${LANG_SRC_DIR})
