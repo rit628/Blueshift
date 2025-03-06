@@ -66,11 +66,6 @@ file(GLOB_RECURSE LIBVM_SRC ${MASTER_SRC_DIR}/libVM/*.cpp)
 add_library(virtual_machine STATIC ${LIBVM_SRC})
 target_link_libraries(virtual_machine dynamic_message)
 
-file(GLOB_RECURSE LIBBYTEPROC_SRC ${MASTER_SRC_DIR}/libByteproc/*.cpp)
-add_library(byteproc STATIC ${LIBBYTEPROC_SRC})
-target_link_libraries(byteproc virtual_machine)
-target_link_libraries(TSQ ${BOOST_LIB_DEPS})
-
 file(GLOB_RECURSE LIBEM_SRC ${MASTER_SRC_DIR}/libEM/*.cpp)
 add_library(EM STATIC ${LIBEM_SRC})
 target_include_directories(EM PUBLIC ${BLS_CONFIG} ${LANG_SRC_DIR})
@@ -142,10 +137,6 @@ add_executable(test_libDM ${LIBDM_TESTS})
 target_include_directories(test_libDM PUBLIC ${TEST_DEPS} ${MASTER_SRC_DIR}/libDM)
 target_link_libraries(test_libDM dynamic_message GTest::gtest_main)
 
-file(GLOB_RECURSE LIBVM_TESTS ${MASTER_TEST_DIR}/libVM/*.cpp)
-add_executable(test_libVM ${LIBVM_TESTS})
-target_include_directories(test_libVM PUBLIC ${TEST_DEPS} ${MASTER_SRC_DIR}/libByteproc ${MASTER_SRC_DIR}/libVM)
-target_link_libraries(test_libVM byteproc virtual_machine GTest::gtest_main)
 
 file(GLOB_RECURSE LIBEM_TESTS ${MASTER_TEST_DIR}/libEM/*.cpp)
 add_executable(test_libEM ${LIBEM_TESTS})
@@ -163,9 +154,5 @@ gtest_discover_tests(test_libparser)
 gtest_discover_tests(test_libTSQ)
 gtest_discover_tests(test_libTSM)
 gtest_discover_tests(test_libDM)
-gtest_discover_tests(
-    test_libVM
-    WORKING_DIRECTORY ${MASTER_TEST_DIR}/libVM
-)
 gtest_discover_tests(test_libEM)
 gtest_discover_tests(test_libMM)

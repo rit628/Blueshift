@@ -2,6 +2,8 @@
 #include "../libVM/HeapDescriptors.hpp"
 #include "../libDM/DynamicMessage.hpp"
 
+class DynamicMessage; 
+
 enum class PROTOCOLS
 {
     SENDSTATES,
