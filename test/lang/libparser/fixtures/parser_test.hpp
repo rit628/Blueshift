@@ -16,7 +16,7 @@ namespace BlsLang {
                     Tester() = default;
                     Tester(std::unique_ptr<AstNode> expectedAst) : expectedAst(std::move(expectedAst)) {}
                     void addExpectedAst(std::unique_ptr<AstNode> expectedAst) { expectedAst = std::move(expectedAst); }
-                    #define AST_NODE_ABSTRACT(_)
+                    #define AST_NODE_ABSTRACT(...)
                     #define AST_NODE(Node) \
                     std::any visit(Node& ast) override;
                     #include "include/NODE_TYPES.LIST"

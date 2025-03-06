@@ -3,9 +3,16 @@ DEVTYPE_BEGIN(LIGHT)
 DEVTYPE_END
 
 DEVTYPE_BEGIN(MOTOR)
-    ATTRIBUTE(rpm, double)
+    ATTRIBUTE(rpm, float)
 DEVTYPE_END
 
 DEVTYPE_BEGIN(SERVO)
-    ATTRIBUTE(position, double)
+    ATTRIBUTE(position, float)
+DEVTYPE_END
+
+DEVTYPE_BEGIN(TEST_DEVTYPE)
+    ATTRIBUTE(attr_1, string)
+    ATTRIBUTE(attr_2, list<int>)
+    ATTRIBUTE(attr_3, list<list<int>>)
+    ATTRIBUTE(attr_4, map<float, list<int>>)
 DEVTYPE_END

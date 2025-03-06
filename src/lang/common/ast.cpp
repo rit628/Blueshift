@@ -7,7 +7,7 @@
 
 using namespace BlsLang;
 
-#define AST_NODE_ABSTRACT(_)
+#define AST_NODE_ABSTRACT(...)
 #define AST_NODE(Node) \
 std::any Node::accept(Visitor& v) { return v.visit(*this); }
 #include "include/NODE_TYPES.LIST"

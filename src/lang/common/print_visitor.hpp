@@ -8,7 +8,7 @@ namespace BlsLang {
     class Printer : public Visitor {
         public:
             Printer(std::ostream& os) : os(os) {}
-            #define AST_NODE_ABSTRACT(_)
+            #define AST_NODE_ABSTRACT(...)
             #define AST_NODE(Node) \
             std::any visit(Node& ast) override;
             #include "include/NODE_TYPES.LIST"
