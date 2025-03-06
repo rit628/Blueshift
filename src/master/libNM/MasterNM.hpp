@@ -1,7 +1,7 @@
 #pragma once
 #include "libDM/DynamicMessage.hpp"
-#include "Connection.hpp"
-#include "Protocol.hpp"
+#include "libnetwork/Connection.hpp"
+#include "libnetwork/Protocol.hpp"
 #include "include/Common.hpp"
 #include <set>
 #include <thread> 

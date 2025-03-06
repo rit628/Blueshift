@@ -21,7 +21,7 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 # Boost
-set(REQUIRED_BOOST_LIBS asio thread regex lockfree type_index)
+set(REQUIRED_BOOST_LIBS asio thread regex lockfree type_index math)
 list(TRANSFORM REQUIRED_BOOST_LIBS PREPEND Boost:: OUTPUT_VARIABLE BOOST_LIB_DEPS)
 FetchContent_Declare(
     Boost
@@ -76,6 +76,11 @@ target_link_libraries(network TSQ ${BOOST_LIB_DEPS})
 file(GLOB_RECURSE LIBTSM_SRC ${MASTER_SRC_DIR}/libTSM/*.cpp)
 add_library(TSM STATIC ${LIBTSM_SRC})
 
+file(GLOB_RECURSE LIBTICKER_SRC ${MASTER_SRC_DIR}/libTicker/*.cpp)
+add_library(ticker STATIC ${LIBTICKER_SRC})
+target_include_directories(ticker PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
+target_link_libraries(ticker network TSQ ${BOOST_LIB_DEPS})
+
 file(GLOB_RECURSE LIBEM_SRC ${MASTER_SRC_DIR}/libEM/*.cpp)
 add_library(EM STATIC ${LIBEM_SRC})
 target_include_directories(EM PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${MASTER_SRC_DIR})
@@ -85,6 +90,11 @@ file(GLOB_RECURSE LIBMM_SRC ${MASTER_SRC_DIR}/libMM/*.cpp)
 add_library(MM STATIC ${LIBMM_SRC})
 target_include_directories(MM PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${MASTER_SRC_DIR})
 target_link_libraries(MM EM ${BOOST_LIB_DEPS})
+
+file(GLOB_RECURSE LIBNM_SRC ${MASTER_SRC_DIR}/libNM/*.cpp)
+add_library(NM STATIC ${LIBNM_SRC})
+target_include_directories(NM PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${MASTER_SRC_DIR})
+target_link_libraries(NM network dynamic_message ticker ${BOOST_LIB_DEPS})
 
 add_executable(master ${MASTER_SRC_DIR}/main.cpp)
 target_link_libraries(master TSQ EM MM ${BOOST_LIB_DEPS})
