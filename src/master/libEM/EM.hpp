@@ -1,13 +1,23 @@
 #pragma once
 
 #include "../libTSQ/TSQ.hpp"
+#include "../libTSM/TSM.hpp"
 #include "../libDM/DynamicMessage.hpp"
+//#include "../../lang/libinterpreter/interpreter.hpp"
+//#include "../../lang/common/ast.hpp"
 #include <unordered_map>
-#include <map>
+#include <thread>
 #include <memory>
 #include <string>
 #include <vector>
 using namespace std;
+
+enum class PROTOCOLS
+{
+    SENDSTATES,
+    CALLBACKRECIEVED,
+    REQUESTINGSTATES,
+};
 
 enum class DEVTYPE{
     SERVO, 
@@ -94,7 +104,10 @@ struct DynamicMasterMessage
     public:
     O_Info info;
     DynamicMessage DM;
+    bool isInterrupt;
+    PROTOCOLS protocol;
     DynamicMasterMessage() = default;
+    DynamicMasterMessage(DynamicMessage DM, O_Info info, PROTOCOLS protocol, bool isInterrupt);
     ~DynamicMasterMessage() = default;
 };
 
@@ -102,10 +115,11 @@ struct HeapMasterMessage
 {
     public:
     O_Info info;
-    //DynamicMessage HM;
+    PROTOCOLS protocol;
+    bool isInterrupt;
     shared_ptr<HeapDescriptor> heapTree;
     HeapMasterMessage() = default;
-    HeapMasterMessage(shared_ptr<HeapDescriptor> heapTree, O_Info info);
+    HeapMasterMessage(shared_ptr<HeapDescriptor> heapTree, O_Info info, PROTOCOLS protocol, bool isInterrupt);
     ~HeapMasterMessage() = default;
 };
 
@@ -118,23 +132,29 @@ class ExecutionUnit
     vector<string> devices;
     vector<bool> isVtype;
     vector<string> controllers;
-    ExecutionUnit() = default;
-    ExecutionUnit(string OblockName, vector<string> devices, vector<bool> isVtype, vector<string> controllers);
-    vector<HeapMasterMessage> process(DynamicMasterMessage DMM, ExecutionUnit unit);
+    TSQ<vector<DynamicMasterMessage>> EUcache;
+    thread executionThread;
+    bool stop = false;
+    ExecutionUnit(string OblockName, vector<string> devices, vector<bool> isVtype, vector<string> controllers, 
+        TSM<string, HeapMasterMessage> &vtypeHMMsMap, TSQ<DynamicMasterMessage> &sendMM);
+    void running(TSM<string, HeapMasterMessage> &vtypeHMMsMap, TSQ<DynamicMasterMessage> &sendMM);
+    vector<shared_ptr<HeapDescriptor>> transformState(vector<shared_ptr<HeapDescriptor>> HMM_List);
 };
 
 class ExecutionManager
 {
     public:
     //ExecutionManager() = default;
-    ExecutionManager(vector<OBlockDesc> OblockList, TSQ<DynamicMasterMessage> &in, TSQ<HeapMasterMessage> &out);
+    ExecutionManager(vector<OBlockDesc> OblockList, TSQ<vector<DynamicMasterMessage>> &readMM, TSQ<DynamicMasterMessage> &sendMM);
     ExecutionUnit &assign(DynamicMasterMessage DMM);
-    void running(TSQ<DynamicMasterMessage> &in);
-    TSQ<DynamicMasterMessage> &in;
-    TSQ<HeapMasterMessage> &out;
-    unordered_map<string, ExecutionUnit> EU_map;
+    void running(TSQ<vector<DynamicMasterMessage>> &readMM);
+    TSQ<vector<DynamicMasterMessage>> &readMM;
+    TSQ<DynamicMasterMessage> &sendMM;
+    unordered_map<string, unique_ptr<ExecutionUnit>> EU_map;
     vector<OBlockDesc> OblockList;
     vector<HeapMasterMessage> vtypeHMMs;
-    vector<shared_ptr<HeapDescriptor>> transformState(vector<shared_ptr<HeapDescriptor>> HMM_List);
+    TSM<string, HeapMasterMessage> vtypeHMMsMap;
+    //BlsLang::Interpreter interpreter;
+    //BlsLang::AstNode ast;
 };
 

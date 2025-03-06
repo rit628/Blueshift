@@ -28,6 +28,17 @@ class TSQ
             this->cv.notify_one();
             return read_data;
         }
+        T peek()
+        {
+            unique_lock<mutex> mut(this->mut);
+            this->cv.wait(mut, [this]() {return !this->sharedQueue.empty();});
+            canWrite = false;
+            T read_data = this->sharedQueue.front();
+            mut.unlock();
+            canWrite = true;
+            this->cv.notify_one();
+            return read_data;
+        }
         void write(T new_data)
         {
             unique_lock<mutex> mut(this->mut);

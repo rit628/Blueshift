@@ -55,6 +55,9 @@ set(LANG_COMMON ${LANG_SRC_DIR}/common)
 file(GLOB_RECURSE LIBTSQ_SRC ${MASTER_SRC_DIR}/libTSQ/*.cpp)
 add_library(TSQ STATIC ${LIBTSQ_SRC})
 
+file(GLOB_RECURSE LIBTSM_SRC ${MASTER_SRC_DIR}/libTSM/*.cpp)
+add_library(TSM STATIC ${LIBTSM_SRC})
+
 file(GLOB_RECURSE LIBDM_SRC ${MASTER_SRC_DIR}/libDM/*.cpp)
 add_library(dynamic_message STATIC ${LIBDM_SRC})
 target_link_libraries(dynamic_message ${BOOST_LIB_DEPS})
@@ -73,8 +76,13 @@ add_library(EM STATIC ${LIBEM_SRC})
 target_include_directories(EM PUBLIC ${BLS_CONFIG} ${LANG_SRC_DIR})
 target_link_libraries(EM ${BOOST_LIB_DEPS})
 
+file(GLOB_RECURSE LIBMM_SRC ${MASTER_SRC_DIR}/libMM/*.cpp)
+add_library(MM STATIC ${LIBMM_SRC})
+target_include_directories(MM PUBLIC ${BLS_CONFIG} ${LANG_SRC_DIR})
+target_link_libraries(MM ${BOOST_LIB_DEPS})
+
 add_executable(master ${MASTER_SRC_DIR}/main.cpp)
-target_link_libraries(master TSQ EM ${BOOST_LIB_DEPS})
+target_link_libraries(master TSQ EM MM ${BOOST_LIB_DEPS})
 
 
 # CLIENT LIBS AND EXECUTABLE
@@ -124,6 +132,11 @@ add_executable(test_libTSQ ${LIBTSQ_TESTS})
 target_include_directories(test_libTSQ PUBLIC ${TEST_DEPS} ${MASTER_SRC_DIR}/libTSQ)
 target_link_libraries(test_libTSQ TSQ GTest::gtest_main)
 
+file(GLOB_RECURSE LIBTSM_TESTS ${MASTER_TEST_DIR}/libTSM/*.cpp)
+add_executable(test_libTSM ${LIBTSM_TESTS})
+target_include_directories(test_libTSM PUBLIC ${TEST_DEPS} ${MASTER_SRC_DIR}/libTSM)
+target_link_libraries(test_libTSM TSM GTest::gtest_main)
+
 file(GLOB_RECURSE LIBDM_TESTS ${MASTER_TEST_DIR}/libDM/*.cpp)
 add_executable(test_libDM ${LIBDM_TESTS})
 target_include_directories(test_libDM PUBLIC ${TEST_DEPS} ${MASTER_SRC_DIR}/libDM)
@@ -139,13 +152,20 @@ add_executable(test_libEM ${LIBEM_TESTS})
 target_include_directories(test_libEM PUBLIC ${TEST_DEPS} ${MASTER_SRC_DIR}/libEM)
 target_link_libraries(test_libEM EM GTest::gtest_main)
 
+file(GLOB_RECURSE LIBMM_TESTS ${MASTER_TEST_DIR}/libMM/*.cpp)
+add_executable(test_libMM ${LIBMM_TESTS})
+target_include_directories(test_libMM PUBLIC ${TEST_DEPS} ${MASTER_SRC_DIR}/libMM)
+target_link_libraries(test_libMM MM GTest::gtest_main)
+
 include(GoogleTest)
 gtest_discover_tests(test_liblexer)
 gtest_discover_tests(test_libparser)
 gtest_discover_tests(test_libTSQ)
+gtest_discover_tests(test_libTSM)
 gtest_discover_tests(test_libDM)
 gtest_discover_tests(
     test_libVM
     WORKING_DIRECTORY ${MASTER_TEST_DIR}/libVM
 )
 gtest_discover_tests(test_libEM)
+gtest_discover_tests(test_libMM)

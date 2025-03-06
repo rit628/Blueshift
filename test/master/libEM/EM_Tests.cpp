@@ -1,171 +1,216 @@
 #include "EM.hpp"
 #include "../libDM/DynamicMessage.hpp"
+#include <chrono>
 #include <gtest/gtest.h>
+#include <thread>
+#include <optional>
 
-TEST(ExecutionUnitTest, ConstructorTest) 
-{
-    //Creates the devices
-    vector<string> devices = {"DeviceA", "DeviceB"};
-    vector<bool> isVtypes = {true, false};
-    vector<string> controllers = {"CtrlA", "CtrlB"};
+// Test construction and field initialization of DynamicMasterMessage.
+TEST(DynamicMasterMessageTest, ConstructorInitializesFields) {
+    DynamicMessage dm;
+    O_Info info { "OBlock1", "Device1", "Controller1", false };
+    DynamicMasterMessage dmm(dm, info, PROTOCOLS::SENDSTATES, false);
     
-    //Creates the execution unit
-    ExecutionUnit eu("BlockTest", devices, isVtypes, controllers);
-    
-    EXPECT_EQ(eu.OblockName, "BlockTest");
-    ASSERT_EQ(eu.devices.size(), 2);
-    EXPECT_EQ(eu.devices[0], "DeviceA");
-    EXPECT_EQ(eu.controllers[1], "CtrlB");
+    EXPECT_EQ(dmm.info.oblock, "OBlock1");
+    EXPECT_EQ(dmm.info.device, "Device1");
+    EXPECT_EQ(dmm.info.controller, "Controller1");
+    EXPECT_EQ(dmm.protocol, PROTOCOLS::SENDSTATES);
+    EXPECT_FALSE(dmm.isInterrupt);
 }
 
-TEST(ExecutionManagerTest, AssignMessage) 
-{
-    //Creates the DeviceDescriptors
-    DeviceDescriptor dev;
-    dev.device_name = "Device1";
-    dev.devtype = DEVTYPE::SERVO;
-    dev.controller = "Controller1";
-    dev.isInterrupt = false;
-    dev.isVtype = false;
+// Test construction and field initialization of HeapMasterMessage.
+TEST(HeapMasterMessageTest, ConstructorInitializesFields) {
+    auto heapTree = std::make_shared<HeapDescriptor>();
+    O_Info info { "OBlock2", "Device2", "Controller2", true };
+    HeapMasterMessage hmm(heapTree, info, PROTOCOLS::CALLBACKRECIEVED, true);
     
-    //Creates an oblock descriptor
-    OBlockDesc block;
-    block.name = "Block1";
-    block.binded_devices.push_back(dev);
-    block.bytecode_offset = 0;
-    block.dropRead = false;
-    block.dropWrite = false;
-    
-    vector<OBlockDesc> blocks = { block };
+    EXPECT_EQ(hmm.info.oblock, "OBlock2");
+    EXPECT_EQ(hmm.info.device, "Device2");
+    EXPECT_EQ(hmm.info.controller, "Controller2");
+    EXPECT_EQ(hmm.protocol, PROTOCOLS::CALLBACKRECIEVED);
+    EXPECT_TRUE(hmm.isInterrupt);
+    EXPECT_NE(hmm.heapTree, nullptr);
+}
 
-    TSQ<DynamicMasterMessage> in = TSQ<DynamicMasterMessage>();
-    TSQ<HeapMasterMessage> out = TSQ<HeapMasterMessage>();
+// Test ExecutionManager constructor creates ExecutionUnits as expected.
+TEST(ExecutionManagerTest, ConstructorCreatesExecutionUnits) {
+    // Create a dummy OBlockDesc.
+    OBlockDesc oblockDesc;
+    oblockDesc.name = "OBlock_Test";
+    DeviceDescriptor device;
+    device.device_name = "Device_Test";
+    device.isVtype = false;
+    device.controller = "Controller_Test";
+    oblockDesc.binded_devices.push_back(device);
+    
+    vector<OBlockDesc> oblockList = { oblockDesc };
+    
+    // Create dummy TSQ objects.
+    TSQ<vector<DynamicMasterMessage>> readQueue;
+    TSQ<DynamicMasterMessage> sendQueue;
+    
+    // Construct ExecutionManager.
+    ExecutionManager em(oblockList, readQueue, sendQueue);
+    
+    // Check that an ExecutionUnit was created in the map.
+    auto it = em.EU_map.find("OBlock_Test");
+    EXPECT_NE(it, em.EU_map.end());
+    
+    // Also check that the ExecutionUnit's device vector contains "Device_Test".
+    ExecutionUnit &eu = *(it->second);
+    ASSERT_FALSE(eu.devices.empty());
+    EXPECT_EQ(eu.devices[0], "Device_Test");
+}
 
-    //Creates a dynamic master message for the device
-    DynamicMasterMessage dmm;
-    dmm.info.oblock = "Block1";
-    dmm.info.device = "Device1";
-    dmm.info.controller = "Controller1";
-    dmm.info.isVtype = false;
+// Test ExecutionManager::assign method properly assigns a DynamicMasterMessage.
+TEST(ExecutionManagerTest, AssignAddsToExecutionUnitStateMap) {
+    // Setup a dummy OBlockDesc and ExecutionManager.
+    OBlockDesc oblockDesc;
+    oblockDesc.name = "OBlock_Assign";
+    DeviceDescriptor device;
+    device.device_name = "Device_Assign";
+    device.isVtype = false;
+    device.controller = "Controller_Assign";
+    oblockDesc.binded_devices.push_back(device);
+    vector<OBlockDesc> oblockList = { oblockDesc };
     
-    //Creates the execution manager
-    ExecutionManager em(blocks, in, out);
+    TSQ<vector<DynamicMasterMessage>> readQueue;
+    TSQ<DynamicMasterMessage> sendQueue;
+    ExecutionManager em(oblockList, readQueue, sendQueue);
     
-    //Call the assign function and make sure it assigns it to the right place
+    // Create a dummy DynamicMasterMessage.
+    DynamicMessage dm;
+    O_Info info { "OBlock_Assign", "Device_Assign", "Controller_Assign", false };
+    DynamicMasterMessage dmm(dm, info, PROTOCOLS::REQUESTINGSTATES, false);
+    
+    // Call assign.
     ExecutionUnit &eu = em.assign(dmm);
-    auto it = eu.stateMap.find("Device1");
-    ASSERT_NE(it, eu.stateMap.end());
-    EXPECT_EQ(it->second.info.oblock, dmm.info.oblock);
-    EXPECT_EQ(it->second.info.device, dmm.info.device);
+    
+    // Check that the ExecutionUnit's stateMap has the message under key "Device_Assign".
+    auto found = eu.stateMap.find("Device_Assign");
+    EXPECT_NE(found, eu.stateMap.end());
+    EXPECT_EQ(found->second.protocol, PROTOCOLS::REQUESTINGSTATES);
 }
 
-TEST(ExecutionUnitTest, ProcessUnit) 
+TEST(ExecutionManagerTest, RunningProcessesReadQueue) {
+    // Setup one OBlockDesc.
+    OBlockDesc oblockDesc;
+    oblockDesc.name = "OBlock_Running";
+    DeviceDescriptor device;
+    device.device_name = "Device_Running";
+    device.isVtype = false;
+    device.controller = "Controller_Running";
+    oblockDesc.binded_devices.push_back(device);
+    vector<OBlockDesc> oblockList = { oblockDesc };
+    
+    // Create dummy TSQs.
+    TSQ<vector<DynamicMasterMessage>> readQueue;
+    TSQ<DynamicMasterMessage> sendQueue;
+    ExecutionManager em(oblockList, readQueue, sendQueue);
+    
+    // Prepare a vector with one DynamicMasterMessage.
+    DynamicMessage dm;
+    string strValue = "TestString";
+    dm.createField("stringField", strValue);
+    O_Info info { "OBlock_Running", "Device_Running", "Controller_Running", false };
+    DynamicMasterMessage dmm(dm, info, PROTOCOLS::SENDSTATES, false);
+    vector<DynamicMasterMessage> dmmVec = { dmm };
+    
+    // Write the vector into the readQueue.
+    readQueue.write(dmmVec);
+    //readQueue.write(dmmVec);
+
+    em.running(readQueue);
+
+    std::this_thread::sleep_for(100ms);
+
+    // The corresponding ExecutionUnit's EUcache should now contain the message.
+    ExecutionUnit &eu = *em.EU_map.at("OBlock_Running");
+    
+    EXPECT_TRUE(eu.EUcache.isEmpty());
+
+    eu.stop = true;
+}
+
+TEST(ExecutionManagerTest, RunningProcessesNonVtype) 
 {
-    //Creates the execution units
-    vector<string> devices = {"Device1"};
-    vector<bool> isVtypes = {false};
-    vector<string> controllers = {"Controller1"};
-    ExecutionUnit eu("Block1", devices, isVtypes, controllers);
+    OBlockDesc oblockDesc;
+    oblockDesc.name = "OBlock_Running";
+    DeviceDescriptor device;
+    device.device_name = "Device_Running";
+    device.isVtype = false;
+    device.controller = "Controller_Running";
+    oblockDesc.binded_devices.push_back(device);
+    vector<OBlockDesc> oblockList = { oblockDesc };
     
-    //Creates a dynamic master message for the device
-    DynamicMasterMessage dmm;
-    dmm.info.oblock = "Block1";
-    dmm.info.device = "Device1";
-    dmm.info.controller = "Controller1";
-    dmm.info.isVtype = false;
-    eu.stateMap["Device1"] = dmm;
+    // Create dummy TSQs.
+    TSQ<vector<DynamicMasterMessage>> readQueue;
+    TSQ<DynamicMasterMessage> sendQueue;
+    ExecutionManager em(oblockList, readQueue, sendQueue);
+
+    // Prepare a vector with one DynamicMasterMessage.
+    DynamicMessage dm;
+    string strValue = "TestString";
+    dm.createField("stringField", strValue);
+    O_Info info { "OBlock_Running", "Device_Running", "Controller_Running", false };
+    DynamicMasterMessage dmm(dm, info, PROTOCOLS::SENDSTATES, false);
+    vector<DynamicMasterMessage> dmmVec = { dmm };
+
+    // Write the vector into the readQueue.
+    readQueue.write(dmmVec);
+    //readQueue.write(dmmVec);
+
+    em.running(readQueue);
+
+    std::this_thread::sleep_for(100ms);
+
+    // The corresponding ExecutionUnit's EUcache should now contain the message.
+    ExecutionUnit &eu = *em.EU_map.at("OBlock_Running");
     
-    //Calls process and make sure a heap master message is returned
-    vector<HeapMasterMessage> results = eu.process(dmm, eu);
-    ASSERT_EQ(results.size(), 1);
-    EXPECT_EQ(results[0].info.device, "Device1");
+    EXPECT_TRUE(eu.EUcache.isEmpty());
+    EXPECT_EQ(em.sendMM.getSize(), 1);
+
+    eu.stop = true;
 }
 
-TEST(ExecutionManagerTest, RunningNonVtypeMessage) 
+TEST(ExecutionManagerTest, RunningProcessesVtype) 
 {
-    //Creates a nonvtype device
-    DeviceDescriptor dev;
-    dev.device_name = "Device1";
-    dev.devtype = DEVTYPE::MOTOR;
-    dev.controller = "Controller1";
-    dev.isInterrupt = false;
-    dev.isVtype = false;
+    OBlockDesc oblockDesc;
+    oblockDesc.name = "OBlock_Running";
+    DeviceDescriptor device;
+    device.device_name = "Device_Running";
+    device.isVtype = true;
+    device.controller = "Controller_Running";
+    oblockDesc.binded_devices.push_back(device);
+    vector<OBlockDesc> oblockList = { oblockDesc };
     
-    OBlockDesc block;
-    block.name = "Block1";
-    block.binded_devices.push_back(dev);
-    block.bytecode_offset = 0;
-    block.dropRead = false;
-    block.dropWrite = false;
-    
-    vector<OBlockDesc> blocks = { block };
+    // Create dummy TSQs.
+    TSQ<vector<DynamicMasterMessage>> readQueue;
+    TSQ<DynamicMasterMessage> sendQueue;
+    ExecutionManager em(oblockList, readQueue, sendQueue);
 
-    TSQ<DynamicMasterMessage> in = TSQ<DynamicMasterMessage>();
-    TSQ<HeapMasterMessage> out = TSQ<HeapMasterMessage>();
+    // Prepare a vector with one DynamicMasterMessage.
+    DynamicMessage dm;
+    string strValue = "TestString";
+    dm.createField("stringField", strValue);
+    O_Info info { "OBlock_Running", "Device_Running", "Controller_Running", true };
+    DynamicMasterMessage dmm(dm, info, PROTOCOLS::SENDSTATES, false);
+    vector<DynamicMasterMessage> dmmVec = { dmm };
 
-    //Creates a dynamic master message
-    DynamicMasterMessage dmm;
-    dmm.info.oblock = "Block1";
-    dmm.info.device = "Device1";
-    dmm.info.controller = "Controller1";
-    dmm.info.isVtype = false;
+    // Write the vector into the readQueue.
+    readQueue.write(dmmVec);
+    //readQueue.write(dmmVec);
 
-    in.write(dmm);
+    em.running(readQueue);
+
+    std::this_thread::sleep_for(100ms);
+
+    // The corresponding ExecutionUnit's EUcache should now contain the message.
+    ExecutionUnit &eu = *em.EU_map.at("OBlock_Running");
     
-    ExecutionManager em(blocks, in, out);
-    
-    //em.in.write(dmm);
-    
-    //Run the execution manager
-    em.running(em.in);
-    
-    //Checks to see if the vtype vector is empty and the dmm makes it through the manager
-    EXPECT_FALSE(em.out.isEmpty());
-    HeapMasterMessage hmm = em.out.read();
-    EXPECT_EQ(hmm.info.device, "Device1");
-    EXPECT_TRUE(em.vtypeHMMs.empty());
+    EXPECT_TRUE(eu.EUcache.isEmpty());
+    EXPECT_EQ(em.sendMM.getSize(), 0);
+
+    eu.stop = true;
 }
 
-TEST(ExecutionManagerTest, RunningVtypeMessage) 
-{
-    //Creates a device with a vtype
-    DeviceDescriptor dev;
-    dev.device_name = "DeviceV";
-    dev.devtype = DEVTYPE::VINT;
-    dev.controller = "ControllerV";
-    dev.isInterrupt = false;
-    dev.isVtype = true;
-    
-    OBlockDesc block;
-    block.name = "BlockV";
-    block.binded_devices.push_back(dev);
-    block.bytecode_offset = 0;
-    block.dropRead = false;
-    block.dropWrite = false;
-    
-    vector<OBlockDesc> blocks = { block };
-
-    TSQ<DynamicMasterMessage> in = TSQ<DynamicMasterMessage>();
-    TSQ<HeapMasterMessage> out = TSQ<HeapMasterMessage>();
-
-    //Creates a Dynamic Master Message
-    DynamicMasterMessage dmm;
-    dmm.info.oblock = "BlockV";
-    dmm.info.device = "DeviceV";
-    dmm.info.controller = "ControllerV";
-    dmm.info.isVtype = true;
-
-    in.write(dmm);
-    
-    ExecutionManager em(blocks, in, out);
-    
-    //em.in.write(dmm);
-    
-    //Runs the execution manager
-    em.running(em.in);
-    
-    //Checks to see if the vtype vector is populated and the out queue is empty
-    EXPECT_TRUE(em.out.isEmpty());
-    ASSERT_EQ(em.vtypeHMMs.size(), 1);
-    EXPECT_EQ(em.vtypeHMMs[0].info.device, "DeviceV");
-}
