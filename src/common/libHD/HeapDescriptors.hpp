@@ -21,32 +21,20 @@ enum class ObjType{
     VECTOR 
 }; 
 
-
-enum class ContainerType{
-    ANY, 
-    INT,
-    FLOAT, 
-    STRING, 
-    BOOL, 
+enum class Desctype : uint8_t{
     VECTOR, 
     MAP, 
+    UINT32, 
+    FLOAT, 
+    STRING, 
     CHAR, 
+    UCHAR,
+    BOOL, 
+    DEVTYPE, 
+    NONE, 
+    // Used for the storage of constant size, structs
+    ANY, 
 }; 
-
-
-inline std::unordered_map<std::string, ContainerType> ContMap = {
-    {"ANY", ContainerType::ANY}, 
-
-    {"INT", ContainerType::INT}, 
-    {"FLOAT", ContainerType::FLOAT}, 
-    {"STRING", ContainerType::STRING}, 
-    {"BOOL", ContainerType::BOOL},
-    {"CHAR", ContainerType::CHAR}, 
-
-    {"VECTOR", ContainerType::VECTOR}, 
-    {"MAP", ContainerType::MAP}, 
-}; 
-
 
 static std::string stringify(const Prim &value){
     if(std::holds_alternative<bool>(value)){
@@ -69,11 +57,11 @@ static std::string stringify(const Prim &value){
 
 class HeapDescriptor{
     public: 
-        ContainerType contType = ContainerType::ANY; 
+        Desctype contType = Desctype::ANY; 
 
         HeapDescriptor() = default; 
  
-        virtual ContainerType getCont(){
+        virtual Desctype getCont(){
             return this->contType; 
         }
 
@@ -108,8 +96,8 @@ class MapDescriptor : public HeapDescriptor{
         friend class DynamicMessage; 
         friend class VM; 
 
-        MapDescriptor(std::string cont_code){
-            this->contType = ContMap[cont_code]; 
+        MapDescriptor(Desctype cont_code){
+            this->contType = cont_code; 
             this->map = std::make_shared<std::unordered_map<std::string, std::shared_ptr<HeapDescriptor>>>(); 
         }
   
@@ -158,8 +146,8 @@ class VectorDescriptor : public HeapDescriptor, std::enable_shared_from_this<Vec
         friend class DynamicMessage; 
         friend class VM; 
 
-        VectorDescriptor(std::string cont_code){
-            this->contType = ContMap[cont_code]; 
+        VectorDescriptor(Desctype cont_code){
+            this->contType = cont_code; 
             vector = std::make_shared<std::vector<std::shared_ptr<HeapDescriptor>>>(); 
         } 
 
@@ -167,7 +155,7 @@ class VectorDescriptor : public HeapDescriptor, std::enable_shared_from_this<Vec
             return ObjType::VECTOR; 
         }
 
-        static std::shared_ptr<VectorDescriptor> create(std::string cont_code) {
+        static std::shared_ptr<VectorDescriptor> create(Desctype cont_code) {
             return std::shared_ptr<VectorDescriptor>(new VectorDescriptor(cont_code));
         }
 

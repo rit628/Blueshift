@@ -1,5 +1,5 @@
 #include "EM.hpp"
-#include "../libDM/DynamicMessage.hpp"
+#include "libDM/DynamicMessage.hpp"
 #include <chrono>
 #include <gtest/gtest.h>
 #include <thread>
