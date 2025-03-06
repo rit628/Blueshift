@@ -71,46 +71,6 @@ add_library(network STATIC ${LIBNETWORK_SRC})
 target_include_directories(network PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
 target_link_libraries(network TSQ ${BOOST_LIB_DEPS})
 
-# MASTER LIBS AND EXECUTABLE
-file(GLOB_RECURSE LIBTSM_SRC ${MASTER_SRC_DIR}/libTSM/*.cpp)
-add_library(TSM STATIC ${LIBTSM_SRC})
-
-file(GLOB_RECURSE LIBTICKER_SRC ${MASTER_SRC_DIR}/libTicker/*.cpp)
-add_library(ticker STATIC ${LIBTICKER_SRC})
-target_include_directories(ticker PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
-target_link_libraries(ticker network TSQ ${BOOST_LIB_DEPS})
-
-file(GLOB_RECURSE LIBEM_SRC ${MASTER_SRC_DIR}/libEM/*.cpp)
-add_library(EM STATIC ${LIBEM_SRC})
-target_include_directories(EM PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${MASTER_SRC_DIR})
-target_link_libraries(EM TSM TSQ dynamic_message ${BOOST_LIB_DEPS})
-
-file(GLOB_RECURSE LIBMM_SRC ${MASTER_SRC_DIR}/libMM/*.cpp)
-add_library(MM STATIC ${LIBMM_SRC})
-target_include_directories(MM PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${MASTER_SRC_DIR})
-target_link_libraries(MM EM TSQ dynamic_message ${BOOST_LIB_DEPS})
-
-file(GLOB_RECURSE LIBNM_SRC ${MASTER_SRC_DIR}/libNM/*.cpp)
-add_library(NM STATIC ${LIBNM_SRC})
-target_include_directories(NM PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${MASTER_SRC_DIR})
-target_link_libraries(NM network dynamic_message ticker ${BOOST_LIB_DEPS})
-
-add_executable(master ${MASTER_SRC_DIR}/main.cpp)
-target_link_libraries(master TSQ EM MM ${BOOST_LIB_DEPS})
-
-# CLIENT LIBS AND EXECUTABLE
-file(GLOB_RECURSE LIBDEVICE_SRC ${CLIENT_SRC_DIR}/libDevice/*.cpp)
-add_library(device STATIC ${LIBDEVICE_SRC})
-target_include_directories(device PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
-target_link_libraries(device network dynamic_message ${BOOST_LIB_DEPS})
-
-file(GLOB_RECURSE LIBCE_SRC ${CLIENT_SRC_DIR}/libCE/*.cpp)
-add_library(client_engine STATIC ${LIBCE_SRC})
-target_include_directories(client_engine PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${CLIENT_SRC_DIR})
-target_link_libraries(client_engine network device ${BOOST_LIB_DEPS})
-
-add_executable(client ${CLIENT_SRC_DIR}/main.cpp)
-
 # LANG LIBS AND EXECUTABLE
 file(GLOB_RECURSE LANG_COMMON_SRC ${LANG_COMMON}/*.cpp)
 add_library(lang_common STATIC ${LANG_COMMON_SRC})
@@ -139,6 +99,46 @@ target_link_libraries(compiler lang_common lexer parser interpreter ${BOOST_LIB_
 
 add_executable(lang ${LANG_SRC_DIR}/main.cpp)
 target_link_libraries(lang compiler ${BOOST_LIB_DEPS})
+
+# MASTER LIBS AND EXECUTABLE
+file(GLOB_RECURSE LIBTSM_SRC ${MASTER_SRC_DIR}/libTSM/*.cpp)
+add_library(TSM STATIC ${LIBTSM_SRC})
+
+file(GLOB_RECURSE LIBTICKER_SRC ${MASTER_SRC_DIR}/libTicker/*.cpp)
+add_library(ticker STATIC ${LIBTICKER_SRC})
+target_include_directories(ticker PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
+target_link_libraries(ticker network TSQ ${BOOST_LIB_DEPS})
+
+file(GLOB_RECURSE LIBEM_SRC ${MASTER_SRC_DIR}/libEM/*.cpp)
+add_library(EM STATIC ${LIBEM_SRC})
+target_include_directories(EM PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${MASTER_SRC_DIR})
+target_link_libraries(EM TSM TSQ dynamic_message interpreter ${BOOST_LIB_DEPS})
+
+file(GLOB_RECURSE LIBMM_SRC ${MASTER_SRC_DIR}/libMM/*.cpp)
+add_library(MM STATIC ${LIBMM_SRC})
+target_include_directories(MM PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${MASTER_SRC_DIR})
+target_link_libraries(MM EM TSQ dynamic_message ${BOOST_LIB_DEPS})
+
+file(GLOB_RECURSE LIBNM_SRC ${MASTER_SRC_DIR}/libNM/*.cpp)
+add_library(NM STATIC ${LIBNM_SRC})
+target_include_directories(NM PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${MASTER_SRC_DIR})
+target_link_libraries(NM network dynamic_message ticker ${BOOST_LIB_DEPS})
+
+add_executable(master ${MASTER_SRC_DIR}/main.cpp)
+target_link_libraries(master TSQ EM MM ${BOOST_LIB_DEPS})
+
+# CLIENT LIBS AND EXECUTABLE
+file(GLOB_RECURSE LIBDEVICE_SRC ${CLIENT_SRC_DIR}/libDevice/*.cpp)
+add_library(device STATIC ${LIBDEVICE_SRC})
+target_include_directories(device PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
+target_link_libraries(device network dynamic_message ${BOOST_LIB_DEPS})
+
+file(GLOB_RECURSE LIBCE_SRC ${CLIENT_SRC_DIR}/libCE/*.cpp)
+add_library(client_engine STATIC ${LIBCE_SRC})
+target_include_directories(client_engine PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${CLIENT_SRC_DIR})
+target_link_libraries(client_engine network device ${BOOST_LIB_DEPS})
+
+add_executable(client ${CLIENT_SRC_DIR}/main.cpp)
 
 # TESTS
 enable_testing()

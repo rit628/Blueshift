@@ -1,7 +1,9 @@
 #include "EM.hpp"
 #include <memory>
 
-ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<vector<DynamicMasterMessage>> &readMM, TSQ<DynamicMasterMessage> &sendMM)
+ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<vector<DynamicMasterMessage>> &readMM, 
+    TSQ<DynamicMasterMessage> &sendMM, 
+    std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks)
     : readMM(readMM), sendMM(sendMM)
 {
     this->OblockList = OblockList;
@@ -17,18 +19,21 @@ ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<vector<Dyn
             isVtype.push_back(OblockList.at(i).binded_devices.at(j).isVtype);
             controllers.push_back(OblockList.at(i).binded_devices.at(j).controller);
         }
+        auto function = oblocks[OblockName];
         EU_map[OblockName] = std::make_unique<ExecutionUnit>
-        (OblockName, devices, isVtype, controllers, this->vtypeHMMsMap, this->sendMM);
+        (OblockName, devices, isVtype, controllers, this->vtypeHMMsMap, this->sendMM, function);
     }
 }
 
 ExecutionUnit::ExecutionUnit(string OblockName, vector<string> devices, vector<bool> isVtype, vector<string> controllers,
-    TSM<string, HeapMasterMessage> &vtypeHMMsMap, TSQ<DynamicMasterMessage> &sendMM)
+    TSM<string, HeapMasterMessage> &vtypeHMMsMap, TSQ<DynamicMasterMessage> &sendMM, 
+    function<vector<BlsLang::BlsType>(vector<BlsLang::BlsType>)>  transform_function)
 {
     this->OblockName = OblockName;
     this->devices = devices;
     this->isVtype = isVtype;
     this->controllers = controllers;
+    this->transform_function = transform_function;
 
     //this->running(vtypeHMMsMap, sendMM);
     this->executionThread = thread(&ExecutionUnit::running, this, ref(vtypeHMMsMap), ref(sendMM));
@@ -53,7 +58,7 @@ DynamicMasterMessage::DynamicMasterMessage(DynamicMessage DM, O_Info info, PROTO
 
 void ExecutionUnit::running(TSM<string, HeapMasterMessage> &vtypeHMMsMap, TSQ<DynamicMasterMessage> &sendMM)
 {
-    while(this->stop == false)
+    while(1)
     {
         if(EUcache.isEmpty()) {continue;}
         vector<DynamicMasterMessage> currentDMMs = EUcache.read();
@@ -64,15 +69,15 @@ void ExecutionUnit::running(TSM<string, HeapMasterMessage> &vtypeHMMsMap, TSQ<Dy
             currentDMMs.at(i).protocol, currentDMMs.at(i).isInterrupt);
             HMMs.push_back(HMM);
         }
-        vector<shared_ptr<HeapDescriptor>> transformableStates;
+        vector<BlsLang::BlsType> transformableStates;
         for(int i = 0; i < HMMs.size(); i++)
         {
             transformableStates.push_back(HMMs.at(i).heapTree);
         }
-        transformableStates = transformState(transformableStates);
+        transformableStates = transform_function(transformableStates);
         for(int i = 0; i < transformableStates.size(); i++)
         {
-            HMMs.at(i).heapTree = transformableStates.at(i);
+            HMMs.at(i).heapTree = std::get<shared_ptr<HeapDescriptor>>(transformableStates.at(i));
         }
         for(int i = 0; i < HMMs.size(); i++)
         {
@@ -99,15 +104,9 @@ ExecutionUnit &ExecutionManager::assign(DynamicMasterMessage DMM)
     return assignedUnit;
 }
 
-vector<shared_ptr<HeapDescriptor>> ExecutionUnit::transformState(vector<shared_ptr<HeapDescriptor>> HMM_List)
-{
-    cout << "State transformed" << endl;
-    return HMM_List;
-}
-
 void ExecutionManager::running(TSQ<vector<DynamicMasterMessage>> &readMM)
 {
-    while(!readMM.isEmpty())
+    while(1)
     {
         vector<DynamicMasterMessage> currentDMMs = readMM.read();
         ExecutionUnit &assignedUnit = assign(currentDMMs.at(0));

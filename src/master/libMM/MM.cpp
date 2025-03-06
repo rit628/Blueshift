@@ -1,8 +1,9 @@
 #include "MM.hpp"
 #include <memory>
 
-MasterMailbox::MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMessage> &readNM, TSQ<DynamicMasterMessage> &readEM)
-: readNM(readNM), readEM(readEM)
+MasterMailbox::MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMessage> &readNM, 
+    TSQ<DynamicMasterMessage> &readEM, TSQ<DynamicMasterMessage> &sendNM, TSQ<vector<DynamicMasterMessage>> &sendEM)
+: readNM(readNM), readEM(readEM), sendNM(sendNM), sendEM(sendEM)
 {
     this->OBlockList = OBlockList;
     for(int i = 0; i < OBlockList.size(); i++)
@@ -43,8 +44,6 @@ WriterBox::WriterBox(string deviceName)
 
 void MasterMailbox::assignNM(DynamicMasterMessage DMM)
 {
-    ReaderBox &assignedBox = *oblockReadMap.at(DMM.info.oblock);
-    TSQ<DynamicMasterMessage> &assignedTSQ = *readMap[DMM.info.oblock][DMM.info.device];
     switch(DMM.protocol)
     {
         case PROTOCOLS::CALLBACKRECIEVED:
@@ -57,6 +56,8 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
         }
         case PROTOCOLS::SENDSTATES:
         {
+            ReaderBox &assignedBox = *oblockReadMap.at(DMM.info.oblock);
+            TSQ<DynamicMasterMessage> &assignedTSQ = *readMap[DMM.info.oblock][DMM.info.device];
             if(assignedBox.dropRead == true)
             {
                 assignedTSQ.clearQueue();
@@ -73,14 +74,11 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
             else
             {
                 assignedTSQ.write(DMM);
-                //cout << DMM.info.device << endl;
-                //cout << "I got here" << endl;
             }
             break;
         }
         default:
         {
-            cout << "Invalid protocol" << endl;
             break;
         }
     }
@@ -123,26 +121,25 @@ void MasterMailbox::assignEM(DynamicMasterMessage DMM)
         }
         default:
         {
-            cout << "Invalid protocol message" << endl;
             break;
         }
     }
 }
 
-void MasterMailbox::runningNM(TSQ<DynamicMasterMessage> &readNM)
+void MasterMailbox::runningNM()
 {
-    while(!readNM.isEmpty())
+    while(1)
     {
-        DynamicMasterMessage currentDMM = readNM.read();
+        DynamicMasterMessage currentDMM = this->readNM.read();
         assignNM(currentDMM);
     }
 }
 
-void MasterMailbox::runningEM(TSQ<DynamicMasterMessage> &readEM)
+void MasterMailbox::runningEM()
 {
-    while(!readEM.isEmpty())
+    while(1)
     {
-        DynamicMasterMessage currentDMM = readEM.read();
+        DynamicMasterMessage currentDMM = this->readEM.read();
         assignEM(currentDMM);
     }
 }
