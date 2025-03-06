@@ -39,48 +39,67 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$ENV{RUNTIME_OUTPUT_DIREC
 set(BLS_CONFIG ${CMAKE_SOURCE_DIR}/config)
 
 set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
+set(COMMON_SRC_DIR ${SRC_DIR}/common)
 set(MASTER_SRC_DIR ${SRC_DIR}/master)
 set(CLIENT_SRC_DIR ${SRC_DIR}/client)
 set(LANG_SRC_DIR ${SRC_DIR}/lang)
 
 set(TEST_DIR ${CMAKE_SOURCE_DIR}/test)
 set(TEST_DEPS ${TEST_DIR}/include)
+set(COMMON_TEST_DIR ${TEST_DIR}/common)
 set(MASTER_TEST_DIR ${TEST_DIR}/master)
 set(CLIENT_TEST_DIR ${TEST_DIR}/client)
 set(LANG_TEST_DIR ${TEST_DIR}/lang)
 
 set(LANG_COMMON ${LANG_SRC_DIR}/common)
 
-# MASTER LIBS AND EXECUTABLE
-file(GLOB_RECURSE LIBTSQ_SRC ${MASTER_SRC_DIR}/libTSQ/*.cpp)
+# COMMON LIBS
+file(GLOB_RECURSE LIBTSQ_SRC ${COMMON_SRC_DIR}/libTSQ/*.cpp)
 add_library(TSQ STATIC ${LIBTSQ_SRC})
 
+file(GLOB_RECURSE LIBDM_SRC ${COMMON_SRC_DIR}/libDM/*.cpp)
+add_library(dynamic_message STATIC ${LIBDM_SRC})
+target_include_directories(dynamic_message PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
+target_link_libraries(dynamic_message ${BOOST_LIB_DEPS})
+
+file(GLOB_RECURSE LIBHD_SRC ${COMMON_SRC_DIR}/libHD/*.cpp)
+add_library(heap_descriptor STATIC ${LIBHD_SRC})
+target_include_directories(heap_descriptor PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
+target_link_libraries(heap_descriptor dynamic_message)
+
+file(GLOB_RECURSE LIBNETWORK_SRC ${COMMON_SRC_DIR}/libnetwork/*.cpp)
+add_library(network STATIC ${LIBNETWORK_SRC})
+target_include_directories(network PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
+target_link_libraries(network TSQ ${BOOST_LIB_DEPS})
+
+# MASTER LIBS AND EXECUTABLE
 file(GLOB_RECURSE LIBTSM_SRC ${MASTER_SRC_DIR}/libTSM/*.cpp)
 add_library(TSM STATIC ${LIBTSM_SRC})
 
-file(GLOB_RECURSE LIBDM_SRC ${MASTER_SRC_DIR}/libDM/*.cpp)
-add_library(dynamic_message STATIC ${LIBDM_SRC})
-target_link_libraries(dynamic_message ${BOOST_LIB_DEPS})
-
-file(GLOB_RECURSE LIBVM_SRC ${MASTER_SRC_DIR}/libVM/*.cpp)
-add_library(virtual_machine STATIC ${LIBVM_SRC})
-target_link_libraries(virtual_machine dynamic_message)
-
 file(GLOB_RECURSE LIBEM_SRC ${MASTER_SRC_DIR}/libEM/*.cpp)
 add_library(EM STATIC ${LIBEM_SRC})
-target_include_directories(EM PUBLIC ${BLS_CONFIG} ${LANG_SRC_DIR})
-target_link_libraries(EM ${BOOST_LIB_DEPS})
+target_include_directories(EM PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${MASTER_SRC_DIR})
+target_link_libraries(EM TSM ${BOOST_LIB_DEPS})
 
 file(GLOB_RECURSE LIBMM_SRC ${MASTER_SRC_DIR}/libMM/*.cpp)
 add_library(MM STATIC ${LIBMM_SRC})
-target_include_directories(MM PUBLIC ${BLS_CONFIG} ${LANG_SRC_DIR})
-target_link_libraries(MM ${BOOST_LIB_DEPS})
+target_include_directories(MM PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${MASTER_SRC_DIR})
+target_link_libraries(MM EM ${BOOST_LIB_DEPS})
 
 add_executable(master ${MASTER_SRC_DIR}/main.cpp)
 target_link_libraries(master TSQ EM MM ${BOOST_LIB_DEPS})
 
-
 # CLIENT LIBS AND EXECUTABLE
+file(GLOB_RECURSE LIBDEVICE_SRC ${CLIENT_SRC_DIR}/libDevice/*.cpp)
+add_library(device STATIC ${LIBDEVICE_SRC})
+target_include_directories(device PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
+target_link_libraries(device network dynamic_message ${BOOST_LIB_DEPS})
+
+file(GLOB_RECURSE LIBCE_SRC ${CLIENT_SRC_DIR}/libCE/*.cpp)
+add_library(client_engine STATIC ${LIBCE_SRC})
+target_include_directories(client_engine PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${CLIENT_SRC_DIR})
+target_link_libraries(client_engine network dynamic_message device ${BOOST_LIB_DEPS})
+
 add_executable(client ${CLIENT_SRC_DIR}/main.cpp)
 
 # LANG LIBS AND EXECUTABLE
@@ -110,6 +129,17 @@ target_link_libraries(lang lexer parser interpreter ${BOOST_LIB_DEPS})
 # TESTS
 enable_testing()
 
+# COMMON TESTS
+file(GLOB_RECURSE LIBTSQ_TESTS ${COMMON_TEST_DIR}/libTSQ/*.cpp)
+add_executable(test_libTSQ ${LIBTSQ_TESTS})
+target_include_directories(test_libTSQ PUBLIC ${TEST_DEPS} ${COMMON_SRC_DIR}/libTSQ)
+target_link_libraries(test_libTSQ TSQ GTest::gtest_main)
+
+file(GLOB_RECURSE LIBDM_TESTS ${COMMON_TEST_DIR}/libDM/*.cpp)
+add_executable(test_libDM ${LIBDM_TESTS})
+target_include_directories(test_libDM PUBLIC ${TEST_DEPS} ${COMMON_SRC_DIR}/libDM)
+target_link_libraries(test_libDM dynamic_message GTest::gtest_main)
+
 # LANG TESTS
 file(GLOB_RECURSE LIBLEXER_TESTS ${LANG_TEST_DIR}/liblexer/*.cpp)
 add_executable(test_liblexer ${LIBLEXER_TESTS})
@@ -122,21 +152,10 @@ target_include_directories(test_libparser PUBLIC ${TEST_DEPS} ${LANG_COMMON} ${L
 target_link_libraries(test_libparser parser lang_common GTest::gtest_main)
 
 # MASTER TESTS
-file(GLOB_RECURSE LIBTSQ_TESTS ${MASTER_TEST_DIR}/libTSQ/*.cpp)
-add_executable(test_libTSQ ${LIBTSQ_TESTS})
-target_include_directories(test_libTSQ PUBLIC ${TEST_DEPS} ${MASTER_SRC_DIR}/libTSQ)
-target_link_libraries(test_libTSQ TSQ GTest::gtest_main)
-
 file(GLOB_RECURSE LIBTSM_TESTS ${MASTER_TEST_DIR}/libTSM/*.cpp)
 add_executable(test_libTSM ${LIBTSM_TESTS})
 target_include_directories(test_libTSM PUBLIC ${TEST_DEPS} ${MASTER_SRC_DIR}/libTSM)
 target_link_libraries(test_libTSM TSM GTest::gtest_main)
-
-file(GLOB_RECURSE LIBDM_TESTS ${MASTER_TEST_DIR}/libDM/*.cpp)
-add_executable(test_libDM ${LIBDM_TESTS})
-target_include_directories(test_libDM PUBLIC ${TEST_DEPS} ${MASTER_SRC_DIR}/libDM)
-target_link_libraries(test_libDM dynamic_message GTest::gtest_main)
-
 
 file(GLOB_RECURSE LIBEM_TESTS ${MASTER_TEST_DIR}/libEM/*.cpp)
 add_executable(test_libEM ${LIBEM_TESTS})

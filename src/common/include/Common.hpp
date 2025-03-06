@@ -1,8 +1,6 @@
 #pragma once
-#include "../libVM/HeapDescriptors.hpp"
-#include "../libDM/DynamicMessage.hpp"
-
-class DynamicMessage; 
+#include "libHD/HeapDescriptors.hpp"
+#include "libDM/DynamicMessage.hpp"
 
 enum class PROTOCOLS
 {

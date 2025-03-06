@@ -6,7 +6,7 @@
 #include <map>
 #include <boost/type_index.hpp> 
 #include <iostream> 
-#include "../libVM/HeapDescriptors.hpp"
+#include "libHD/HeapDescriptors.hpp"
 //#include "../libCommon/Common.hpp"
 
 

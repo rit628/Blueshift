@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 #include <vector> 
-#include "../libCommon/Common.hpp"
+#include "include/Common.hpp"
 
 #define BROADCAST_PORT 2988
 #define MAX_NAME_LEN 128

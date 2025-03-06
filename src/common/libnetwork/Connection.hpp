@@ -1,7 +1,7 @@
 #pragma once
 
 #include <boost/asio.hpp>
-#include "../libTSQ/TSQ.hpp"
+#include "libTSQ/TSQ.hpp"
 #include "Protocol.hpp"
 
 using boost::asio::ip::tcp; 

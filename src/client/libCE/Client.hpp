@@ -1,11 +1,10 @@
 #pragma once
 
-#include "../libDevice/Devices.hpp"
+#include "libDevice/Devices.hpp"
 #include <thread>
-#include "../libDM/DynamicMessage.hpp"
 #include <shared_mutex>
-#include "../libNetCommon/Protocol.hpp"
-#include "../libNetCommon/Connection.hpp"
+#include "libnetwork/Protocol.hpp"
+#include "libnetwork/Connection.hpp"
 
 using boost::asio::ip::tcp; 
 using boost::asio::ip::udp; 

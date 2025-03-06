@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../libTSQ/TSQ.hpp"
-#include "../libDM/DynamicMessage.hpp"
-#include "../libEM/EM.hpp"
+#include "libTSQ/TSQ.hpp"
+#include "libDM/DynamicMessage.hpp"
+#include "libEM/EM.hpp"
 #include <unordered_map>
 #include <map>
 #include <memory>

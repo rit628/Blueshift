@@ -1,8 +1,8 @@
 #pragma once 
 #include <string> 
-#include "../libCommon/Common.hpp"
-#include "../libNetCommon/Protocol.hpp"
-#include "../libTSQ/TSQ.hpp"
+#include "Common.hpp"
+#include "libnetwork/Protocol.hpp"
+#include "libTSQ/TSQ.hpp"
 #include <unordered_set>
 
 using DevAlias = std::string; 

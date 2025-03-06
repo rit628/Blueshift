@@ -1,7 +1,7 @@
 #include "MM.hpp"
-#include "../libEM/EM.hpp"
-#include "../libEM/EM.cpp"
-#include "../libDM/DynamicMessage.hpp"
+#include "libEM/EM.hpp"
+#include "libEM/EM.cpp"
+#include "libDM/DynamicMessage.hpp"
 #include <gtest/gtest.h>
 #include <thread>
 

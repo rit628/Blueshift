@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../libTSQ/TSQ.hpp"
-#include "../libTSM/TSM.hpp"
-#include "../libDM/DynamicMessage.hpp"
-#include "../libCommon/Common.hpp"
+#include "libTSQ/TSQ.hpp"
+#include "libTSM/TSM.hpp"
+#include "libDM/DynamicMessage.hpp"
+#include "include/Common.hpp"
 //#include "../../lang/libinterpreter/interpreter.hpp"
 //#include "../../lang/common/ast.hpp"
 #include <unordered_map>

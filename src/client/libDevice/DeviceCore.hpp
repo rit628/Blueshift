@@ -1,11 +1,11 @@
 #pragma once
 
-#include "../libDM/DynamicMessage.hpp"
-#include "../libNetCommon/Protocol.hpp"
+#include "libDM/DynamicMessage.hpp"
+#include "libnetwork/Protocol.hpp"
 #include <functional>
 #include <boost/asio.hpp>
 #include <chrono> 
-#include "../libNetCommon/Connection.hpp"
+#include "libnetwork/Connection.hpp"
 #include <sys/inotify.h>
 #include <unistd.h> 
 
