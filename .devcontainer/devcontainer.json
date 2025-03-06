@@ -1,0 +1,9 @@
+{
+    "build": { "dockerfile": "../.docker/builder/Dockerfile" },
+  
+    "customizations": {
+      "vscode": {
+        "extensions": ["dbaeumer.vscode-eslint"]
+      }
+    }
+  }

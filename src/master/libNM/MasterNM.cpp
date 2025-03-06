@@ -88,20 +88,12 @@ bool MasterNM::start(){
         listenForConnections(); 
         this->ctx_thread = std::thread([this](){this->master_ctx.run();}); 
         this->updateThread = std::thread([this](){this->update();}); 
-        this->readerThread = std::thread([this](){this->masterRead();});
-
+     ;
         if(this->bcast_thread.joinable()){
             this->bcast_thread.join(); 
         }
 
-        // Begin the reading asynchronous function
-        if(this->updateThread.joinable()){
-            this->updateThread.join(); 
-        }
-
-        if(this->readerThread.joinable()){
-            this->readerThread.join(); 
-        }
+        this->readerThread = std::thread([this](){this->masterRead();}); 
 
         return true; 
 
@@ -335,6 +327,7 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
                         new_msg.info.oblock = o_name; 
                         new_msg.DM = dmsg; 
                         new_msg.isInterrupt = false; 
+                        new_msg.protocol = PROTOCOLS::SENDSTATES; 
 
 
                         this->EMM_out_queue.write(new_msg); 
@@ -348,6 +341,7 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
                     new_msg.info.oblock = ""; 
                     new_msg.DM = dmsg; 
                     new_msg.isInterrupt = true;
+                    new_msg.protocol = PROTOCOLS::SENDSTATES;
 
                     this->EMM_out_queue.write(new_msg); 
                 }
@@ -360,6 +354,15 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
         }
         case(Protocol::CALLBACK): {
             std::cout<<"Callback received: implement passing to MM"<<std::endl; 
+
+            std::string device_name = this->device_list[in_msg.sm.header.device_code];
+
+            DMM new_msg; 
+            new_msg.info.controller = this->controller_list[in_msg.sm.header.ctl_code]; 
+            new_msg.info.device = device_name; 
+            new_msg.info.oblock = ""; 
+            new_msg.isInterrupt = false; 
+            new_msg.protocol = PROTOCOLS::CALLBACKRECIEVED; 
 
             break; 
         }
@@ -422,9 +425,13 @@ void MasterNM::sendInitialTicker(std::shared_ptr<Connection> &con_obj){
 
 // Client disconnect
 void MasterNM::onClientDisconnect(const std::string &controller){
+
     std::cout<<"Controller " + controller<<" has disconnected from the system!"<<std::endl; 
 }
 
+MasterNM::~MasterNM(){
+    this->stop(); 
+}
 
 
 

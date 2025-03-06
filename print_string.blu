@@ -1,0 +1,11 @@
+oblock printString(LIGHT L) {
+    int a = 0xF;
+    println(a);
+    
+    
+}
+
+setup() {
+    LIGHT L1 = "CTL::PWR-0";
+    printString(L1);
+}

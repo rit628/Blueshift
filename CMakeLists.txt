@@ -125,7 +125,8 @@ target_include_directories(NM PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${MASTER_SR
 target_link_libraries(NM network dynamic_message ticker ${BOOST_LIB_DEPS})
 
 add_executable(master ${MASTER_SRC_DIR}/main.cpp)
-target_link_libraries(master TSQ EM MM ${BOOST_LIB_DEPS})
+target_include_directories(master PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_SRC_DIR})
+target_link_libraries(master TSQ EM MM NM compiler ${BOOST_LIB_DEPS})
 
 # CLIENT LIBS AND EXECUTABLE
 file(GLOB_RECURSE LIBDEVICE_SRC ${CLIENT_SRC_DIR}/libDevice/*.cpp)
