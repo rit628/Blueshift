@@ -1,5 +1,6 @@
 #include "EM.hpp"
 #include "libDM/DynamicMessage.hpp"
+#include "libHD/HeapDescriptors.hpp"
 #include <chrono>
 #include <gtest/gtest.h>
 #include <thread>
@@ -20,7 +21,7 @@ TEST(DynamicMasterMessageTest, ConstructorInitializesFields) {
 
 // Test construction and field initialization of HeapMasterMessage.
 TEST(HeapMasterMessageTest, ConstructorInitializesFields) {
-    auto heapTree = std::make_shared<HeapDescriptor>();
+    auto heapTree = std::make_shared<MapDescriptor>(Desctype::ANY);
     O_Info info { "OBlock2", "Device2", "Controller2", true };
     HeapMasterMessage hmm(heapTree, info, PROTOCOLS::CALLBACKRECIEVED, true);
     

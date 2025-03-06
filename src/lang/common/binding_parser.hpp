@@ -1,5 +1,6 @@
 #pragma once
 #include "bls_types.hpp"
+#include "include/Common.hpp"
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -7,52 +8,6 @@
 #include <boost/regex.hpp>
 
 namespace BlsLang {
-
-    struct DeviceDescriptor{
-        std::string device_name; 
-        DEVTYPE devtype; 
-    
-        std::string controller; 
-        std::unordered_map<std::string, std::string> port_maps; 
-    
-        bool isInterrupt; 
-    
-        // May not need to be used: 
-        bool isVtype; 
-    }; 
-    
-    struct OBlockDesc{
-    
-        /*
-            Normal State
-        */
-    
-        std::string name; 
-        std::vector<DeviceDescriptor> binded_devices; 
-        int bytecode_offset; 
-    
-        // Reading Config
-    
-        /*
-            dropRead :if true -> only read all recieving states once Oblock execution is finished, drop all others
-            dropWrite: if true -> Only write to mailbox with the callback is open: 
-        */
-    
-        bool dropRead; 
-        bool dropWrite; 
-    
-        // Configuration (all time in milliseconds)
-    
-        /*
-            Max pollrate: corresponds to the polling rate of all polling devices binded to the oblock
-            Const Poll: Is the polling rate constant (true until ticker table implementation)
-            Synchronize State: Block until all states of refreshed (true for now)
-        
-        */
-        int max_pollrate = 500; 
-        bool const_poll = true; 
-        bool synchronize_states = true; 
-    };
 
     inline DeviceDescriptor parseDeviceBinding(const std::string deviceName, DEVTYPE devtype, const std::string& binding) {
         static boost::regex bindingPattern(R"(([a-zA-Z0-9_\-]+)::([a-zA-Z]+-[^,\- ]+(?:,[a-zA-Z]+-[^,\- ]+)*))");

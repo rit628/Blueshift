@@ -1,5 +1,6 @@
 #pragma once
 
+#include <variant>
 #include <vector> 
 #include <memory> 
 #include <unordered_map> 
@@ -492,7 +493,7 @@ class DynamicMessage{
         for(auto obj : this->attributeMap){ 
             uint32_t descIndex = obj.second; 
             auto root_descriptor = this->Descriptors[descIndex]; 
-            std::shared_ptr<HeapDescriptor> heapObj; 
+            BlsType heapObj; 
 
             switch(root_descriptor.descType) {
                 case(Desctype::MAP) : {
@@ -539,7 +540,7 @@ class DynamicMessage{
             int new_trav; 
             this->deserialize(descIndex + sub_offset, key, new_trav);
             sub_offset += new_trav; 
-            std::shared_ptr<HeapDescriptor> object; 
+            BlsType object; 
 
             switch(cont_type){
                 case(Desctype::VECTOR) : {
@@ -578,7 +579,7 @@ class DynamicMessage{
             T new_cpy; 
             std::memcpy(&new_cpy, this->data.data() + ptrPos, sizeof(T)); 
             ptrPos += sizeof(T); 
-            auto cpyObject = std::make_shared<PrimDescriptor>(new_cpy); 
+            auto cpyObject = BlsType(new_cpy); 
             vecDesc->vector->push_back(cpyObject); 
         }
 
@@ -656,38 +657,38 @@ class DynamicMessage{
         
     }
 
-    std::shared_ptr<HeapDescriptor> primToTree(int descIndex, int &trav1){  
+    BlsType primToTree(int descIndex, int &trav1){  
         auto descObj = this->Descriptors[descIndex]; 
         if(descObj.descType == Desctype::UINT32){
             int prim1; 
             this->deserialize(descIndex, prim1, trav1); 
             trav1 = 1;  
-            return std::make_shared<PrimDescriptor>(prim1); 
+            return BlsType(prim1); 
         }
         else if(descObj.descType == Desctype::CHAR){
             char char1; 
             this->deserialize(descIndex, char1, trav1); 
             trav1 = 1; 
-            return std::make_shared<PrimDescriptor>(char1); 
+            return BlsType(char1); 
         }
         else if(descObj.descType == Desctype::BOOL){
             bool bool1; 
             this->deserialize(descIndex, bool1, trav1); 
             trav1 = 1; 
-            return std::make_shared<PrimDescriptor>(bool1); 
+            return BlsType(bool1); 
         }
         else if(descObj.descType == Desctype::FLOAT){
             float f1; 
             this->deserialize(descIndex, f1, trav1); 
             trav1 = 1; 
-            return std::make_shared<PrimDescriptor>(f1); 
+            return BlsType(f1); 
 
         }
         else if(descObj.descType == Desctype::STRING){
             std::string str1; 
             this->deserialize(descIndex, str1, trav1); 
             trav1 = 1; 
-            return std::make_shared<PrimDescriptor>(str1); 
+            return BlsType(str1); 
         }
         else{
             throw std::invalid_argument("Invalid Descriptor Index, not a leaf node type"); 
@@ -700,14 +701,10 @@ class DynamicMessage{
    template <typename T> 
    void writeToPrimVector(std::vector<T> &temp_vector, std::shared_ptr<VectorDescriptor> vecDesc){ 
         for(int i = 0 ; i < vecDesc->vector->size(); i++){
-            if(auto primDesc = std::dynamic_pointer_cast<PrimDescriptor>(vecDesc->vector->at(i))){
-                if(std::holds_alternative<T>(primDesc->variant)){
-                    T item = std::get<T>(primDesc->variant); 
-                    temp_vector.push_back(item); 
-                }
-                else{
-                    throw std::runtime_error("Unexpected contained type encountered"); 
-                }
+            auto prim = vecDesc->vector->at(i);
+            if(std::holds_alternative<T>(prim)){
+                T item = std::get<T>(prim); 
+                temp_vector.push_back(item); 
             }
             else{
                 throw std::runtime_error("Unexpected contained type encountered"); 
@@ -716,81 +713,82 @@ class DynamicMessage{
    }
 
     // Make and 
-   void makeFromHeap(std::string name, std::shared_ptr<HeapDescriptor> heapObj){
-        if(auto mapDesc = std::dynamic_pointer_cast<MapDescriptor>(heapObj)){
-            Descriptor desc; 
-            desc.descType = Desctype::MAP;
-            desc.eleSize  = 0;
-            desc.lumpOffset = this->data.size();
-            desc.numElements = mapDesc->map->size();
-
-            this->Descriptors.push_back(desc); 
+   void makeFromHeap(std::string name, BlsType object){
+        if (std::holds_alternative<std::shared_ptr<HeapDescriptor>>(object)) {
+            auto heapObj = std::get<std::shared_ptr<HeapDescriptor>>(object);
+            if(auto mapDesc = std::dynamic_pointer_cast<MapDescriptor>(heapObj)){
+                Descriptor desc; 
+                desc.descType = Desctype::MAP;
+                desc.eleSize  = 0;
+                desc.lumpOffset = this->data.size();
+                desc.numElements = mapDesc->map->size();
     
-            for(auto kvPair : *mapDesc->map){
-                // Make the string object
-                this->createField(CONTAINER_ELEMENT, kvPair.first); 
-                // Write the heap object
-                makeFromHeap(CONTAINER_ELEMENT, kvPair.second); 
+                this->Descriptors.push_back(desc); 
+        
+                for(auto kvPair : *mapDesc->map){
+                    // Make the string object
+                    this->createField(CONTAINER_ELEMENT, kvPair.first); 
+                    // Write the heap object
+                    makeFromHeap(CONTAINER_ELEMENT, kvPair.second); 
+                }
             }
-        }
-        else if(auto vecDesc = std::dynamic_pointer_cast<VectorDescriptor>(heapObj)){
-         
-            // Storage of constant size vectors
-            switch(vecDesc->contType){
-                    case(Desctype::UINT32) : {
-                        std::vector<int> intVector; 
-                        writeToPrimVector(intVector, vecDesc); 
-                        this->createField(name, intVector);    
-                        break; 
-                    }
-                    case(Desctype::FLOAT) : {
-                        std::vector<float> floatVector; 
-                        writeToPrimVector(floatVector, vecDesc); 
-                        this->createField(name, floatVector); 
-                        break; 
-                    }
-                    case(Desctype::STRING) : {
-                        std::vector<std::string> strVector; 
-                        writeToPrimVector(strVector, vecDesc); 
-                        this->createField(name, strVector); 
-                        break; 
-                    }              
-                    default : {
-                        Descriptor desc; 
-                        desc.descType = Desctype::VECTOR;
-                        desc.eleSize = 0;
-                        desc.lumpOffset = this->data.size(); 
-                        desc.numElements = vecDesc->vector->size();
-
-                        this->Descriptors.push_back(desc); 
-                        
-                        for(auto element : *vecDesc->vector){
-                            makeFromHeap(CONTAINER_ELEMENT, element); 
+            else if(auto vecDesc = std::dynamic_pointer_cast<VectorDescriptor>(heapObj)){
+             
+                // Storage of constant size vectors
+                switch(vecDesc->contType){
+                        case(Desctype::UINT32) : {
+                            std::vector<int> intVector; 
+                            writeToPrimVector(intVector, vecDesc); 
+                            this->createField(name, intVector);    
+                            break; 
+                        }
+                        case(Desctype::FLOAT) : {
+                            std::vector<float> floatVector; 
+                            writeToPrimVector(floatVector, vecDesc); 
+                            this->createField(name, floatVector); 
+                            break; 
+                        }
+                        case(Desctype::STRING) : {
+                            std::vector<std::string> strVector; 
+                            writeToPrimVector(strVector, vecDesc); 
+                            this->createField(name, strVector); 
+                            break; 
+                        }              
+                        default : {
+                            Descriptor desc; 
+                            desc.descType = Desctype::VECTOR;
+                            desc.eleSize = 0;
+                            desc.lumpOffset = this->data.size(); 
+                            desc.numElements = vecDesc->vector->size();
+    
+                            this->Descriptors.push_back(desc); 
+                            
+                            for(auto element : *vecDesc->vector){
+                                makeFromHeap(CONTAINER_ELEMENT, element); 
+                            }
                         }
                     }
-                }
+            }
         }
-        else if(auto primDesc = std::dynamic_pointer_cast<PrimDescriptor>(heapObj)){
+        else {
             // Prim Desc should only be used for standalone vector elements; 
-            auto var = primDesc->variant; 
-
-            if(std::holds_alternative<int>(var)){
+            if(std::holds_alternative<int>(object)){
                 // Should be fine
-                int jamar = std::get<int>(var); 
+                int jamar = std::get<int>(object); 
                 this->createField(name, jamar); 
                 
             }
-            else if(std::holds_alternative<float>(var)){
-                float jamar = std::get<float>(var); 
+            else if(std::holds_alternative<float>(object)){
+                float jamar = std::get<float>(object); 
                 this->createField(name, jamar); 
 
             }
-            else if(std::holds_alternative<bool>(var)){
-                bool jamar = std::get<bool>(var); 
+            else if(std::holds_alternative<bool>(object)){
+                bool jamar = std::get<bool>(object); 
                 this->createField(name, jamar); 
             }
-            else if(std::holds_alternative<std::string>(var)){
-                std::string jamar = std::get<std::string>(var); 
+            else if(std::holds_alternative<std::string>(object)){
+                std::string jamar = std::get<std::string>(object); 
                 this->createField(name, jamar); 
             }
             else{

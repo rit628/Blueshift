@@ -114,8 +114,8 @@ add_executable(client ${CLIENT_SRC_DIR}/main.cpp)
 # LANG LIBS AND EXECUTABLE
 file(GLOB_RECURSE LANG_COMMON_SRC ${LANG_COMMON}/*.cpp)
 add_library(lang_common STATIC ${LANG_COMMON_SRC})
-target_include_directories(lang_common PUBLIC ${BLS_CONFIG})
-target_link_libraries(lang_common ${BOOST_LIB_DEPS})
+target_include_directories(lang_common PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
+target_link_libraries(lang_common heap_descriptor ${BOOST_LIB_DEPS})
 
 file(GLOB_RECURSE LIBLEXER_SRC ${LANG_SRC_DIR}/liblexer/*.cpp)
 add_library(lexer STATIC ${LIBLEXER_SRC})
@@ -129,7 +129,7 @@ target_link_libraries(parser lang_common ${BOOST_LIB_DEPS})
 
 file(GLOB_RECURSE LIBINTERPRETER_SRC ${LANG_SRC_DIR}/libinterpreter/*.cpp)
 add_library(interpreter STATIC ${LIBINTERPRETER_SRC})
-target_include_directories(interpreter PUBLIC ${BLS_CONFIG} ${LANG_COMMON})
+target_include_directories(interpreter PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
 target_link_libraries(interpreter lang_common ${BOOST_LIB_DEPS})
 
 file(GLOB_RECURSE LIBCOMPILER_SRC ${LANG_SRC_DIR}/libcompiler/*.cpp)

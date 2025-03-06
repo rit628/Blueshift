@@ -10,18 +10,24 @@
 #include <mutex>
 
 // Forward Declaration of Dynamic Message class 
-class HeapDescriptor; 
+class HeapDescriptor;
 
-#define PRIMATIVES int, float, std::string, bool, std::shared_ptr<HeapDescriptor>
-using Prim = std::variant<PRIMATIVES>; 
+using BlsType = std::variant<
+      std::monostate
+    , bool
+    , int
+    , float
+    , std::string
+    , std::shared_ptr<HeapDescriptor>
+  >;
 
-enum class ObjType{
+enum class ObjType : uint8_t {
     PRIMATIVE, 
     MAP, 
     VECTOR 
 }; 
 
-enum class Desctype : uint8_t{
+enum class Desctype : uint8_t {
     VECTOR, 
     MAP, 
     UINT32, 
@@ -36,21 +42,21 @@ enum class Desctype : uint8_t{
     ANY, 
 }; 
 
-static std::string stringify(const Prim &value){
+static std::string stringify(const BlsType &value){
     if(std::holds_alternative<bool>(value)){
-        return std::to_string(std::get<bool>(value)); 
+      return std::to_string(std::get<bool>(value)); 
     }
     else if(std::holds_alternative<int>(value)){
-        return std::to_string(std::get<int>(value)); 
+      return std::to_string(std::get<int>(value)); 
     }
     else if(std::holds_alternative<float>(value)){
-        return std::to_string(std::get<float>(value)); 
+      return std::to_string(std::get<float>(value)); 
     }
     else if(std::holds_alternative<std::string>(value)){
-        return std::get<std::string>(value); 
+      return std::get<std::string>(value); 
     }
     else{
-        throw std::runtime_error("Heap Descriptor Stringification not implemented!"); 
+      throw std::runtime_error("Heap Descriptor Stringification not implemented!"); 
     }
 }
 
@@ -65,10 +71,7 @@ class HeapDescriptor{
             return this->contType; 
         }
 
-        virtual std::shared_ptr<HeapDescriptor> access(Prim &obj){
-            std::cout<<"Based Object "<<std::endl; 
-            return nullptr; 
-        }
+        virtual BlsType& access(BlsType &obj) = 0;
 
         virtual int getSize(){
             return 1; 
@@ -80,15 +83,13 @@ class HeapDescriptor{
         virtual ObjType getType(){
             return ObjType::PRIMATIVE; 
         }
-
-
         
 };
 
 
 class MapDescriptor : public HeapDescriptor{
     private: 
-        std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<HeapDescriptor>>> map;    
+        std::shared_ptr<std::unordered_map<std::string, BlsType>> map;    
         std::mutex mux; 
 
     public:
@@ -98,7 +99,7 @@ class MapDescriptor : public HeapDescriptor{
 
         MapDescriptor(Desctype cont_code){
             this->contType = cont_code; 
-            this->map = std::make_shared<std::unordered_map<std::string, std::shared_ptr<HeapDescriptor>>>(); 
+            this->map = std::make_shared<std::unordered_map<std::string, BlsType>>(); 
         }
   
         ObjType getType() override{
@@ -106,7 +107,7 @@ class MapDescriptor : public HeapDescriptor{
         }
 
         // Add non-string handling later: 
-        std::shared_ptr<HeapDescriptor> access(Prim &obj) override{
+        BlsType& access(BlsType &obj) override{
             std::scoped_lock bob(mux); 
 
             std::string accessor = stringify(obj); 
@@ -119,7 +120,7 @@ class MapDescriptor : public HeapDescriptor{
         }
 
         // WE assume for now that all objects are of type string 
-        void emplace(Prim obj, std::shared_ptr<HeapDescriptor> newDesc){
+        void emplace(BlsType obj, BlsType newDesc){
             std::scoped_lock bob(mux); 
             std::string newKey = stringify(obj); 
             this->map->operator[](newKey) = newDesc; 
@@ -127,7 +128,7 @@ class MapDescriptor : public HeapDescriptor{
 
 
         // Also only used for debugging
-        std::unordered_map<std::string, std::shared_ptr<HeapDescriptor>> getMap(){
+        std::unordered_map<std::string, BlsType> getMap(){
             return *this->map; 
         }
 
@@ -139,7 +140,7 @@ class MapDescriptor : public HeapDescriptor{
 
 class VectorDescriptor : public HeapDescriptor, std::enable_shared_from_this<VectorDescriptor>{
     private: 
-        std::shared_ptr<std::vector<std::shared_ptr<HeapDescriptor>>> vector; 
+        std::shared_ptr<std::vector<BlsType>> vector; 
         std::mutex mux; 
 
     public: 
@@ -148,7 +149,7 @@ class VectorDescriptor : public HeapDescriptor, std::enable_shared_from_this<Vec
 
         VectorDescriptor(Desctype cont_code){
             this->contType = cont_code; 
-            vector = std::make_shared<std::vector<std::shared_ptr<HeapDescriptor>>>(); 
+            vector = std::make_shared<std::vector<BlsType>>(); 
         } 
 
         ObjType getType() override{
@@ -160,54 +161,29 @@ class VectorDescriptor : public HeapDescriptor, std::enable_shared_from_this<Vec
         }
 
 
-        std::shared_ptr<HeapDescriptor> access(Prim &int_acc) override{
+        BlsType& access(BlsType &int_acc) override{
             std::scoped_lock bob(mux); 
 
             if(std::holds_alternative<int>(int_acc)){
                 int index = std::get<int>(int_acc); 
                 return this->vector->at(index); 
-            }
+              }
             else{
                 throw std::runtime_error("Cannot index a list with a non-integer"); 
             }
         }
 
-        void append(std::shared_ptr<HeapDescriptor> newObj){
+        void append(BlsType newObj){
             std::scoped_lock bob(mux);  
             this->vector->push_back(newObj);         
         }
 
         // DEBUG FUNCTION ONLY (for now maybe): 
-        std::vector<std::shared_ptr<HeapDescriptor>>& getVector(){
+        std::vector<BlsType>& getVector(){
             return *this->vector; 
         }
 
         int getSize() override{
             return this->vector->size(); 
-        }
-};
-
-
-class PrimDescriptor : public HeapDescriptor{
-    public: 
-
-        ~PrimDescriptor() override = default;
-
-        Prim variant; 
-
-        int getSize() override{
-            if(std::holds_alternative<std::string>(this->variant)){
-                auto str = std::get<std::string>(this->variant); 
-                return str.size(); 
-            }
-            else{
-                return 1; 
-            }
-        }
-
-        PrimDescriptor(Prim cpy) : variant(cpy) {}; 
-
-        ObjType getType() override{
-            return ObjType::PRIMATIVE; 
         }
 };

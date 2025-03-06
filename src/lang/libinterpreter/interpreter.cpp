@@ -3,6 +3,7 @@
 #include "bls_types.hpp"
 #include "call_stack.hpp"
 #include "ast.hpp"
+#include "libHD/HeapDescriptors.hpp"
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -480,7 +481,8 @@ std::any Interpreter::visit(AstNode::Expression::Access& ast) {
 std::any Interpreter::visit(AstNode::Expression::Literal& ast) {
     std::any literal;
     const auto convert = overloads {
-        [&literal](size_t value) {literal = BlsType((int64_t)value);},
+        [&literal](size_t value) {literal = BlsType((int)value);},
+        [&literal](double value) {literal = BlsType((float)value);},
         [&literal](auto value) { literal = BlsType(value); }
     };
     std::visit(convert, ast.getLiteral());
@@ -488,7 +490,7 @@ std::any Interpreter::visit(AstNode::Expression::Literal& ast) {
 }
 
 std::any Interpreter::visit(AstNode::Expression::List& ast) {
-    auto list = std::make_shared<VectorDescriptor>("ANY");
+    auto list = std::make_shared<VectorDescriptor>(Desctype::ANY);
     auto& elements = ast.getElements();
     for (auto&& element : elements) {
         auto literal = element->accept(*this);
@@ -502,7 +504,7 @@ std::any Interpreter::visit(AstNode::Expression::Set& ast) {
 }
 
 std::any Interpreter::visit(AstNode::Expression::Map& ast) {
-    auto map = std::make_shared<MapDescriptor>("ANY");
+    auto map = std::make_shared<MapDescriptor>(Desctype::ANY);
     auto& elements = ast.getElements();
     for (auto&& element : elements) {
         auto key = element.first->accept(*this);
