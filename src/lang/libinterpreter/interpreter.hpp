@@ -1,5 +1,5 @@
 #pragma once
-#include "binding_parser.hpp"
+#include "include/Common.hpp"
 #include "call_stack.hpp"
 #include "bls_types.hpp"
 #include "visitor.hpp"
@@ -104,11 +104,11 @@ namespace BlsLang {
             std::unordered_map<std::string, std::function<std::any(std::vector<BlsType>)>> functions = {
                 {"println", [](std::vector<BlsType> args) -> std::any {
                     for (auto&& arg : args) {
-                        if (std::holds_alternative<int64_t>(arg)) {
-                            std::cout << std::get<int64_t>(arg) << std::endl;
+                        if (std::holds_alternative<int>(arg)) {
+                            std::cout << std::get<int>(arg) << std::endl;
                         }
-                        else if (std::holds_alternative<double>(arg)) {
-                            std::cout << std::get<double>(arg) << std::endl;
+                        else if (std::holds_alternative<float>(arg)) {
+                            std::cout << std::get<float>(arg) << std::endl;
                         }
                         else if (std::holds_alternative<bool>(arg)) {
                             std::cout << ((std::get<bool>(arg)) ? "true" : "false") << std::endl;

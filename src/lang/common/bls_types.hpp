@@ -1,5 +1,5 @@
 #pragma once
-#include "heap_descriptor.hpp"
+#include "libHD/HeapDescriptors.hpp"
 #include <cmath>
 #include <memory>
 #include <stdexcept>
@@ -191,17 +191,6 @@ namespace BlsLang {
     #undef CONTAINER_END
   };
 
-  enum class DEVTYPE {
-    #define DEVTYPE_BEGIN(name) \
-    name = static_cast<int>(TYPE::name),
-    #define ATTRIBUTE(...)
-    #define DEVTYPE_END 
-    #include "DEVTYPES.LIST"
-    #undef DEVTYPE_BEGIN
-    #undef ATTRIBUTE
-    #undef DEVTYPE_END
-  };
-
   inline constexpr TYPE getTypeEnum(const std::string& type) {
     if (type == "void") { return TYPE::void_t; }
     if (type == "bool") { return TYPE::bool_t; }
@@ -235,8 +224,8 @@ namespace BlsLang {
   using BlsType = std::variant<
       std::monostate
     , bool
-    , int64_t
-    , double
+    , int
+    , float
     , std::string
     , std::shared_ptr<HeapDescriptor>
   >;
@@ -412,7 +401,7 @@ namespace BlsLang {
         if (b == 0) {
           throw std::runtime_error("Error: dividing by zero.");
         }
-        return std::fmod(a, b);
+        return (float)std::fmod(a, b);
       }
       else {
         throw std::runtime_error("Lhs and Rhs must be integer or float types.");
@@ -423,7 +412,7 @@ namespace BlsLang {
   inline BlsType operator^(const BlsType& lhs, const BlsType& rhs) {
     return std::visit([](const auto& a, const auto& b) -> BlsType {
       if constexpr (Numeric<decltype(a)> && Numeric<decltype(b)>) {
-        return std::pow(a, b);
+        return (float)std::pow(a, b);
       }
       else {
         throw std::runtime_error("Lhs and Rhs must be integer or float types.");
