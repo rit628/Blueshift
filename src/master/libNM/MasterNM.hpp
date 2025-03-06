@@ -85,6 +85,7 @@ class MasterNM{
 
     public:     
         MasterNM(std::vector<OBlockDesc> &descs, TSQ<DMM> &in_que, TSQ<DMM> &out_q); 
+        ~MasterNM(); 
         bool start();
         void stop(); 
 

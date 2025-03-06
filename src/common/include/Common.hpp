@@ -4,9 +4,15 @@
 
 enum class PROTOCOLS
 {
+    // both: 
     SENDSTATES,
-    CALLBACKRECIEVED,
+
+    // EM -> MM
     REQUESTINGSTATES,
+
+    // NM -> MM
+    CALLBACKRECIEVED,
+   
 };
 
 enum class DEVTYPE : uint16_t{

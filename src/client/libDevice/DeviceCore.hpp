@@ -269,7 +269,7 @@ class DeviceInterruptor{
         // Add Inotify thread blocking code here
         void IFileWatcher(std::string fname, std::function<bool()> handler ){
             // Check if the file exists relative to the deviceCore; 
-    
+            
             int fd = inotify_init(); 
             if(fd < 0){
                 std::cerr<<"Could not make Inotify object"<<std::endl; 
@@ -295,6 +295,7 @@ class DeviceInterruptor{
                     }
                 }
             }
+                
         }
 
 
