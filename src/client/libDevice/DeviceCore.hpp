@@ -160,9 +160,10 @@ class DeviceTimer{
                 this->timer.cancel();
 
                 timerCallback(); 
+                
+                this->poll_period = new_period; 
             }
 
-            this->poll_period = poll_period; 
         }
 
         void Send(SentMessage &msg){

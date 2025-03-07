@@ -140,6 +140,8 @@ target_include_directories(client_engine PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} 
 target_link_libraries(client_engine network device ${BOOST_LIB_DEPS})
 
 add_executable(client ${CLIENT_SRC_DIR}/main.cpp)
+target_include_directories(client PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_SRC_DIR})
+target_link_libraries(client device client_engine ${BOOST_LIB_DEPS})
 
 # TESTS
 enable_testing()

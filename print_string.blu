@@ -1,11 +1,10 @@
-oblock printString(LIGHT L) {
-    int a = 0xF;
-    println(a);
-    
-    
+oblock printString(TIMER_TEST TT) {
+    int current_val = TT.test_val; 
+    println("Current value is: " , current_val); 
+    TT.test_val = current_val + 5; 
 }
 
 setup() {
-    LIGHT L1 = "CTL::PWR-0";
+    TIMER_TEST L1 = "CTL::file_name-omar.txt";
     printString(L1);
 }

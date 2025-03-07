@@ -62,17 +62,19 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
             {
                 assignedTSQ.clearQueue();
                 assignedTSQ.write(DMM);
+                // Delete later this bypasses the main message
+                this->sendEM.write({DMM});
             }
             else if(DMM.isInterrupt == true)
             {
                 for(int i = 0; i < interruptMap.at(DMM.info.device).size(); i++)
-                {
+                { 
                     TSQ<DynamicMasterMessage> &interuptTSQ = *interruptMap.at(DMM.info.device).at(i);
                     interuptTSQ.write(DMM);
                 }
             }
             else
-            {
+            {   
                 assignedTSQ.write(DMM);
             }
             break;
@@ -105,6 +107,7 @@ void MasterMailbox::assignEM(DynamicMasterMessage DMM)
                 {
                     statesToSend.push_back(correspondingReaderBox.waitingQs.at(j)->read());
                 }
+
                 this->sendEM.write(statesToSend);
             }
             break;
@@ -112,15 +115,25 @@ void MasterMailbox::assignEM(DynamicMasterMessage DMM)
         case PROTOCOLS::SENDSTATES:
         {
             bool dropWrite = correspondingReaderBox.dropWrite;
-            if(assignedBox.waitingForCallback == false && dropWrite == false)
-            {   
+
+            std::cout<<"drop write: "<<dropWrite<<std::endl;
+            std::cout<<"Waiting for callback: "<<assignedBox.waitingForCallback<<std::endl;
+
+            if(dropWrite == true && assignedBox.waitingForCallback == false){
+                std::cout<<"CUNT 1"<<std::endl; 
+                this->sendNM.write(DMM);
+                assignedBox.waitingForCallback = true;
+            }   
+            else{
                 this->sendNM.write(DMM);
                 assignedBox.waitingForCallback = true;
             }
+
             break;
         }
         default:
         {
+            std::cout<<"OPPS"<<std::endl; 
             break;
         }
     }

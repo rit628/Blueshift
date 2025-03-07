@@ -124,7 +124,7 @@ void Client::listener(){
                     auto device = this->deviceList[timer.device_num]; 
 
                     if(!device->hasInterrupt){
-
+                        std::cout<<"build timer with period: "<<timer.period<<std::endl;
                         this->client_ticker[timer.id] = std::make_unique<DeviceTimer>(this->client_ctx, device, this->client_connection, this->controller_alias, timer.device_num, timer.id); 
                         // Initiate the timer
                         this->client_ticker[timer.id]->setPeriod(timer.period); 

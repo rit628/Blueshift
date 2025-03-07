@@ -8,7 +8,7 @@
 namespace BlsLang {
 
     inline DeviceDescriptor parseDeviceBinding(const std::string deviceName, DEVTYPE devtype, const std::string& binding) {
-        static boost::regex bindingPattern(R"(([a-zA-Z0-9_\-]+)::([a-zA-Z]+-[^,\- ]+(?:,[a-zA-Z]+-[^,\- ]+)*))");
+        static boost::regex bindingPattern(R"(([a-zA-Z0-9_\-]+)::([a-zA-Z_]+-[^,\- ]+(?:,[a-zA-Z_]+-[^,\- ]+)*))");
         boost::smatch bindingContents;
         if (!boost::regex_match(binding, bindingContents, bindingPattern)) {
             throw RuntimeError("Invalid binding string");
@@ -17,6 +17,11 @@ namespace BlsLang {
         result.device_name = deviceName;
         result.devtype = devtype;
         result.controller = bindingContents[1];
+        // Make polling rates dynamic
+        result.isConst = true; 
+        result.isInterrupt = false; 
+        result.isVtype = false; 
+        result.polling_period = 1000; 
         std::string portMap = bindingContents[2];
         int idx = 0;
 

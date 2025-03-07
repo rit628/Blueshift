@@ -63,28 +63,34 @@ void ExecutionUnit::running(TSM<string, HeapMasterMessage> &vtypeHMMsMap, TSQ<Dy
         if(EUcache.isEmpty()) {continue;}
         vector<DynamicMasterMessage> currentDMMs = EUcache.read();
         vector<HeapMasterMessage> HMMs;
+
+
         for(int i = 0; i < currentDMMs.size(); i++)
-        {
+        {   
             HeapMasterMessage HMM(currentDMMs.at(i).DM.toTree(), currentDMMs.at(i).info, 
             currentDMMs.at(i).protocol, currentDMMs.at(i).isInterrupt);
             HMMs.push_back(HMM);
         }
+
         vector<BlsLang::BlsType> transformableStates;
         for(int i = 0; i < HMMs.size(); i++)
-        {
+        {   
             transformableStates.push_back(HMMs.at(i).heapTree);
         }
+    
         transformableStates = transform_function(transformableStates);
+
         for(int i = 0; i < transformableStates.size(); i++)
         {
             HMMs.at(i).heapTree = std::get<shared_ptr<HeapDescriptor>>(transformableStates.at(i));
         }
+
         for(int i = 0; i < HMMs.size(); i++)
         {
             if(HMMs.at(i).info.isVtype == false)
             {
                 DynamicMessage DM; 
-                DM.makeFromRoot(HMMs.at(i).heapTree);
+                DM.makeFromRoot(HMMs.at(i).heapTree);        
                 DynamicMasterMessage DMM(DM, HMMs.at(i).info, 
                 HMMs.at(i).protocol, HMMs.at(i).isInterrupt);
                 sendMM.write(DMM);
@@ -108,16 +114,21 @@ void ExecutionManager::running()
 {
     while(1)
     {
+        
         vector<DynamicMasterMessage> currentDMMs = this->readMM.read();
+       
         ExecutionUnit &assignedUnit = assign(currentDMMs.at(0));
+
         assignedUnit.EUcache.write(currentDMMs);
+        /*
         if(assignedUnit.EUcache.getSize() < 3)
-        {
+        {   
             DynamicMessage dm;
             O_Info info = assignedUnit.info;
             DynamicMasterMessage requestDMM(dm, info, PROTOCOLS::REQUESTINGSTATES, false);
             this->sendMM.write(requestDMM);
         }
+        */ 
     }
 }
 

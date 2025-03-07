@@ -87,13 +87,12 @@ bool MasterNM::start(){
         // Start the context thread
         listenForConnections(); 
         this->ctx_thread = std::thread([this](){this->master_ctx.run();}); 
-        this->updateThread = std::thread([this](){this->update();}); 
-     ;
+        this->updateThread = std::thread([this](){this->update();});
+        this->readerThread = std::thread([this](){this->masterRead();}); 
+     
         if(this->bcast_thread.joinable()){
             this->bcast_thread.join(); 
         }
-
-        this->readerThread = std::thread([this](){this->masterRead();}); 
 
         return true; 
 
@@ -116,7 +115,9 @@ void MasterNM::stop(){
         this->readerThread.join(); 
     }
 
-
+    if(this->updateThread.joinable()){
+        this->updateThread.join(); 
+    }
 
     std::cout<<"Server has closed"<<std::endl; 
 }
@@ -201,8 +202,11 @@ void MasterNM::masterRead(){
     while(this->in_operation){
 
         // Send the normal message:
+        std::cout<<"MASTER READING"<<std::endl;
 
         auto new_state = this->EMM_in_queue.read(); 
+
+        std::cout<<"Adding DEVICE TO QUEUEUEUE"<<std::endl; 
 
         SentMessage sm_main;
 
@@ -214,6 +218,7 @@ void MasterNM::masterRead(){
         sm_main.body = new_state.DM.Serialize(); 
         sm_main.header.body_size = sm_main.body.size(); 
 
+        std::cout<<"DONT TOCH THAT MOUSE"<<std::endl; 
         messageClient(cont, sm_main); 
 
         // Send the Ticker Update Message (idk maybe)
@@ -253,6 +258,7 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
 
     switch(in_msg.sm.header.prot){
         case(Protocol::CONFIG_NAME):{
+
             std::string ctl_name; 
             dmsg.unpack("__CONTROLLER_NAME__", ctl_name);
             auto it = std::find(this->controller_list.begin(), this->controller_list.end(), ctl_name); 
@@ -270,6 +276,8 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
             break; 
         }
         case(Protocol::CONFIG_OK) : {
+
+
             this->remConnections--; 
             // Send the initital Ticker Entry: 
             std::cout<<this->controller_list[in_msg.sm.header.ctl_code]<<" has successfully connected!"<<std::endl; 
@@ -288,6 +296,7 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
                         this->sendInitialTicker(send_pair.second); 
                     }
                 }
+                this->in_operation = true; 
             }
 
             break; 
@@ -301,6 +310,8 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
         }
         case(Protocol::SEND_STATE) : {
             if(this->remConnections == 0){
+
+               
 
                 // Get the timer id: 
                 TimerID id = in_msg.sm.header.timer_id; 
@@ -328,7 +339,6 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
                         new_msg.DM = dmsg; 
                         new_msg.isInterrupt = false; 
                         new_msg.protocol = PROTOCOLS::SENDSTATES; 
-
 
                         this->EMM_out_queue.write(new_msg); 
                     }
@@ -359,10 +369,10 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
 
             DMM new_msg; 
             new_msg.info.controller = this->controller_list[in_msg.sm.header.ctl_code]; 
-            new_msg.info.device = device_name; 
-            new_msg.info.oblock = ""; 
-            new_msg.isInterrupt = false; 
+            new_msg.info.device = device_name;         
             new_msg.protocol = PROTOCOLS::CALLBACKRECIEVED; 
+
+            this->EMM_out_queue.write(new_msg);
 
             break; 
         }
@@ -420,6 +430,8 @@ void MasterNM::sendInitialTicker(std::shared_ptr<Connection> &con_obj){
     }
     
     con_obj->send(ticker_sm); 
+
+    std::cout<<"Sent inital ticker"<<std::endl; 
 }
 
 

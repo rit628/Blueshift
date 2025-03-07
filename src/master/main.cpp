@@ -12,14 +12,15 @@ int main(int argc, char *argv[]){
     std::string filename = "print_string.blu";
 
     /*
-    if(argc != 2){
-        filename = std::string(std::string(argv[1])); 
+    if(argc == 2){
+        //filename = std::string(std::string(argv[1])); 
     }
     else{
         std::cout<<"Invalid number of arguments"<<std::endl;
         return 1;
     }
         */ 
+        
     
     // Makes interpreter
     BlsLang::Compiler compiler;
@@ -36,7 +37,10 @@ int main(int argc, char *argv[]){
     DMM light_dmm;
     DeviceDescriptor dd = compiler.getDeviceDescriptors()["L1"];
     
+    /*
+    bool test_bool = true; 
     DynamicMessage dmsg;
+    dmsg.createField("state", test_bool);
     
     light_dmm.info.controller = dd.controller;
     light_dmm.info.device = dd.device_name;
@@ -48,14 +52,12 @@ int main(int argc, char *argv[]){
    
     std::vector<DMM> king = {light_dmm}; 
     MM_EM_queue.write(king); 
+    */ 
 
     // NM and MM
     TSQ<DMM> NM_MM_queue; 
     TSQ<DMM> MM_NM_queue; 
     bool connections_made; 
-
-    // Make execution (runs in constructor) 
-    // ExecutionManager EM(oblocks, MM_EM_queue, EM_MM_queue, functions); 
 
     // Make network (runs at start)
     MasterNM NM(oblocks, MM_NM_queue, NM_MM_queue);
@@ -69,9 +71,11 @@ int main(int argc, char *argv[]){
     std::thread t1([&](){MM.runningEM();}); 
     std::thread t2([&](){MM.runningNM();}); 
 
+    std::cout<<"MASTER NM STARTED"<<std::endl;
    
 
     t1.join(); 
     t2.join(); 
     t3.join(); 
+    
 }
