@@ -43,7 +43,7 @@ class ExecutionManager
         TSQ<DynamicMasterMessage> &sendMM, 
         std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks);
     ExecutionUnit &assign(DynamicMasterMessage DMM);
-    void running(TSQ<vector<DynamicMasterMessage>> &readMM);
+    void running();
     TSQ<vector<DynamicMasterMessage>> &readMM;
     TSQ<DynamicMasterMessage> &sendMM;
     unordered_map<string, unique_ptr<ExecutionUnit>> EU_map;

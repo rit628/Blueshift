@@ -104,13 +104,20 @@ ExecutionUnit &ExecutionManager::assign(DynamicMasterMessage DMM)
     return assignedUnit;
 }
 
-void ExecutionManager::running(TSQ<vector<DynamicMasterMessage>> &readMM)
+void ExecutionManager::running()
 {
     while(1)
     {
-        vector<DynamicMasterMessage> currentDMMs = readMM.read();
+        vector<DynamicMasterMessage> currentDMMs = this->readMM.read();
         ExecutionUnit &assignedUnit = assign(currentDMMs.at(0));
         assignedUnit.EUcache.write(currentDMMs);
+        if(assignedUnit.EUcache.getSize() < 3)
+        {
+            DynamicMessage dm;
+            O_Info info = assignedUnit.info;
+            DynamicMasterMessage requestDMM(dm, info, PROTOCOLS::REQUESTINGSTATES, false);
+            this->sendMM.write(requestDMM);
+        }
     }
 }
 

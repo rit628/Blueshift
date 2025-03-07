@@ -62,7 +62,7 @@ int main(int argc, char *argv[]){
     NM.start(); 
 
     ExecutionManager EM(oblocks, MM_EM_queue, EM_MM_queue, functions); 
-    std::thread t3([&](){EM.running(MM_EM_queue);});
+    std::thread t3([&](){EM.running();});
     
     // Make Mailbox (runs with EM and NM)
     MasterMailbox MM(oblocks, NM_MM_queue, EM_MM_queue, MM_NM_queue, MM_EM_queue); 
