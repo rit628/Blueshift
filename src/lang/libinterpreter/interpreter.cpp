@@ -3,11 +3,12 @@
 #include "bls_types.hpp"
 #include "call_stack.hpp"
 #include "ast.hpp"
+#include "error_types.hpp"
+#include "include/Common.hpp"
 #include "libHD/HeapDescriptors.hpp"
 #include <cstdint>
 #include <functional>
 #include <memory>
-#include <stdexcept>
 #include <string>
 #include <variant>
 #include <vector>
@@ -40,7 +41,7 @@ std::any Interpreter::visit(AstNode::Function::Procedure& ast) {
         auto& statements = ast.getStatements();
         cs.pushFrame(CallStack<std::string>::Frame::Context::FUNCTION);
         if (params.size() != args.size()) {
-            throw std::runtime_error("Invalid number of arguments provided to function call.");
+            throw RuntimeError("Invalid number of arguments provided to function call.");
         }
         for (int i = 0; i < params.size(); i++) {
             cs.setLocal(params.at(i), args.at(i));
@@ -72,7 +73,7 @@ std::any Interpreter::visit(AstNode::Function::Oblock& ast) {
         auto& statements = ast.getStatements();
         cs.pushFrame(CallStack<std::string>::Frame::Context::FUNCTION);
         if (params.size() != args.size()) {
-            throw std::runtime_error("Invalid number of arguments provided to oblock call.");
+            throw RuntimeError("Invalid number of arguments provided to oblock call.");
         }
         for (int i = 0; i < params.size(); i++) {
             cs.setLocal(params.at(i), args.at(i));
@@ -227,26 +228,27 @@ std::any Interpreter::visit(AstNode::Statement::Return& ast) {
 
 std::any Interpreter::visit(AstNode::Statement::Continue& ast) {
     if (!cs.checkContext(CallStack<std::string>::Frame::Context::LOOP)) {
-        throw std::runtime_error("continue statement outside of loop context.");
+        throw RuntimeError("continue statement outside of loop context.");
     }
     throw ast;
 }
 
 std::any Interpreter::visit(AstNode::Statement::Break& ast) {
     if (!cs.checkContext(CallStack<std::string>::Frame::Context::LOOP)) {
-        throw std::runtime_error("break statement outside of loop context.");
+        throw RuntimeError("break statement outside of loop context.");
     }
     throw ast;
 }
 
 std::any Interpreter::visit(AstNode::Statement::Declaration& ast) {
+    auto typedObj = ast.getType()->accept(*this);
     auto& name = ast.getName();
     auto& value = ast.getValue();
     if (cs.checkContext(CallStack<std::string>::Frame::Context::SETUP)) {
-        auto devtype = std::any_cast<TypeIdentifier>(ast.getType()->accept(*this));
+        auto devtype = std::any_cast<DEVTYPE>(ast.getType()->accept(*this));
         auto binding = value->get()->accept(*this);
         auto& bindStr = std::get<std::string>(resolve(binding));
-        auto devDesc = parseDeviceBinding(name, static_cast<DEVTYPE>(devtype.name), bindStr);
+        auto devDesc = parseDeviceBinding(name, devtype, bindStr);
         deviceDescriptors.emplace(name, devDesc);
     }
     else if (value.has_value()) {
@@ -254,7 +256,7 @@ std::any Interpreter::visit(AstNode::Statement::Declaration& ast) {
         cs.setLocal(name, resolve(literal));
     }
     else {
-        cs.setLocal(name, std::monostate());
+        cs.setLocal(name, resolve(typedObj));
     }
     return std::monostate();
 }
@@ -356,7 +358,7 @@ std::any Interpreter::visit(AstNode::Expression::Binary& ast) {
         break;
 
         default:
-            throw std::runtime_error("Invalid operator supplied.");
+            throw RuntimeError("Invalid operator supplied.");
     }
 }
 
@@ -400,7 +402,7 @@ std::any Interpreter::visit(AstNode::Expression::Unary& ast) {
         break;
 
         default:
-            throw std::runtime_error("Invalid operator supplied.");
+            throw RuntimeError("Invalid operator supplied.");
     }
 }
 
@@ -428,7 +430,7 @@ std::any Interpreter::visit(AstNode::Expression::Method& ast) {
         return BlsType(operable->getSize());
     }
     else {
-        throw std::runtime_error("invalid method");
+        throw RuntimeError("invalid method");
     }
     return std::monostate();
 }
@@ -443,7 +445,7 @@ std::any Interpreter::visit(AstNode::Expression::Function& ast) {
         for (auto&& arg : args) {
             auto* expr = dynamic_cast<AstNode::Expression::Access*>(arg.get());
             if (expr == nullptr || expr->getMember().has_value() || expr->getSubscript().has_value()) {
-                throw std::runtime_error("Invalid binding in setup()");
+                throw RuntimeError("Invalid binding in setup()");
             }
             devices.push_back(deviceDescriptors.at(expr->getObject()));
         }
@@ -500,7 +502,7 @@ std::any Interpreter::visit(AstNode::Expression::List& ast) {
 }
 
 std::any Interpreter::visit(AstNode::Expression::Set& ast) {
-    throw std::runtime_error("no support for sets in phase 0");
+    throw RuntimeError("no support for sets in phase 0");
 }
 
 std::any Interpreter::visit(AstNode::Expression::Map& ast) {
@@ -516,11 +518,68 @@ std::any Interpreter::visit(AstNode::Expression::Map& ast) {
 
 std::any Interpreter::visit(AstNode::Specifier::Type& ast) {
     TYPE primaryType = getTypeEnum(ast.getName());
-    std::vector<TypeIdentifier> typeArgs;
-    for (auto&& arg : ast.getTypeArgs()) {
-        typeArgs.push_back(std::any_cast<TypeIdentifier>(arg->accept(*this)));
+    const auto& typeArgs = ast.getTypeArgs();
+    if (primaryType == TYPE::list_t) {
+        if (typeArgs.size() != 1) throw RuntimeError("list may only have a single type argument");
+        auto list = std::make_shared<VectorDescriptor>(Desctype::ANY);
+        auto arg = typeArgs.at(0)->accept(*this);
+        list->append(resolve(arg));
+        return BlsType(list);
     }
-    return TypeIdentifier(primaryType, typeArgs);
+    else if (primaryType == TYPE::map_t) {
+        if (typeArgs.size() != 2) throw RuntimeError("map must have two type arguments");
+        auto keyType = getTypeEnum(typeArgs.at(0)->getName());
+        auto valType = getTypeEnum(typeArgs.at(1)->getName());
+        if (valType == TYPE::void_t) {
+            throw RuntimeError("invalid value type for map");
+        }
+        auto map = std::make_shared<MapDescriptor>(Desctype::ANY);
+        auto key = typeArgs.at(0)->accept(*this);
+        auto value = typeArgs.at(1)->accept(*this);
+        map->emplace(resolve(key), resolve(value));
+        return BlsType(map);
+    }
+    else if (typeArgs.empty()) {
+        switch (primaryType) {
+            case TYPE::void_t:
+                return BlsType(std::monostate());
+            break;
+
+            case TYPE::bool_t:
+                return BlsType(bool());
+            break;
+
+            case TYPE::int_t:
+                return BlsType(int());
+            break;
+
+            case TYPE::float_t:
+                return BlsType(float());
+            break;
+
+            case TYPE::string_t:
+                return BlsType(std::string());
+            break;
+
+            #define DEVTYPE_BEGIN(name) \
+            case TYPE::name: \
+                return DEVTYPE::name;
+            #define ATTRIBUTE(...)
+            #define DEVTYPE_END \
+            break;
+            #include "DEVTYPES.LIST"
+            #undef DEVTYPE_BEGIN
+            #undef ATTRIBUTE
+            #undef DEVTYPE_END
+
+            default:
+                throw RuntimeError("container type must include element type arguments");
+            break;
+        }
+    }
+    else {
+        throw RuntimeError("primitive or devtype cannot include type arguments");
+    }
 }
 
 BlsType& Interpreter::resolve(std::any& val) {
