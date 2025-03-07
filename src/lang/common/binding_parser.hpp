@@ -1,10 +1,8 @@
 #pragma once
-#include "bls_types.hpp"
+#include "error_types.hpp"
 #include "include/Common.hpp"
-#include <stdexcept>
 #include <string>
 #include <unordered_map>
-#include <vector>
 #include <boost/regex.hpp>
 
 namespace BlsLang {
@@ -13,7 +11,7 @@ namespace BlsLang {
         static boost::regex bindingPattern(R"(([a-zA-Z0-9_\-]+)::([a-zA-Z]+-[^,\- ]+(?:,[a-zA-Z]+-[^,\- ]+)*))");
         boost::smatch bindingContents;
         if (!boost::regex_match(binding, bindingContents, bindingPattern)) {
-            throw std::runtime_error("Invalid binding string");
+            throw RuntimeError("Invalid binding string");
         }
         DeviceDescriptor result;
         result.device_name = deviceName;

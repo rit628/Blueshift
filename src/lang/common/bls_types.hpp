@@ -1,8 +1,8 @@
 #pragma once
+#include "error_types.hpp"
 #include "libHD/HeapDescriptors.hpp"
 #include <cmath>
 #include <memory>
-#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
@@ -180,17 +180,6 @@ namespace BlsLang {
     , COUNT
   };
 
-  enum class CONTAINER_TYPE {
-    #define CONTAINER_BEGIN(name, _) \
-    name = static_cast<int>(TYPE::name##_t),
-    #define METHOD(...)
-    #define CONTAINER_END
-    #include "CONTAINER_TYPES.LIST"
-    #undef CONTAINER_BEGIN
-    #undef METHOD
-    #undef CONTAINER_END
-  };
-
   inline constexpr TYPE getTypeEnum(const std::string& type) {
     if (type == "void") { return TYPE::void_t; }
     if (type == "bool") { return TYPE::bool_t; }
@@ -216,11 +205,6 @@ namespace BlsLang {
     return TYPE::COUNT;
   }
 
-  struct TypeIdentifier {
-    TYPE name;
-    std::vector<TypeIdentifier> args;
-  };
-
   using BlsType = std::variant<
       std::monostate
     , bool
@@ -236,7 +220,7 @@ namespace BlsLang {
         return !a;
       }
       else {
-        throw std::runtime_error("Operand of '!' must have boolean type.");
+        throw RuntimeError("Operand of '!' must have boolean type.");
       }
     }, operand);
   }
@@ -247,7 +231,7 @@ namespace BlsLang {
         return -a;
       }
       else {
-        throw std::runtime_error("Operand of '-' must have integer or float type.");
+        throw RuntimeError("Operand of '-' must have integer or float type.");
       }
     }, operand);
   }
@@ -258,7 +242,7 @@ namespace BlsLang {
           return a || b;
         }
         else {
-          throw std::runtime_error("Lhs and Rhs of logical expression must have boolean type.");
+          throw RuntimeError("Lhs and Rhs of logical expression must have boolean type.");
         }
     }, lhs, rhs);
   }
@@ -269,7 +253,7 @@ namespace BlsLang {
           return a && b;
         }
         else {
-          throw std::runtime_error("Lhs and Rhs of logical expression must have boolean type.");
+          throw RuntimeError("Lhs and Rhs of logical expression must have boolean type.");
         }
     }, lhs, rhs);
   }
@@ -280,7 +264,7 @@ namespace BlsLang {
         return a < b;
       }
       else {
-        throw std::runtime_error("Lhs and Rhs are not orderable.");
+        throw RuntimeError("Lhs and Rhs are not orderable.");
       }
     }, lhs, rhs);
   }
@@ -291,7 +275,7 @@ namespace BlsLang {
         return a <= b;
       }
       else {
-        throw std::runtime_error("Lhs and Rhs are not orderable.");
+        throw RuntimeError("Lhs and Rhs are not orderable.");
       }
     }, lhs, rhs);
   }
@@ -302,7 +286,7 @@ namespace BlsLang {
         return a > b;
       }
       else {
-        throw std::runtime_error("Lhs and Rhs are not orderable.");
+        throw RuntimeError("Lhs and Rhs are not orderable.");
       }
     }, lhs, rhs);
   }
@@ -313,7 +297,7 @@ namespace BlsLang {
         return a >= b;
       }
       else {
-        throw std::runtime_error("Lhs and Rhs are not orderable.");
+        throw RuntimeError("Lhs and Rhs are not orderable.");
       }
     }, lhs, rhs);
   }
@@ -324,7 +308,7 @@ namespace BlsLang {
         return a != b;
       }
       else {
-        throw std::runtime_error("Lhs and Rhs are not comparable.");
+        throw RuntimeError("Lhs and Rhs are not comparable.");
       }
     }, lhs, rhs);
   }
@@ -335,7 +319,7 @@ namespace BlsLang {
         return a == b;
       }
       else {
-        throw std::runtime_error("Lhs and Rhs are not comparable.");
+        throw RuntimeError("Lhs and Rhs are not comparable.");
       }
     }, lhs, rhs);
   }
@@ -346,7 +330,7 @@ namespace BlsLang {
         return a + b;
       }
       else {
-        throw std::runtime_error("Lhs and Rhs are not addable.");
+        throw RuntimeError("Lhs and Rhs are not addable.");
       }
     }, lhs, rhs);
   }
@@ -357,7 +341,7 @@ namespace BlsLang {
         return a - b;
       }
       else {
-        throw std::runtime_error("Lhs and Rhs are not subtractable.");
+        throw RuntimeError("Lhs and Rhs are not subtractable.");
       }
     }, lhs, rhs);
   }
@@ -368,7 +352,7 @@ namespace BlsLang {
         return a * b;
       }
       else {
-        throw std::runtime_error("Lhs and Rhs are not multiplicable.");
+        throw RuntimeError("Lhs and Rhs are not multiplicable.");
       }
     }, lhs, rhs);
   }
@@ -378,13 +362,13 @@ namespace BlsLang {
       if constexpr (Divisible<decltype(a), decltype(b)>) {
         if constexpr (Numeric<decltype(b)>) {
           if (b == 0) {
-            throw std::runtime_error("Error: dividing by zero.");
+            throw RuntimeError("Error: division by zero.");
           }
         }
         return a / b;
       }
       else {
-        throw std::runtime_error("Lhs and Rhs are not divisible.");
+        throw RuntimeError("Lhs and Rhs are not divisible.");
       }
     }, lhs, rhs);
   }
@@ -393,18 +377,18 @@ namespace BlsLang {
     return std::visit([](const auto& a, const auto& b) -> BlsType {
       if constexpr (Integer<decltype(a)> && Integer<decltype(b)>) {
         if (b == 0) {
-          throw std::runtime_error("Error: dividing by zero.");
+          throw RuntimeError("Error: division by zero.");
         }
         return a % b;
       }
       else if constexpr (Numeric<decltype(a)> && Numeric<decltype(b)>) {
         if (b == 0) {
-          throw std::runtime_error("Error: dividing by zero.");
+          throw RuntimeError("Error: division by zero.");
         }
         return (float)std::fmod(a, b);
       }
       else {
-        throw std::runtime_error("Lhs and Rhs must be integer or float types.");
+        throw RuntimeError("Lhs and Rhs must be integer or float types.");
       }
     }, lhs, rhs);
   }
@@ -415,7 +399,7 @@ namespace BlsLang {
         return (float)std::pow(a, b);
       }
       else {
-        throw std::runtime_error("Lhs and Rhs must be integer or float types.");
+        throw RuntimeError("Lhs and Rhs must be integer or float types.");
       }
     }, lhs, rhs);
   }
