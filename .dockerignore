@@ -41,7 +41,8 @@ Thumbs.db
 .gitattributes
 
 # Docker files
-.docker/
+.docker
+!.docker/scripts
 .dockerignore
 compose.yaml
 

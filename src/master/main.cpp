@@ -9,17 +9,15 @@ using DMM = DynamicMasterMessage;
 
 
 int main(int argc, char *argv[]){
-    std::string filename = "print_string.blu";
+    std::string filename;
 
-    /*
     if(argc == 2){
-        //filename = std::string(std::string(argv[1])); 
+        filename = std::string(std::string(argv[1])); 
     }
     else{
         std::cout<<"Invalid number of arguments"<<std::endl;
         return 1;
     }
-        */ 
     
     printf("pre compilation\n");
     // Makes interpreter

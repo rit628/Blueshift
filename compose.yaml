@@ -24,6 +24,7 @@ services:
   master:
     hostname: ${MASTER_HOSTNAME}
     container_name: ${MASTER_HOSTNAME}
+    command: ${DEPLOY_SRC}
     build:
       context: .
       dockerfile: .docker/master/Dockerfile
@@ -31,7 +32,8 @@ services:
         - WORKDIR=${MASTER_CONTAINER_WORKDIR}
     image: ${MASTER_IMAGE_NAME}
     volumes:
-      - build:${MASTER_CONTAINER_WORKDIR}
+      - build:${MASTER_CONTAINER_WORKDIR}/build
+      - ./samples/src:${MASTER_CONTAINER_WORKDIR}/samples
     expose:
       - ${MASTER_PORT}
     env_file:
@@ -41,6 +43,8 @@ services:
         condition: service_completed_successfully
 
   client:
+    cap_add:
+      - SYS_ADMIN
     build:
       context: .
       dockerfile: .docker/client/Dockerfile
@@ -48,7 +52,8 @@ services:
         - WORKDIR=${CLIENT_CONTAINER_WORKDIR}
     image: ${CLIENT_IMAGE_NAME}
     volumes:
-      - build:${CLIENT_CONTAINER_WORKDIR}
+      - build:${CLIENT_CONTAINER_WORKDIR}/build
+      - ./samples/client:${CLIENT_CONTAINER_WORKDIR}/samples
     deploy:
       mode: replicated
       replicas: ${NUM_CLIENTS}
