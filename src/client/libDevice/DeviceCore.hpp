@@ -1,5 +1,6 @@
 #pragma once
 
+#include "include/Common.hpp"
 #include "libDM/DynamicMessage.hpp"
 #include "libnetwork/Protocol.hpp"
 #include <functional>
@@ -298,7 +299,6 @@ class DeviceInterruptor{
             }
                 
         }
-
 
         void IGpioWatcher(int portNum, std::function<bool()> handler){
                 std::cerr<<"GPIO Interrupts not yet supported!"<<std::endl; 

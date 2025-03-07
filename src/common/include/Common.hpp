@@ -53,10 +53,10 @@ struct DeviceDescriptor{
     std::string controller; 
     std::unordered_map<std::string, std::string> port_maps; 
 
-    bool isInterrupt; 
-    bool isVtype; 
-    bool isConst; 
-    int polling_period; 
+    bool isInterrupt = false; 
+    bool isVtype = false; 
+    bool isConst = true; 
+    int polling_period = 1000; 
 }; 
 
 
@@ -77,8 +77,8 @@ struct OBlockDesc{
         dropWrite: if true -> Only write to mailbox with the callback is open: 
     */
 
-    bool dropRead; 
-    bool dropWrite; 
+    bool dropRead = true; 
+    bool dropWrite = true; 
 
     // Configuration (all time in milliseconds)
 

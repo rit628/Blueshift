@@ -119,31 +119,7 @@ void Client::listener(){
             if(inMsg.header.body_size > 0){
                 std::vector<Timer> all_timers; 
                 dmsg.unpack("__TICKER_DATA__", all_timers); 
-        
-                for(Timer &timer : all_timers){
-                    auto device = this->deviceList[timer.device_num]; 
-
-                    if(!device->hasInterrupt){
-                        std::cout<<"build timer with period: "<<timer.period<<std::endl;
-                        this->client_ticker[timer.id] = std::make_unique<DeviceTimer>(this->client_ctx, device, this->client_connection, this->controller_alias, timer.device_num, timer.id); 
-                        // Initiate the timer
-                        this->client_ticker[timer.id]->setPeriod(timer.period); 
-                    }
-                }
-            }
-                 
-            // populate the Device interruptors; 
-            for(auto& pair : this->deviceList){
-                
-                auto dev = pair.second;
-                auto dev_id = pair.first;  
-             
-                if(dev->hasInterrupt){
-                    // Organizes the device interrupts
-                    auto omar = std::make_unique<DeviceInterruptor>(dev, this->client_connection, this->global_interrupts, this->controller_alias, dev_id); 
-                    omar->setupThreads(); 
-                    this->interruptors.push_back(std::move(omar)); 
-                }
+                this->start_timers = all_timers; 
             }
         }
         else if(ptype == Protocol::TICKER_UPDATE){
@@ -167,8 +143,38 @@ void Client::listener(){
 
         }
         else if(ptype == Protocol::BEGIN){
+
             std::cout<<"CLIENT: Beginning sending process"<<std::endl; 
             this->curr_state = ClientState::IN_OPERATION; 
+
+            std::cout<<"Size: "<<this->start_timers.size()<<std::endl; 
+
+            // Begin the timers only when the call is made
+            for(Timer &timer : this->start_timers){
+                auto device = this->deviceList[timer.device_num]; 
+
+                if(!device->hasInterrupt){
+                    std::cout<<"build timer with period: "<<timer.period<<std::endl;
+                    this->client_ticker[timer.id] = std::make_unique<DeviceTimer>(this->client_ctx, device, this->client_connection, this->controller_alias, timer.device_num, timer.id); 
+                    // Initiate the timer
+                    this->client_ticker[timer.id]->setPeriod(timer.period); 
+                }
+            }
+
+             // populate the Device interruptors; 
+             for(auto& pair : this->deviceList){
+                
+                auto dev = pair.second;
+                auto dev_id = pair.first;  
+             
+                if(dev->hasInterrupt){
+                    // Organizes the device interrupts
+                    auto omar = std::make_unique<DeviceInterruptor>(dev, this->client_connection, this->global_interrupts, this->controller_alias, dev_id); 
+                    omar->setupThreads(); 
+                    this->interruptors.push_back(std::move(omar)); 
+                }
+            }
+
         }
         else{
             std::cout<<"Unknown protocol message!"<<std::endl; 

@@ -1,10 +1,19 @@
 oblock printString(TIMER_TEST TT) {
     int current_val = TT.test_val; 
     println("Current value is: " , current_val); 
-    TT.test_val = current_val + 5; 
+    TT.test_val = current_val + 445; 
 }
+
+oblock jamarPrint(TIMER_TEST T1){
+    println("jah is: "); 
+    println("conclude");
+    println("reddit");
+}
+
+
 
 setup() {
     TIMER_TEST L1 = "CTL::file_name-omar.txt";
     printString(L1);
+    jamarPrint(L1); 
 }

@@ -44,25 +44,29 @@ WriterBox::WriterBox(string deviceName)
 
 void MasterMailbox::assignNM(DynamicMasterMessage DMM)
 {
+
     switch(DMM.protocol)
     {
         case PROTOCOLS::CALLBACKRECIEVED:
         {
+            
             writeMap.at(DMM.info.device)->waitingForCallback = false;
-            DynamicMasterMessage DMMtoSend = writeMap.at(DMM.info.device)->waitingQ.read();
-            this->sendNM.write(DMMtoSend);
-            writeMap.at(DMM.info.device)->waitingForCallback = true;
+            //DynamicMasterMessage DMMtoSend = writeMap.at(DMM.info.device)->waitingQ.read();
+            //this->sendNM.write(DMMtoSend);
+            // Diarreah
+            writeMap.at(DMM.info.device)->waitingForCallback = false;
             break;
         }
         case PROTOCOLS::SENDSTATES:
         {
+
             ReaderBox &assignedBox = *oblockReadMap.at(DMM.info.oblock);
             TSQ<DynamicMasterMessage> &assignedTSQ = *readMap[DMM.info.oblock][DMM.info.device];
             if(assignedBox.dropRead == true)
             {
                 assignedTSQ.clearQueue();
                 assignedTSQ.write(DMM);
-                // Delete later this bypasses the main message
+                // Delete later this bypasses the main message 
                 this->sendEM.write({DMM});
             }
             else if(DMM.isInterrupt == true)
@@ -76,6 +80,7 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
             else
             {   
                 assignedTSQ.write(DMM);
+
             }
             break;
         }
@@ -116,11 +121,7 @@ void MasterMailbox::assignEM(DynamicMasterMessage DMM)
         {
             bool dropWrite = correspondingReaderBox.dropWrite;
 
-            std::cout<<"drop write: "<<dropWrite<<std::endl;
-            std::cout<<"Waiting for callback: "<<assignedBox.waitingForCallback<<std::endl;
-
             if(dropWrite == true && assignedBox.waitingForCallback == false){
-                std::cout<<"CUNT 1"<<std::endl; 
                 this->sendNM.write(DMM);
                 assignedBox.waitingForCallback = true;
             }   
@@ -133,7 +134,6 @@ void MasterMailbox::assignEM(DynamicMasterMessage DMM)
         }
         default:
         {
-            std::cout<<"OPPS"<<std::endl; 
             break;
         }
     }

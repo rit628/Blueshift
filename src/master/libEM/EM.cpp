@@ -37,7 +37,11 @@ ExecutionUnit::ExecutionUnit(string OblockName, vector<string> devices, vector<b
 
     //this->running(vtypeHMMsMap, sendMM);
     this->executionThread = thread(&ExecutionUnit::running, this, ref(vtypeHMMsMap), ref(sendMM));
-    this->executionThread.detach();
+}
+
+ExecutionUnit::~ExecutionUnit()
+{
+    this->executionThread.join();
 }
 
 HeapMasterMessage::HeapMasterMessage(shared_ptr<HeapDescriptor> heapTree, O_Info info, PROTOCOLS protocol, bool isInterrupt)
@@ -62,6 +66,7 @@ void ExecutionUnit::running(TSM<string, HeapMasterMessage> &vtypeHMMsMap, TSQ<Dy
     {
         if(EUcache.isEmpty()) {continue;}
         vector<DynamicMasterMessage> currentDMMs = EUcache.read();
+        std::cout<<"This: "<<this->OblockName<<std::endl;
         vector<HeapMasterMessage> HMMs;
 
 

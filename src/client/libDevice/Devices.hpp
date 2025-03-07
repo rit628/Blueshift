@@ -30,7 +30,6 @@ class TestTimer : public AbstractDevice{
         // Process and write message to file
         void proc_message(DynamicMessage dmsg) override{
             int omar; 
-            std::cout<<"HEHEHEHEHEHE"<<std::endl; 
             if(dmsg.hasField("test_val")){
                 dmsg.unpack("test_val", omar);
                 this->val = omar; 
