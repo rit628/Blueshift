@@ -1,0 +1,13 @@
+oblock printString(LIGHT L) {
+    int a = 0B101;
+    /*list<int> l;
+    for (int i = 0; i < 999; i++) {
+        l.append(a + i);
+        println(l[i]);
+    }*/
+}
+
+setup() {
+    LIGHT L1 = "blueshift-client-1::PWR-0";
+    printString(L1);
+}
