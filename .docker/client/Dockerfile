@@ -6,8 +6,10 @@ ENV ENTR_INOTIFY_WORKAROUND=1
 
 WORKDIR ${WORKDIR}
 
+COPY .docker/scripts/client_entrypoint.sh .
+
 RUN apt-get update && \
-apt-get install -y entr && \
+apt-get install -y entr host && \
 chmod -R +x ./
 
-CMD ls ${CLIENT_PROGRAM_NAME} | entr -nr ./${CLIENT_PROGRAM_NAME}
+ENTRYPOINT [ "./client_entrypoint.sh" ]

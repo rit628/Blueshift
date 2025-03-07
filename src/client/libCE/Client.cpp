@@ -2,7 +2,7 @@
 
 Client::Client(std::string c_name): client_socket(client_ctx), bc_socket(client_ctx, udp::endpoint(udp::v4(), 2988)){
     this->client_name = c_name; 
-    std::cout<<"Client Created"<<std::endl; 
+    std::cout<<"Client Created: " << c_name <<std::endl; 
 }
 
 void Client::start(){

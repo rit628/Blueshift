@@ -9,17 +9,15 @@ using DMM = DynamicMasterMessage;
 
 
 int main(int argc, char *argv[]){
-    std::string filename = "print_string.blu";
+    std::string filename;
 
-    /*
-    if(argc != 2){
+    if(argc == 2){
         filename = std::string(std::string(argv[1])); 
     }
     else{
         std::cout<<"Invalid number of arguments"<<std::endl;
         return 1;
     }
-        */ 
     
     // Makes interpreter
     BlsLang::Compiler compiler;
@@ -60,6 +58,7 @@ int main(int argc, char *argv[]){
     // Make network (runs at start)
     MasterNM NM(oblocks, MM_NM_queue, NM_MM_queue);
     NM.start(); 
+
 
     ExecutionManager EM(oblocks, MM_EM_queue, EM_MM_queue, functions); 
     std::thread t3([&](){EM.running();});

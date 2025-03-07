@@ -6,8 +6,10 @@ ENV ENTR_INOTIFY_WORKAROUND=1
 
 WORKDIR ${WORKDIR}
 
+COPY .docker/scripts/master_entrypoint.sh .
+
 RUN apt-get update && \
 apt-get install -y entr && \
 chmod -R +x ./
 
-CMD ls ${MASTER_PROGRAM_NAME} | entr -nr ./${MASTER_PROGRAM_NAME}
+ENTRYPOINT [ "./master_entrypoint.sh" ]

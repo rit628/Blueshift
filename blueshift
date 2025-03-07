@@ -30,6 +30,7 @@ def deploy(args):
     atexit.register(clean_shutdown, base_cmd)
     
     command = [*base_cmd, "up"]
+    os.environ["DEPLOY_SRC"] = f"samples/{args.filename}"
     if args.num_clients:
         os.environ["NUM_CLIENTS"] = args.num_clients
     if args.build:
@@ -111,6 +112,10 @@ run_parser.add_argument("-l", "--local",
 run_parser.set_defaults(fn=run)
 
 deploy_parser = subparsers.add_parser("deploy", help=f"run {PROJECT_NAME} deployment environment (send SIGINT [ctrl+c] to stop gracefully)")
+deploy_parser.add_argument("filename",
+                          help="source file to execute",
+                          nargs="?",
+                          default="main.blu")
 deploy_parser.add_argument("-n", "--num-clients",
                            help="number of clients to create (only used in deployment simulation)",
                            default=DEFAULT_NUM_CLIENTS)
