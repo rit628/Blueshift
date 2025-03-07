@@ -481,7 +481,7 @@ std::any Interpreter::visit(AstNode::Expression::Access& ast) {
 std::any Interpreter::visit(AstNode::Expression::Literal& ast) {
     std::any literal;
     const auto convert = overloads {
-        [&literal](size_t value) {literal = BlsType((int)value);},
+        [&literal](int64_t value) {literal = BlsType((int)value);},
         [&literal](double value) {literal = BlsType((float)value);},
         [&literal](auto value) { literal = BlsType(value); }
     };
