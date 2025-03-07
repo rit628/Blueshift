@@ -3,6 +3,7 @@
 #include "ast.hpp"
 #include "parser.hpp"
 #include <cstddef>
+#include <cstdint>
 #include <gtest/gtest.h>
 #include <memory>
 #include <utility>
@@ -452,9 +453,8 @@ namespace BlsLang {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedLiteral = dynamic_cast<AstNode::Expression::Literal&>(*toCast);
     
-        // Check if the literal values match (size_t, double, bool, std::string)
-        if (std::holds_alternative<size_t>(expectedLiteral.getLiteral())) {
-            EXPECT_EQ(std::get<size_t>(expectedLiteral.getLiteral()), std::get<size_t>(ast.getLiteral()));
+        if (std::holds_alternative<int64_t>(expectedLiteral.getLiteral())) {
+            EXPECT_EQ(std::get<int64_t>(expectedLiteral.getLiteral()), std::get<int64_t>(ast.getLiteral()));
         }
         else if (std::holds_alternative<double>(expectedLiteral.getLiteral())) {
             EXPECT_EQ(std::get<double>(expectedLiteral.getLiteral()), std::get<double>(ast.getLiteral()));

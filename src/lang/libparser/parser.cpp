@@ -2,7 +2,9 @@
 #include "ast.hpp"
 #include "include/reserved_tokens.hpp"
 #include "error_types.hpp"
+#include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
@@ -362,17 +364,22 @@ std::unique_ptr<AstNode::Expression> Parser::parsePrimaryExpression() {
     }
     else if (ts.match(Token::Type::INTEGER)) {
         auto& literalStr = ts.at(-1).getLiteral();
+        size_t index = 0;
         int base = 10;
         if (literalStr.starts_with("0x") || literalStr.starts_with("0X")) { // hex literal
             base = 16;
+            index += 2;
         }
         else if (literalStr.starts_with("0b") || literalStr.starts_with("0B")) { // binary literal
             base = 2;
+            index += 2;
         }
         else if (literalStr.starts_with("0")) { // octal literal
             base = 8;
+            index++;
         }
-        auto literal = static_cast<size_t>(std::stoll(literalStr, 0, base));
+        index = std::min(index, literalStr.size() - 1);
+        auto literal = static_cast<int64_t>(std::stoll(literalStr.data() + index, 0, base));
         return std::make_unique<AstNode::Expression::Literal>(std::move(literal));
     }
     else if (ts.match(Token::Type::FLOAT)) {

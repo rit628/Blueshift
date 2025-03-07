@@ -1,6 +1,7 @@
 #pragma once
 #include <any>
 #include <cstddef>
+#include <cstdint>
 #include <initializer_list>
 #include <memory>
 #include <ostream>
@@ -78,7 +79,7 @@ namespace BlsLang {
     class AstNode::Expression::Literal : public AstNode::Expression {
         public:
             Literal() = default;
-            Literal(size_t literal)         : literal(std::move(literal)) {}
+            Literal(int64_t literal)        : literal(std::move(literal)) {}
             Literal(double literal)         : literal(std::move(literal)) {}
             Literal(bool literal)           : literal(std::move(literal)) {}
             Literal(std::string literal)    : literal(std::move(literal)) {}
@@ -88,7 +89,7 @@ namespace BlsLang {
             auto& getLiteral() { return literal; }
 
         private:
-            std::variant<size_t, double, bool, std::string> literal;
+            std::variant<int64_t, double, bool, std::string> literal;
     };
 
     class AstNode::Expression::List : public AstNode::Expression {

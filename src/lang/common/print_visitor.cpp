@@ -18,7 +18,7 @@ std::any Printer::visit(AstNode::Specifier::Type& ast) {
 
 std::any Printer::visit(AstNode::Expression::Literal& ast) {
     const auto visitor = overloads {
-        [this](size_t value) { os << "size_t " << value; },
+        [this](int64_t value) { os << "int64_t " << value; },
         [this](double value) { os << "double " << value; },
         [this](bool value) { os << "bool " << value; },
         [this](std::string value) { os << "std::string " << value; }
