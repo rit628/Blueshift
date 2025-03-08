@@ -112,10 +112,10 @@ class StringReader : public AbstractDevice{
                 this->curr_message = omar; 
                 if(this->file_stream.is_open()){
                     std::cout<<"writing: "<<omar<<" to file "<<std::endl;
-                    std::cout << "LACK: " << file_stream.tellg() << std::endl;
+                    std::cout << "tellg(): " << file_stream.tellg() << " " << "tellp(): " << file_stream.tellp() << std::endl;
                     this->file_stream << omar; 
                     this->file_stream.flush();
-                    std::cout <<  " OMAR  : " << file_stream.tellgv gmh() << std::endl;
+                    std::cout <<  "tellg(): " << file_stream.tellg() << " " << "tellp(): " << file_stream.tellp() << std::endl;
              
                 }
                 this->recvMode = false;

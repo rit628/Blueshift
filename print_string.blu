@@ -6,7 +6,7 @@ oblock printString(TIMER_TEST TT) {
 }
 
 
-oblock copyLine(LINE_WRITER lw1, LINE_WRITER lw2){
+oblock copyLine(LINE_WRITER lw1){
     string new_msg = lw1.msg; 
     println("MESSAGE FROM FILE1.TXT: " + new_msg); 
     lw1.msg = new_msg + "manat"; 
@@ -18,6 +18,6 @@ setup() {
     LINE_WRITER k3 = "CTL::file-file2.txt"; 
     
     //printString(L1);
-    copyLine(k2, k3); 
+    copyLine(k2); 
 
 }
