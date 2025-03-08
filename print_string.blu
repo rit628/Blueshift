@@ -17,7 +17,7 @@ setup() {
     LINE_WRITER k2 = "CTL::file-file1.txt"; 
     LINE_WRITER k3 = "CTL::file-file2.txt"; 
     
-    //printString(L1);
-    copyLine(k2); 
+    printString(L1);
+    //copyLine(k2); 
 
 }
