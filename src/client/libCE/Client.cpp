@@ -171,8 +171,8 @@ void Client::listener(){
                     // Organizes the device interrupts
                     auto omar = std::make_unique<DeviceInterruptor>(dev, this->client_connection, this->global_interrupts, this->controller_alias, dev_id); 
                     omar->setupThreads(); 
-                    this->interruptors.push_back(std::move(omar)); 
-                }
+                    this->interruptors.push_back(std::move(omar));
+                }   
             }
 
         }

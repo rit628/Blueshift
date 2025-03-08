@@ -1,19 +1,23 @@
+
 oblock printString(TIMER_TEST TT) {
-    int current_val = TT.test_val; 
-    println("Current value is: " , current_val); 
-    TT.test_val = current_val + 445; 
-}
-
-oblock jamarPrint(TIMER_TEST T1){
-    println("jah is: "); 
-    println("conclude");
-    println("reddit");
+    float current_val = TT.test_val; 
+    println("Print val is: " , current_val); 
+    TT.test_val = current_val + 444; 
 }
 
 
+oblock copyLine(LINE_WRITER lw1, LINE_WRITER lw2){
+    string new_msg = lw1.msg; 
+    println("MESSAGE FROM FILE1.TXT: " + new_msg); 
+    lw1.msg = new_msg + "manat"; 
+}
 
 setup() {
-    TIMER_TEST L1 = "CTL::file_name-omar.txt";
-    printString(L1);
-    jamarPrint(L1); 
+    TIMER_TEST L1 = "CTL::file-omar.txt";
+    LINE_WRITER k2 = "CTL::file-file1.txt"; 
+    LINE_WRITER k3 = "CTL::file-file2.txt"; 
+    
+    //printString(L1);
+    copyLine(k2, k3); 
+
 }

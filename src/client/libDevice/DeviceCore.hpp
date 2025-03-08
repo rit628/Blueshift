@@ -288,17 +288,19 @@ class DeviceInterruptor{
             // For now we can bypass the metadata and store data for the filesize and stuff;
             char event_buffer[sizeof(inotify_event) + 256]; 
             while(true){
+                std::cout<<"Waiting for event"<<std::endl;
                 int read_length = read(fd, event_buffer, sizeof(event_buffer)); 
                 struct inotify_event* event = (struct inotify_event*)event_buffer; 
-                if(event->mask & IN_MODIFY){
-                    bool ret_val = handler(); 
-                    if(ret_val){
-                        this->sendMessage();  
-                    }
+
+                bool ret_val = handler(); 
+                if(ret_val){
+                    std::cerr<<"Sending message"<<std::endl;
+                    this->sendMessage();  
                 }
             }
-                
         }
+                
+        
 
         void IGpioWatcher(int portNum, std::function<bool()> handler){
                 std::cerr<<"GPIO Interrupts not yet supported!"<<std::endl; 

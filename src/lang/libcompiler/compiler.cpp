@@ -24,8 +24,9 @@ void Compiler::compileSource(const std::string& source) {
     ast->accept(masterInterpreter);
     auto& masterOblocks = masterInterpreter.getOblocks();
     auto& descriptors = masterInterpreter.getOblockDescriptors();
-    euInterpreters.assign(masterOblocks.size(), masterInterpreter);
+    euInterpreters.assign(descriptors.size(), masterInterpreter);
     for (auto&& [descriptor, interpreter] : boost::combine(descriptors, euInterpreters)) {
+        if (!masterOblocks.contains(descriptor.name)) { continue; }
         auto& oblock = masterOblocks.at(descriptor.name);
         oblocks.emplace(descriptor.name, [&oblock, &interpreter](std::vector<BlsType> v) { return oblock(interpreter, v); });
     }

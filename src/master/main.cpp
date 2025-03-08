@@ -20,11 +20,12 @@ int main(int argc, char *argv[]){
         return 1;
     }
         */ 
-        
     
+    printf("pre compilation\n");
     // Makes interpreter
     BlsLang::Compiler compiler;
     compiler.compileFile(filename); 
+    printf("past compilation\n");
 
     //auto oblocks = interpreter.getOblockDescriptors();
     std::vector<OBlockDesc> oblocks = compiler.getOblockDescriptors(); 
@@ -37,23 +38,6 @@ int main(int argc, char *argv[]){
     DMM light_dmm;
     DeviceDescriptor dd = compiler.getDeviceDescriptors()["L1"];
     
-    /*
-    bool test_bool = true; 
-    DynamicMessage dmsg;
-    dmsg.createField("state", test_bool);
-    
-    light_dmm.info.controller = dd.controller;
-    light_dmm.info.device = dd.device_name;
-    light_dmm.info.oblock = oblocks[0].name; 
-    light_dmm.info.isVtype = false;
-    light_dmm.protocol = PROTOCOLS::SENDSTATES; 
-    light_dmm.DM = dmsg; 
-    light_dmm.isInterrupt = false;
-   
-    std::vector<DMM> king = {light_dmm}; 
-    MM_EM_queue.write(king); 
-    */ 
-
     // NM and MM
     TSQ<DMM> NM_MM_queue; 
     TSQ<DMM> MM_NM_queue; 
@@ -63,7 +47,7 @@ int main(int argc, char *argv[]){
     MasterNM NM(oblocks, MM_NM_queue, NM_MM_queue);
     NM.start(); 
 
-    
+
     ExecutionManager EM(oblocks, MM_EM_queue, EM_MM_queue, functions); 
     std::thread t3([&](){EM.running();});
     

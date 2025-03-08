@@ -34,6 +34,7 @@ ExecutionUnit::ExecutionUnit(string OblockName, vector<string> devices, vector<b
     this->isVtype = isVtype;
     this->controllers = controllers;
     this->transform_function = transform_function;
+    this->info.oblock = OblockName;
 
     //this->running(vtypeHMMsMap, sendMM);
     this->executionThread = thread(&ExecutionUnit::running, this, ref(vtypeHMMsMap), ref(sendMM));
@@ -66,7 +67,6 @@ void ExecutionUnit::running(TSM<string, HeapMasterMessage> &vtypeHMMsMap, TSQ<Dy
     {
         if(EUcache.isEmpty()) {continue;}
         vector<DynamicMasterMessage> currentDMMs = EUcache.read();
-        std::cout<<"This: "<<this->OblockName<<std::endl;
         vector<HeapMasterMessage> HMMs;
 
 
@@ -109,7 +109,8 @@ void ExecutionUnit::running(TSM<string, HeapMasterMessage> &vtypeHMMsMap, TSQ<Dy
 }
 
 ExecutionUnit &ExecutionManager::assign(DynamicMasterMessage DMM)
-{
+{   
+    
     ExecutionUnit &assignedUnit = *EU_map.at(DMM.info.oblock);
     assignedUnit.stateMap.emplace(DMM.info.device, DMM);
     return assignedUnit;
@@ -117,23 +118,41 @@ ExecutionUnit &ExecutionManager::assign(DynamicMasterMessage DMM)
 
 void ExecutionManager::running()
 {
+    bool started = true; 
     while(1)
     {
+
+        // Send an initial request for data to be stored int the queues
+        if(started){
+            for(auto& pair : EU_map)
+            {
+                O_Info info = pair.second->info;
+                std::cout<<"Requesting States for : "<<info.oblock<<std::endl;
+                DynamicMessage dm;
+                DynamicMasterMessage requestDMM(dm, info, PROTOCOLS::REQUESTINGSTATES, false);
+                this->sendMM.write(requestDMM);
+
+            }
+            started = false; 
+        }
         
         vector<DynamicMasterMessage> currentDMMs = this->readMM.read();
+
+        std::cout<<"Recieved States"<<std::endl;
        
         ExecutionUnit &assignedUnit = assign(currentDMMs.at(0));
 
         assignedUnit.EUcache.write(currentDMMs);
-        /*
+    
         if(assignedUnit.EUcache.getSize() < 3)
         {   
+            std::cout<<"Requesting States"<<std::endl;
             DynamicMessage dm;
             O_Info info = assignedUnit.info;
             DynamicMasterMessage requestDMM(dm, info, PROTOCOLS::REQUESTINGSTATES, false);
             this->sendMM.write(requestDMM);
         }
-        */ 
+    
     }
 }
 
