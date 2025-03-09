@@ -93,7 +93,7 @@ struct O_Info
     std::string oblock;
     std::string device;
     std::string controller;
-    bool isVtype;
+    bool isVtype = false;
 };
 
 struct DynamicMasterMessage
