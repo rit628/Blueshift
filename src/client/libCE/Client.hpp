@@ -3,6 +3,7 @@
 #include "libDevice/Devices.hpp"
 #include <thread>
 #include <shared_mutex>
+#include <unordered_map>
 #include "libnetwork/Protocol.hpp"
 #include "libnetwork/Connection.hpp"
 
@@ -79,7 +80,7 @@ class Client{
                 
         // Ticker table
         std::unordered_map<uint16_t, std::unique_ptr<DeviceTimer>> client_ticker;
-        std::vector<std::unique_ptr<DeviceInterruptor>> interruptors;
+        std::unordered_map<int, std::unique_ptr<DeviceInterruptor>> interruptors;
         std::vector<std::thread> global_interrupts;  
 
 

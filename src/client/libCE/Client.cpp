@@ -96,13 +96,19 @@ void Client::listener(){
                 auto dev_index = inMsg.header.device_code; 
     
                 auto state_change = std::thread([dev_index, dmsg = std::move(dmsg), this](){
-                try{    
+                if (this->interruptors.contains(dev_index)) {
+                    this->interruptors.at(dev_index)->disableWatchers();
+                }
+                try{
                     this->deviceList[dev_index]->proc_message(dmsg);
                     //Translation of the callback happens at the network manage
                     this->sendCallback(dev_index); 
                 }
                 catch(std::exception(e)){
                     std::cout<<e.what()<<std::endl; 
+                }
+                if (this->interruptors.contains(dev_index)) {
+                    this->interruptors.at(dev_index)->enableWatchers();
                 }
                 });
 
@@ -171,7 +177,7 @@ void Client::listener(){
                     // Organizes the device interrupts
                     auto omar = std::make_unique<DeviceInterruptor>(dev, this->client_connection, this->global_interrupts, this->controller_alias, dev_id); 
                     omar->setupThreads(); 
-                    this->interruptors.push_back(std::move(omar));
+                    this->interruptors.emplace(dev_id, std::move(omar));
                 }   
             }
 

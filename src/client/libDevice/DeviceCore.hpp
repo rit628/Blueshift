@@ -3,12 +3,14 @@
 #include "include/Common.hpp"
 #include "libDM/DynamicMessage.hpp"
 #include "libnetwork/Protocol.hpp"
+#include <cstdint>
 #include <functional>
 #include <boost/asio.hpp>
 #include <chrono> 
 #include "libnetwork/Connection.hpp"
 #include <sys/inotify.h>
 #include <unistd.h> 
+#include <vector>
 
 #define VOLATILITY_LIST_SIZE 10
 
@@ -240,6 +242,7 @@ class DeviceInterruptor{
         std::shared_ptr<AbstractDevice> abs_device; 
         std::shared_ptr<Connection> client_connection; 
         std::vector<std::thread> &globalWatcherThreads; 
+        std::vector<std::tuple<int, int, std::string>> watchDescriptors; 
         int ctl_code; 
         int device_code; 
 
@@ -267,7 +270,6 @@ class DeviceInterruptor{
             this->client_connection->send(sm); 
         }
 
-
         // Add Inotify thread blocking code here
         void IFileWatcher(std::string fname, std::function<bool()> handler ){
             // Check if the file exists relative to the deviceCore; 
@@ -285,6 +287,8 @@ class DeviceInterruptor{
                 close(fd); 
             }
 
+            watchDescriptors.push_back({fd, wd, fname});
+
             // For now we can bypass the metadata and store data for the filesize and stuff;
             char event_buffer[sizeof(inotify_event) + 256]; 
             while(true){
@@ -299,8 +303,6 @@ class DeviceInterruptor{
                 }
             }
         }
-                
-        
 
         void IGpioWatcher(int portNum, std::function<bool()> handler){
                 std::cerr<<"GPIO Interrupts not yet supported!"<<std::endl; 
@@ -319,6 +321,21 @@ class DeviceInterruptor{
             this->device_code = dd; 
         }
 
+        void disableWatchers() { 
+            for (auto&& [fd, wd, filename] : watchDescriptors) {
+                inotify_rm_watch(fd, wd);
+            }
+        }
+
+        void enableWatchers() {
+            for (auto& [fd, wd, filename] : watchDescriptors) {
+                wd = inotify_add_watch(fd, filename.c_str(), IN_MODIFY); 
+                if(wd < 0){
+                    std::cerr<<"Could not add watcher"<<std::endl; 
+                    close(fd);
+                }
+            }
+        }
 
         // Setup Watcher Thread
         void setupThreads(){

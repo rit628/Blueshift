@@ -1,9 +1,12 @@
 #pragma once
 
 #include "DeviceCore.hpp"
+#include <atomic>
 #include <iostream>
 #include <fstream>
 #include <sys/fcntl.h>
+#include <chrono>
+#include <thread>
 
 /*
     This port just sends out the info data 10 over and over again. It is a 
@@ -60,9 +63,9 @@ class StringReader : public AbstractDevice{
         std::string filename; 
         std::fstream file_stream; 
         std::string curr_message; 
-        bool writeOnly; 
-        bool recvMode; 
-
+        bool writeOnly = false; 
+        bool recvMode = false; 
+        
     public: 
         // can add better keybinding libraries in the future
         bool handleInterrupt(){
@@ -76,7 +79,7 @@ class StringReader : public AbstractDevice{
                 return true; 
             }
           
-            return true; 
+            return false; 
         }
         
         void set_ports(std::unordered_map<std::string, std::string> &src) override {
@@ -104,19 +107,16 @@ class StringReader : public AbstractDevice{
         }
 
         void proc_message(DynamicMessage dmsg) override{
-            std::string omar; 
+            std::string omar;
             if(dmsg.hasField("msg")){
                 dmsg.unpack("msg", omar);
 
                 this->recvMode = true;
                 this->curr_message = omar; 
                 if(this->file_stream.is_open()){
-                    std::cout<<"writing: "<<omar<<" to file "<<std::endl;
-                    std::cout << "tellg(): " << file_stream.tellg() << " " << "tellp(): " << file_stream.tellp() << std::endl;
+                    std::cout<<"writing: "<< omar <<" to file "<<std::endl;
                     this->file_stream << omar; 
                     this->file_stream.flush();
-                    std::cout <<  "tellg(): " << file_stream.tellg() << " " << "tellp(): " << file_stream.tellp() << std::endl;
-             
                 }
                 this->recvMode = false;
             }
