@@ -67,6 +67,7 @@ class StringReader : public AbstractDevice{
 
         void proc_message_impl(DynamicMessage& dmsg) override {
             std::string omar;
+            std::cout << "proc_message_impl" << std::endl;
             if(dmsg.hasField("msg")){
                 dmsg.unpack("msg", omar);
                 
@@ -82,8 +83,11 @@ class StringReader : public AbstractDevice{
                     std::cout<<"Writing data"<<std::endl; 
                     this->file_stream << omar; 
                     this->file_stream.flush();  // Ensure data is written immediately
+                    this->file_stream.close();
                 }
-                this->file_stream.close();
+                else {
+                    std::cout << "file didnt open" << std::endl;
+                }
             }
         }
         

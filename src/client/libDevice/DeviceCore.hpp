@@ -85,27 +85,33 @@ class AbstractDevice{
         virtual void set_ports(std::unordered_map<std::string, std::string> &src) = 0;  
 
         virtual void proc_message(DynamicMessage input) {
+            // wait for interruptors to stop
             {
                 std::unique_lock lk(m);
                 cv.wait(lk, [this]{ return !watchersPaused; });
             }
-            // std::cout << "step 1: aquired lock from manageWatcher after unpausing" << std::endl;
-            // wait for interruptors to stop
-            // std::cout << "step 2: processing to true, notify manageWatcher" << std::endl;
-            processing = true;
+            std::cout << "step 1: aquired lock from manageWatcher after unpausing" << std::endl;
+
+            {
+                std::lock_guard lk(m);
+                processing = true;
+            }
+            std::cout << "step 2: processing to true, notify manageWatcher" << std::endl;
             cv.notify_one();
+
             {
                 std::unique_lock lk(m);
                 cv.wait(lk, [this]{ return watchersPaused; });
             }
-            // std::cout << "step 5: aquired lock from manageWatcher after pausing" << std::endl;
-            proc_message_impl(input);
-            // std::cout << "step 6: processing to false, notify manageWatcher" << std::endl;
+            std::cout << "step 5: aquired lock from manageWatcher after pausing" << std::endl;
+            
             // tell interruptors to start again
             {
                 std::lock_guard lk(m);
+                proc_message_impl(input);
                 processing = false;
             }
+            std::cout << "step 6: processing to false, notify manageWatcher" << std::endl;
             cv.notify_one();
         }
 
@@ -327,28 +333,28 @@ class DeviceInterruptor{
                     std::unique_lock lk(m);
                     cv.wait(lk, [&processing] { return processing; });
                 }
-                // std::cout << "step 3: aquired lock from proc_message after init" << std::endl;
+                std::cout << "step 3: aquired lock from proc_message after init" << std::endl;
 
-                disableWatchers();
-                // std::cout << "step 4: watchersPaused to true, notify proc_message" << std::endl;
                 {
                     std::lock_guard lk(m);
+                    disableWatchers();
                     watchersPaused = true;
                 }
+                std::cout << "step 4: watchersPaused to true, notify proc_message" << std::endl;
                 cv.notify_one();
 
                 {
                     std::unique_lock lk(m);
                     cv.wait(lk, [&processing] { return !processing; });
                 }
-                // std::cout << "step 7: aquired lock from proc_message after processing" << std::endl;
+                std::cout << "step 7: aquired lock from proc_message after processing" << std::endl;
 
-                enableWatchers();
-                // std::cout << "step 8: watchersPaused to false, notify proc_message" << std::endl;
                 {
                     std::lock_guard lk(m);
+                    enableWatchers();
                     watchersPaused = false;
                 }
+                std::cout << "step 8: watchersPaused to false, notify proc_message" << std::endl;
                 cv.notify_one();
             }
         }
@@ -378,6 +384,10 @@ class DeviceInterruptor{
                 std::cout<<"Waiting for event"<<std::endl;
                 int read_length = read(fd, event_buffer, sizeof(event_buffer)); 
                 struct inotify_event* event = (struct inotify_event*)event_buffer; 
+                if (event->mask == IN_IGNORED) {
+                    std::cout << "drop removed watch event" << std::endl;
+                    continue;
+                }
 
                 bool ret_val = handler(); 
                 if(ret_val && !this->abs_device->processing){
