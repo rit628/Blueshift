@@ -1,11 +1,30 @@
-oblock printString(LIGHT L) {
-    int a = 0xF;
-    println(a);
-    
-    
+
+oblock printString(TIMER_TEST TT, TIMER_TEST TO, TIMER_TEST TK) {
+    float current_val = TT.test_val; 
+    println("Print val is: " , current_val); 
+    println("Print other val is: " , TO.test_val); 
+    println("Print other val is: " , TK.test_val); 
+    TT.test_val = current_val + 444; 
+    TO.test_val += 999.9; 
+    TK.test_val -= 999.9; 
+}
+
+
+oblock copyLine(LINE_WRITER lw1){
+    string new_msg = lw1.msg; 
+    println("MESSAGE FROM FILE1.TXT: " + new_msg); 
+
+    lw1.msg = "test";
 }
 
 setup() {
-    LIGHT L1 = "CTL::PWR-0";
-    printString(L1);
+    TIMER_TEST L1 = "CTL::file-omar.txt";
+    TIMER_TEST L2 = "CTL::file-omar2.txt";
+    TIMER_TEST L3 = "CTL::file-omar3.txt";
+    LINE_WRITER k2 = "CTL::file-file1.txt"; 
+    LINE_WRITER k3 = "CTL::file-file2.txt"; 
+    
+    //printString(L1, L2, L3);
+    copyLine(k2); 
+
 }

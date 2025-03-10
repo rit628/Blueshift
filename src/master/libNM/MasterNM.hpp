@@ -88,6 +88,7 @@ class MasterNM{
         ~MasterNM(); 
         bool start();
         void stop(); 
+        void makeBeginCall();
 
   
 }; 

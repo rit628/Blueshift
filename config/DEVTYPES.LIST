@@ -16,3 +16,11 @@ DEVTYPE_END
 //     ATTRIBUTE(attr_3, list<list<int>>)
 //     ATTRIBUTE(attr_4, map<float, list<int>>)
 // DEVTYPE_END
+
+DEVTYPE_BEGIN(TIMER_TEST)
+    ATTRIBUTE(test_val, int)
+DEVTYPE_END
+
+DEVTYPE_BEGIN(LINE_WRITER)
+    ATTRIBUTE(msg, std::string)
+DEVTYPE_END

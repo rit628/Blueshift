@@ -66,15 +66,15 @@ struct DeviceConfigMsg{
 
 // Header object
 struct SentHeader{
-    Protocol prot;
-    uint16_t ctl_code; 
-    uint8_t device_code; 
-    uint32_t body_size; 
-    uint16_t timer_id; 
-    bool fromInterrupt; 
+    Protocol prot = Protocol::SEND_STATE;
+    uint16_t ctl_code = 0; 
+    uint8_t device_code = 0; 
+    uint32_t body_size = 0; 
+    uint16_t timer_id = 0; 
+    bool fromInterrupt = false; 
 
     // Set by client
-    float volatility; 
+    float volatility = 0; 
     
 }; 
 
@@ -88,13 +88,13 @@ struct SentMessage{
 // Timer for a specific device: 
 struct Timer{
     // Timer id to uniquely identify timers to determine what oblock to fwd stuff to
-    TimerID id; 
+    TimerID id = 0; 
     // Device name
-    uint16_t device_num; 
+    uint16_t device_num = 0; 
     // Is a constant polling rate;
-    bool const_poll; 
+    bool const_poll = true; 
     // Polling period (ms)
-    uint32_t period;
+    uint32_t period = 1000;
 }; 
 
 

@@ -306,6 +306,7 @@ class DynamicMessage{
         Descriptor desc; 
 
         if(messageObj.empty()){
+            
             throw std::invalid_argument("Vector cannot be empty!");  
         }
 

@@ -19,8 +19,34 @@ struct ReaderBox
     bool dropWrite;
     bool statesRequested = false;
     string OblockName;
+    bool pending_requests; 
+
+    void handleRequest(TSQ<vector<DynamicMasterMessage>>& sendEM){
+        // write for loop to handle requests
+        if(pending_requests){
+            int smallestTSQ = 10;
+            std::vector<DynamicMasterMessage> statesToSend; 
+            for(int i = 0; i < this->waitingQs.size(); i++)
+                {
+                TSQ<DynamicMasterMessage> &currentTSQ = *this->waitingQs.at(i);
+                if(currentTSQ.getSize() <= smallestTSQ){smallestTSQ = currentTSQ.getSize();}
+                }
+            for(int i = 0; i < smallestTSQ; i++)
+                {
+                    vector<DynamicMasterMessage> statesToSend;
+                    for(int j = 0; j < this->waitingQs.size(); j++)
+                    {
+                        // REPLACE WITH POP ONCE THE DEPENDENCY GRAPH IS CREATED
+                        statesToSend.push_back(this->waitingQs.at(j)->read());
+                    }
+                    sendEM.write(statesToSend);
+                }
+            }
+    }
+
     ReaderBox(bool dropRead, bool dropWrite, string name);
     ReaderBox() = default;
+    
 };
 
 struct WriterBox
@@ -32,6 +58,8 @@ struct WriterBox
     WriterBox(string deviceName);
     WriterBox() = default;
 };
+
+
 
 class MasterMailbox
 {
@@ -45,8 +73,13 @@ class MasterMailbox
     vector<OBlockDesc> OBlockList;
     unordered_map<string, unique_ptr<ReaderBox>> oblockReadMap;
     unordered_map<string, vector<shared_ptr<TSQ<DynamicMasterMessage>>>> interruptMap;
+    unordered_map<string, std::vector<string>> interruptName_map;
     unordered_map<string, unordered_map<string, shared_ptr<TSQ<DynamicMasterMessage>>>> readMap;
     unordered_map<string, unique_ptr<WriterBox>> writeMap;
+    TSQ<std::string> readRequest; 
+
+
+
     void assignNM(DynamicMasterMessage DMM);
     void assignEM(DynamicMasterMessage DMM);
     void runningNM();
