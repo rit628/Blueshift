@@ -81,8 +81,6 @@ class StringReader : public AbstractDevice{
                 if (this->file_stream.is_open()) {
                     std::cout<<"Writing data"<<std::endl; 
                     this->file_stream << omar; 
-                    this->file_stream << " This is the 2nd change."; 
-                    this->file_stream << " This is the third change."; 
                     this->file_stream.flush();  // Ensure data is written immediately
                 }
                 this->file_stream.close();

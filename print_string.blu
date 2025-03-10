@@ -13,7 +13,8 @@ oblock printString(TIMER_TEST TT, TIMER_TEST TO, TIMER_TEST TK) {
 oblock copyLine(LINE_WRITER lw1){
     string new_msg = lw1.msg; 
     println("MESSAGE FROM FILE1.TXT: " + new_msg); 
-    lw1.msg = new_msg + "manat"; 
+
+    lw1.msg = "test";
 }
 
 setup() {
