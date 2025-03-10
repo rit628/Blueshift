@@ -3,6 +3,7 @@
 #include "libDevice/Devices.hpp"
 #include <thread>
 #include <shared_mutex>
+#include <unordered_map>
 #include "libnetwork/Protocol.hpp"
 #include "libnetwork/Connection.hpp"
 

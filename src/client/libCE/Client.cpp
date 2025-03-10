@@ -96,7 +96,8 @@ void Client::listener(){
                 auto dev_index = inMsg.header.device_code; 
     
                 auto state_change = std::thread([dev_index, dmsg = std::move(dmsg), this](){
-                try{    
+                try{
+                    std::cout << "proc_message begin" << std::endl;
                     this->deviceList[dev_index]->proc_message(dmsg);
                     //Translation of the callback happens at the network manage
                     this->sendCallback(dev_index); 
