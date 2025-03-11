@@ -35,29 +35,29 @@ std::any Interpreter::visit(AstNode::Source& ast) {
 std::any Interpreter::visit(AstNode::Function::Procedure& ast) {
     auto& functionName = ast.getName();
 
-    auto function = [&ast, this](std::vector<BlsType> args) -> std::any {
+    auto function = [&ast](Interpreter& exec, std::vector<BlsType> args) -> std::any {
         auto& functionName = ast.getName();
         auto& params = ast.getParameters();
         auto& statements = ast.getStatements();
-        cs.pushFrame(CallStack<std::string>::Frame::Context::FUNCTION);
+        exec.cs.pushFrame(CallStack<std::string>::Frame::Context::FUNCTION);
         if (params.size() != args.size()) {
             throw RuntimeError("Invalid number of arguments provided to function call.");
         }
         for (int i = 0; i < params.size(); i++) {
-            cs.setLocal(params.at(i), args.at(i));
+            exec.cs.setLocal(params.at(i), args.at(i));
         }
 
         try {
             for (auto&& statement : statements) {
-                statement->accept(*this);
+                statement->accept(exec);
             }
         } 
         catch (std::any& ret) {
-            BlsType result = resolve(ret);
-            cs.popFrame();
+            BlsType result = exec.resolve(ret);
+            exec.cs.popFrame();
             return result;
         }
-        cs.popFrame();
+        exec.cs.popFrame();
         return std::monostate();
     };
     functions.emplace(functionName, function);
@@ -67,27 +67,27 @@ std::any Interpreter::visit(AstNode::Function::Procedure& ast) {
 std::any Interpreter::visit(AstNode::Function::Oblock& ast) {
     auto& oblockName = ast.getName();
 
-    auto oblock = [&ast, this](std::vector<BlsType> args) -> std::vector<BlsType> {
+    auto oblock = [&ast](Interpreter& exec, std::vector<BlsType> args) -> std::vector<BlsType> {
         auto& oblockName = ast.getName();
         auto& params = ast.getParameters();
         auto& statements = ast.getStatements();
-        cs.pushFrame(CallStack<std::string>::Frame::Context::FUNCTION);
+        exec.cs.pushFrame(CallStack<std::string>::Frame::Context::FUNCTION);
         if (params.size() != args.size()) {
             throw RuntimeError("Invalid number of arguments provided to oblock call.");
         }
         for (int i = 0; i < params.size(); i++) {
-            cs.setLocal(params.at(i), args.at(i));
+            exec.cs.setLocal(params.at(i), args.at(i));
         }
 
         for (auto&& statement : statements) {
-            statement->accept(*this);
+            statement->accept(exec);
         }
 
         std::vector<BlsType> transformedArgs;
         for (int i = 0; i < params.size(); i++) {
-            transformedArgs.push_back(cs.getLocal(params.at(i)));
+            transformedArgs.push_back(exec.cs.getLocal(params.at(i)));
         }
-        cs.popFrame();
+        exec.cs.popFrame();
         return transformedArgs;
     };
     oblocks.emplace(oblockName, oblock);
@@ -458,7 +458,7 @@ std::any Interpreter::visit(AstNode::Expression::Function& ast) {
         argObjects.push_back(resolve(result));
     }
     auto& f = functions.at(name);
-    return f(argObjects);
+    return f(*this, argObjects);
 }
 
 std::any Interpreter::visit(AstNode::Expression::Access& ast) {

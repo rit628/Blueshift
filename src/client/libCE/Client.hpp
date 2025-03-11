@@ -3,6 +3,7 @@
 #include "libDevice/Devices.hpp"
 #include <thread>
 #include <shared_mutex>
+#include <unordered_map>
 #include "libnetwork/Protocol.hpp"
 #include "libnetwork/Connection.hpp"
 
@@ -69,6 +70,8 @@ class Client{
         void send(SentMessage &msg); 
         // Updates the ticker table
         void updateTicker(); 
+        // Temp timers 
+        std::vector<Timer> start_timers; 
 
 
         /*

@@ -1,13 +1,18 @@
 #pragma once
 
+#include "include/Common.hpp"
 #include "libDM/DynamicMessage.hpp"
 #include "libnetwork/Protocol.hpp"
+#include <condition_variable>
+#include <cstdint>
 #include <functional>
 #include <boost/asio.hpp>
 #include <chrono> 
 #include "libnetwork/Connection.hpp"
+#include <mutex>
 #include <sys/inotify.h>
 #include <unistd.h> 
+#include <vector>
 
 #define VOLATILITY_LIST_SIZE 10
 
@@ -48,11 +53,18 @@ inline bool sendState(){
 
 class AbstractDevice{
     private: 
-        std::vector<Interrupt_Desc> Idesc_list; 
+        std::vector<Interrupt_Desc> Idesc_list;
+        virtual void proc_message_impl(DynamicMessage& dmsg) = 0;
 
     public: 
         uint16_t id; 
-        bool hasInterrupt = false; 
+        bool hasInterrupt = false;
+
+        std::mutex m;
+        std::condition_variable cv;
+        bool processing = false;
+        bool watchersPaused = false;
+
 
         // Interrupt watch
         void addFileIWatch(std::string &fileName, std::function<bool()> handler = sendState){
@@ -72,8 +84,35 @@ class AbstractDevice{
 
         virtual void set_ports(std::unordered_map<std::string, std::string> &src) = 0;  
 
-        virtual void proc_message(DynamicMessage input){
+        virtual void proc_message(DynamicMessage input) {
+            // wait for interruptors to stop
+            {
+                std::unique_lock lk(m);
+                cv.wait(lk, [this]{ return !watchersPaused; });
+            }
+            std::cout << "step 1: aquired lock from manageWatcher after unpausing" << std::endl;
 
+            {
+                std::lock_guard lk(m);
+                processing = true;
+            }
+            std::cout << "step 2: processing to true, notify manageWatcher" << std::endl;
+            cv.notify_one();
+
+            {
+                std::unique_lock lk(m);
+                cv.wait(lk, [this]{ return watchersPaused; });
+            }
+            std::cout << "step 5: aquired lock from manageWatcher after pausing" << std::endl;
+            
+            // tell interruptors to start again
+            {
+                std::lock_guard lk(m);
+                proc_message_impl(input);
+                processing = false;
+            }
+            std::cout << "step 6: processing to false, notify manageWatcher" << std::endl;
+            cv.notify_one();
         }
 
         virtual void read_data(DynamicMessage &newMsg) = 0; 
@@ -160,9 +199,10 @@ class DeviceTimer{
                 this->timer.cancel();
 
                 timerCallback(); 
+                
+                this->poll_period = new_period; 
             }
 
-            this->poll_period = poll_period; 
         }
 
         void Send(SentMessage &msg){
@@ -237,7 +277,9 @@ class DeviceInterruptor{
     private: 
         std::shared_ptr<AbstractDevice> abs_device; 
         std::shared_ptr<Connection> client_connection; 
+        std::thread watcherManagerThread;
         std::vector<std::thread> &globalWatcherThreads; 
+        std::vector<std::tuple<int, int, std::string>> watchDescriptors; 
         int ctl_code; 
         int device_code; 
 
@@ -265,6 +307,57 @@ class DeviceInterruptor{
             this->client_connection->send(sm); 
         }
 
+        void disableWatchers() { 
+            for (auto&& [fd, wd, filename] : watchDescriptors) {
+                inotify_rm_watch(fd, wd);
+            }
+        }
+
+        void enableWatchers() {
+            for (auto& [fd, wd, filename] : watchDescriptors) {
+                wd = inotify_add_watch(fd, filename.c_str(), IN_CLOSE_WRITE); 
+                if(wd < 0){
+                    std::cerr<<"Could not add watcher"<<std::endl; 
+                    close(fd);
+                }
+            }
+        }
+
+        void manageWatchers() {
+            while (true) {
+                auto& m = this->abs_device->m;
+                auto& cv = this->abs_device->cv;
+                auto& processing = this->abs_device->processing;
+                auto& watchersPaused = this->abs_device->watchersPaused;
+                {
+                    std::unique_lock lk(m);
+                    cv.wait(lk, [&processing] { return processing; });
+                }
+                std::cout << "step 3: aquired lock from proc_message after init" << std::endl;
+
+                {
+                    std::lock_guard lk(m);
+                    disableWatchers();
+                    watchersPaused = true;
+                }
+                std::cout << "step 4: watchersPaused to true, notify proc_message" << std::endl;
+                cv.notify_one();
+
+                {
+                    std::unique_lock lk(m);
+                    cv.wait(lk, [&processing] { return !processing; });
+                }
+                std::cout << "step 7: aquired lock from proc_message after processing" << std::endl;
+
+                {
+                    std::lock_guard lk(m);
+                    enableWatchers();
+                    watchersPaused = false;
+                }
+                std::cout << "step 8: watchersPaused to false, notify proc_message" << std::endl;
+                cv.notify_one();
+            }
+        }
 
         // Add Inotify thread blocking code here
         void IFileWatcher(std::string fname, std::function<bool()> handler ){
@@ -277,33 +370,37 @@ class DeviceInterruptor{
             }
 
             // The IFileWatcher makes the call when the file is modified
-            int wd = inotify_add_watch(fd, fname.c_str(), IN_MODIFY); 
+            int wd = inotify_add_watch(fd, fname.c_str(), IN_CLOSE_WRITE); 
             if(wd < 0){
                 std::cerr<<"Could not perform an inotify event"<<std::endl; 
                 close(fd); 
             }
 
+            watchDescriptors.push_back({fd, wd, fname});
+
             // For now we can bypass the metadata and store data for the filesize and stuff;
             char event_buffer[sizeof(inotify_event) + 256]; 
             while(true){
+                std::cout<<"Waiting for event"<<std::endl;
                 int read_length = read(fd, event_buffer, sizeof(event_buffer)); 
                 struct inotify_event* event = (struct inotify_event*)event_buffer; 
-                if(event->mask & IN_MODIFY){
-                    bool ret_val = handler(); 
-                    if(ret_val){
-                        this->sendMessage();  
-                    }
+                if (event->mask == IN_IGNORED) {
+                    std::cout << "drop removed watch event" << std::endl;
+                    continue;
+                }
+
+                bool ret_val = handler(); 
+                if(ret_val && !this->abs_device->processing){
+                    std::cerr<<"Sending message"<<std::endl;
+                    this->sendMessage();  
                 }
             }
-                
         }
-
 
         void IGpioWatcher(int portNum, std::function<bool()> handler){
                 std::cerr<<"GPIO Interrupts not yet supported!"<<std::endl; 
         }
         
-
     public: 
         // Device Interruptor
         DeviceInterruptor(std::shared_ptr<AbstractDevice> targDev,  std::shared_ptr<Connection> conex, std::vector<std::thread> &gWT,  
@@ -315,7 +412,6 @@ class DeviceInterruptor{
             this->ctl_code = ctl; 
             this->device_code = dd; 
         }
-
 
         // Setup Watcher Thread
         void setupThreads(){
@@ -341,7 +437,7 @@ class DeviceInterruptor{
                     }
                 }
             }
-            
+            watcherManagerThread = std::thread([this] { this->manageWatchers(); });
         }
 
 

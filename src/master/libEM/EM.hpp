@@ -33,6 +33,7 @@ class ExecutionUnit
     void running(TSM<string, HeapMasterMessage> &vtypeHMMsMap, TSQ<DynamicMasterMessage> &sendMM);
     //vector<shared_ptr<HeapDescriptor>> transformState(vector<shared_ptr<HeapDescriptor>> HMM_List);
     function<vector<BlsLang::BlsType>(vector<BlsLang::BlsType>)>  transform_function;
+    ~ExecutionUnit();
 };
 
 class ExecutionManager
