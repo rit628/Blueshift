@@ -56,6 +56,36 @@ class AbstractDevice{
         std::vector<Interrupt_Desc> Idesc_list;
         virtual void proc_message_impl(DynamicMessage& dmsg) = 0;
 
+        void coordinateInterrupt(DynamicMessage input){
+            {
+                std::unique_lock lk(m);
+                cv.wait(lk, [this]{ return !watchersPaused; });
+            }
+            std::cout << "step 1: aquired lock from manageWatcher after unpausing" << std::endl;
+
+            {
+                std::lock_guard lk(m);
+                processing = true;
+            }
+            std::cout << "step 2: processing to true, notify manageWatcher" << std::endl;
+            cv.notify_one();
+
+            {
+                std::unique_lock lk(m);
+                cv.wait(lk, [this]{ return watchersPaused; });
+            }
+            std::cout << "step 5: aquired lock from manageWatcher after pausing" << std::endl;
+            
+            // tell interruptors to start again
+            {
+                std::lock_guard lk(m);
+                proc_message_impl(input);
+                processing = false;
+            }
+            std::cout << "step 6: processing to false, notify manageWatcher" << std::endl;
+            cv.notify_one();
+        }
+
     public: 
         uint16_t id; 
         bool hasInterrupt = false;
@@ -86,34 +116,17 @@ class AbstractDevice{
 
         virtual void proc_message(DynamicMessage input) {
             // wait for interruptors to stop
-            {
-                std::unique_lock lk(m);
-                cv.wait(lk, [this]{ return !watchersPaused; });
+            if(!this->hasInterrupt){
+                // Add a proper polling based concurrency handler 
+                proc_message_impl(input); 
             }
-            std::cout << "step 1: aquired lock from manageWatcher after unpausing" << std::endl;
-
-            {
-                std::lock_guard lk(m);
-                processing = true;
+            else{
+               // Interrupt handler: 
+               this->coordinateInterrupt(input); 
             }
-            std::cout << "step 2: processing to true, notify manageWatcher" << std::endl;
-            cv.notify_one();
-
-            {
-                std::unique_lock lk(m);
-                cv.wait(lk, [this]{ return watchersPaused; });
-            }
-            std::cout << "step 5: aquired lock from manageWatcher after pausing" << std::endl;
-            
-            // tell interruptors to start again
-            {
-                std::lock_guard lk(m);
-                proc_message_impl(input);
-                processing = false;
-            }
-            std::cout << "step 6: processing to false, notify manageWatcher" << std::endl;
-            cv.notify_one();
         }
+
+
 
         virtual void read_data(DynamicMessage &newMsg) = 0; 
  
