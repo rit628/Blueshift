@@ -171,10 +171,10 @@ add_executable(test_libparser ${LIBPARSER_TESTS})
 target_include_directories(test_libparser PUBLIC ${TEST_DEPS} ${LANG_COMMON} ${LANG_SRC_DIR}/libparser)
 target_link_libraries(test_libparser parser lang_common GTest::gtest_main)
 
-# file(GLOB_RECURSE LANG_E2E_TESTS ${LANG_TEST_DIR}/e2e/*.cpp)
-# add_executable(test_lang ${LANG_E2E_TESTS})
-# target_include_directories(test_lang PUBLIC ${TEST_DEPS} ${LANG_COMMON} ${LANG_SRC_DIR})
-# target_link_libraries(test_lang lexer parser interpreter lang_common GTest::gtest_main)
+file(GLOB_RECURSE LANG_E2E_TESTS ${LANG_TEST_DIR}/e2e/*.cpp)
+add_executable(test_lang ${LANG_E2E_TESTS})
+target_include_directories(test_lang PUBLIC ${TEST_DEPS} ${LANG_COMMON} ${LANG_SRC_DIR})
+target_link_libraries(test_lang compiler lang_common GTest::gtest_main)
 
 # MASTER TESTS
 file(GLOB_RECURSE LIBTSM_TESTS ${MASTER_TEST_DIR}/libTSM/*.cpp)
@@ -195,10 +195,10 @@ target_link_libraries(test_libMM MM GTest::gtest_main)
 include(GoogleTest)
 gtest_discover_tests(test_liblexer)
 gtest_discover_tests(test_libparser)
-# gtest_discover_tests(
-#     test_lang
-#     WORKING_DIRECTORY ${LANG_TEST_DIR}/e2e/samples
-# )
+gtest_discover_tests(
+    test_lang
+    WORKING_DIRECTORY ${LANG_TEST_DIR}/e2e/samples
+)
 gtest_discover_tests(test_libTSQ)
 gtest_discover_tests(test_libTSM)
 gtest_discover_tests(test_libDM)

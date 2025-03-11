@@ -16,6 +16,8 @@ namespace BlsLang {
         });
         std::string expectedStdout = "A string.\n";
         TEST_E2E_OBLOCK("printString", {L1}, {L1}, expectedStdout);
+        expectedStdout = "A string. Another string.\n";
+        TEST_E2E_OBLOCK("printAppendedString", {L1}, {L1}, expectedStdout);
     }
 
 }

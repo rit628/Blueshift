@@ -2,7 +2,14 @@ oblock printString(LIGHT L) {
     println("A string.");
 }
 
+oblock printAppendedString(LIGHT L) {
+    string s = "A string.";
+    s += " Another string.";
+    println(s);
+}
+
 setup() {
     LIGHT L1 = "CTL::PWR-0";
     printString(L1);
+    printAppendedString(L1);
 }
