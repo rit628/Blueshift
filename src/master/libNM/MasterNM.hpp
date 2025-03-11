@@ -30,7 +30,7 @@ class MasterNM{
         std::unordered_map<std::string, uint16_t> device_alias_map;
 
         // Maps controller alias to devices
-        std::unordered_map<std::string, uint16_t> controller_alias_map; 
+        std::unordered_map<std::string, uint16_t> controller_alias_map;
 
         // Oblock map
         std::unordered_map<std::string, uint16_t> oblock_alias_map;     
