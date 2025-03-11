@@ -9,7 +9,9 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <stdexcept>
 #include <string>
+#include <typeinfo>
 #include <variant>
 #include <vector>
 
@@ -33,15 +35,15 @@ std::any Interpreter::visit(AstNode::Source& ast) {
 }
 
 std::any Interpreter::visit(AstNode::Function::Procedure& ast) {
-    auto& functionName = ast.getName();
+    auto& procedureName = ast.getName();
 
-    auto function = [&ast](Interpreter& exec, std::vector<BlsType> args) -> std::any {
-        auto& functionName = ast.getName();
+    auto procedure = [&ast](Interpreter& exec, std::vector<BlsType> args) -> std::any {
+        auto& procedureName = ast.getName();
         auto& params = ast.getParameters();
         auto& statements = ast.getStatements();
         exec.cs.pushFrame(CallStack<std::string>::Frame::Context::FUNCTION);
         if (params.size() != args.size()) {
-            throw RuntimeError("Invalid number of arguments provided to function call.");
+            throw RuntimeError("Invalid number of arguments provided to procedure call.");
         }
         for (int i = 0; i < params.size(); i++) {
             exec.cs.setLocal(params.at(i), args.at(i));
@@ -60,7 +62,7 @@ std::any Interpreter::visit(AstNode::Function::Procedure& ast) {
         exec.cs.popFrame();
         return std::monostate();
     };
-    functions.emplace(functionName, function);
+    procedures.emplace(procedureName, procedure);
     return std::monostate();
 }
 
@@ -104,9 +106,13 @@ std::any Interpreter::visit(AstNode::Setup& ast) {
 }
 
 std::any Interpreter::visit(AstNode::Statement::If& ast) {
-    auto checkCondition = [this](AstNode& expr) -> bool {
+    auto checkCondition = [this](AstNode& expr) {
         auto conditionResult = expr.accept(*this);
-        return std::get<bool>(resolve(conditionResult));
+        auto resolvedCondition = resolve(conditionResult);
+        if (!std::holds_alternative<bool>(resolvedCondition)) {
+            throw RuntimeError("Condition must resolve to a boolean value");
+        }
+        return std::get<bool>(resolvedCondition);
     };
 
     if (checkCondition(*ast.getCondition())) {
@@ -150,7 +156,11 @@ std::any Interpreter::visit(AstNode::Statement::For& ast) {
     if (condition.has_value()) {
         conditionExec = [&condition, this]() {
             auto conditionResult = condition->get()->accept(*this);
-            return std::get<bool>(resolve(conditionResult));
+            auto resolvedCondition = resolve(conditionResult);
+            if (!std::holds_alternative<bool>(resolvedCondition)) {
+                throw RuntimeError("Condition must resolve to a boolean value");
+            }
+            return std::get<bool>(resolvedCondition);
         };
     }
     if (incrementExpression.has_value()) {
@@ -197,7 +207,11 @@ std::any Interpreter::visit(AstNode::Statement::While& ast) {
 
     auto conditionExec = [&condition, this]() {
         auto conditionResult = condition->accept(*this);
-        return std::get<bool>(resolve(conditionResult));
+        auto resolvedCondition = resolve(conditionResult);
+        if (!std::holds_alternative<bool>(resolvedCondition)) {
+            throw RuntimeError("Condition must resolve to a boolean value");
+        }
+        return std::get<bool>(resolvedCondition);
     };
     while (conditionExec()) {
         try {
@@ -247,7 +261,11 @@ std::any Interpreter::visit(AstNode::Statement::Declaration& ast) {
     if (cs.checkContext(CallStack<std::string>::Frame::Context::SETUP)) {
         auto devtype = std::any_cast<DEVTYPE>(ast.getType()->accept(*this));
         auto binding = value->get()->accept(*this);
-        auto& bindStr = std::get<std::string>(resolve(binding));
+        auto resolved = resolve(binding);
+        if (!std::holds_alternative<std::string>(resolved)) {
+            throw RuntimeError("binding for devtype must be a string literal");
+        }
+        auto& bindStr = std::get<std::string>(resolved);
         auto devDesc = parseDeviceBinding(name, devtype, bindStr);
         deviceDescriptors.emplace(name, devDesc);
     }
@@ -359,6 +377,7 @@ std::any Interpreter::visit(AstNode::Expression::Binary& ast) {
 
         default:
             throw RuntimeError("Invalid operator supplied.");
+        break;
     }
 }
 
@@ -403,6 +422,7 @@ std::any Interpreter::visit(AstNode::Expression::Unary& ast) {
 
         default:
             throw RuntimeError("Invalid operator supplied.");
+        break;
     }
 }
 
@@ -419,12 +439,25 @@ std::any Interpreter::visit(AstNode::Expression::Method& ast) {
         resolvedArgs.push_back(resolve(visited));
     }
     auto& methodName = ast.getMethodName();
+    if (!std::holds_alternative<std::shared_ptr<HeapDescriptor>>(cs.getLocal(object))) {
+        throw RuntimeError("methods may only be applied on container type objects");
+    }
     auto& operable = std::get<std::shared_ptr<HeapDescriptor>>(cs.getLocal(object));
     if (methodName == "append") {
-        dynamic_cast<VectorDescriptor&>(*operable).append(resolvedArgs.at(0));
+        try {
+            dynamic_cast<VectorDescriptor&>(*operable).append(resolvedArgs.at(0));
+        }
+        catch (std::bad_cast) {
+            throw RuntimeError("append may only be used on list type objects");
+        }
     }
     else if (methodName == "add") {
-        dynamic_cast<MapDescriptor&>(*operable).emplace(resolvedArgs.at(0), resolvedArgs.at(1));
+        try {
+            dynamic_cast<MapDescriptor&>(*operable).emplace(resolvedArgs.at(0), resolvedArgs.at(1));
+        }
+        catch (std::bad_cast) {
+            throw RuntimeError("add may only be used on map type objects");
+        }
     }
     else if (methodName == "size") {
         return BlsType(operable->getSize());
@@ -441,13 +474,21 @@ std::any Interpreter::visit(AstNode::Expression::Function& ast) {
     if (cs.checkContext(CallStack<std::string>::Frame::Context::SETUP)) {
         OBlockDesc desc;
         desc.name = name;
+        if (!oblocks.contains(name)) {
+            throw RuntimeError(name + " does not refer to an oblock");
+        }
         auto& devices = desc.binded_devices;
         for (auto&& arg : args) {
             auto* expr = dynamic_cast<AstNode::Expression::Access*>(arg.get());
             if (expr == nullptr || expr->getMember().has_value() || expr->getSubscript().has_value()) {
-                throw RuntimeError("Invalid binding in setup()");
+                throw RuntimeError("Invalid oblock binding in setup()");
             }
-            devices.push_back(deviceDescriptors.at(expr->getObject()));
+            try {
+                devices.push_back(deviceDescriptors.at(expr->getObject()));
+            }
+            catch (std::out_of_range) {
+                throw RuntimeError(expr->getObject() + " does not refer to a device binding");
+            }
         }
         oblockDescriptors.push_back(desc);
         return std::monostate();
@@ -457,7 +498,10 @@ std::any Interpreter::visit(AstNode::Expression::Function& ast) {
         auto result = arg->accept(*this);
         argObjects.push_back(resolve(result));
     }
-    auto& f = functions.at(name);
+    if (!procedures.contains(name)) {
+        throw RuntimeError("No procedure named: " + name);
+    }
+    auto& f = procedures.at(name);
     return f(*this, argObjects);
 }
 
@@ -466,11 +510,17 @@ std::any Interpreter::visit(AstNode::Expression::Access& ast) {
     auto& member = ast.getMember();
     auto& subscript = ast.getSubscript();
     if (member.has_value()) {
+        if (!std::holds_alternative<std::shared_ptr<HeapDescriptor>>(cs.getLocal(object))) {
+            throw RuntimeError("member access only possible on container type objects and devtypes");
+        }
         auto& accessible = std::get<std::shared_ptr<HeapDescriptor>>(cs.getLocal(object));
         auto memberName = BlsType(member.value());
         return std::ref(accessible->access(memberName));
     }
     else if (subscript.has_value()) {
+        if (!std::holds_alternative<std::shared_ptr<HeapDescriptor>>(cs.getLocal(object))) {
+            throw RuntimeError("subscript access only possible on container type objects");
+        }
         auto& subscriptable = std::get<std::shared_ptr<HeapDescriptor>>(cs.getLocal(object));
         auto index = subscript->get()->accept(*this);
         return std::ref(subscriptable->access(resolve(index)));
@@ -572,8 +622,19 @@ std::any Interpreter::visit(AstNode::Specifier::Type& ast) {
             #undef ATTRIBUTE
             #undef DEVTYPE_END
 
+            #define CONTAINER_BEGIN(name, ...) \
+            case TYPE::name##_t: \
+                throw RuntimeError("container type must include element type arguments"); \
+            break;
+            #define METHOD(...)
+            #define CONTAINER_END
+            #include "CONTAINER_TYPES.LIST"
+            #undef CONTAINER_BEGIN
+            #undef METHOD
+            #undef CONTAINER_END
+            
             default:
-                throw RuntimeError("container type must include element type arguments");
+                throw RuntimeError("invalid type");
             break;
         }
     }

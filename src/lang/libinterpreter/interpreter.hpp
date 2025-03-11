@@ -102,7 +102,7 @@ namespace BlsLang {
             BlsType& resolve(std::any& val);
 
             CallStack<std::string> cs;
-            std::unordered_map<std::string, std::function<std::any(Interpreter&, std::vector<BlsType>)>> functions = {
+            std::unordered_map<std::string, std::function<std::any(Interpreter&, std::vector<BlsType>)>> procedures = {
                 {"println", [](Interpreter&, std::vector<BlsType> args) -> std::any {
                     for (auto&& arg : args) {
                         if (std::holds_alternative<int>(arg)) {
@@ -149,6 +149,7 @@ namespace BlsLang {
                             std::cout << " " << std::get<std::string>(arg) << std::flush;
                         }
                     }
+                    std::cout << std::endl;
                     return std::monostate();
                 }}
             };

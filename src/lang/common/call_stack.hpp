@@ -1,5 +1,6 @@
 #pragma once
 #include "bls_types.hpp"
+#include "error_types.hpp"
 #include <cstddef>
 #include <span>
 #include <stack>
@@ -108,13 +109,22 @@ namespace BlsLang {
 
     template<StackType T>
     inline void CallStack<T>::setLocal(T index, BlsType value) {
-        getLocal(index) = value;
+        if constexpr (std::is_same<T, std::string>()) {
+            cs.back().locals[index] = value;
+        }
+        else {
+            cs.top().locals[index] = value;
+        }
     }
 
     template<StackType T>
     inline BlsType& CallStack<T>::getLocal(T index) {
         if constexpr (std::is_same<T, std::string>()) {
-            return cs.back().locals[index];
+            auto& locals = cs.back().locals;
+            if (!locals.contains(index)) {
+                throw RuntimeError("local variable: " + index + " does not exist");
+            }
+            return locals[index];
         }
         else {
             return cs.top().locals[index];
