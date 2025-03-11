@@ -30,7 +30,7 @@ def deploy(args):
     atexit.register(clean_shutdown, base_cmd)
     
     command = [*base_cmd, "up"]
-    os.environ["DEPLOY_SRC"] = f"samples/{args.filename}"
+    os.environ["DEPLOY_SRC"] = f"samples/src/{args.filename}"
     if args.num_clients:
         os.environ["NUM_CLIENTS"] = args.num_clients
     if args.build:

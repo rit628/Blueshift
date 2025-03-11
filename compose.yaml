@@ -33,7 +33,7 @@ services:
     image: ${MASTER_IMAGE_NAME}
     volumes:
       - build:${MASTER_CONTAINER_WORKDIR}/build
-      - ./samples/src:${MASTER_CONTAINER_WORKDIR}/samples
+      - ./samples/src:${MASTER_CONTAINER_WORKDIR}/samples/src
     expose:
       - ${MASTER_PORT}
     env_file:
@@ -53,7 +53,7 @@ services:
     image: ${CLIENT_IMAGE_NAME}
     volumes:
       - build:${CLIENT_CONTAINER_WORKDIR}/build
-      - ./samples/client:${CLIENT_CONTAINER_WORKDIR}/samples
+      - ./samples/client:${CLIENT_CONTAINER_WORKDIR}/samples/client
     deploy:
       mode: replicated
       replicas: ${NUM_CLIENTS}
