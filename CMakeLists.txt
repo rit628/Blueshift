@@ -39,17 +39,19 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$ENV{RUNTIME_OUTPUT_DIREC
 set(BLS_CONFIG ${CMAKE_SOURCE_DIR}/config)
 
 set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
+set(UTIL_SRC_DIR ${SRC_DIR}/util)
 set(COMMON_SRC_DIR ${SRC_DIR}/common)
+set(LANG_SRC_DIR ${SRC_DIR}/lang)
 set(MASTER_SRC_DIR ${SRC_DIR}/master)
 set(CLIENT_SRC_DIR ${SRC_DIR}/client)
-set(LANG_SRC_DIR ${SRC_DIR}/lang)
+
 
 set(TEST_DIR ${CMAKE_SOURCE_DIR}/test)
 set(TEST_DEPS ${TEST_DIR}/include)
 set(COMMON_TEST_DIR ${TEST_DIR}/common)
+set(LANG_TEST_DIR ${TEST_DIR}/lang)
 set(MASTER_TEST_DIR ${TEST_DIR}/master)
 set(CLIENT_TEST_DIR ${TEST_DIR}/client)
-set(LANG_TEST_DIR ${TEST_DIR}/lang)
 
 set(LANG_COMMON ${LANG_SRC_DIR}/common)
 
@@ -143,8 +145,8 @@ add_executable(client ${CLIENT_SRC_DIR}/main.cpp)
 target_include_directories(client PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_SRC_DIR})
 target_link_libraries(client device client_engine ${BOOST_LIB_DEPS})
 
-add_executable(tester ${CLIENT_SRC_DIR}/testerMain.cpp)
-
+# UTILITY EXECUTABLES
+add_executable(echo ${UTIL_SRC_DIR}/echo/main.cpp)
 
 # TESTS
 enable_testing()
