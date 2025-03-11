@@ -37,7 +37,7 @@ class TestTimer : public AbstractDevice{
     public: 
 
         void set_ports(std::unordered_map<std::string, std::string> &srcs) override {
-            filename = "./testDir/" + srcs["file"]; 
+            filename = "./samples/" + srcs["file"]; 
             write_file.open(filename);
             if(write_file.is_open()){
                 std::cout<<"Could find file"<<std::endl; 
@@ -115,7 +115,7 @@ class StringReader : public AbstractDevice{
         }
         
         void set_ports(std::unordered_map<std::string, std::string> &src) override {
-            this->filename = "./testDir/" + src["file"]; 
+            this->filename = "./samples/" + src["file"]; 
             
             this->file_stream.open(filename, std::ios::in | std::ios::out); 
             if(file_stream.is_open()){

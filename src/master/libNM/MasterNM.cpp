@@ -135,9 +135,13 @@ void MasterNM::listenForConnections(){
         auto newCon = std::make_shared<Connection>(
             this->master_ctx, std::move(socket), Owner::MASTER, this->in_queue, endpt);
 
+        std::cout<<"CONNECTION RECIEVED"<<std::endl;     
 
-        this->connection_map["unassigned"] = std::move(newCon);
-        this->connection_map["unassigned"]->connectToClient(); 
+        this->temp_vector.push_back(newCon); 
+        //this->connection_map["unassigned"] = std::move(newCon);
+        newCon->connectToClient(); 
+
+        std::cout<<"MOVED CONNECTION"<<std::endl; 
 
         // Send Messages to logic: 
         listenForConnections(); 
@@ -262,6 +266,8 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
             std::string ctl_name; 
             dmsg.unpack("__CONTROLLER_NAME__", ctl_name);
             auto it = std::find(this->controller_list.begin(), this->controller_list.end(), ctl_name); 
+
+            std::cout<<"REACHED CLIENT CONFIG"<<std::endl; 
 
             if(it != this->controller_list.end()){
                 this->connection_map[ctl_name] = std::move(in_msg.connection);
