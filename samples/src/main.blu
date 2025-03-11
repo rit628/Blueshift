@@ -1,13 +1,31 @@
-oblock printString(LIGHT L) {
-    int a = 0B101;
-    /*list<int> l;
-    for (int i = 0; i < 999; i++) {
-        l.append(a + i);
-        println(l[i]);
-    }*/
+oblock printString(TIMER_TEST TT, TIMER_TEST TO, TIMER_TEST TK) {
+    float current_val = TT.test_val; 
+    println("Print val is: " , current_val); 
+    println("Print other val is: " , TO.test_val); 
+    println("Print other val is: " , TK.test_val); 
+    TT.test_val = current_val + 444; 
+    TO.test_val += 999.9; 
+    TK.test_val -= 999.9; 
+}
+
+
+oblock copyLine(LINE_WRITER lw1, LINE_WRITER lw2){
+    println("MESSAGE FROM FILE1.TXT: " + lw1.msg); 
+    println("MESSAGE FROM FILE2.TXT: " + lw2.msg); 
+
+    string new_msg = lw1.msg;
+    lw1.msg = lw2.msg;
+    lw2.msg = new_msg;
 }
 
 setup() {
-    LIGHT L1 = "blueshift-client-1::PWR-0";
-    printString(L1);
+    TIMER_TEST L1 = "blueshift-client-1::file-omar.txt";
+    TIMER_TEST L2 = "blueshift-client-1::file-omar2.txt";
+    TIMER_TEST L3 = "blueshift-client-1::file-omar3.txt";
+    LINE_WRITER k2 = "blueshift-client-1::file-file1.txt"; 
+    LINE_WRITER k3 = "blueshift-client-1::file-file2.txt"; 
+    
+    //printString(L1, L2, L3);
+    copyLine(k2, k3); 
+
 }

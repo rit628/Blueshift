@@ -8,7 +8,7 @@ int main(int argc, char** argv){
     
     
     std::ofstream ostream; 
-    ostream.open("./testDir/file1.txt"); 
+    ostream.open("./samples/client/file1.txt"); 
     for(int i = 0; i < argc; i++){
         ostream << argv[i+1]; 
         /*
