@@ -71,7 +71,7 @@ target_link_libraries(message ${BOOST_LIB_DEPS})
 add_executable(client ${CLIENT_SRC_DIR}/main.cpp)
 target_link_libraries(client message ${BOOST_LIB_DEPS})
 ```
-5. Build with `./bls build` and run with `./bls run` (first build will take some time due to docker image builds).
+5. Build with `./bls build client`, run with `./bls run client`, and debug with `./bls debug client` (first build will take some time due to docker image builds).
 6. If desired, test cases can be added to `CMakeLists.txt` as follows:
 ```cmake
 set(CLIENT_TEST_DIR ${TEST_DIR}/client)
