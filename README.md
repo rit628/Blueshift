@@ -5,6 +5,9 @@
 - `cmake 3.25+`
 - `python 3.9+`
 - `clang 18+`
+- `clangd 18+`
+- `lldb 18+`
+- `lld 18+`
 
 ## File & Directory Structure
 - `bls` - Primary build script for Blueshift. This is the main script you should use for building, running, and testing the project. For a list of commands and options run `./bls --help`. Further, for help with any of the commands and their respective subcommands/options, run `./bls [command] --help`.
@@ -97,6 +100,14 @@ It is highly recommended to use `clangd 18+` as the language server for developm
 - If the Microsoft C/C++ is installed, disable Intellisense (there will be a pop up upon opening the project).
 - Run `./bls build` to do an initial build and generate `compile_commands.json`.
 - Run the `clangd: Restart language server` command within VSCode to update the server with the new dependencies.
+
+It is highly recommended to use `lldb 18+` as the debugger for development, as it will integrate automatically with the build script and the VSCode visual debugger. The instructions for setup with the VSCode visual debugger are given below:
+- Install the `CodeLLDB` extension.
+- Add the following line to the settings map your workspace configuration: `"lldb.rpcServer": { "host": "127.0.0.1", "port": 7349, "token": "blueshift" }`.
+- Additionally, optionally add the following line to your settings map if you would like to manually control disassembly view `"lldb.showDisassembly": "never"`.
+- If using a single root workspace, the aforementioned line(s) will need to be added to the settings configuration within `.vscode/settings.json`.
+- If using a multi-root workspace, the aforementioned line(s) will need to be added to the settings configuration within `[workspace-name].code-workspace` under the `settings` key in the root map.
+- Otherwise, if neither of the above work, simply add it to the global `settings.json` configuration for your user profile.
 
 # Guidelines & Best Practices
 

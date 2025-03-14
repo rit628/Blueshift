@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 import argparse
 import os
+import re
 import sys
 import atexit
 import subprocess
+import socket
+import time
 import multiprocessing as mp
 
 PROJECT_NAME = os.environ.get("PROJECT_NAME")
@@ -13,6 +16,7 @@ DEFAULT_NUM_CLIENTS = os.environ.get("NUM_CLIENTS")
 BUILD_MOUNT_DIR = os.environ.get("BUILD_MOUNT_DIR")
 BUILD_OUTPUT_DIRECTORY = os.environ.get("BUILD_OUTPUT_DIRECTORY")
 RUNTIME_OUTPUT_DIRECTORY = os.environ.get("RUNTIME_OUTPUT_DIRECTORY")
+REMOTE_OUTPUT_DIRECTORY = os.environ.get("REMOTE_OUTPUT_DIRECTORY")
 NUM_CORES = mp.cpu_count()
 
 def supressPythonErrors():
@@ -42,6 +46,21 @@ def check_successful_reset_or_force():
         subprocess.run(["docker", "image", "rm", "-f"] + image_ids.split('\n'))
         subprocess.run(["docker", "volume", "rm", "-f"] + volumes.split('\n'))
 
+def wait_for_lldb_server(port):
+    shell = subprocess.Popen(os.environ.get("SHELL"), shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    pattern = re.compile(f"{port}/tcp")
+    while(True):
+        out, _ = shell.communicate("docker container ls")
+        if pattern.search(out):
+            return
+        time.sleep(.25)
+
+def get_free_port():
+    sock = socket.socket()
+    sock.bind(('', 0))
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    return sock.getsockname()[1]
+
 def run(args):
     sys.stderr = supressPythonErrors()
     if args.local:
@@ -49,6 +68,67 @@ def run(args):
         subprocess.run([executable, *args.binary_args], check=True)
     else:
         subprocess.run(["docker", "compose", "run", "--rm", "builder",  "run", "-l", args.binary, *args.binary_args], check=True)
+
+def debug(args):
+    executable = os.path.join("." ,BUILD_OUTPUT_DIRECTORY, RUNTIME_OUTPUT_DIRECTORY, args.binary)
+    allow_visual = not args.terminal and args.debugger == "lldb"
+    debug_name = str(args.binary).capitalize()
+    # Add controller name to debug name for readability
+    debug_name += "-" + str(args.binary_args[0]) if args.binary == "client" and len(args.binary_args) > 0 else ""
+    CODELLDB_ADDRESS = ("127.0.0.1", 7349)
+
+    if args.server:
+        if args.debugger == "lldb":
+            subprocess.run(["lldb-server", "gdbserver", f"*:{args.server}", "--", executable, *args.binary_args])
+        else:
+            subprocess.run(["gdbserver", f"*:{args.server}", executable, *args.binary_args])
+    elif args.local:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            if allow_visual and s.connect_ex(CODELLDB_ADDRESS) == 0: # debug locally with codelldb
+                s.sendall(f"""
+                {{
+                    name: '{debug_name}',
+                    token: 'blueshift',
+                    terminal: 'console',
+                    program: {executable},
+                    args: {args.binary_args}
+                }}
+                """.encode())
+            else: # debug locally in terminal
+                args_command = "--" if args.debugger == "lldb" else "--args"
+                subprocess.run([args.debugger, args_command, executable, *args.binary_args])
+    else:
+        DEBUG_SERVER_PORT = get_free_port()
+        remote_binary = os.path.join(REMOTE_OUTPUT_DIRECTORY, RUNTIME_OUTPUT_DIRECTORY, args.binary)
+        cwd = os.getcwd()
+        # Initialize debug server
+        subprocess.run(["docker", "container", "stop", "-t", "1", f"{debug_name}"])
+        subprocess.run(["docker", "compose", "run", "-d", "-p", f"{DEBUG_SERVER_PORT}:{DEBUG_SERVER_PORT}", "--name", debug_name, "--rm",
+                        "builder", "debug", "--server", f"{DEBUG_SERVER_PORT}", "--debugger", args.debugger, args.binary, *args.binary_args])
+        wait_for_lldb_server(DEBUG_SERVER_PORT)
+
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            if allow_visual and s.connect_ex(CODELLDB_ADDRESS) == 0: # debug remotely with 
+                s.sendall(f"""
+                {{
+                    name: '{debug_name}',
+                    token: 'blueshift',
+                    terminal: 'console',
+                    request: 'launch',
+                    sourceMap: {{ {BUILD_MOUNT_DIR} : {cwd} }},
+                    targetCreateCommands: ["target create {remote_binary}"],
+                    processCreateCommands: ["gdb-remote localhost:{DEBUG_SERVER_PORT}"]
+                }}
+                """.encode())
+            elif args.debugger == "lldb":
+                time.sleep(.25) # externally extend gdb-remote connection timeout
+                subprocess.run(["lldb", "-o", f"settings set target.source-map {BUILD_MOUNT_DIR} {cwd}",
+                                "-o", f"gdb-remote localhost:{DEBUG_SERVER_PORT}", "--", remote_binary, *args.binary_args])
+            else:
+                subprocess.run(["gdb", "-ex", f"target remote localhost:{DEBUG_SERVER_PORT}",
+                                "-ex", f"set substitute-path {BUILD_MOUNT_DIR} {cwd}",
+                                "--args", remote_binary, *args.binary_args])
+
 
 def deploy(args):
     base_cmd = ["docker", "compose"]
@@ -93,7 +173,10 @@ def build(args):
         core_count = str(max(1, min(args.parallel, NUM_CORES)))
         subprocess.run(["cmake", "--build", ".", "-j", core_count, "-t", *args.make], cwd=f"./{BUILD_OUTPUT_DIRECTORY}", check=True)
     else:
+        # build binaries on remote container
         subprocess.run(["docker", "compose", "run", "--rm", "builder",  "build", "-l", *build_args, *args.make], check=True)
+        # synchronize host and remote binaries for debug symbol access
+        subprocess.run(["docker", "compose", "run", "--rm", "synchronizer"], check=True)
 
 def test(args):
     sys.stderr = supressPythonErrors()
@@ -129,6 +212,28 @@ run_parser.add_argument("-l", "--local",
                         help="run selected binary on local host instead of in containerized environment",
                         action="store_true")
 run_parser.set_defaults(fn=run)
+
+debug_parser = subparsers.add_parser("debug", help=f"debug selected {PROJECT_NAME} binaries")
+debug_parser.add_argument("binary",
+                        help="binary to debug")
+debug_parser.add_argument("binary_args",
+                        help="program arguments",
+                        nargs="*",
+                        default=None)
+debug_parser.add_argument("-l", "--local",
+                        help="debug selected binary on local host instead of in containerized environment",
+                        action="store_true")
+debug_parser.add_argument("-s", "--server",
+                        help="create a gdb-server instance to attach to remotely at the specified port",
+                        default=None)
+debug_parser.add_argument("-t", "--terminal",
+                        help="force debugging through terminal alone",
+                        action="store_true")
+debug_parser.add_argument("-d", "--debugger",
+                        help="choose a specific debugger (note that the VSCode visual debugger is only supported with lldb)",
+                        choices=["lldb", "gdb"],
+                        default="lldb")
+debug_parser.set_defaults(fn=debug)
 
 deploy_parser = subparsers.add_parser("deploy", help=f"run {PROJECT_NAME} deployment environment (send SIGINT [ctrl+c] to stop gracefully)")
 deploy_parser.add_argument("filename",

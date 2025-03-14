@@ -6,6 +6,7 @@ networks:
 
 services:
   builder:
+    privileged: true
     hostname: ${BUILD_CONTAINER_NAME}
     container_name: ${BUILD_CONTAINER_NAME}
     command: ["build", "-l"]
@@ -20,6 +21,16 @@ services:
       - build:${BUILD_MOUNT_DIR}/build
     env_file:
       - .env
+
+  synchronizer:
+    volumes:
+      - build:/data
+      - ./${REMOTE_OUTPUT_DIRECTORY}:/copy
+    build:
+      context: .
+      dockerfile: .docker/synchronizer/Dockerfile
+    image: synchronizer
+    command: ["-a", "--info=progress2", "/data/", "/copy/"]
 
   master:
     hostname: ${MASTER_HOSTNAME}
