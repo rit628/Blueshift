@@ -226,6 +226,7 @@ debug_parser.add_argument("-l", "--local",
                         action="store_true")
 debug_parser.add_argument("-s", "--server",
                         help="create a gdb-server instance to attach to remotely at the specified port",
+                        metavar="PORT",
                         default=None)
 debug_parser.add_argument("-t", "--terminal",
                         help="force debugging through terminal alone",
@@ -263,6 +264,7 @@ build_parser.add_argument("-c", "--compiler",
                           default="clang++")
 build_parser.add_argument("-j", "--parallel",
                           help="set number of logical cores to use for compilation",
+                          metavar="JOBS",
                           type=int,
                           default=NUM_CORES)
 build_parser.add_argument("-t", "--build-type",
@@ -293,6 +295,7 @@ test_parser.add_argument("-l", "--local",
                          action="store_true")
 test_parser.add_argument("-R", "--tests-regex",
                          help="run subset of tests matching regular expression",
+                         metavar="REGEX",
                          default=".*")
 test_parser.set_defaults(fn=test)
 
