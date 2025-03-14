@@ -176,8 +176,8 @@ def build(args):
     else:
         # build binaries on remote container
         subprocess.run(["docker", "compose", "run", "--rm", "builder",  "build", "-l", *build_args, *args.make], check=True)
-        # synchronize host and remote binaries for debug symbol access
-        subprocess.run(["docker", "compose", "run", "--rm", "synchronizer"], check=True)
+        if args.build_type == "Debug": # synchronize host and remote binaries for debug symbol access
+            subprocess.run(["docker", "compose", "run", "--rm", "synchronizer"], check=True)
 
 def test(args):
     sys.stderr = supressPythonErrors()
