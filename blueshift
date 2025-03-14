@@ -170,7 +170,8 @@ def build(args):
         subprocess.run(["cmake", *cmake_args, "-S", ".", "-B", "build"], check=True)
 
     if args.local:
-        core_count = str(max(1, min(args.parallel, NUM_CORES)))
+        # 1 <= j <= n-1 (keep 1 core free for background tasks)
+        core_count = str(max(1, min(args.parallel, NUM_CORES - 1)))
         subprocess.run(["cmake", "--build", ".", "-j", core_count, "-t", *args.make], cwd=f"./{BUILD_OUTPUT_DIRECTORY}", check=True)
     else:
         # build binaries on remote container
