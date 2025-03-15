@@ -161,6 +161,11 @@ add_executable(bsmp ${BSM_PRINTER_SRC})
 target_include_directories(bsmp PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
 target_link_libraries(bsmp bytecode ${BOOST_LIB_DEPS})
 
+file(GLOB_RECURSE BSM_WRITER_SRC ${UTIL_SRC_DIR}/bsm_writer/*.cpp)
+add_executable(bsmw ${BSM_WRITER_SRC})
+target_include_directories(bsmw PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
+target_link_libraries(bsmw bytecode ${BOOST_LIB_DEPS})
+
 # TESTS
 enable_testing()
 
