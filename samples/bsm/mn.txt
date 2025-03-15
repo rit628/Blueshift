@@ -1,0 +1,3 @@
+CALL 16
+NOT
+LT
