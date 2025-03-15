@@ -77,6 +77,10 @@ add_library(network STATIC ${LIBNETWORK_SRC})
 target_include_directories(network PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
 target_link_libraries(network TSQ ${BOOST_LIB_DEPS})
 
+file(GLOB_RECURSE LIBBYTECODE_SRC ${COMMON_SRC_DIR}/libbytecode/*.cpp)
+add_library(bytecode STATIC ${LIBBYTECODE_SRC})
+target_include_directories(bytecode PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
+
 # LANG LIBS AND EXECUTABLE
 file(GLOB_RECURSE LANG_COMMON_SRC ${LANG_COMMON}/*.cpp)
 add_library(lang_common STATIC ${LANG_COMMON_SRC})
@@ -151,6 +155,11 @@ target_link_libraries(client device client_engine ${BOOST_LIB_DEPS})
 
 # UTILITY EXECUTABLES
 add_executable(echo ${UTIL_SRC_DIR}/echo/main.cpp)
+
+file(GLOB_RECURSE BSM_PRINTER_SRC ${UTIL_SRC_DIR}/bsm_printer/*.cpp)
+add_executable(bsmp ${BSM_PRINTER_SRC})
+target_include_directories(bsmp PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
+target_link_libraries(bsmp bytecode ${BOOST_LIB_DEPS})
 
 # TESTS
 enable_testing()
