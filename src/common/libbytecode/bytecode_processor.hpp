@@ -21,4 +21,5 @@ class BytecodeProcessor {
         #undef OPCODE_END
 
         std::ifstream bytecode;
+        std::vector<BlsType> literalPool;
 };

@@ -11,7 +11,7 @@ void BytecodeProcessor::loadBytecode(const std::string& filename) {
 }
 
 void BytecodeProcessor::dispatch() {
-    char buf[UINT16_MAX];
+    char buf[sizeof(uint16_t) + 1];
     while (bytecode.get(buf[0])) {
         OPCODE code = static_cast<OPCODE>(buf[0]);
         switch (code) {
