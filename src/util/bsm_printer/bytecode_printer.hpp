@@ -14,5 +14,8 @@ class BytecodePrinter : public BytecodeProcessor {
         #undef OPCODE_BEGIN
         #undef ARGUMENT
         #undef OPCODE_END
-
+    
+    private:
+        template<typename... Args>
+        void printArgs(Args... args);
 };
