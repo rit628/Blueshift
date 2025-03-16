@@ -9,16 +9,12 @@ int main(int argc, char** argv) {
         return 1; 
     }
     input = "./samples/bsm/" + std::string(argv[1]);
+    BytecodePrinter bsmp;
+    bsmp.loadBytecode(input);
     if (argc == 3) {
         output.open("./samples/bsm/" + std::string(argv[2]));
         stream = &output;
     }
-    if(argc < 2){
-        std::cerr << "invalid number of arguments provided" << std::endl;
-        return 1; 
-    }
-    BytecodePrinter bsmp;
-    bsmp.loadBytecode(input);
     bsmp.setOutputStream(*stream);
     bsmp.dispatch();
 }
