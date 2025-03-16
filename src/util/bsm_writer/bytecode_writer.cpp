@@ -11,20 +11,20 @@ void BytecodeWriter::loadMnemonicBytecode(const std::string& filename) {
     }
 }
 
-void BytecodeWriter::convertToBinary() {
+void BytecodeWriter::convertToBinary(std::ostream& stream) {
     std::stringstream ss;
     ss << mnemonicBytecode.rdbuf();
     std::string buf;
     while (ss >> buf) {
-        if (false) {}
+        if (false) {} // hack to force short circuiting and invalid input checking
         #define OPCODE_BEGIN(code) \
         else if (buf == #code) { \
             OPCODE c = OPCODE::code; \
-            std::cout.write(reinterpret_cast<const char *>(&c), 1);
+            stream.write(reinterpret_cast<const char *>(&c), 1);
         #define ARGUMENT(arg, type) \
             type arg; \
             ss >> arg; \
-            std::cout.write(reinterpret_cast<const char *>(&arg), sizeof(type));
+            stream.write(reinterpret_cast<const char *>(&arg), sizeof(type));
         #define OPCODE_END(...) \
         }
         #include "libbytecode/include/OPCODES.LIST"
@@ -35,9 +35,4 @@ void BytecodeWriter::convertToBinary() {
             std::cerr << "INVALID OPCODE: " << buf << std::endl;
         }
     }
-}
-
-template<typename... Args>
-void BytecodeWriter::printArgs(Args... args) {
-    ((std::cout << " " << args), ...);
 }

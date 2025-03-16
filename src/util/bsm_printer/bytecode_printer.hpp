@@ -3,6 +3,9 @@
 #include <cstdint>
 
 class BytecodePrinter : public BytecodeProcessor {
+    public:
+        void setOutputStream(std::ostream& stream = std::cout);
+
     protected:
         #define OPCODE_BEGIN(code) \
         void code(
@@ -18,4 +21,6 @@ class BytecodePrinter : public BytecodeProcessor {
     private:
         template<typename... Args>
         void printArgs(Args... args);
+
+        std::ostream* outputStream;
 };
