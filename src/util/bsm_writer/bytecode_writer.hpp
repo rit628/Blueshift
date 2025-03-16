@@ -6,11 +6,8 @@
 class BytecodeWriter {
     public:
         void loadMnemonicBytecode(const std::string& filename);
-        void convertToBinary();
+        void convertToBinary(std::ostream& stream = std::cout);
 
     private:
-        template<typename... Args>
-        void printArgs(Args... args);
-
         std::fstream mnemonicBytecode;
 };

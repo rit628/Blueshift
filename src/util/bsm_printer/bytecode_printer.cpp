@@ -2,9 +2,13 @@
 #include "libHD/HeapDescriptors.hpp"
 #include <cstdint>
 
+void BytecodePrinter::setOutputStream(std::ostream& stream) {
+    outputStream = &stream;
+}
+
 template<typename... Args>
 void BytecodePrinter::printArgs(Args... args) {
-    ((std::cout << " " << args), ...);
+    ((*outputStream << " " << args), ...);
 }
 
 #define OPCODE_BEGIN(code) \
@@ -13,9 +17,9 @@ void BytecodePrinter::code(
     type arg,
 #define OPCODE_END(code, args...) \
     int) { \
-    std::cout << #code; \
+    *outputStream << #code; \
     printArgs(args);\
-    std::cout << std::endl; \
+    *outputStream << std::endl; \
     }
 #include "libbytecode/include/OPCODES.LIST"
 #undef OPCODE_BEGIN
