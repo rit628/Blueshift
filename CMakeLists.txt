@@ -156,13 +156,13 @@ target_link_libraries(client device client_engine ${BOOST_LIB_DEPS})
 # UTILITY EXECUTABLES
 add_executable(echo ${UTIL_SRC_DIR}/echo/main.cpp)
 
-file(GLOB_RECURSE BSM_PRINTER_SRC ${UTIL_SRC_DIR}/bsm_printer/*.cpp)
-add_executable(bsmp ${BSM_PRINTER_SRC})
+file(GLOB_RECURSE BSMP_SRC ${UTIL_SRC_DIR}/bsmp/*.cpp)
+add_executable(bsmp ${BSMP_SRC})
 target_include_directories(bsmp PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
 target_link_libraries(bsmp bytecode ${BOOST_LIB_DEPS})
 
-file(GLOB_RECURSE BSM_WRITER_SRC ${UTIL_SRC_DIR}/bsm_writer/*.cpp)
-add_executable(bsmw ${BSM_WRITER_SRC})
+file(GLOB_RECURSE BSMW_SRC ${UTIL_SRC_DIR}/bsmw/*.cpp)
+add_executable(bsmw ${BSMW_SRC})
 target_include_directories(bsmw PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
 target_link_libraries(bsmw bytecode ${BOOST_LIB_DEPS})
 
