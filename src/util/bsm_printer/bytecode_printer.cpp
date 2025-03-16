@@ -9,7 +9,7 @@ void BytecodePrinter::printArgs(Args... args) {
 
 #define OPCODE_BEGIN(code) \
 void BytecodePrinter::code(
-#define ARGUMENT(arg, type, ...) \
+#define ARGUMENT(arg, type) \
     type arg,
 #define OPCODE_END(code, args...) \
     int) { \

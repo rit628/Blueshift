@@ -6,7 +6,7 @@ class BytecodePrinter : public BytecodeProcessor {
     protected:
         #define OPCODE_BEGIN(code) \
         void code(
-        #define ARGUMENT(arg, type, ...) \
+        #define ARGUMENT(arg, type) \
         type arg,
         #define OPCODE_END(...) \
         int = 0) override;
