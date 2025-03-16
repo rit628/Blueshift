@@ -1,25 +1,25 @@
 OPCODE_BEGIN(CALL)
-    ARGUMENT(address, uint16_t, 2)
+    ARGUMENT(address, uint16_t)
 OPCODE_END(CALL, address)
 
 OPCODE_BEGIN(PUSH)
-    ARGUMENT(index, uint8_t, 1)
+    ARGUMENT(index, uint8_t)
 OPCODE_END(PUSH, index)
 
 OPCODE_BEGIN(STORE)
-    ARGUMENT(index, uint8_t, 1)
+    ARGUMENT(index, uint8_t)
 OPCODE_END(STORE, index)
 
 OPCODE_BEGIN(LOAD)
-    ARGUMENT(index, uint8_t, 1)
+    ARGUMENT(index, uint8_t)
 OPCODE_END(LOAD, index)
 
 OPCODE_BEGIN(INC)
-    ARGUMENT(index, uint8_t, 1)
+    ARGUMENT(index, uint8_t)
 OPCODE_END(INC, index)
 
 OPCODE_BEGIN(DEC)
-    ARGUMENT(index, uint8_t, 1)
+    ARGUMENT(index, uint8_t)
 OPCODE_END(DEC, index)
 
 OPCODE_BEGIN(NOT)
@@ -71,18 +71,18 @@ OPCODE_BEGIN(EXP)
 OPCODE_END(EXP)
 
 OPCODE_BEGIN(JMP)
-    ARGUMENT(address, uint16_t, 2)
+    ARGUMENT(address, uint16_t)
 OPCODE_END(JMP, address)
 
 OPCODE_BEGIN(BRANCH)
-    ARGUMENT(address, uint16_t, 2)
+    ARGUMENT(address, uint16_t)
 OPCODE_END(BRANCH, address)
 
 OPCODE_BEGIN(RETURN)
 OPCODE_END(RETURN)
 
 OPCODE_BEGIN(MKHEAP)
-    ARGUMENT(type, uint8_t, 1)
+    ARGUMENT(type, uint8_t)
 OPCODE_END(MKHEAP, type)
 
 OPCODE_BEGIN(ACC)

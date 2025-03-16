@@ -17,10 +17,10 @@ void BytecodeProcessor::dispatch() {
         switch (code) {
             #define OPCODE_BEGIN(code) \
             case OPCODE::code: {
-            #define ARGUMENT(arg, type, bytes) \
+            #define ARGUMENT(arg, type) \
                 type arg; \
-                bytecode.read(buf, bytes); \
-                std::memcpy(&arg, buf, bytes);
+                bytecode.read(buf, sizeof(type)); \
+                std::memcpy(&arg, buf, sizeof(type));
             #define OPCODE_END(code, args...) \
                 code(args); \
             break; \
