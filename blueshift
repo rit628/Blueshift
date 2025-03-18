@@ -72,9 +72,10 @@ def run(args):
 def debug(args):
     executable = os.path.join("." ,BUILD_OUTPUT_DIRECTORY, RUNTIME_OUTPUT_DIRECTORY, args.binary)
     allow_visual = not args.terminal and args.debugger == "lldb"
-    debug_name = str(args.binary).capitalize()
+    stop_on_entry = "true" if args.stop_on_entry else "false"
+    debug_name = args.binary
     # Add controller name to debug name for readability
-    debug_name += "-" + str(args.binary_args[0]) if args.binary == "client" and len(args.binary_args) > 0 else ""
+    debug_name += "-" + args.binary_args[0] if args.binary == "client" and len(args.binary_args) > 0 else ""
     CODELLDB_ADDRESS = ("127.0.0.1", 7349)
 
     if args.server:
@@ -87,9 +88,10 @@ def debug(args):
             if allow_visual and s.connect_ex(CODELLDB_ADDRESS) == 0: # debug locally with codelldb
                 s.sendall(f"""
                 {{
-                    name: '{debug_name}',
-                    token: 'blueshift',
-                    terminal: 'console',
+                    name: {debug_name},
+                    token: blueshift,
+                    terminal: console,
+                    stopOnEntry: {stop_on_entry},
                     program: {executable},
                     args: {args.binary_args}
                 }}
@@ -111,13 +113,14 @@ def debug(args):
             if allow_visual and s.connect_ex(CODELLDB_ADDRESS) == 0: # debug remotely with 
                 s.sendall(f"""
                 {{
-                    name: '{debug_name}',
-                    token: 'blueshift',
-                    terminal: 'console',
-                    request: 'launch',
+                    name: {debug_name},
+                    token: blueshift,
+                    terminal: console,
+                    request: attach,
+                    stopOnEntry: {stop_on_entry},
                     sourceMap: {{ {BUILD_MOUNT_DIR} : {cwd} }},
-                    targetCreateCommands: ["target create {remote_binary}"],
-                    processCreateCommands: ["gdb-remote localhost:{DEBUG_SERVER_PORT}"]
+                    targetCreateCommands: [target create {remote_binary}],
+                    processCreateCommands: [gdb-remote localhost:{DEBUG_SERVER_PORT}]
                 }}
                 """.encode())
             elif args.debugger == "lldb":
@@ -177,7 +180,12 @@ def build(args):
         # build binaries on remote container
         subprocess.run(["docker", "compose", "run", "--rm", "builder",  "build", "-l", *build_args, *args.make], check=True)
         if args.build_type == "Debug": # synchronize host and remote binaries for debug symbol access
-            subprocess.run(["docker", "compose", "run", "--rm", "synchronizer"], check=True)
+            uid = 1000
+            gid = 1000
+            if os.name == "posix":
+                uid = os.getuid()
+                gid = os.getgid()
+            subprocess.run(["docker", "compose", "run", "--rm", "synchronizer", "-a", f"--usermap=*:{uid}", f"--groupmap=*:{gid}", "--info=progress2", "/data/", "/copy/"], check=True)
 
 def test(args):
     sys.stderr = supressPythonErrors()
@@ -235,6 +243,9 @@ debug_parser.add_argument("-d", "--debugger",
                         help="choose a specific debugger (note that the VSCode visual debugger is only supported with lldb)",
                         choices=["lldb", "gdb"],
                         default="lldb")
+debug_parser.add_argument("--stop-on-entry",
+                        help="halt execution on debugger attach",
+                        action="store_true")
 debug_parser.set_defaults(fn=debug)
 
 deploy_parser = subparsers.add_parser("deploy", help=f"run {PROJECT_NAME} deployment environment (send SIGINT [ctrl+c] to stop gracefully)")

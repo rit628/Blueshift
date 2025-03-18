@@ -23,6 +23,8 @@ services:
       - .env
 
   synchronizer:
+    profiles:
+      - sync
     volumes:
       - build:/data
       - ./${REMOTE_OUTPUT_DIRECTORY}:/copy
@@ -30,7 +32,6 @@ services:
       context: .
       dockerfile: .docker/synchronizer/Dockerfile
     image: synchronizer
-    command: ["-a", "--info=progress2", "/data/", "/copy/"]
 
   master:
     hostname: ${MASTER_HOSTNAME}
