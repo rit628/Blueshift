@@ -17,7 +17,8 @@ Makefile
 *.pdb
 
 # Editor directories and files
-.vscode
+.vscode/**/*
+!.vscode/settings.json
 !.vscode/extensions.json
 .venv
 __pycache__

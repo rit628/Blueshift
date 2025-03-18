@@ -1,0 +1,7 @@
+{
+    "lldb.rpcServer": { "host": "127.0.0.1", "port": 7349, "token": "blueshift" },
+    "lldb.showDisassembly": "never",
+    "lldb.verboseLogging": true,
+    "C_Cpp.intelliSenseEngine": "disabled",
+    "clangd.enable": true,
+}
