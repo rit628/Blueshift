@@ -63,7 +63,7 @@ services:
       - ./samples/src:${CONTAINER_MOUNT_DIRECTORY}/samples/src
     develop:
       watch:
-        - action: restart
+        - action: sync+restart
           path: ${TARGET_OUTPUT_DIRECTORY}/${RUNTIME_OUTPUT_DIRECTORY}/master
     pid: ${DEPLOY_NAMESPACE}
     expose:
@@ -93,7 +93,7 @@ services:
       replicas: ${NUM_CLIENTS}
     develop:
       watch:
-        - action: restart
+        - action: sync+restart
           path: ${TARGET_OUTPUT_DIRECTORY}/${RUNTIME_OUTPUT_DIRECTORY}/client
     pid: ${DEPLOY_NAMESPACE}
     env_file:
