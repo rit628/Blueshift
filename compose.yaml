@@ -65,6 +65,7 @@ services:
       watch:
         - action: sync+restart
           path: ${TARGET_OUTPUT_DIRECTORY}/${RUNTIME_OUTPUT_DIRECTORY}/master
+          target: ${MASTER_PROGRAM_NAME}
     pid: ${DEPLOY_NAMESPACE}
     expose:
       - ${MASTER_PORT}
@@ -95,6 +96,7 @@ services:
       watch:
         - action: sync+restart
           path: ${TARGET_OUTPUT_DIRECTORY}/${RUNTIME_OUTPUT_DIRECTORY}/client
+          target: ${CLIENT_PROGRAM_NAME}
     pid: ${DEPLOY_NAMESPACE}
     env_file:
       - .env
