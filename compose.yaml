@@ -55,8 +55,6 @@ services:
       dockerfile: .docker/master/Dockerfile
       args:
         - WORKDIR=${CONTAINER_MOUNT_DIRECTORY}
-        - CONTAINER_UID=${CONTAINER_UID}
-        - CONTAINER_GID=${CONTAINER_GID}
     image: ${MASTER_IMAGE_NAME}
     volumes:
       - build:${CONTAINER_MOUNT_DIRECTORY}/build
@@ -83,8 +81,6 @@ services:
       dockerfile: .docker/client/Dockerfile
       args:
         - WORKDIR=${CONTAINER_MOUNT_DIRECTORY}
-        - CONTAINER_UID=${CONTAINER_UID}
-        - CONTAINER_GID=${CONTAINER_GID}
     image: ${CLIENT_IMAGE_NAME}
     volumes:
       - build:${CONTAINER_MOUNT_DIRECTORY}/build

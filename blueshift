@@ -41,6 +41,18 @@ def supressPythonErrors():
 def clean_shutdown(command):
     subprocess.run(command)
 
+def initialize_host():
+    Path(REMOTE_OUTPUT_DIRECTORY, "debug").mkdir(parents=True, exist_ok=True)
+    Path(REMOTE_OUTPUT_DIRECTORY, "release").mkdir(parents=True, exist_ok=True)
+    if os.name == "posix":
+        context = subprocess.check_output(["docker", "context", "show"], text=True).strip()
+        if context == "rootless":
+            os.environ["CONTAINER_UID"] = str(0)
+            os.environ["CONTAINER_GID"] = str(0)
+        else:
+            os.environ["CONTAINER_UID"] = str(os.getuid())
+            os.environ["CONTAINER_GID"] = str(os.getgid())
+
 def wait_for_lldb_server(port):
     pattern = re.compile(f"{port}/tcp")
     while(True):
@@ -168,6 +180,8 @@ def debug(args):
                                 "--args", remote_binary, *args.binary_args])
 
 def deploy(args):
+    # never called within container
+    initialize_host()
     atexit.register(clean_shutdown, ["docker", "compose", "down", "-t", "1"])
     
     command = ["docker", "compose", "up"]
@@ -231,7 +245,7 @@ def build(args):
         symlink(TARGET_OUTPUT_DIRECTORY, ARTIFACT_DIR, True)
 
         if args.sync:            
-            subprocess.run(["rsync", "-a", "--perms", "--info=progress2", f"./{ARTIFACT_DIR}/", f"/remote/{ARTIFACT_TYPE}"])
+            subprocess.run(["rsync", "-a", "--perms", "--info=progress2", "--no-i-r", f"./{ARTIFACT_DIR}/", f"/remote/{ARTIFACT_TYPE}"])
             # modify compile db to reference host cwd
             with (curr_db_path.open() as db, open(f"/remote/{ARTIFACT_TYPE}/compile_commands.json", "w") as out):
                 build_dir = str(Path(CONTAINER_MOUNT_DIRECTORY, ARTIFACT_DIR))
@@ -241,6 +255,7 @@ def build(args):
                     line = line.replace(CONTAINER_MOUNT_DIRECTORY, args.sync)
                     out.write(line)
     else: # build binaries in remote container
+        initialize_host()
         cwd = os.getcwd()
         subprocess.run(["docker", "compose", "run", "--rm", "builder",
                         "build", "-l", "--sync", cwd, *build_args, *args.make], check=True)
