@@ -6,32 +6,45 @@ networks:
 
 services:
   builder:
-    privileged: true
     hostname: ${BUILD_CONTAINER_NAME}
     container_name: ${BUILD_CONTAINER_NAME}
-    command: ["build", "-l"]
+    user: ${CONTAINER_UID}:${CONTAINER_GID}
+    command: ["build", "-l", "-t", "${BUILD_TYPE}", "--sync", "${HOST_CWD}"]
     build:
       context: .
       dockerfile: .docker/builder/Dockerfile
       args:
-        - WORKDIR=${BUILD_MOUNT_DIR}
+        - WORKDIR=${CONTAINER_MOUNT_DIRECTORY}
+        - CONTAINER_UID=${CONTAINER_UID}
+        - CONTAINER_GID=${CONTAINER_GID}
     image: ${BUILD_IMAGE_NAME}
     volumes:
-      - .:${BUILD_MOUNT_DIR}
-      - build:${BUILD_MOUNT_DIR}/build
+      - .:${CONTAINER_MOUNT_DIRECTORY}
+      - ./${REMOTE_OUTPUT_DIRECTORY}:/remote
+      - build:${CONTAINER_MOUNT_DIRECTORY}/build
     env_file:
       - .env
 
-  synchronizer:
+  debugger:
     profiles:
-      - sync
-    volumes:
-      - build:/data
-      - ./${REMOTE_OUTPUT_DIRECTORY}:/copy
-    build:
-      context: .
-      dockerfile: .docker/synchronizer/Dockerfile
-    image: synchronizer
+      - debug
+    extends:
+      service: builder
+    user: 0:0
+    command: ["debug", "--listen", "${DEBUG_PORT}", "--min-server-port", "${DEBUG_SERVER_PORT_MIN}", "--max-server-port", "${DEBUG_SERVER_PORT_MAX}", "all"]
+    privileged: true
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp=unconfined
+    hostname: ${DEBUG_CONTAINER_NAME}
+    container_name: ${DEBUG_CONTAINER_NAME}
+    ports:
+      - ${DEBUG_PORT}:${DEBUG_PORT}
+      - ${DEBUG_SERVER_PORT_MIN}-${DEBUG_SERVER_PORT_MAX}:${DEBUG_SERVER_PORT_MIN}-${DEBUG_SERVER_PORT_MAX}
+    depends_on:
+      builder:
+        condition: service_completed_successfully
 
   master:
     hostname: ${MASTER_HOSTNAME}
@@ -41,11 +54,18 @@ services:
       context: .
       dockerfile: .docker/master/Dockerfile
       args:
-        - WORKDIR=${MASTER_CONTAINER_WORKDIR}
+        - WORKDIR=${CONTAINER_MOUNT_DIRECTORY}
+        - CONTAINER_UID=${CONTAINER_UID}
+        - CONTAINER_GID=${CONTAINER_GID}
     image: ${MASTER_IMAGE_NAME}
     volumes:
-      - build:${MASTER_CONTAINER_WORKDIR}/build
-      - ./samples/src:${MASTER_CONTAINER_WORKDIR}/samples/src
+      - build:${CONTAINER_MOUNT_DIRECTORY}/build
+      - ./samples/src:${CONTAINER_MOUNT_DIRECTORY}/samples/src
+    develop:
+      watch:
+        - action: restart
+          path: ${TARGET_OUTPUT_DIRECTORY}/${RUNTIME_OUTPUT_DIRECTORY}/master
+    pid: ${DEPLOY_NAMESPACE}
     expose:
       - ${MASTER_PORT}
     env_file:
@@ -61,14 +81,21 @@ services:
       context: .
       dockerfile: .docker/client/Dockerfile
       args:
-        - WORKDIR=${CLIENT_CONTAINER_WORKDIR}
+        - WORKDIR=${CONTAINER_MOUNT_DIRECTORY}
+        - CONTAINER_UID=${CONTAINER_UID}
+        - CONTAINER_GID=${CONTAINER_GID}
     image: ${CLIENT_IMAGE_NAME}
     volumes:
-      - build:${CLIENT_CONTAINER_WORKDIR}/build
-      - ./samples/client:${CLIENT_CONTAINER_WORKDIR}/samples/client
+      - build:${CONTAINER_MOUNT_DIRECTORY}/build
+      - ./samples/client:${CONTAINER_MOUNT_DIRECTORY}/samples/client
     deploy:
       mode: replicated
       replicas: ${NUM_CLIENTS}
+    develop:
+      watch:
+        - action: restart
+          path: ${TARGET_OUTPUT_DIRECTORY}/${RUNTIME_OUTPUT_DIRECTORY}/client
+    pid: ${DEPLOY_NAMESPACE}
     env_file:
       - .env
     depends_on:

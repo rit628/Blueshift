@@ -22,7 +22,6 @@ Makefile
 
 # Editor directories and files
 .vscode
-!.vscode/extensions.json
 .venv
 __pycache__
 *.code-workspace
