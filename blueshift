@@ -203,7 +203,6 @@ def deploy(args):
         os.environ["DEPLOY_NAMESPACE"] = "service:debugger"
         os.environ["DEBUG_PORT"] = str(DEBUG_SERVER_PORT)
         os.environ["DEBUG_SERVER_PORT_MAX"] = str(int(DEBUG_SERVER_PORT_MIN) + num_clients + 1) # +1 for master
-        command.append("--watch")
 
         # start watchers to attach to each target process when spawned in container
         Thread(target=attach_debugger, args=("master", "master", DEBUG_SERVER_PORT), daemon=True).start()
