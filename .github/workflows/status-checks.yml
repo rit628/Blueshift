@@ -12,7 +12,7 @@ jobs:
         steps:
             - uses: actions/checkout@v4
             - name: Build
-              run: ./bls build --no-local-generation
+              run: ./bls build
 
             - name: Test
               run: ./bls test

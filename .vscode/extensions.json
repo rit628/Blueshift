@@ -1,0 +1,16 @@
+{
+    "recommendations": [
+        "ms-vscode-remote.vscode-remote-extensionpack",
+        "llvm-vs-code-extensions.vscode-clangd",
+        "twxs.cmake",
+        "ms-vscode.cpptools",
+        "vadimcn.vscode-lldb",
+        "ms-azuretools.vscode-docker",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.debugpy"
+    ],
+    "unwantedRecommendations": [
+        "ms-vscode.cmake-tools"
+    ]
+}

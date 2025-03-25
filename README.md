@@ -1,10 +1,15 @@
 # Development Environment Setup
 
-## Installation Dependencies
+## Required Software
 - `docker 25+`
-- `cmake 3.25+`
 - `python 3.9+`
-- `clang 18+`
+
+## Recommended Software
+- `cmake 3.25+` - Local Builds
+- `clang 19+` - Local Builds
+- `lld 19+` - Local Builds
+- `lldb 19+` - Debugging
+- `clangd 19+` - Language Server
 
 ## File & Directory Structure
 - `bls` - Primary build script for Blueshift. This is the main script you should use for building, running, and testing the project. For a list of commands and options run `./bls --help`. Further, for help with any of the commands and their respective subcommands/options, run `./bls [command] --help`.
@@ -68,7 +73,7 @@ target_link_libraries(message ${BOOST_LIB_DEPS})
 add_executable(client ${CLIENT_SRC_DIR}/main.cpp)
 target_link_libraries(client message ${BOOST_LIB_DEPS})
 ```
-5. Build with `./bls build` and run with `./bls run` (first build will take some time due to docker image builds).
+5. Build with `./bls build client`, run with `./bls run client`, and debug with `./bls debug client` (first build will take some time due to docker image builds).
 6. If desired, test cases can be added to `CMakeLists.txt` as follows:
 ```cmake
 set(CLIENT_TEST_DIR ${TEST_DIR}/client)
@@ -92,11 +97,19 @@ gtest_discover_tests(test_libmessage)
 - If you are on Windows and are having issues with building and/or running Blueshift, try cloning the repo to a directory within WSL instead of a directory on the host's filesystem.
 
 ## Recommendations
-It is highly recommended to use `clangd 18+` as the language server for development, as it will automatically detect dependency locations from the `compile_commands.json` file generated from the `cmake` build. Configuration details will differ depending on your IDE; the instructions for VSCode are given below:
+It is highly recommended to use `clangd 19+` as the language server for development, as it will automatically detect dependency locations from the `compile_commands.json` file generated from the `cmake` build. Configuration details will differ depending on your IDE; the instructions for VSCode are given below:
 - Install the official `clangd` extension.
 - If the Microsoft C/C++ is installed, disable Intellisense (there will be a pop up upon opening the project).
 - Run `./bls build` to do an initial build and generate `compile_commands.json`.
 - Run the `clangd: Restart language server` command within VSCode to update the server with the new dependencies.
+
+Both `lldb` and `gdb` will integrate with the build script, however, use of the VSCode visual debugger will require the `CodeLLDB` extension, which ships with its own version of `lldb`. The instructions for setup with the VSCode visual debugger are given below:
+- Install the `CodeLLDB` extension.
+- Add the following line to the settings map your workspace configuration: `"lldb.rpcServer": { "host": "127.0.0.1", "port": 7349, "token": "blueshift" }`.
+- Additionally, optionally add the following line to your settings map if you would like to manually control disassembly view `"lldb.showDisassembly": "never"`.
+- If using a single root workspace, the aforementioned line(s) will need to be added to the settings configuration within `.vscode/settings.json`.
+- If using a multi-root workspace, the aforementioned line(s) will need to be added to the settings configuration within `[workspace-name].code-workspace` under the `settings` key in the root map.
+- Otherwise, if neither of the above work, simply add it to the global `settings.json` configuration for your user profile.
 
 # Guidelines & Best Practices
 
