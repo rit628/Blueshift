@@ -67,10 +67,9 @@ def get_free_port():
     sock.bind(('', 0))
     return sock.getsockname()[1]
 
-def attach_to_process(process_name, binary_name, server_port, pid=-1):
-    remote_binary = Path(REMOTE_OUTPUT_DIRECTORY, "debug", RUNTIME_OUTPUT_DIRECTORY, binary_name)
+def attach_to_process(pid, process_name, debug_binary, server_port):
+    remote_binary = Path(REMOTE_OUTPUT_DIRECTORY, "debug", RUNTIME_OUTPUT_DIRECTORY, debug_binary)
     cwd = os.getcwd()
-    pid_match = f"pid: {pid}," if pid > -1 else ""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect(CODELLDB_ADDRESS)
         s.sendall(f"""
@@ -79,24 +78,24 @@ def attach_to_process(process_name, binary_name, server_port, pid=-1):
             token: blueshift,
             terminal: console,
             request: attach,
-            {pid_match}
+            pid: {pid},
             sourceMap: {{ {CONTAINER_MOUNT_DIRECTORY} : {cwd} }},
-            waitFor: true,
-            stopOnEntry: true,
+            stopOnEntry: false,
             initCommands: [
                 platform select remote-linux,
                 platform connect connect://localhost:{server_port},
                 settings set target.inherit-env false
             ],
-            targetCreateCommands: [target create {remote_binary}]
+            targetCreateCommands: [target create {remote_binary}],
+            postRunCommands: [platform shell kill -SIGCONT {pid}]
         }}
         """.encode())
 
-def attach_client_debugger(n, port):
+def attach_debugger(process_name, debug_binary, server_port):
     while True:
-        pid = subprocess.run(["docker", "exec", "debugger", "pgrep", "-fx", f"blueshift-client-{n}"], capture_output=True).stdout
+        pid = subprocess.run(["docker", "exec", "debugger", "pgrep", "-f", process_name], capture_output=True, text=True).stdout
         if pid:
-            attach_to_process(f"blueshift-client-{n}", "client", port, int(pid))
+            attach_to_process(pid, process_name, debug_binary, server_port)
             return
 
 def symlink(source : Path | str, target : Path | str, is_directory = False):
@@ -180,11 +179,16 @@ def debug(args):
                                 "--args", remote_binary, *args.binary_args])
 
 def deploy(args):
-    # never called within container
+    # container never issues deploy command
     initialize_host()
-    atexit.register(clean_shutdown, ["docker", "compose", "down", "-t", "1"])
+    profiles = ["--profile", "debug"] if args.debug else []
+    base_cmd = ["docker", "compose", *profiles]
+
+    # ensure containers are properly destroyed
+    atexit.register(clean_shutdown, [*base_cmd, "stop", "-t", "1"])
+    atexit.register(clean_shutdown, [*base_cmd, "down", "-t", "1"])
     
-    command = ["docker", "compose", "up"]
+    command = [*base_cmd, "up"]
     os.environ["HOST_CWD"] = os.getcwd()
     os.environ["DEPLOY_SRC"] = str(Path("samples", "src", args.filename))
 
@@ -194,18 +198,17 @@ def deploy(args):
         command.append("--build")
     if args.debug:
         DEBUG_SERVER_PORT = get_free_port()
+        num_clients = int(args.num_clients)
         os.environ["BUILD_TYPE"] = "Debug"
-        os.environ["DEPLOY_NAMESPACE"] = "container:debugger"
+        os.environ["DEPLOY_NAMESPACE"] = "service:debugger"
         os.environ["DEBUG_PORT"] = str(DEBUG_SERVER_PORT)
-        os.environ["DEBUG_SERVER_PORT_MAX"] = str(int(DEBUG_SERVER_PORT_MIN) + int(args.num_clients) + 1) # +1 for master
+        os.environ["DEBUG_SERVER_PORT_MAX"] = str(int(DEBUG_SERVER_PORT_MIN) + num_clients + 1) # +1 for master
         command.append("--watch")
-        atexit.register(clean_shutdown, ["docker", "compose", "--profile", "debug", "stop", "-t", "1"])
-        atexit.register(clean_shutdown, ["docker", "compose", "--profile", "debug", "down", "-t", "1"])
-        subprocess.run(["docker", "compose", "--profile", "debug", "up", "-d", "debugger"])
-        wait_for_lldb_server(DEBUG_SERVER_PORT)
-        attach_to_process("master", "master", DEBUG_SERVER_PORT)
-        for i in range(1, int(args.num_clients) + 1): # clients require pids for correct attachment, attach asynchronously 
-            Thread(target=attach_client_debugger, args=(i, DEBUG_SERVER_PORT), daemon=True).start()
+
+        # start watchers to attach to each target process when spawned in container
+        Thread(target=attach_debugger, args=("master", "master", DEBUG_SERVER_PORT), daemon=True).start()
+        for i in range(num_clients): 
+            Thread(target=attach_debugger, args=(f"blueshift-client-{i + 1}", "client", DEBUG_SERVER_PORT), daemon=True).start()
 
     subprocess.run(command)
 
