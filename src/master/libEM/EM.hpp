@@ -28,9 +28,9 @@ class ExecutionUnit
     thread executionThread;
     bool stop = false;
     ExecutionUnit(string OblockName, vector<string> devices, vector<bool> isVtype, vector<string> controllers, 
-        TSM<string, HeapMasterMessage> &vtypeHMMsMap, TSQ<DynamicMasterMessage> &sendMM, 
+        TSM<string, vector<HeapMasterMessage>> &vtypeHMMsMap, TSQ<DynamicMasterMessage> &sendMM, 
         function<vector<BlsLang::BlsType>(vector<BlsLang::BlsType>)>  transform_function);
-    void running(TSM<string, HeapMasterMessage> &vtypeHMMsMap, TSQ<DynamicMasterMessage> &sendMM);
+    void running( TSM<string, vector<HeapMasterMessage>> &vtypeHMMsMap, TSQ<DynamicMasterMessage> &sendMM);
     //vector<shared_ptr<HeapDescriptor>> transformState(vector<shared_ptr<HeapDescriptor>> HMM_List);
     function<vector<BlsLang::BlsType>(vector<BlsLang::BlsType>)>  transform_function;
     ~ExecutionUnit();
@@ -49,7 +49,7 @@ class ExecutionManager
     TSQ<DynamicMasterMessage> &sendMM;
     unordered_map<string, unique_ptr<ExecutionUnit>> EU_map;
     vector<OBlockDesc> OblockList;
-    vector<HeapMasterMessage> vtypeHMMs;
-    TSM<string, HeapMasterMessage> vtypeHMMsMap;
+    //vector<HeapMasterMessage> vtypeHMMs;
+    TSM<string, vector<HeapMasterMessage>> vtypeHMMsMap;
 };
 

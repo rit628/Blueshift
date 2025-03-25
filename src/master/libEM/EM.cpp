@@ -26,7 +26,7 @@ ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<vector<Dyn
 }
 
 ExecutionUnit::ExecutionUnit(string OblockName, vector<string> devices, vector<bool> isVtype, vector<string> controllers,
-    TSM<string, HeapMasterMessage> &vtypeHMMsMap, TSQ<DynamicMasterMessage> &sendMM, 
+    TSM<string, vector<HeapMasterMessage>> &vtypeHMMsMap, TSQ<DynamicMasterMessage> &sendMM, 
     function<vector<BlsLang::BlsType>(vector<BlsLang::BlsType>)>  transform_function)
 {
     this->OblockName = OblockName;
@@ -61,7 +61,7 @@ DynamicMasterMessage::DynamicMasterMessage(DynamicMessage DM, O_Info info, PROTO
     this->isInterrupt = isInterrupt;
 }
 
-void ExecutionUnit::running(TSM<string, HeapMasterMessage> &vtypeHMMsMap, TSQ<DynamicMasterMessage> &sendMM)
+void ExecutionUnit::running(TSM<string, vector<HeapMasterMessage>> &vtypeHMMsMap, TSQ<DynamicMasterMessage> &sendMM)
 {
     while(1)
     {
@@ -82,6 +82,14 @@ void ExecutionUnit::running(TSM<string, HeapMasterMessage> &vtypeHMMsMap, TSQ<Dy
         {   
             transformableStates.push_back(HMMs.at(i).heapTree);
         }
+        auto result = vtypeHMMsMap.get(HMMs.at(0).info.oblock);
+        if(result.has_value())
+        {
+            for(int i = 0; i < result->size(); i++)
+            {
+                transformableStates.push_back(result->at(i).heapTree);
+            }
+        }
     
         transformableStates = transform_function(transformableStates);
 
@@ -90,6 +98,7 @@ void ExecutionUnit::running(TSM<string, HeapMasterMessage> &vtypeHMMsMap, TSQ<Dy
             HMMs.at(i).heapTree = std::get<shared_ptr<HeapDescriptor>>(transformableStates.at(i));
         }
 
+        vector<HeapMasterMessage> vtypeHMMs;
         for(int i = 0; i < HMMs.size(); i++)
         {
             if(HMMs.at(i).info.isVtype == false)
@@ -102,8 +111,13 @@ void ExecutionUnit::running(TSM<string, HeapMasterMessage> &vtypeHMMsMap, TSQ<Dy
             }
             else if(HMMs.at(i).info.isVtype == true)
             {
-                vtypeHMMsMap.insert(HMMs.at(i).info.oblock, HMMs.at(i));
+                vtypeHMMs.push_back(HMMs.at(i));
+                //vtypeHMMsMap.insert(HMMs.at(i).info.oblock, HMMs.at(i));
             }
+        }
+        if(!vtypeHMMs.empty())
+        {
+            vtypeHMMsMap.insert(HMMs.at(0).info.oblock, vtypeHMMs);
         }
     }
 }
