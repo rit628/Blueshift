@@ -74,7 +74,7 @@ class MasterMailbox
     unordered_map<string, unique_ptr<ReaderBox>> oblockReadMap;
     unordered_map<string, vector<shared_ptr<TSQ<DynamicMasterMessage>>>> interruptMap;
     unordered_map<string, std::vector<string>> interruptName_map;
-    unordered_map<string, unordered_map<string, shared_ptr<TSQ<DynamicMasterMessage>>>> readMap;
+    unordered_map<string, unordered_map<string, shared_ptr<TSQ<DynamicMasterMessage>>>> readTSQMap;
     unordered_map<string, unique_ptr<WriterBox>> writeMap;
     TSQ<std::string> readRequest; 
 

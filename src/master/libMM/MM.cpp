@@ -15,7 +15,7 @@ MasterMailbox::MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMes
             string deviceName = OBlockList.at(i).binded_devices.at(j).device_name;
             auto TSQPtr = make_shared<TSQ<DynamicMasterMessage>>();
             oblockReadMap[OBlockList.at(i).name]->waitingQs.push_back(TSQPtr);
-            readMap[OBlockList.at(i).name][deviceName] = TSQPtr;
+            readTSQMap[OBlockList.at(i).name][deviceName] = TSQPtr;
             writeMap[deviceName] = make_unique<WriterBox>(deviceName);
         }
     }
@@ -24,7 +24,7 @@ MasterMailbox::MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMes
         for(int j = 0; j < OBlockList.at(i).binded_devices.size(); j++)
         {
             string deviceName = OBlockList.at(i).binded_devices.at(j).device_name;
-            auto TSQptr = readMap[OBlockList.at(i).name][deviceName];
+            auto TSQptr = readTSQMap[OBlockList.at(i).name][deviceName];
             interruptMap[deviceName].push_back(TSQptr);
             interruptName_map[deviceName].push_back(OBlockList.at(i).name); 
         }
@@ -50,12 +50,20 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
     {
         case PROTOCOLS::CALLBACKRECIEVED:
         {
-            
-            writeMap.at(DMM.info.device)->waitingForCallback = false;
-            //DynamicMasterMessage DMMtoSend = writeMap.at(DMM.info.device)->waitingQ.read();
+            if(!writeMap.at(DMM.info.device)->waitingQ.isEmpty())
+            {
+                DynamicMasterMessage DMMtoSend = writeMap.at(DMM.info.device)->waitingQ.read();
+                this->sendNM.write(DMMtoSend);
+                cout << "Callback recieved on an nonempty Q" << endl;
+            }
+            else
+            {
+                writeMap.at(DMM.info.device)->waitingForCallback = false;
+                cout << "Callback recieved on an empty Q" << endl;
+            }
             //this->sendNM.write(DMMtoSend);
             // Diarreah
-            writeMap.at(DMM.info.device)->waitingForCallback = false;
+            //writeMap.at(DMM.info.device)->waitingForCallback = false;
             break;
         }
         case PROTOCOLS::SENDSTATES:
@@ -88,7 +96,7 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
             }
             else{
                 ReaderBox &assignedBox = *oblockReadMap.at(DMM.info.oblock);
-                TSQ<DynamicMasterMessage> &assignedTSQ = *readMap[DMM.info.oblock][DMM.info.device];
+                TSQ<DynamicMasterMessage> &assignedTSQ = *readTSQMap[DMM.info.oblock][DMM.info.device];
 
                 if(assignedBox.dropRead == true)
                 {
@@ -116,7 +124,6 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
 
 void MasterMailbox::assignEM(DynamicMasterMessage DMM)
 {
-
     ReaderBox &correspondingReaderBox = *oblockReadMap.at(DMM.info.oblock);
     switch(DMM.protocol)
     {
@@ -127,15 +134,28 @@ void MasterMailbox::assignEM(DynamicMasterMessage DMM)
         }
         case PROTOCOLS::SENDSTATES:
         {
-
             WriterBox &assignedBox = *writeMap.at(DMM.info.device);
             bool dropWrite = correspondingReaderBox.dropWrite;
 
-            if(dropWrite == true && assignedBox.waitingForCallback == false){
+            if(dropWrite == true && assignedBox.waitingForCallback == true)
+            {
+                cout << "Ignoring write" << endl;
+                //assignedBox.waitingQ.write(DMM);
+            }
+            else if(dropWrite == false && assignedBox.waitingForCallback == true)
+            {
+                cout << "Storing message in Q until callback is recieved" << endl;
+                assignedBox.waitingQ.write(DMM);
+            }
+            else if(dropWrite == false && assignedBox.waitingForCallback == false)
+            {
+                cout << "Send direct as callback was already recieved" << endl;
                 this->sendNM.write(DMM);
                 assignedBox.waitingForCallback = true;
-            }   
-            else{
+            }
+            else if(dropWrite == true && assignedBox.waitingForCallback == false)
+            {
+                cout << "Send direct as even though drop write is true it is not waiting for callback" << endl;
                 this->sendNM.write(DMM);
                 assignedBox.waitingForCallback = true;
             }
