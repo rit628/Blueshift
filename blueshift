@@ -70,7 +70,7 @@ def attach_to_process(pid, process_name, debug_binary, server_port):
             request: attach,
             pid: {pid},
             sourceMap: {{ {CONTAINER_MOUNT_DIRECTORY} : {os.getcwd()} }},
-            stopOnEntry: false,
+            stopOnEntry: true,
             initCommands: [
                 platform select remote-linux,
                 platform connect connect://localhost:{server_port},
@@ -261,6 +261,7 @@ def test(args):
         fail_output = ["--output-on-failure"] if not args.no_output_on_failure else []
         subprocess.run(["ctest", *fail_output, *ctest_args], cwd=f"./{TARGET_OUTPUT_DIRECTORY}", check=True)
     else:
+        initialize_host()
         subprocess.run(["docker", "compose", "run", "--rm", "builder", "test", "-l", *ctest_args], check=True)
 
 def reset(args):
@@ -319,7 +320,7 @@ debug_parser.add_argument("-t", "--terminal",
                         help="force debugging through terminal alone",
                         action="store_true")
 debug_parser.add_argument("-r", "--release",
-                        help="debug release build with O2 optimizations and limited symbols",
+                        help="debug release build with Og optimizations and limited symbols",
                         action="store_true")
 debug_parser.add_argument("-d", "--debugger",
                         help="choose a specific debugger (note that the VSCode visual debugger is only supported with lldb)",
@@ -392,10 +393,6 @@ build_parser.add_argument("-l", "--local",
 build_parser.add_argument("--clean",
                           help="clean build directory before building",
                           action="store_true")
-build_parser.add_argument("--sync",
-                          help="sync debug binaries and compile command database to host",
-                          metavar="PATH",
-                          default=None)
 build_parser.set_defaults(fn=build)
 
 test_parser = subparsers.add_parser("test", help=f"test {PROJECT_NAME} binary and library builds")
