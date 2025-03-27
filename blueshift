@@ -15,25 +15,16 @@ from shutil import rmtree
 PROJECT_NAME = os.getenv("PROJECT_NAME")
 PROJECT_PREFIX = os.getenv("PROJECT_PREFIX")
 NETWORK_NAME = os.getenv("NETWORK_NAME")
-DEFAULT_NUM_CLIENTS = os.getenv("NUM_CLIENTS")
+NUM_CLIENTS = os.getenv("NUM_CLIENTS")
 CONTAINER_MOUNT_DIRECTORY = os.getenv("CONTAINER_MOUNT_DIRECTORY")
 BUILD_OUTPUT_DIRECTORY = os.getenv("BUILD_OUTPUT_DIRECTORY")
 RUNTIME_OUTPUT_DIRECTORY = os.getenv("RUNTIME_OUTPUT_DIRECTORY")
-DEBUG_OUTPUT_DIRECTORY = os.getenv("DEBUG_OUTPUT_DIRECTORY")
-RELEASE_OUTPUT_DIRECTORY = os.getenv("RELEASE_OUTPUT_DIRECTORY")
 REMOTE_OUTPUT_DIRECTORY = os.getenv("REMOTE_OUTPUT_DIRECTORY")
 TARGET_OUTPUT_DIRECTORY = os.getenv("TARGET_OUTPUT_DIRECTORY")
 DEBUG_SERVER_PORT_MIN = os.getenv("DEBUG_SERVER_PORT_MIN")
 DEBUG_SERVER_PORT_MAX = os.getenv("DEBUG_SERVER_PORT_MAX")
 NUM_CORES = mp.cpu_count()
 CODELLDB_ADDRESS = ("127.0.0.1", 7349)
-
-# initialize environment
-Path(REMOTE_OUTPUT_DIRECTORY, "debug").mkdir(parents=True, exist_ok=True)
-Path(REMOTE_OUTPUT_DIRECTORY, "release").mkdir(parents=True, exist_ok=True)
-if os.name == "posix":
-    os.environ["CONTAINER_UID"] = str(os.getuid())
-    os.environ["CONTAINER_GID"] = str(os.getgid())
 
 def supressPythonErrors():
     pass
@@ -44,6 +35,8 @@ def clean_shutdown(command):
 def initialize_host():
     Path(REMOTE_OUTPUT_DIRECTORY, "debug").mkdir(parents=True, exist_ok=True)
     Path(REMOTE_OUTPUT_DIRECTORY, "release").mkdir(parents=True, exist_ok=True)
+    Path(REMOTE_OUTPUT_DIRECTORY, "minsizerel").mkdir(parents=True, exist_ok=True)
+    Path(REMOTE_OUTPUT_DIRECTORY, "relwithdebinfo").mkdir(parents=True, exist_ok=True)
     if os.name == "posix":
         context = subprocess.check_output(["docker", "context", "show"], text=True).strip()
         if context == "rootless":
@@ -68,8 +61,6 @@ def get_free_port():
     return sock.getsockname()[1]
 
 def attach_to_process(pid, process_name, debug_binary, server_port):
-    remote_binary = Path(REMOTE_OUTPUT_DIRECTORY, "debug", RUNTIME_OUTPUT_DIRECTORY, debug_binary)
-    cwd = os.getcwd()
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect(CODELLDB_ADDRESS)
         s.sendall(f"""
@@ -79,14 +70,14 @@ def attach_to_process(pid, process_name, debug_binary, server_port):
             terminal: console,
             request: attach,
             pid: {pid},
-            sourceMap: {{ {CONTAINER_MOUNT_DIRECTORY} : {cwd} }},
+            sourceMap: {{ {CONTAINER_MOUNT_DIRECTORY} : {os.getcwd()} }},
             stopOnEntry: false,
             initCommands: [
                 platform select remote-linux,
                 platform connect connect://localhost:{server_port},
                 settings set target.inherit-env false
             ],
-            targetCreateCommands: [target create {remote_binary}],
+            targetCreateCommands: [target create {debug_binary}],
             postRunCommands: [platform shell kill -SIGCONT {pid}]
         }}
         """.encode())
@@ -114,7 +105,8 @@ def run(args):
         subprocess.run(["docker", "compose", "run", "--rm", "builder",  "run", "-l", args.binary, *args.binary_args], check=True)
 
 def debug(args):
-    executable = Path(DEBUG_OUTPUT_DIRECTORY, RUNTIME_OUTPUT_DIRECTORY, args.binary)
+    debug_target_path = "relwithdebinfo" if args.release else "debug"
+    executable = Path(BUILD_OUTPUT_DIRECTORY, debug_target_path, RUNTIME_OUTPUT_DIRECTORY, args.binary)
     allow_visual = not args.terminal and args.debugger == "lldb"
     stop_on_entry = "true" if args.stop_on_entry else "false"
     # use controller name as debug name for readability if debugging client
@@ -146,7 +138,7 @@ def debug(args):
                 subprocess.run([args.debugger, args_command, executable, *args.binary_args])
     else:
         DEBUG_SERVER_PORT = get_free_port()
-        remote_binary = Path(REMOTE_OUTPUT_DIRECTORY, "debug", RUNTIME_OUTPUT_DIRECTORY, args.binary)
+        remote_binary = Path(REMOTE_OUTPUT_DIRECTORY, debug_target_path, RUNTIME_OUTPUT_DIRECTORY, args.binary)
         cwd = os.getcwd()
         # Initialize debug server
         subprocess.run(["docker", "container", "stop", "-t", "1", f"{debug_name}"], stderr=subprocess.DEVNULL)
@@ -199,22 +191,25 @@ def deploy(args):
     if args.debug:
         DEBUG_SERVER_PORT = get_free_port()
         num_clients = int(args.num_clients)
-        os.environ["BUILD_TYPE"] = "Debug"
+        os.environ["BUILD_TYPE"] = "RelWithDebInfo" if args.release_debug else "Debug"
         os.environ["DEPLOY_NAMESPACE"] = "service:debugger"
         os.environ["DEBUG_PORT"] = str(DEBUG_SERVER_PORT)
         os.environ["DEBUG_SERVER_PORT_MAX"] = str(int(DEBUG_SERVER_PORT_MIN) + num_clients + 1) # +1 for master
 
+        debug_target_path = Path(REMOTE_OUTPUT_DIRECTORY, os.getenv("BUILD_TYPE").lower(), RUNTIME_OUTPUT_DIRECTORY)
+        master_binary = Path(debug_target_path, "master")
+        client_binary = Path(debug_target_path, "client")
         # start watchers to attach to each target process when spawned in container
-        Thread(target=attach_debugger, args=("master", "master", DEBUG_SERVER_PORT), daemon=True).start()
+        Thread(target=attach_debugger, args=("master", master_binary, DEBUG_SERVER_PORT), daemon=True).start()
         for i in range(num_clients): 
-            Thread(target=attach_debugger, args=(f"blueshift-client-{i + 1}", "client", DEBUG_SERVER_PORT), daemon=True).start()
+            Thread(target=attach_debugger, args=(f"blueshift-client-{i + 1}", client_binary, DEBUG_SERVER_PORT), daemon=True).start()
 
     subprocess.run(command)
 
 def build(args):
     sys.stderr = supressPythonErrors()
-    ARTIFACT_DIR = DEBUG_OUTPUT_DIRECTORY if args.build_type == "Debug" else RELEASE_OUTPUT_DIRECTORY
     ARTIFACT_TYPE = args.build_type.lower()
+    ARTIFACT_DIR = Path(BUILD_OUTPUT_DIRECTORY, ARTIFACT_TYPE)
     COMPILE_DB_PATH = Path(BUILD_OUTPUT_DIRECTORY, "compile_commands.json")
     build_args = [f"--build-type", args.build_type,
                   "--compiler", args.compiler,
@@ -250,10 +245,10 @@ def build(args):
             subprocess.run(["rsync", "-a", "--perms", "--info=progress2", "--no-i-r", f"./{ARTIFACT_DIR}/", f"/remote/{ARTIFACT_TYPE}"])
             # modify compile db to reference host cwd
             with (curr_db_path.open() as db, open(f"/remote/{ARTIFACT_TYPE}/compile_commands.json", "w") as out):
-                build_dir = str(Path(CONTAINER_MOUNT_DIRECTORY, ARTIFACT_DIR))
-                replacement_dir = str(Path(args.sync, TARGET_OUTPUT_DIRECTORY))
+                # build_dir = str(Path(CONTAINER_MOUNT_DIRECTORY, ARTIFACT_DIR))
+                # replacement_dir = str(Path(args.sync, TARGET_OUTPUT_DIRECTORY))
                 for line in db:
-                    line = line.replace(build_dir, replacement_dir)
+                    # line = line.replace(build_dir, replacement_dir)
                     line = line.replace(CONTAINER_MOUNT_DIRECTORY, args.sync)
                     out.write(line)
     else: # build binaries in remote container
@@ -331,6 +326,9 @@ debug_parser.add_argument("-l", "--local",
 debug_parser.add_argument("-t", "--terminal",
                         help="force debugging through terminal alone",
                         action="store_true")
+debug_parser.add_argument("-r", "--release",
+                        help="debug release build with O2 optimizations and limited symbols",
+                        action="store_true")
 debug_parser.add_argument("-d", "--debugger",
                         help="choose a specific debugger (note that the VSCode visual debugger is only supported with lldb)",
                         choices=["lldb", "gdb"],
@@ -363,12 +361,15 @@ deploy_parser.add_argument("filename",
                           default="main.blu")
 deploy_parser.add_argument("-n", "--num-clients",
                            help="number of clients to create (only used in deployment simulation)",
-                           default=DEFAULT_NUM_CLIENTS)
+                           default=NUM_CLIENTS)
 deploy_parser.add_argument("-b", "--build",
                            help="rebuild container images before running",
                            action="store_true")
 deploy_parser.add_argument("-d", "--debug",
                            help="attach debugger to deployment configuration",
+                           action="store_true")
+deploy_parser.add_argument("-r", "--release-debug",
+                           help="use release build with limited debug symbols in debug mode",
                            action="store_true")
 deploy_parser.set_defaults(fn=deploy)
 
@@ -391,7 +392,7 @@ build_parser.add_argument("-j", "--parallel",
                           default=NUM_CORES)
 build_parser.add_argument("-t", "--build-type",
                           help="set cmake build type",
-                          choices=["Debug", "Release"],
+                          choices=["Debug", "Release", "MinSizeRel", "RelWithDebInfo"],
                           default="Debug")
 build_parser.add_argument("-l", "--local",
                           help="build for local host only; container builds are not updated",
