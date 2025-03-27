@@ -13,6 +13,7 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -glldb -DNDEBUG")
 
 # Packages
 include(FetchContent)
+set(FETCHCONTENT_QUIET OFF)
 
 # GoogleTest
 FetchContent_Declare(
@@ -21,7 +22,6 @@ FetchContent_Declare(
 )
 # For Windows: Prevent overriding the parent project's compiler/linker settings
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googletest)
 
 # Boost
 set(REQUIRED_BOOST_LIBS asio thread regex lockfree type_index math)
@@ -31,7 +31,8 @@ FetchContent_Declare(
     URL https://github.com/boostorg/boost/releases/download/boost-1.86.0/boost-1.86.0-cmake.zip
 )
 set(BOOST_INCLUDE_LIBRARIES ${REQUIRED_BOOST_LIBS})
-FetchContent_MakeAvailable(Boost)
+
+FetchContent_MakeAvailable(googletest Boost)
 
 project($ENV{PROJECT_NAME})
     

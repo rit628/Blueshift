@@ -37,14 +37,13 @@ def initialize_host():
     Path(REMOTE_OUTPUT_DIRECTORY, "release").mkdir(parents=True, exist_ok=True)
     Path(REMOTE_OUTPUT_DIRECTORY, "minsizerel").mkdir(parents=True, exist_ok=True)
     Path(REMOTE_OUTPUT_DIRECTORY, "relwithdebinfo").mkdir(parents=True, exist_ok=True)
-    if os.name == "posix":
-        context = subprocess.check_output(["docker", "context", "show"], text=True).strip()
-        if context == "rootless":
-            os.environ["CONTAINER_UID"] = str(0)
-            os.environ["CONTAINER_GID"] = str(0)
-        else:
-            os.environ["CONTAINER_UID"] = str(os.getuid())
-            os.environ["CONTAINER_GID"] = str(os.getgid())
+    context = subprocess.check_output(["docker", "context", "show"], text=True).strip()
+    if context == "rootless" or context == "desktop-linux":
+        os.environ["CONTAINER_UID"] = str(0)
+        os.environ["CONTAINER_GID"] = str(0)
+    else:
+        os.environ["CONTAINER_UID"] = str(os.getuid())
+        os.environ["CONTAINER_GID"] = str(os.getgid())
 
 def wait_for_lldb_server(port):
     pattern = re.compile(f"{port}/tcp")
@@ -93,7 +92,7 @@ def symlink(source : Path | str, target : Path | str, is_directory = False):
     source = Path(source)
     if source.exists() or source.is_symlink():
         os.unlink(source)
-    source.symlink_to(Path(os.getcwd(), target), target_is_directory=is_directory)
+    source.symlink_to(target, target_is_directory=is_directory)
     return source
 
 def run(args):
@@ -181,7 +180,6 @@ def deploy(args):
     atexit.register(clean_shutdown, [*base_cmd, "down", "-t", "1"])
     
     command = [*base_cmd, "up"]
-    os.environ["HOST_CWD"] = os.getcwd()
     os.environ["DEPLOY_SRC"] = str(Path("samples", "src", args.filename))
 
     if args.num_clients:
@@ -233,32 +231,26 @@ def build(args):
             linker += "ld"
         cmake_args = [c_compiler, cpp_compiler, linker, build_type]
         subprocess.run(["cmake", *cmake_args, "-S", ".", "-B", ARTIFACT_DIR], check=True)
-        curr_db_path = Path(ARTIFACT_DIR, "compile_commands.json")
-        symlink(COMPILE_DB_PATH, curr_db_path)
+        symlink(COMPILE_DB_PATH, Path(".", ARTIFACT_TYPE, "compile_commands.json"))
 
         # 1 <= j <= n-1 (keep 1 core free for background tasks)
         core_count = str(max(1, min(args.parallel, NUM_CORES - 1)))
         subprocess.run(["cmake", "--build", ".", "-j", core_count, "-t", *args.make], cwd=f"./{ARTIFACT_DIR}", check=True)
-        symlink(TARGET_OUTPUT_DIRECTORY, ARTIFACT_DIR, True)
-
-        if args.sync:            
-            subprocess.run(["rsync", "-a", "--perms", "--info=progress2", "--no-i-r", f"./{ARTIFACT_DIR}/", f"/remote/{ARTIFACT_TYPE}"])
-            # modify compile db to reference host cwd
-            with (curr_db_path.open() as db, open(f"/remote/{ARTIFACT_TYPE}/compile_commands.json", "w") as out):
-                # build_dir = str(Path(CONTAINER_MOUNT_DIRECTORY, ARTIFACT_DIR))
-                # replacement_dir = str(Path(args.sync, TARGET_OUTPUT_DIRECTORY))
-                for line in db:
-                    # line = line.replace(build_dir, replacement_dir)
-                    line = line.replace(CONTAINER_MOUNT_DIRECTORY, args.sync)
-                    out.write(line)
+        symlink(TARGET_OUTPUT_DIRECTORY, Path(".", ARTIFACT_TYPE), True)
     else: # build binaries in remote container
         initialize_host()
-        cwd = os.getcwd()
         subprocess.run(["docker", "compose", "run", "--rm", "builder",
-                        "build", "-l", "--sync", cwd, *build_args, *args.make], check=True)
-        curr_db_path = Path(cwd, TARGET_OUTPUT_DIRECTORY, "compile_commands.json")
-        symlink(COMPILE_DB_PATH, curr_db_path)
-        symlink(TARGET_OUTPUT_DIRECTORY, Path(REMOTE_OUTPUT_DIRECTORY, ARTIFACT_TYPE), True)
+                        "build", "-l", *build_args, *args.make], check=True)
+        symlink(TARGET_OUTPUT_DIRECTORY, Path(".", "remote", ARTIFACT_TYPE))
+        curr_db_path = Path(REMOTE_OUTPUT_DIRECTORY, ARTIFACT_TYPE, "compile_commands.json")
+        with (curr_db_path.open("r") as db, COMPILE_DB_PATH.open("w") as out):
+            cwd = os.getcwd()
+            build_dir = str(Path(CONTAINER_MOUNT_DIRECTORY, ARTIFACT_DIR))
+            replacement_dir = str(Path(cwd, TARGET_OUTPUT_DIRECTORY))
+            for line in db:
+                line = line.replace(build_dir, replacement_dir)  # replace build dir
+                line = line.replace(CONTAINER_MOUNT_DIRECTORY, cwd)  # replace source dir
+                out.write(line)
 
 def test(args):
     sys.stderr = supressPythonErrors()
