@@ -131,7 +131,7 @@ void Connection::readBody(){
 void Connection::writeHeader(){
     auto frontQueue = this->out_queue.peek(); 
     boost::asio::async_write(this->socket, boost::asio::buffer(&frontQueue.header, sizeof(SentHeader)), 
-    [&, this](boost::system::error_code ec, size_t size){
+    [frontQueue, this](boost::system::error_code ec, size_t size){
         if(!ec){
             if(frontQueue.header.body_size > 0){
                 writeBody(); 

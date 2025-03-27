@@ -6,7 +6,7 @@
 //Test that insertion and retrieval work as expected
 TEST(TSMTest, InsertAndRetrieve) 
 {
-    TSM<int, string> tsm;
+    TSM<int, std::string> tsm;
     tsm.insert(1, "one");
     tsm.insert(2, "two");
 
@@ -26,7 +26,7 @@ TEST(TSMTest, InsertAndRetrieve)
 // Test that updating a key works correctly
 TEST(TSMTest, UpdateValue) 
 {
-    TSM<int, string> tsm;
+    TSM<int, std::string> tsm;
     tsm.insert(1, "one");
     auto result1 = tsm.get(1);
     ASSERT_TRUE(result1.has_value());
@@ -64,7 +64,7 @@ TEST(TSMTest, Concurrency)
         }
     };
 
-    vector<thread> threads;
+    std::vector<std::thread> threads;
     
     // Launch writer threads
     for (int i = 0; i < numThreads; ++i) {
