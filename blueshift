@@ -83,8 +83,8 @@ def attach_to_process(pid, process_name, debug_binary, server_port):
 
 def attach_debugger(process_name, debug_binary, server_port):
     while True:
-        pid = subprocess.run(["docker", "exec", "debugger", "pgrep", "-f", process_name], capture_output=True, text=True).stdout
-        if pid:
+        pid = subprocess.run(["docker", "exec", "debugger", "pgrep", "-f", process_name], capture_output=True, text=True).stdout.strip()
+        if pid.isdigit():
             attach_to_process(pid, process_name, debug_binary, server_port)
             return
 
@@ -260,7 +260,7 @@ def test(args):
     if args.local:
         fail_output = ["--output-on-failure"] if not args.no_output_on_failure else []
         subprocess.run(["ctest", *fail_output, *ctest_args], cwd=f"./{TARGET_OUTPUT_DIRECTORY}", check=True)
-    else:
+    else: # test in remote container
         initialize_host()
         subprocess.run(["docker", "compose", "run", "--rm", "builder", "test", "-l", *ctest_args], check=True)
 
