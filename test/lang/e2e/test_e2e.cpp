@@ -1,4 +1,4 @@
-#include "bls_types.hpp"
+#include "libtypes/bls_types.hpp"
 #include "fixtures/e2e_test.hpp"
 #include "test_macros.hpp"
 #include <memory>

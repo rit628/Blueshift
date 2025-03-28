@@ -10,13 +10,6 @@ DEVTYPE_BEGIN(SERVO)
     ATTRIBUTE(position, float)
 DEVTYPE_END
 
-// DEVTYPE_BEGIN(TEST_DEVTYPE)
-//     ATTRIBUTE(attr_1, string)
-//     ATTRIBUTE(attr_2, list<int>)
-//     ATTRIBUTE(attr_3, list<list<int>>)
-//     ATTRIBUTE(attr_4, map<float, list<int>>)
-// DEVTYPE_END
-
 DEVTYPE_BEGIN(TIMER_TEST)
     ATTRIBUTE(test_val, int)
 DEVTYPE_END
