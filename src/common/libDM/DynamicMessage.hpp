@@ -43,7 +43,7 @@ struct MsgHeader{
 // Descriptor Object: 
 struct Descriptor{
     // Object Type: 
-    TYPE TYPE; 
+    TYPE descType; 
     // Number of elements in list
     uint32_t numElements = 0; 
     // Size of element (1 if singular element, n for containers with n elements)
@@ -51,7 +51,7 @@ struct Descriptor{
     // Offset in lump element
     uint32_t lumpOffset; 
     // Container Type 
-    enum TYPE contained_type;
+    TYPE contained_type;
 };
 
 
@@ -219,16 +219,16 @@ class DynamicMessage{
         Descriptor desc; 
         // test if vector
         if constexpr (std::same_as<T, int64_t>) {
-            desc.TYPE = TYPE::int_t;
+            desc.descType = TYPE::int_t;
         }
         else if constexpr (std::same_as<T, double>) {
-            desc.TYPE = TYPE::float_t;
+            desc.descType = TYPE::float_t;
         }
         else if constexpr (std::same_as<T, bool>) {
-            desc.TYPE = TYPE::bool_t;
+            desc.descType = TYPE::bool_t;
         }
         else {
-            desc.TYPE = TYPE::ANY; 
+            desc.descType = TYPE::ANY; 
         }
 
         desc.numElements = 1; 
@@ -261,7 +261,7 @@ class DynamicMessage{
         Descriptor desc; 
 
         // Create and push the descriptor object: 
-        desc.TYPE = TYPE::string_t; 
+        desc.descType = TYPE::string_t; 
         desc.eleSize = sizeof(char); 
         desc.numElements = messageObj.size(); 
         desc.lumpOffset = this->data.size(); 
@@ -301,7 +301,7 @@ class DynamicMessage{
         desc.lumpOffset = this->data.size(); 
         desc.numElements = messageObj.size(); 
         desc.eleSize = containerObj.second; 
-        desc.TYPE = TYPE::list_t; 
+        desc.descType = TYPE::list_t; 
 
         desc.contained_type = containerObj.first; 
         
@@ -337,7 +337,7 @@ class DynamicMessage{
             throw std::invalid_argument("map cannot be empty!"); 
         }
 
-        desc.TYPE = TYPE::map_t; 
+        desc.descType = TYPE::map_t; 
         desc.eleSize = -1; 
         desc.lumpOffset = this->data.size(); 
         // Times this by 2 when reading to read all descriptors: 
@@ -480,7 +480,7 @@ class DynamicMessage{
             auto root_descriptor = this->Descriptors[descIndex]; 
             BlsType heapObj; 
 
-            switch(root_descriptor.TYPE) {
+            switch(root_descriptor.descType) {
                 case TYPE::map_t : {
                     int trav = 0;
                     heapObj = this->mapToTree(descIndex, trav); 
@@ -633,7 +633,7 @@ class DynamicMessage{
     BlsType primToTree(int descIndex, int &trav1){  
         auto descObj = this->Descriptors[descIndex];
         BlsType prim;
-        switch (descObj.TYPE) {
+        switch (descObj.descType) {
             case TYPE::int_t:
                 prim.emplace<int64_t>();
             break;
@@ -678,7 +678,7 @@ class DynamicMessage{
             auto heapObj = std::get<std::shared_ptr<HeapDescriptor>>(object);
             if(auto mapDesc = std::dynamic_pointer_cast<MapDescriptor>(heapObj)){
                 Descriptor desc; 
-                desc.TYPE = TYPE::map_t;
+                desc.descType = TYPE::map_t;
                 desc.eleSize  = 0;
                 desc.lumpOffset = this->data.size();
                 desc.numElements = mapDesc->map->size();
@@ -716,7 +716,7 @@ class DynamicMessage{
                         }              
                         default : {
                             Descriptor desc; 
-                            desc.TYPE = TYPE::list_t;
+                            desc.descType = TYPE::list_t;
                             desc.eleSize = 0;
                             desc.lumpOffset = this->data.size(); 
                             desc.numElements = vecDesc->vector->size();
@@ -783,7 +783,7 @@ class DynamicMessage{
         for(auto &obj : this->attributeMap){    
             int desc = obj.second; 
 
-            TYPE type = this->Descriptors[desc].TYPE; 
+            TYPE type = this->Descriptors[desc].descType; 
 
             // If the value is of numeric type; 
             if(type == TYPE::float_t){
