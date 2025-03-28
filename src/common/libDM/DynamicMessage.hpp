@@ -84,13 +84,13 @@ class DynamicMessage{
             return std::make_pair(TYPE::bool_t, static_cast<uint8_t>(sizeof(T)));
         }
         else if constexpr (TypeDef::String<T>) {
-            return std::make_pair(TYPE::string_t, static_cast<uint8_t>(sizeof(T)));
+            return std::make_pair(TYPE::string_t, static_cast<uint8_t>(0));
         }
         else if constexpr (TypeDef::List<T>) {
-            return std::make_pair(TYPE::list_t, static_cast<uint8_t>(sizeof(T)));
+            return std::make_pair(TYPE::list_t, static_cast<uint8_t>(0));
         }
         else if constexpr (TypeDef::Map<T>) {
-            return std::make_pair(TYPE::map_t, static_cast<uint8_t>(sizeof(T)));
+            return std::make_pair(TYPE::map_t, static_cast<uint8_t>(0));
         }
         else {
             return std::make_pair(TYPE::NONE, static_cast<uint8_t>(0));
