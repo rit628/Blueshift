@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace BlsLang::TypeDef {
+namespace TypeDef {
 
     template<typename T>
     concept Boolean = std::same_as<std::remove_cv_t<std::remove_reference_t<T>>, bool>;

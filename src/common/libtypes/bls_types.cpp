@@ -1,11 +1,9 @@
 #include "bls_types.hpp"
-#include "include/typedefs.hpp"
+#include "typedefs.hpp"
 #include <cstdint>
 #include <memory>
 #include <string>
 #include <variant>
-
-using namespace BlsLang;
 
 template<class... Ts>
 struct overloads : Ts... { using Ts::operator()...; };
@@ -67,7 +65,7 @@ BlsType::operator bool() const {
     }, *this);
 }
 
-BlsType BlsLang::operator-(const BlsType& operand) {
+BlsType operator-(const BlsType& operand) {
     return std::visit([](const auto& a) -> BlsType {
         if constexpr (Numeric<decltype(a)>) {
             return -a;
@@ -78,7 +76,7 @@ BlsType BlsLang::operator-(const BlsType& operand) {
     }, operand);
 }
 
-BlsType BlsLang::operator<(const BlsType& lhs, const BlsType& rhs) {
+BlsType operator<(const BlsType& lhs, const BlsType& rhs) {
     return std::visit([](const auto& a, const auto& b) -> BlsType {
         if constexpr (Comparable<decltype(a), decltype(b)>) {
             return a < b;
@@ -89,7 +87,7 @@ BlsType BlsLang::operator<(const BlsType& lhs, const BlsType& rhs) {
     }, lhs, rhs);
 }
 
-BlsType BlsLang::operator<=(const BlsType& lhs, const BlsType& rhs) {
+BlsType operator<=(const BlsType& lhs, const BlsType& rhs) {
     return std::visit([](const auto& a, const auto& b) -> BlsType {
         if constexpr (Comparable<decltype(a), decltype(b)>) {
             return a <= b;
@@ -100,7 +98,7 @@ BlsType BlsLang::operator<=(const BlsType& lhs, const BlsType& rhs) {
     }, lhs, rhs);
 }
 
-BlsType BlsLang::operator>(const BlsType& lhs, const BlsType& rhs) {
+BlsType operator>(const BlsType& lhs, const BlsType& rhs) {
     return std::visit([](const auto& a, const auto& b) -> BlsType {
         if constexpr (Comparable<decltype(a), decltype(b)>) {
             return a > b;
@@ -111,7 +109,7 @@ BlsType BlsLang::operator>(const BlsType& lhs, const BlsType& rhs) {
     }, lhs, rhs);
 }
 
-BlsType BlsLang::operator>=(const BlsType& lhs, const BlsType& rhs) {
+BlsType operator>=(const BlsType& lhs, const BlsType& rhs) {
     return std::visit([](const auto& a, const auto& b) -> BlsType {
         if constexpr (Comparable<decltype(a), decltype(b)>) {
             return a >= b;
@@ -122,7 +120,7 @@ BlsType BlsLang::operator>=(const BlsType& lhs, const BlsType& rhs) {
     }, lhs, rhs);
 }
 
-BlsType BlsLang::operator!=(const BlsType& lhs, const BlsType& rhs) {
+BlsType operator!=(const BlsType& lhs, const BlsType& rhs) {
     return std::visit([](const auto& a, const auto& b) -> BlsType {
         if constexpr (WeaklyComparable<decltype(a), decltype(b)>) {
             return a != b;
@@ -133,7 +131,7 @@ BlsType BlsLang::operator!=(const BlsType& lhs, const BlsType& rhs) {
     }, lhs, rhs);
 }
 
-BlsType BlsLang::operator==(const BlsType& lhs, const BlsType& rhs) {
+BlsType operator==(const BlsType& lhs, const BlsType& rhs) {
     return std::visit([](const auto& a, const auto& b) -> BlsType {
         if constexpr (WeaklyComparable<decltype(a), decltype(b)>) {
             return a == b;
@@ -144,7 +142,7 @@ BlsType BlsLang::operator==(const BlsType& lhs, const BlsType& rhs) {
     }, lhs, rhs);
 }
 
-BlsType BlsLang::operator+(const BlsType& lhs, const BlsType& rhs) {
+BlsType operator+(const BlsType& lhs, const BlsType& rhs) {
     return std::visit([](const auto& a, const auto& b) -> BlsType {
         if constexpr (Addable<decltype(a), decltype(b)>) {
             return a + b;
@@ -155,7 +153,7 @@ BlsType BlsLang::operator+(const BlsType& lhs, const BlsType& rhs) {
     }, lhs, rhs);
 }
 
-BlsType BlsLang::operator-(const BlsType& lhs, const BlsType& rhs) {
+BlsType operator-(const BlsType& lhs, const BlsType& rhs) {
     return std::visit([](const auto& a, const auto& b) -> BlsType {
         if constexpr (Subtractable<decltype(a), decltype(b)>) {
             return a - b;
@@ -166,7 +164,7 @@ BlsType BlsLang::operator-(const BlsType& lhs, const BlsType& rhs) {
     }, lhs, rhs);
 }
 
-BlsType BlsLang::operator*(const BlsType& lhs, const BlsType& rhs) {
+BlsType operator*(const BlsType& lhs, const BlsType& rhs) {
     return std::visit([](const auto& a, const auto& b) -> BlsType {
         if constexpr (Multiplicable<decltype(a), decltype(b)>) {
             return a * b;
@@ -177,7 +175,7 @@ BlsType BlsLang::operator*(const BlsType& lhs, const BlsType& rhs) {
     }, lhs, rhs);
 }
 
-BlsType BlsLang::operator/(const BlsType& lhs, const BlsType& rhs) {
+BlsType operator/(const BlsType& lhs, const BlsType& rhs) {
     return std::visit([](const auto& a, const auto& b) -> BlsType {
         if constexpr (Divisible<decltype(a), decltype(b)>) {
             if constexpr (Numeric<decltype(b)>) {
@@ -193,7 +191,7 @@ BlsType BlsLang::operator/(const BlsType& lhs, const BlsType& rhs) {
     }, lhs, rhs);
 }
 
-BlsType BlsLang::operator%(const BlsType& lhs, const BlsType& rhs) {
+BlsType operator%(const BlsType& lhs, const BlsType& rhs) {
     return std::visit([](const auto& a, const auto& b) -> BlsType {
         if constexpr (TypeDef::Integer<decltype(a)> && TypeDef::Integer<decltype(b)>) {
             if (b == 0) {
@@ -213,7 +211,7 @@ BlsType BlsLang::operator%(const BlsType& lhs, const BlsType& rhs) {
     }, lhs, rhs);
 }
 
-BlsType BlsLang::operator^(const BlsType& lhs, const BlsType& rhs) {
+BlsType operator^(const BlsType& lhs, const BlsType& rhs) {
     return std::visit([](const auto& a, const auto& b) -> BlsType {
         if constexpr (Numeric<decltype(a)> && Numeric<decltype(b)>) {
             return std::pow(a, b);
@@ -224,7 +222,7 @@ BlsType BlsLang::operator^(const BlsType& lhs, const BlsType& rhs) {
     }, lhs, rhs);
 }
 
-bool BlsLang::typeCompatible(const BlsType& lhs, const BlsType& rhs) {
+bool typeCompatible(const BlsType& lhs, const BlsType& rhs) {
     const static auto getInnerType = [](const std::shared_ptr<HeapDescriptor>& container) -> BlsType {
         switch (container->getType()) {
             case TYPE::list_t:
@@ -310,10 +308,10 @@ bool BlsLang::typeCompatible(const BlsType& lhs, const BlsType& rhs) {
     }, lhs, rhs);
 }
 
-MapDescriptor::MapDescriptor(std::string cont_code) {
+MapDescriptor::MapDescriptor(TYPE contType) {
     this->objType = TYPE::map_t;
     this->keyType = TYPE::string_t;
-    this->contType = getTypeEnum(cont_code);
+    this->contType = contType;
     this->map = std::make_shared<std::unordered_map<std::string, BlsType>>(); 
 }
 
@@ -371,14 +369,7 @@ void VectorDescriptor::append(BlsType& newObj){
     this->vector->push_back(newObj);
 }
 
-int PrimDescriptor::getSize() {
-    return std::visit(overloads {
-        [](const std::string& value) -> int { return value.size(); },
-        [](const auto&) -> int { return 1; },
-    }, this->variant);
-}
-
-TYPE BlsLang::getTypeEnum(const BlsType& obj) {
+TYPE getTypeEnum(const BlsType& obj) {
     return std::visit(overloads {
         [](std::monostate) { return TYPE::void_t; },
         [](bool) { return TYPE::bool_t; },
@@ -389,7 +380,7 @@ TYPE BlsLang::getTypeEnum(const BlsType& obj) {
     }, obj);
 }
 
-std::string BlsLang::stringify(const BlsType& value) {
+std::string stringify(const BlsType& value) {
     return std::visit(overloads {
         [](bool value) { return std::to_string(value); },
         [](int64_t value) { return std::to_string(value); },

@@ -1,7 +1,6 @@
 #pragma once
 #include "ast.hpp"
-#include "bls_types.hpp"
-#include "libHD/HeapDescriptors.hpp"
+#include "libtypes/bls_types.hpp"
 #include "libcompiler/compiler.hpp"
 #include <fstream>
 #include <gtest/gtest.h>
@@ -34,7 +33,7 @@ namespace BlsLang {
             }
 
             static BlsType createDevtype(std::unordered_map<std::string, BlsType>&& attributes) {
-                auto devtype = std::make_shared<MapDescriptor>(Desctype::ANY);
+                auto devtype = std::make_shared<MapDescriptor>(TYPE::ANY);
                 for (auto&& [attribute, value] : attributes) {
                     auto attr = BlsType(attribute);
                     devtype->emplace(attr, value);

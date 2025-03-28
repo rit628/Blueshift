@@ -2,7 +2,7 @@
 #include "boost/range/iterator_range_core.hpp"
 #include "include/Common.hpp"
 #include "call_stack.hpp"
-#include "bls_types.hpp"
+#include "libtypes/bls_types.hpp"
 #include "visitor.hpp"
 #include "include/reserved_tokens.hpp"
 #include <cstdint>
@@ -105,11 +105,11 @@ namespace BlsLang {
             std::unordered_map<std::string, std::function<std::any(Interpreter&, std::vector<BlsType>)>> procedures = {
                 {"println", [](Interpreter&, std::vector<BlsType> args) -> std::any {
                     for (auto&& arg : args) {
-                        if (std::holds_alternative<int>(arg)) {
-                            std::cout << std::get<int>(arg) << std::endl;
+                        if (std::holds_alternative<int64_t>(arg)) {
+                            std::cout << std::get<int64_t>(arg) << std::endl;
                         }
-                        else if (std::holds_alternative<float>(arg)) {
-                            std::cout << std::get<float>(arg) << std::endl;
+                        else if (std::holds_alternative<double>(arg)) {
+                            std::cout << std::get<double>(arg) << std::endl;
                         }
                         else if (std::holds_alternative<bool>(arg)) {
                             std::cout << ((std::get<bool>(arg)) ? "true" : "false") << std::endl;
@@ -122,11 +122,11 @@ namespace BlsLang {
                 }},
                 {"print", [](Interpreter&, std::vector<BlsType> args) -> std::any {
                     if (args.size() > 0) {
-                        if (std::holds_alternative<int>(args.at(0))) {
-                            std::cout << std::get<int>(args.at(0)) << std::flush;
+                        if (std::holds_alternative<int64_t>(args.at(0))) {
+                            std::cout << std::get<int64_t>(args.at(0)) << std::flush;
                         }
-                        else if (std::holds_alternative<float>(args.at(0))) {
-                            std::cout << std::get<float>(args.at(0)) << std::flush;
+                        else if (std::holds_alternative<double>(args.at(0))) {
+                            std::cout << std::get<double>(args.at(0)) << std::flush;
                         }
                         else if (std::holds_alternative<bool>(args.at(0))) {
                             std::cout << ((std::get<bool>(args.at(0))) ? "true" : "false") << std::flush;
@@ -136,11 +136,11 @@ namespace BlsLang {
                         }
                     }
                     for (auto&& arg : boost::make_iterator_range(args.begin()+1, args.end())) {
-                        if (std::holds_alternative<int>(arg)) {
-                            std::cout << " " << std::get<int>(arg) << std::flush;
+                        if (std::holds_alternative<int64_t>(arg)) {
+                            std::cout << " " << std::get<int64_t>(arg) << std::flush;
                         }
-                        else if (std::holds_alternative<float>(arg)) {
-                            std::cout << " " << std::get<float>(arg) << std::flush;
+                        else if (std::holds_alternative<double>(arg)) {
+                            std::cout << " " << std::get<double>(arg) << std::flush;
                         }
                         else if (std::holds_alternative<bool>(arg)) {
                             std::cout << " " << ((std::get<bool>(arg)) ? "true" : "false") << std::flush;

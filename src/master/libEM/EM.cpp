@@ -27,7 +27,7 @@ ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<vector<Dyn
 
 ExecutionUnit::ExecutionUnit(string OblockName, vector<string> devices, vector<bool> isVtype, vector<string> controllers,
     TSM<string, vector<HeapMasterMessage>> &vtypeHMMsMap, TSQ<DynamicMasterMessage> &sendMM, 
-    function<vector<BlsLang::BlsType>(vector<BlsLang::BlsType>)>  transform_function)
+    function<vector<BlsType>(vector<BlsType>)>  transform_function)
 {
     this->OblockName = OblockName;
     this->devices = devices;
@@ -77,7 +77,7 @@ void ExecutionUnit::running(TSM<string, vector<HeapMasterMessage>> &vtypeHMMsMap
             HMMs.push_back(HMM);
         }
 
-        vector<BlsLang::BlsType> transformableStates;
+        vector<BlsType> transformableStates;
         for(int i = 0; i < HMMs.size(); i++)
         {   
             transformableStates.push_back(HMMs.at(i).heapTree);

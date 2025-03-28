@@ -1,5 +1,5 @@
 #pragma once
-#include "bls_types.hpp"
+#include "libtypes/bls_types.hpp"
 #include "error_types.hpp"
 #include <cstddef>
 #include <span>

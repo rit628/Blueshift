@@ -1,5 +1,8 @@
 #pragma once
 
+#include <concepts>
+#include <cstdint>
+#include <deque>
 #include <variant>
 #include <vector> 
 #include <memory> 
@@ -7,7 +10,8 @@
 #include <map>
 #include <boost/type_index.hpp> 
 #include <iostream> 
-#include "libHD/HeapDescriptors.hpp"
+#include "libtypes/bls_types.hpp"
+#include "libtypes/typedefs.hpp"
 //#include "../libCommon/Common.hpp"
 
 
@@ -39,7 +43,7 @@ struct MsgHeader{
 // Descriptor Object: 
 struct Descriptor{
     // Object Type: 
-    Desctype descType; 
+    TYPE TYPE; 
     // Number of elements in list
     uint32_t numElements = 0; 
     // Size of element (1 if singular element, n for containers with n elements)
@@ -47,7 +51,7 @@ struct Descriptor{
     // Offset in lump element
     uint32_t lumpOffset; 
     // Container Type 
-    Desctype contained_type;
+    enum TYPE contained_type;
 };
 
 
@@ -69,38 +73,27 @@ class DynamicMessage{
 
 
     template <typename T> 
-    std::pair<Desctype, uint8_t> peekType(T &obj){
-        std::string type_name = boost::typeindex::type_id_with_cvr<T>().pretty_name(); 
-
-        //std::cout<<"Object: "<<type_name<<std::endl;
-
-        if(this->startsWith("float", type_name)){
-            return std::make_pair(Desctype::FLOAT, static_cast<uint8_t>(sizeof(float)));
+    std::pair<TYPE, uint8_t> peekType(T &obj){
+        if constexpr (TypeDef::Integer<T>) {
+            return std::make_pair(TYPE::int_t, static_cast<uint8_t>(sizeof(T)));
         }
-        else if(this->startsWith("int", type_name)){
-            return std::make_pair(Desctype::UINT32, static_cast<uint8_t>(sizeof(int)));
+        else if constexpr (TypeDef::Float<T>) {
+            return std::make_pair(TYPE::float_t, static_cast<uint8_t>(sizeof(T)));
         }
-        else if(this->startsWith("char", type_name)){
-            return std::make_pair(Desctype::CHAR, static_cast<uint8_t>(sizeof(char)));
+        else if constexpr (TypeDef::Boolean<T>) {
+            return std::make_pair(TYPE::bool_t, static_cast<uint8_t>(sizeof(T)));
         }
-        else if(this->startsWith("bool", type_name)){
-            return std::make_pair(Desctype::BOOL, static_cast<uint8_t>(sizeof(bool)));
+        else if constexpr (TypeDef::String<T>) {
+            return std::make_pair(TYPE::string_t, static_cast<uint8_t>(sizeof(T)));
         }
-        else if(this->startsWith("unsigned char", type_name)){
-            return std::make_pair(Desctype::BOOL, static_cast<uint8_t>(sizeof(uint8_t)));
+        else if constexpr (TypeDef::List<T>) {
+            return std::make_pair(TYPE::list_t, static_cast<uint8_t>(sizeof(T)));
         }
-        else if(this->startsWith("std::vector", type_name)){
-            return std::make_pair(Desctype::VECTOR, static_cast<uint8_t>(0)); 
+        else if constexpr (TypeDef::Map<T>) {
+            return std::make_pair(TYPE::map_t, static_cast<uint8_t>(sizeof(T)));
         }
-        else if(this->startsWith("std::__cxx11::basic_string", type_name)){
-            return std::make_pair(Desctype::STRING, static_cast<uint8_t>(0)); 
-
-        }
-        else if(this->startsWith("std::unordered_map", type_name)){
-            return std::make_pair(Desctype::MAP, static_cast<uint8_t>(0)); 
-        }
-        else{
-            return std::make_pair(Desctype::NONE, static_cast<uint8_t>(0));
+        else {
+            return std::make_pair(TYPE::NONE, static_cast<uint8_t>(0));
         }
     }
 
@@ -225,32 +218,23 @@ class DynamicMessage{
 
         Descriptor desc; 
         // test if vector
-        if(this->startsWith("int", type_name) || this->startsWith("unsigned int", type_name)){
-            desc.descType = Desctype::UINT32; 
+        if constexpr (std::same_as<T, int64_t>) {
+            desc.TYPE = TYPE::int_t;
         }
-        else if(this->startsWith("float", type_name)){
-            desc.descType = Desctype::FLOAT; 
+        else if constexpr (std::same_as<T, double>) {
+            desc.TYPE = TYPE::float_t;
         }
-        else if(this->startsWith("char", type_name)){
-            desc.descType = Desctype::CHAR; 
+        else if constexpr (std::same_as<T, bool>) {
+            desc.TYPE = TYPE::bool_t;
         }
-        else if(this->startsWith("bool", type_name)){
-            desc.descType = Desctype::BOOL; 
-        }
-        else if(this->startsWith("unsigned char", type_name)){
-            desc.descType = Desctype::UCHAR; 
-        }
-        else if(this->startsWith("DEVTYPE", type_name)){
-            desc.descType = Desctype::DEVTYPE; 
-        }
-        else{
-            desc.descType = Desctype::ANY; 
+        else {
+            desc.TYPE = TYPE::ANY; 
         }
 
         desc.numElements = 1; 
         desc.eleSize = sizeof(T); 
         desc.lumpOffset = this->data.size(); 
-        desc.contained_type = Desctype::NONE; 
+        desc.contained_type = TYPE::NONE; 
         
         // Push the descriptor back
         this->Descriptors.push_back(desc);
@@ -277,12 +261,12 @@ class DynamicMessage{
         Descriptor desc; 
 
         // Create and push the descriptor object: 
-        desc.descType = Desctype::STRING; 
+        desc.TYPE = TYPE::string_t; 
         desc.eleSize = sizeof(char); 
         desc.numElements = messageObj.size(); 
         desc.lumpOffset = this->data.size(); 
         this->Descriptors.push_back(desc); 
-        desc.contained_type = Desctype::CHAR; 
+        desc.contained_type = TYPE::ANY; 
 
         // Insert the string into the header: 
         int new_sz = this->data.size() + (sizeof(char) *  desc.numElements);
@@ -317,7 +301,7 @@ class DynamicMessage{
         desc.lumpOffset = this->data.size(); 
         desc.numElements = messageObj.size(); 
         desc.eleSize = containerObj.second; 
-        desc.descType = Desctype::VECTOR; 
+        desc.TYPE = TYPE::list_t; 
 
         desc.contained_type = containerObj.first; 
         
@@ -353,7 +337,7 @@ class DynamicMessage{
             throw std::invalid_argument("map cannot be empty!"); 
         }
 
-        desc.descType = Desctype::MAP; 
+        desc.TYPE = TYPE::map_t; 
         desc.eleSize = -1; 
         desc.lumpOffset = this->data.size(); 
         // Times this by 2 when reading to read all descriptors: 
@@ -489,21 +473,21 @@ class DynamicMessage{
     */
 
     std::shared_ptr<HeapDescriptor> toTree(){
-        auto global_map = std::make_shared<MapDescriptor>(Desctype::NONE);
+        auto global_map = std::make_shared<MapDescriptor>(TYPE::NONE);
 
         for(auto obj : this->attributeMap){ 
             uint32_t descIndex = obj.second; 
             auto root_descriptor = this->Descriptors[descIndex]; 
             BlsType heapObj; 
 
-            switch(root_descriptor.descType) {
-                case(Desctype::MAP) : {
+            switch(root_descriptor.TYPE) {
+                case TYPE::map_t : {
                     int trav = 0;
                     heapObj = this->mapToTree(descIndex, trav); 
                     break; 
                 }   
 
-                case(Desctype::VECTOR) : {
+                case TYPE::list_t : {
                     int trav = 0; 
                     heapObj = this->vecToTree(descIndex, trav); 
                     break; 
@@ -531,7 +515,7 @@ class DynamicMessage{
         int sub_offset = 1; 
 
         int count = obj_desc.numElements;
-        Desctype cont_type = obj_desc.contained_type; 
+        TYPE cont_type = obj_desc.contained_type; 
 
         auto map_object = std::make_shared<MapDescriptor>(cont_type); 
 
@@ -544,17 +528,17 @@ class DynamicMessage{
             BlsType object; 
 
             switch(cont_type){
-                case(Desctype::VECTOR) : {
+                case(TYPE::list_t) : {
                     object = this->vecToTree(descIndex + sub_offset ,new_trav); 
                     break; 
                 }
 
-                case(Desctype::MAP) : {
+                case(TYPE::map_t) : {
                     object = this->mapToTree(descIndex + sub_offset, new_trav); 
                     break; 
                 }
                 // Build the 
-                default :{
+                default : {
                     object = this->primToTree(descIndex + sub_offset, new_trav); 
                     break; 
                 }
@@ -591,109 +575,84 @@ class DynamicMessage{
     std::shared_ptr<HeapDescriptor> vecToTree(int descIndex, int &trav){
         auto obj_desc = this->Descriptors[descIndex]; 
         auto contType = obj_desc.contained_type;
+        int count = obj_desc.numElements; 
+        int fwd = 0; 
  
         trav = 1; 
 
         switch(contType){
-            case(Desctype::FLOAT) : {
-                float t; 
+            case TYPE::float_t : {
+                double t; 
                 return primVecExtract(obj_desc, t); 
                 break; 
             }
-            case (Desctype::UINT32) : {
-                int t; 
+            case TYPE::int_t : {
+                int64_t t; 
                 return primVecExtract(obj_desc, t); 
                 break; 
             }
-            case (Desctype::BOOL): {
+            case TYPE::bool_t: {
                 bool t; 
                 return primVecExtract(obj_desc, t); 
                 break; 
             }
-            case (Desctype::CHAR) : {
-                char t; 
-                return primVecExtract(obj_desc, t);  
-                break; 
+            case TYPE::map_t: {
+                auto new_vector = std::make_shared<VectorDescriptor>(TYPE::map_t);
+                for(int i = 0; i < count; i++){
+                    auto add_map = mapToTree(descIndex + trav, fwd); 
+                    new_vector->vector->push_back(add_map); 
+                    trav += fwd; 
+                }          
+                return new_vector;   
             }
-            default : { 
-                int count = obj_desc.numElements; 
-                int fwd = 0; 
-
-                if(contType == Desctype::MAP){
-                    auto new_vector = std::make_shared<VectorDescriptor>(Desctype::MAP);
-                    for(int i = 0; i < count; i++){
-                        auto add_map = mapToTree(descIndex + trav, fwd); 
-                        new_vector->vector->push_back(add_map); 
-                        trav += fwd; 
-                    }          
-                    return new_vector;    
+            case TYPE::list_t: {
+                auto new_vector = std::make_shared<VectorDescriptor>(TYPE::list_t);
+                for(int i = 0; i < count; i++){
+                    auto add_vector = vecToTree(descIndex + trav, fwd); 
+                    new_vector->vector->push_back(add_vector); 
+                    trav += fwd; 
                 }
-                else if(contType == Desctype::VECTOR){
-                    auto new_vector = std::make_shared<VectorDescriptor>(Desctype::VECTOR);
-                    for(int i = 0; i < count; i++){
-                        auto add_vector = vecToTree(descIndex + trav, fwd); 
-                        new_vector->vector->push_back(add_vector); 
-                        trav += fwd; 
-                    }
-                    return new_vector; 
-                }
-                else if(contType == Desctype::STRING){
-                    auto new_vector = std::make_shared<VectorDescriptor>(Desctype::STRING); 
-                    for(int i = 0; i < count; i++){
-                        auto add_string = primToTree(descIndex + trav, fwd);
-                        new_vector->vector->push_back(add_string); 
-                        trav += fwd;  
-                    }
-                    return new_vector; 
-                }
-                else{
-                    throw std::runtime_error("Unknown vector type"); 
-                    return NULL; 
-                }
-
-
+                return new_vector; 
             }
-
+            case TYPE::string_t: {
+                auto new_vector = std::make_shared<VectorDescriptor>(TYPE::string_t); 
+                for(int i = 0; i < count; i++){
+                    auto add_string = primToTree(descIndex + trav, fwd);
+                    new_vector->vector->push_back(add_string); 
+                    trav += fwd;  
+                }
+                return new_vector; 
+            }
+            default : {
+                throw std::runtime_error("Unknown vector type"); 
+                return NULL; 
+            }
         }; 
-        
     }
 
     BlsType primToTree(int descIndex, int &trav1){  
-        auto descObj = this->Descriptors[descIndex]; 
-        if(descObj.descType == Desctype::UINT32){
-            int prim1; 
-            this->deserialize(descIndex, prim1, trav1); 
-            trav1 = 1;  
-            return BlsType(prim1); 
+        auto descObj = this->Descriptors[descIndex];
+        BlsType prim;
+        switch (descObj.TYPE) {
+            case TYPE::int_t:
+                prim.emplace<int64_t>();
+            break;
+            case TYPE::bool_t:
+                prim.emplace<bool>();
+            break;
+            case TYPE::float_t:
+                prim.emplace<double>();
+            break;
+            case TYPE::string_t:
+                prim.emplace<std::string>();
+            break;
+            default:
+                throw std::invalid_argument("Invalid Descriptor Index, not a leaf node type"); 
+            break;
         }
-        else if(descObj.descType == Desctype::CHAR){
-            char char1; 
-            this->deserialize(descIndex, char1, trav1); 
-            trav1 = 1; 
-            return BlsType(char1); 
-        }
-        else if(descObj.descType == Desctype::BOOL){
-            bool bool1; 
-            this->deserialize(descIndex, bool1, trav1); 
-            trav1 = 1; 
-            return BlsType(bool1); 
-        }
-        else if(descObj.descType == Desctype::FLOAT){
-            float f1; 
-            this->deserialize(descIndex, f1, trav1); 
-            trav1 = 1; 
-            return BlsType(f1); 
-
-        }
-        else if(descObj.descType == Desctype::STRING){
-            std::string str1; 
-            this->deserialize(descIndex, str1, trav1); 
-            trav1 = 1; 
-            return BlsType(str1); 
-        }
-        else{
-            throw std::invalid_argument("Invalid Descriptor Index, not a leaf node type"); 
-        }
+        std::visit([&, this](auto&& p) { this->deserialize(descIndex, p, trav1); }, prim);
+        trav1 = 1;
+        return prim;
     }
 
 
@@ -719,7 +678,7 @@ class DynamicMessage{
             auto heapObj = std::get<std::shared_ptr<HeapDescriptor>>(object);
             if(auto mapDesc = std::dynamic_pointer_cast<MapDescriptor>(heapObj)){
                 Descriptor desc; 
-                desc.descType = Desctype::MAP;
+                desc.TYPE = TYPE::map_t;
                 desc.eleSize  = 0;
                 desc.lumpOffset = this->data.size();
                 desc.numElements = mapDesc->map->size();
@@ -737,19 +696,19 @@ class DynamicMessage{
              
                 // Storage of constant size vectors
                 switch(vecDesc->contType){
-                        case(Desctype::UINT32) : {
-                            std::vector<int> intVector; 
+                        case(TYPE::int_t) : {
+                            std::vector<int64_t> intVector; 
                             writeToPrimVector(intVector, vecDesc); 
                             this->createField(name, intVector);    
                             break; 
                         }
-                        case(Desctype::FLOAT) : {
-                            std::vector<float> floatVector; 
+                        case(TYPE::float_t) : {
+                            std::vector<double> floatVector; 
                             writeToPrimVector(floatVector, vecDesc); 
                             this->createField(name, floatVector); 
                             break; 
                         }
-                        case(Desctype::STRING) : {
+                        case(TYPE::string_t) : {
                             std::vector<std::string> strVector; 
                             writeToPrimVector(strVector, vecDesc); 
                             this->createField(name, strVector); 
@@ -757,7 +716,7 @@ class DynamicMessage{
                         }              
                         default : {
                             Descriptor desc; 
-                            desc.descType = Desctype::VECTOR;
+                            desc.TYPE = TYPE::list_t;
                             desc.eleSize = 0;
                             desc.lumpOffset = this->data.size(); 
                             desc.numElements = vecDesc->vector->size();
@@ -773,14 +732,14 @@ class DynamicMessage{
         }
         else {
             // Prim Desc should only be used for standalone vector elements; 
-            if(std::holds_alternative<int>(object)){
+            if(std::holds_alternative<int64_t>(object)){
                 // Should be fine
-                int jamar = std::get<int>(object); 
+                int jamar = std::get<int64_t>(object); 
                 this->createField(name, jamar); 
                 
             }
-            else if(std::holds_alternative<float>(object)){
-                float jamar = std::get<float>(object); 
+            else if(std::holds_alternative<double>(object)){
+                float jamar = std::get<double>(object); 
                 this->createField(name, jamar); 
 
             }
@@ -824,17 +783,17 @@ class DynamicMessage{
         for(auto &obj : this->attributeMap){    
             int desc = obj.second; 
 
-            Desctype type = this->Descriptors[desc].descType; 
+            TYPE type = this->Descriptors[desc].TYPE; 
 
             // If the value is of numeric type; 
-            if(type == Desctype::FLOAT){
+            if(type == TYPE::float_t){
                 float carrier; 
                 int trav_dist; 
                 this->deserialize(desc ,carrier, trav_dist); 
                 vol_list[obj.first].push_back(carrier); 
                 
             }
-            else if(type == Desctype::UINT32){
+            else if(type == TYPE::int_t){
                 uint32_t carrier; 
                 int trav_dist; 
                 this->deserialize(desc, carrier, trav_dist); 
