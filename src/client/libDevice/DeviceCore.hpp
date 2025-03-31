@@ -85,6 +85,10 @@ class AbstractDevice{
         virtual void set_ports(std::unordered_map<std::string, std::string> &src) = 0;  
 
         virtual void proc_message(DynamicMessage input) {
+            if (!hasInterrupt) {
+                proc_message_impl(input);
+                return;
+            }
             // wait for interruptors to stop
             {
                 std::unique_lock lk(m);
