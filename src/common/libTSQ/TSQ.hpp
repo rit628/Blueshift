@@ -58,9 +58,7 @@ class TSQ
         int getSize()
         {
             unique_lock<mutex> mut(this->mut);
-            auto size = this->sharedQueue.size();
-            mut.unlock();
-            return size;
+            return this->sharedQueue.size();
         }
         void clearQueue()
         {
@@ -75,7 +73,6 @@ class TSQ
         bool isEmpty()
         {
             unique_lock<mutex> mut(this->mut);
-            auto empty = this->sharedQueue.empty();
-            return empty;
+            return this->sharedQueue.empty();
         }
 };
