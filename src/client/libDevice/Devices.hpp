@@ -2,6 +2,7 @@
 
 #include "DeviceCore.hpp"
 #include "libDM/DynamicMessage.hpp"
+#include "libtypes/typedefs.hpp"
 #include <atomic>
 #include <cstdio>
 #include <iostream>
@@ -16,22 +17,15 @@
 
 class TestTimer : public AbstractDevice{
     private: 
-        double val = 1.1; 
+        TypeDef::TIMER_TEST states;
         std::string filename; 
         std::ofstream write_file; 
 
         // Process and write message to file
         void proc_message_impl(DynamicMessage& dmsg) override {
-            double omar; 
-            if(dmsg.hasField("test_val")){
-                dmsg.unpack("test_val", omar);
-                this->val = omar; 
-                write_file << std::to_string(this->val) << ",";  
-                write_file.flush(); 
-            }
-            else{
-                std::cout<<"huh?"<<std::endl; 
-            }
+            dmsg.unpackStates(states);
+            write_file << std::to_string(this->states.test_val) << ",";  
+            write_file.flush(); 
         }
 
     public: 
@@ -48,7 +42,7 @@ class TestTimer : public AbstractDevice{
         }
 
         void read_data(DynamicMessage &dmsg) override {
-            dmsg.createField("test_val", this->val); 
+            dmsg.packStates(states);
         }
 }; 
 
@@ -60,34 +54,28 @@ class TestTimer : public AbstractDevice{
 
 
 class StringReader : public AbstractDevice{
-    private: 
+    private:
+        TypeDef::LINE_WRITER states;
         std::string filename; 
         std::fstream file_stream; 
-        std::string curr_message; 
 
         void proc_message_impl(DynamicMessage& dmsg) override {
-            std::string omar;
-            std::cout << "proc_message_impl" << std::endl;
-            if(dmsg.hasField("msg")){
-                dmsg.unpack("msg", omar);
-                
-                this->curr_message = omar; 
-                
-                if (this->file_stream.is_open()) {
-                    this->file_stream.close();  // Close the file before reopening
-                }
-                
-                this->file_stream.open(this->filename, std::ios::out | std::ios::trunc);  // Open in truncate mode
-                
-                if (this->file_stream.is_open()) {
-                    std::cout<<"Writing data"<<std::endl; 
-                    this->file_stream << omar; 
-                    this->file_stream.flush();  // Ensure data is written immediately
-                    this->file_stream.close();
-                }
-                else {
-                    std::cout << "file didnt open" << std::endl;
-                }
+            dmsg.unpackStates(states);
+
+            if (this->file_stream.is_open()) {
+                this->file_stream.close();  // Close the file before reopening
+            }
+            
+            this->file_stream.open(this->filename, std::ios::out | std::ios::trunc);  // Open in truncate mode
+            
+            if (this->file_stream.is_open()) {
+                std::cout<<"Writing data"<<std::endl; 
+                this->file_stream << states.msg; 
+                this->file_stream.flush();  // Ensure data is written immediately
+                this->file_stream.close();
+            }
+            else {
+                std::cout << "file didnt open" << std::endl;
             }
         }
         
@@ -104,7 +92,7 @@ class StringReader : public AbstractDevice{
             auto getL = bool(std::getline(this->file_stream, line));
 
             if(getL){
-                this->curr_message = line; 
+                this->states.msg = line;
                 return true; 
             }
             else {
@@ -130,7 +118,7 @@ class StringReader : public AbstractDevice{
         }
 
         void read_data(DynamicMessage &dmsg) override {
-            dmsg.createField("msg", this->curr_message); 
+            dmsg.packStates(states);
         }
 }; 
 

@@ -3,6 +3,7 @@
 #include <concepts>
 #include <cstdint>
 #include <deque>
+#include <stdexcept>
 #include <variant>
 #include <vector> 
 #include <memory> 
@@ -358,6 +359,23 @@ class DynamicMessage{
         }
     }
 
+    template <typename T>
+    void packStates(T& states) {
+        using namespace TypeDef;
+        #define DEVTYPE_BEGIN(name) \
+        if constexpr (std::same_as<T, name>) { 
+        #define ATTRIBUTE(name, ...) \
+            this->createField(#name, states.name);
+        #define DEVTYPE_END \
+            return; \
+        }
+        #include "DEVTYPES.LIST"
+        #undef DEVTYPE_BEGIN
+        #undef ATTRIBUTE
+        #undef DEVTYPE_END
+        throw std::runtime_error("invalid states struct type");
+    }
+
     //Serialization and capture: 
     std::vector<char> Serialize(){
 
@@ -433,14 +451,38 @@ class DynamicMessage{
         recvString.clear();  
     }; 
 
+    bool hasField(std::string targ_field){
+        return this->attributeMap.contains(targ_field);
+    }
 
     // Unpacking functions for recievers: 
-    // Unpack Primative
     template <typename T> 
     void unpack(std::string key, T& recv){
         int descAlias = this->attributeMap[key]; 
         int trav;
         this->deserialize(descAlias, recv, trav); 
+    }
+
+    template <typename T>
+    void unpackStates(T& states) {
+        using namespace TypeDef;
+        #define DEVTYPE_BEGIN(name) \
+        if constexpr (std::same_as<T, name>) { 
+        #define ATTRIBUTE(name, ...) \
+            if (this->hasField(#name)) { \
+                this->unpack(#name, states.name); \
+            } \
+            else { \
+                throw std::runtime_error("dynamic message is missing field " #name " needed for requested states"); \
+            }
+        #define DEVTYPE_END \
+            return; \
+        }
+        #include "DEVTYPES.LIST"
+        #undef DEVTYPE_BEGIN
+        #undef ATTRIBUTE
+        #undef DEVTYPE_END
+        throw std::runtime_error("invalid states struct type");
     }
 
     /*
@@ -778,19 +820,5 @@ class DynamicMessage{
             i++; 
         }
    }
-
-
-   bool hasField(std::string targ_field){
-        if(this->attributeMap.find(targ_field) == this->attributeMap.end()){
-            return false;
-        } 
-        else{
-            return true; 
-        }
-
-   }
-
-
-
 
 }; 
