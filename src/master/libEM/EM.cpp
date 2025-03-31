@@ -65,7 +65,6 @@ void ExecutionUnit::running(TSM<string, vector<HeapMasterMessage>> &vtypeHMMsMap
 {
     while(1)
     {
-        //if(EUcache.isEmpty()) {continue;}
         vector<DynamicMasterMessage> currentDMMs = EUcache.read();
         vector<HeapMasterMessage> HMMs;
 
