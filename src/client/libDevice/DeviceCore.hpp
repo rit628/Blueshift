@@ -137,8 +137,8 @@ class AbstractDevice{
 class DeviceTimer{
     private: 
         std::shared_ptr<AbstractDevice> device; 
-        std::unordered_map<std::string, std::deque<float>> attr_history;  
-        std::unordered_map<std::string, float> vol_map; 
+        std::unordered_map<std::string, std::deque<double>> attr_history;  
+        std::unordered_map<std::string, double> vol_map; 
         int ctl_code; 
         int device_code; 
         int timer_id; 
@@ -214,7 +214,7 @@ class DeviceTimer{
             this->conex->send(msg); 
         }
 
-        float calculateStd(std::deque<float> &data){
+        float calculateStd(std::deque<double> &data){
             // Calculate the sum first: 
             float sum = 0; 
             float std = 0; 
