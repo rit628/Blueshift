@@ -74,7 +74,7 @@ struct SentHeader{
     bool fromInterrupt = false; 
 
     // Set by client
-    float volatility = 0; 
+    double volatility = 0; 
     
 }; 
 

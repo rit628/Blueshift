@@ -804,17 +804,17 @@ class DynamicMessage{
 
             // If the value is of numeric type; 
             if(type == TYPE::float_t){
-                float carrier; 
+                double carrier; 
                 int trav_dist; 
                 this->deserialize(desc ,carrier, trav_dist); 
                 vol_list[obj.first].push_back(carrier); 
                 
             }
             else if(type == TYPE::int_t){
-                uint32_t carrier; 
+                int64_t carrier; 
                 int trav_dist; 
                 this->deserialize(desc, carrier, trav_dist); 
-                vol_list[obj.first].push_back(static_cast<float>(carrier));
+                vol_list[obj.first].push_back(static_cast<double>(carrier));
             }
 
             i++; 

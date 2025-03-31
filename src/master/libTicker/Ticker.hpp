@@ -14,12 +14,12 @@ using TimerID = uint16_t;
 
 // Within a device, maps polling rate to list of associated oblocks
 using TimerList = std::unordered_map<int, TimerID>; 
-using AttrVol = std::unordered_map<AttrAlias, float>; 
+using AttrVol = std::unordered_map<AttrAlias, double>; 
 
 struct Conditional{
     // RHS and LHS sign
-    float rhs_arg; 
-    float lhs_arg; 
+    double rhs_arg; 
+    double lhs_arg; 
     // Device associated with the object
     DevAlias device; 
     // Field associated with the string
@@ -34,7 +34,7 @@ struct Volatility{
     // attribute alias
     AttrAlias attr_alias; 
     // Standard deviation data used to measure the volatility
-    float std; 
+    double std; 
 }; 
 
 struct TimerDesc{
@@ -76,7 +76,7 @@ class MTicker{
         // Thread updates volatility from the vol TSQ
         void updateVol(); 
         // Updates single volatility object: 
-        void updateVolH(DevAlias& devName, std::unordered_map<AttrAlias, float>& dataMap); 
+        void updateVolH(DevAlias& devName, std::unordered_map<AttrAlias, double>& dataMap); 
 
         // Thread reads the volati
         void updateSA(); 
