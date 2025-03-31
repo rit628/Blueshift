@@ -5,7 +5,8 @@ Connection::Connection(boost::asio::io_context &in_ctx,
 tcp::socket socket ,Owner own_type, TSQ<OwnedSentMessage> &in_msg, std::string &ip_addr) 
 : ctx(in_ctx), socket(std::move(socket)), in_queue(in_msg)
     {
-        this->in_messageBuffer.reserve(IN_MSGSIZE); 
+        this->in_messageBuffer.reserve(IN_MSGSIZE);
+        this->in_messageBuffer.resize(IN_MSGSIZE);
         for(int i = 0; i < IN_MSGSIZE; i++){
             this->tickets.push_back(i); 
         }

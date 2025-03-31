@@ -793,7 +793,7 @@ class DynamicMessage{
 
 
    // Utility function to get the volatility of a field
-    void getFieldVolatility(std::unordered_map<std::string, std::deque<float>>  &vol_list, int vol_field_size){
+    void getFieldVolatility(std::unordered_map<std::string, std::deque<double>>  &vol_list, int vol_field_size){
         int i = 0; 
         for(auto &obj : this->attributeMap){    
             int desc = obj.second; 
