@@ -218,13 +218,13 @@ class DynamicMessage{
 
         Descriptor desc; 
         // test if vector
-        if constexpr (std::same_as<T, int64_t>) {
+        if constexpr (TypeDef::Integer<T>) {
             desc.descType = TYPE::int_t;
         }
-        else if constexpr (std::same_as<T, double>) {
+        else if constexpr (TypeDef::Float<T>) {
             desc.descType = TYPE::float_t;
         }
-        else if constexpr (std::same_as<T, bool>) {
+        else if constexpr (TypeDef::Boolean<T>) {
             desc.descType = TYPE::bool_t;
         }
         else {
@@ -437,36 +437,11 @@ class DynamicMessage{
     // Unpacking functions for recievers: 
     // Unpack Primative
     template <typename T> 
-    void unpack(std::string key, T& primRecv){
+    void unpack(std::string key, T& recv){
         int descAlias = this->attributeMap[key]; 
-        int trav; 
-        this->deserialize(descAlias, primRecv, trav); 
+        int trav;
+        this->deserialize(descAlias, recv, trav); 
     }
-
-    // Unpack string
-    void unpack(std::string key, std::string& strRecv){
-        int descAlias = this->attributeMap[key]; 
-        int trav; 
-        this->deserialize(descAlias, strRecv, trav);    
-    }
-
-    // Unpack vector
-    template <typename T> 
-    void unpack(std::string key, std::vector<T>& vecRecv){
-        int descAlias = this->attributeMap[key];
-        int trav; 
-        this->deserialize(descAlias, vecRecv, trav); 
-    } 
-
-    // Unpack unordered_map
-    template <typename K, typename V> 
-    void unpack(std::string key, std::unordered_map<K, V>& mapRecv){
-        int descAlias = this->attributeMap[key]; 
-        int trav; 
-        this->deserialize(descAlias, mapRecv, trav); 
-
-    }
-
 
     /*
         Dynamic Message -> Heap Tree PIPELINE (all Dynamic Messages -> Map Heap Descriptor)
@@ -734,12 +709,12 @@ class DynamicMessage{
             // Prim Desc should only be used for standalone vector elements; 
             if(std::holds_alternative<int64_t>(object)){
                 // Should be fine
-                int jamar = std::get<int64_t>(object); 
+                int64_t jamar = std::get<int64_t>(object); 
                 this->createField(name, jamar); 
                 
             }
             else if(std::holds_alternative<double>(object)){
-                float jamar = std::get<double>(object); 
+                double jamar = std::get<double>(object); 
                 this->createField(name, jamar); 
 
             }

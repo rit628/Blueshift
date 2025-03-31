@@ -16,13 +16,13 @@
 
 class TestTimer : public AbstractDevice{
     private: 
-        float val = 1.1f; 
+        double val = 1.1; 
         std::string filename; 
         std::ofstream write_file; 
 
         // Process and write message to file
         void proc_message_impl(DynamicMessage& dmsg) override {
-            float omar; 
+            double omar; 
             if(dmsg.hasField("test_val")){
                 dmsg.unpack("test_val", omar);
                 this->val = omar; 
