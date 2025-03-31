@@ -34,10 +34,11 @@ namespace BlsLang {
 
                 using container_t = std::conditional_t<IntAddressable<T>, std::vector<BlsType>, std::unordered_map<T, BlsType>>;
 
-                Frame(Context context) requires StringAddressable<T> : context(context) {}
+                Frame(Context context, const std::string& name) requires StringAddressable<T> : context(context), name(name) {}
                 Frame(size_t returnAddress, std::span<BlsType> arguments) requires IntAddressable<T>;
                 
-                Context context = Context::FUNCTION;
+                std::string name;
+                Context context;
                 size_t returnAddress;
                 std::stack<BlsType> operands;
                 container_t locals;
@@ -45,7 +46,7 @@ namespace BlsLang {
 
             CallStack() = default;
 
-            void pushFrame(Frame::Context context) requires StringAddressable<T>;
+            void pushFrame(Frame::Context context, const std::string& name = "") requires StringAddressable<T>;
             void pushFrame(size_t returnAddress, std::span<BlsType> arguments) requires IntAddressable<T>;
             size_t popFrame();
             void pushOperand(BlsType&& operand) requires IntAddressable<T>;
@@ -54,6 +55,7 @@ namespace BlsLang {
             void setLocal(T index, BlsType value);
             BlsType& getLocal(T index);
             bool checkContext(Frame::Context context) requires StringAddressable<T>;
+            const std::string& getFrameName() requires StringAddressable<T>;
 
         private:
             using cstack_t = std::conditional_t<std::same_as<T, std::string>, std::vector<Frame>, std::stack<Frame>>;
@@ -66,8 +68,8 @@ namespace BlsLang {
     }
 
     template<StackType T>
-    inline void CallStack<T>::pushFrame(Frame::Context context) requires StringAddressable<T> {
-        auto frame = Frame(context);
+    inline void CallStack<T>::pushFrame(Frame::Context context, const std::string& name) requires StringAddressable<T> {
+        auto frame = Frame(context, name);
         if (context != Frame::Context::FUNCTION && context != Frame::Context::SETUP) {
             frame.locals = cs.back().locals; // transfer locals to new context
         }
@@ -149,6 +151,16 @@ namespace BlsLang {
             }
         }
         return false;
+    }
+
+    template<StackType T>
+    inline const std::string& CallStack<T>::getFrameName() requires StringAddressable<T> {
+        for (auto it = cs.rbegin(); it != cs.rend(); it++) {
+            if (!it->name.empty()) {
+                return it->name;
+            }
+        }
+        return cs.back().name;
     }
 
 }
