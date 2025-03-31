@@ -242,13 +242,14 @@ class DeviceTimer{
             }
         }
 
-        void sendData(){
-            SentMessage smsg; 
-        
+        void sendData(){    
+            // smsg was getting lost in memory, causing a segfault
+            // SentMessage smsg; 
+
             DynamicMessage dmsg; 
             this->device->read_data(dmsg); 
 
-            // Extract numerical data about the fields and add to the src: 
+            // Extract numerical data about the fields and add to the src: WHAT IS THE ISSUE HERE 
             dmsg.getFieldVolatility(this->attr_history, VOLATILITY_LIST_SIZE); 
 
             if(this->attr_history.size() > 0){
@@ -256,6 +257,8 @@ class DeviceTimer{
                 dmsg.createField("__DEV_ATTR_VOLATILITY__", this->vol_map); 
             }
 
+            // Create the sent message here?
+            SentMessage smsg; 
             // Do some kind of data transformation here
             smsg.body = dmsg.Serialize(); 
 

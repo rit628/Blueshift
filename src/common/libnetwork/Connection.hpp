@@ -20,7 +20,11 @@ class Connection : public enable_shared_from_this<Connection>{
         Owner own; 
         std::string ip;
         std::string client_name; 
-        SentMessage currMessage; 
+
+        // in_message buffer
+        std::vector<SentMessage> in_messageBuffer;
+        std::vector<int> tickets; 
+
 
         // Confirm Connection (checks if the targeted device is the right device)
         bool connectionConfirm; 
@@ -30,9 +34,9 @@ class Connection : public enable_shared_from_this<Connection>{
         TSQ<OwnedSentMessage> &in_queue; 
 
         // Async Reader Writer functions: 
-        void addToQueue(); 
+        void addToQueue(int index); 
         void readHeader(); 
-        void readBody(); 
+        void readBody(int index); 
         void writeHeader(); 
         void writeBody(); 
 
