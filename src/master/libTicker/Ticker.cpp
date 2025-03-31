@@ -147,7 +147,7 @@ void MTicker::updateVol(){
 }
 
 // Volatility object
-void MTicker::updateVolH(DevAlias& devName, std::unordered_map<AttrAlias, float>& dataMap){
+void MTicker::updateVolH(DevAlias& devName, std::unordered_map<AttrAlias, double>& dataMap){
     // Update the volatility values: (Perhaps add a mutex)
     this->volMap[devName] = dataMap; 
 }
@@ -168,16 +168,16 @@ and updates the polling rate using a gaussian function
 void MTicker::updateSAH(std::vector<Conditional> &conditional){
     for(auto &cond : conditional){
         // Get the volatility for the attribute
-        float std = this->volMap[cond.device][cond.field]; 
-        float mean = cond.rhs_arg; 
-        float tester = cond.lhs_arg; 
+        double std = this->volMap[cond.device][cond.field]; 
+        double mean = cond.rhs_arg; 
+        double tester = cond.lhs_arg; 
 
-        float max_pollr = MAX_POLLR; 
+        double max_pollr = MAX_POLLR; 
 
         // Boost normal: 
         boost::math::normal dist(mean, std); 
-        auto ans = static_cast<float>(boost::math::cdf(dist, tester)); 
-        float scale = 0; 
+        auto ans = static_cast<double>(boost::math::cdf(dist, tester)); 
+        double scale = 0; 
 
         if(tester <= mean){
             scale = ans; 
@@ -187,7 +187,7 @@ void MTicker::updateSAH(std::vector<Conditional> &conditional){
         }
 
         // Conversion of polling rate (hz) to period (ms)
-        float period = 1000/((scale * 0.5) * max_pollr); 
+        double period = 1000/((scale * 0.5) * max_pollr); 
 
         // Check the current entry in the ticker table: 
         TimerID currTimer = this->ticker_table[cond.device].dynamic_time; 

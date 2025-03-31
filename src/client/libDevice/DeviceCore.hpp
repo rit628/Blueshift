@@ -214,16 +214,16 @@ class DeviceTimer{
             this->conex->send(msg); 
         }
 
-        float calculateStd(std::deque<double> &data){
+        double calculateStd(std::deque<double> &data){
             // Calculate the sum first: 
-            float sum = 0; 
-            float std = 0; 
+            double sum = 0; 
+            double std = 0; 
             int size = data.size(); 
 
             for(auto& i : data){
                 sum += i; 
             }
-            float mean = sum/size; 
+            double mean = sum/size; 
 
             for(auto& i : data){
                 // Can never be negative as the difference is squared

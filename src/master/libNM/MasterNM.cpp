@@ -312,7 +312,7 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
                     // Get the block from the timer_id
                     auto oblock_list = this->tickerTable.getOblocks(id); 
 
-                    std::unordered_map<AttrAlias, float> vol_map; 
+                    std::unordered_map<AttrAlias, double> vol_map; 
 
                     if(dmsg.hasField("__DEV_ATTR_VOLATILITY__")){
                         dmsg.unpack("__DEV_ATTR_VOLATILITY__", vol_map); 
