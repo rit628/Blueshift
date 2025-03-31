@@ -1,15 +1,15 @@
-oblock printString(LIGHT L) {
+oblock printString(TIMER_TEST T) {
     println("A string.");
 }
 
-oblock printAppendedString(LIGHT L) {
+oblock printAppendedString(TIMER_TEST T) {
     string s = "A string.";
     s += " Another string.";
     println(s);
 }
 
 setup() {
-    LIGHT L1 = "CTL::PWR-0";
-    printString(L1);
-    printAppendedString(L1);
+    TIMER_TEST T1 = "CTL::PWR-0";
+    printString(T1);
+    printAppendedString(T1);
 }

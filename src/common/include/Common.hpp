@@ -1,5 +1,4 @@
 #pragma once
-#include "libHD/HeapDescriptors.hpp"
 #include "libDM/DynamicMessage.hpp"
 
 enum class PROTOCOLS
@@ -15,36 +14,12 @@ enum class PROTOCOLS
    
 };
 
-enum class DEVTYPE : uint16_t{
-    SERVO, 
-    LIGHT, 
-    STROBE_LIGHT,
-    MOTOR, 
-    HUMID, 
-    BUTTON, 
-    POTENT, 
-    PIEZO, 
-
-    // Virtual Type Primatives (Built in)
-    VINT, 
-    VFLOAT, 
-    VSTRING,
-
-    // DEBUG devices for timers and interupts
-    TIMER_TEST, 
-    LINE_WRITER, 
-    TIMER_TEST_NUM
-    
-}; 
-
-
 enum class PORTTYPE{
     GPIO, 
     I2C,
     UART, 
     SPI
 }; 
-
 
 struct DeviceDescriptor{
     std::string device_name; 
@@ -58,7 +33,6 @@ struct DeviceDescriptor{
     bool isConst = true; 
     int polling_period = 1000; 
 }; 
-
 
 struct OBlockDesc{
 

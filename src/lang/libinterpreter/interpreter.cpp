@@ -1,11 +1,10 @@
 #include "interpreter.hpp"
 #include "binding_parser.hpp"
-#include "bls_types.hpp"
+#include "libtypes/bls_types.hpp"
 #include "call_stack.hpp"
 #include "ast.hpp"
 #include "error_types.hpp"
 #include "include/Common.hpp"
-#include "libHD/HeapDescriptors.hpp"
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -542,7 +541,7 @@ std::any Interpreter::visit(AstNode::Expression::Literal& ast) {
 }
 
 std::any Interpreter::visit(AstNode::Expression::List& ast) {
-    auto list = std::make_shared<VectorDescriptor>(Desctype::ANY);
+    auto list = std::make_shared<VectorDescriptor>(TYPE::ANY);
     auto& elements = ast.getElements();
     for (auto&& element : elements) {
         auto literal = element->accept(*this);
@@ -556,7 +555,7 @@ std::any Interpreter::visit(AstNode::Expression::Set& ast) {
 }
 
 std::any Interpreter::visit(AstNode::Expression::Map& ast) {
-    auto map = std::make_shared<MapDescriptor>(Desctype::ANY);
+    auto map = std::make_shared<MapDescriptor>(TYPE::ANY);
     auto& elements = ast.getElements();
     for (auto&& element : elements) {
         auto key = element.first->accept(*this);
@@ -571,7 +570,7 @@ std::any Interpreter::visit(AstNode::Specifier::Type& ast) {
     const auto& typeArgs = ast.getTypeArgs();
     if (primaryType == TYPE::list_t) {
         if (typeArgs.size() != 1) throw RuntimeError("list may only have a single type argument");
-        auto list = std::make_shared<VectorDescriptor>(Desctype::ANY);
+        auto list = std::make_shared<VectorDescriptor>(TYPE::ANY);
         auto arg = typeArgs.at(0)->accept(*this);
         list->append(resolve(arg));
         return BlsType(list);
@@ -583,7 +582,7 @@ std::any Interpreter::visit(AstNode::Specifier::Type& ast) {
         if (valType == TYPE::void_t) {
             throw RuntimeError("invalid value type for map");
         }
-        auto map = std::make_shared<MapDescriptor>(Desctype::ANY);
+        auto map = std::make_shared<MapDescriptor>(TYPE::ANY);
         auto key = typeArgs.at(0)->accept(*this);
         auto value = typeArgs.at(1)->accept(*this);
         map->emplace(resolve(key), resolve(value));

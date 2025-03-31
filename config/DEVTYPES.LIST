@@ -1,26 +1,19 @@
-DEVTYPE_BEGIN(LIGHT)
-    ATTRIBUTE(state, bool)
-DEVTYPE_END
-
-DEVTYPE_BEGIN(MOTOR)
-    ATTRIBUTE(rpm, float)
-DEVTYPE_END
-
-DEVTYPE_BEGIN(SERVO)
-    ATTRIBUTE(position, float)
-DEVTYPE_END
-
-// DEVTYPE_BEGIN(TEST_DEVTYPE)
-//     ATTRIBUTE(attr_1, string)
-//     ATTRIBUTE(attr_2, list<int>)
-//     ATTRIBUTE(attr_3, list<list<int>>)
-//     ATTRIBUTE(attr_4, map<float, list<int>>)
-// DEVTYPE_END
-
 DEVTYPE_BEGIN(TIMER_TEST)
-    ATTRIBUTE(test_val, int)
+    ATTRIBUTE(test_val, float)
 DEVTYPE_END
 
 DEVTYPE_BEGIN(LINE_WRITER)
     ATTRIBUTE(msg, std::string)
 DEVTYPE_END
+
+// DEVTYPE_BEGIN(LIGHT)
+//     ATTRIBUTE(state, bool)
+// DEVTYPE_END
+// 
+// DEVTYPE_BEGIN(MOTOR)
+//     ATTRIBUTE(rpm, float)
+// DEVTYPE_END
+// 
+// DEVTYPE_BEGIN(SERVO)
+//     ATTRIBUTE(position, float)
+// DEVTYPE_END

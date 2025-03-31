@@ -20,8 +20,8 @@ oblock copyLine(LINE_WRITER lw1, LINE_WRITER lw2){
 
 setup() {
     TIMER_TEST L1 = "blueshift-client-1::file-omar.txt";
-    TIMER_TEST L2 = "blueshift-client-1::file-omar2.txt";
-    TIMER_TEST L3 = "blueshift-client-1::file-omar3.txt";
+    TIMER_TEST L2 = "blueshift-client-2::file-omar2.txt";
+    TIMER_TEST L3 = "blueshift-client-3::file-omar3.txt";
     LINE_WRITER k2 = "blueshift-client-1::file-file1.txt"; 
     LINE_WRITER k3 = "blueshift-client-2::file-file2.txt"; 
     
