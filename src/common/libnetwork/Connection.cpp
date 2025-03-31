@@ -1,9 +1,14 @@
  #include "Connection.hpp"
+ #define IN_MSGSIZE 256
  
 Connection::Connection(boost::asio::io_context &in_ctx, 
 tcp::socket socket ,Owner own_type, TSQ<OwnedSentMessage> &in_msg, std::string &ip_addr) 
 : ctx(in_ctx), socket(std::move(socket)), in_queue(in_msg)
     {
+        this->in_messageBuffer.reserve(IN_MSGSIZE); 
+        for(int i = 0; i < IN_MSGSIZE; i++){
+            this->tickets.push_back(i); 
+        }
         own = own_type;
         ip = ip_addr; 
     };
@@ -67,7 +72,6 @@ bool Connection::disconnect(){
     if(this->isConnected()){
         boost::asio::post([this](){this->socket.close();}); 
     }
-
     return false; 
 }
 
@@ -96,16 +100,19 @@ std::string& Connection::getName(){
 }
 
 void Connection::readHeader(){
-    boost::asio::async_read(this->socket, boost::asio::buffer(&this->currMessage.header, sizeof(SentHeader)) ,[this]
-    (boost::system::error_code ec, size_t len){
+    int index = this->tickets.back(); 
+    this->tickets.pop_back(); 
+
+    boost::asio::async_read(this->socket, boost::asio::buffer(&this->in_messageBuffer[index].header, sizeof(SentHeader)) ,
+    [this, index](boost::system::error_code ec, size_t len){
         if(!ec){
-            if(this->currMessage.header.body_size > 0){
-                int newSize = this->currMessage.header.body_size; 
-                this->currMessage.body.resize(newSize); 
-                this->readBody();
+            if(this->in_messageBuffer[index].header.body_size > 0){
+                int newSize = this->in_messageBuffer[index].header.body_size; 
+                this->in_messageBuffer[index].body.resize(newSize); 
+                this->readBody(index);
             }
             else{
-                addToQueue();  
+                addToQueue(index);  
             }
         }
         else{
@@ -116,11 +123,11 @@ void Connection::readHeader(){
 }
 
 
-void Connection::readBody(){
-    boost::asio::async_read(this->socket, boost::asio::buffer(this->currMessage.body.data(), this->currMessage.header.body_size), 
-    [this](boost::system::error_code ec, size_t len){ 
+void Connection::readBody(int index){
+    boost::asio::async_read(this->socket, boost::asio::buffer(this->in_messageBuffer[index].body.data(), this->in_messageBuffer[index].header.body_size), 
+    [this, index](boost::system::error_code ec, size_t len){ 
         if(!ec){
-            addToQueue(); 
+            addToQueue(index); 
         }
         else{
             std::cerr<<"Connection: READ BODY"<<ec.message()<<std::endl; 
@@ -170,14 +177,15 @@ void Connection::writeBody(){
     }); 
 }
 
-void Connection::addToQueue(){
+void Connection::addToQueue(int val){
     if(this->own == Owner::MASTER){
-        this->in_queue.write({this->shared_from_this(), this->currMessage}); 
+        this->in_queue.write({this->shared_from_this(), this->in_messageBuffer[val]}); 
     }
     else if(this->own == Owner::CLIENT){
-        this->in_queue.write({nullptr, this->currMessage}); 
+        this->in_queue.write({nullptr, this->in_messageBuffer[val]}); 
     }
     
+    this->tickets.push_back(val); 
     this->readHeader(); 
 }
 

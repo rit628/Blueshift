@@ -65,10 +65,9 @@ void ExecutionUnit::running(TSM<string, vector<HeapMasterMessage>> &vtypeHMMsMap
 {
     while(1)
     {
-        if(EUcache.isEmpty()) {continue;}
+        //if(EUcache.isEmpty()) {continue;}
         vector<DynamicMasterMessage> currentDMMs = EUcache.read();
         vector<HeapMasterMessage> HMMs;
-
 
         for(int i = 0; i < currentDMMs.size(); i++)
         {   
@@ -124,9 +123,11 @@ void ExecutionUnit::running(TSM<string, vector<HeapMasterMessage>> &vtypeHMMsMap
 
 ExecutionUnit &ExecutionManager::assign(DynamicMasterMessage DMM)
 {   
-    
+
+    std::cout<<"DMM INFO OBLOCK: "<<DMM.info.oblock<<std::endl; 
     ExecutionUnit &assignedUnit = *EU_map.at(DMM.info.oblock);
     assignedUnit.stateMap.emplace(DMM.info.device, DMM);
+
     return assignedUnit;
 }
 
@@ -153,7 +154,7 @@ void ExecutionManager::running()
         vector<DynamicMasterMessage> currentDMMs = this->readMM.read();
 
         std::cout<<"Recieved States"<<std::endl;
-       
+
         ExecutionUnit &assignedUnit = assign(currentDMMs.at(0));
 
         assignedUnit.EUcache.write(currentDMMs);
