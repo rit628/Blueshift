@@ -31,6 +31,8 @@ namespace Device {
             void proc_message_impl(DynamicMessage& dmsg) override;
         
         public:
+            ~TIMER_TEST();
+
             void set_ports(std::unordered_map<std::string, std::string> &srcs) override;
             void read_data(DynamicMessage &dmsg) override;
     };
@@ -48,8 +50,23 @@ namespace Device {
             void proc_message_impl(DynamicMessage& dmsg) override;
 
         public:
+            ~LINE_WRITER();
+
             bool handleInterrupt();
             void set_ports(std::unordered_map<std::string, std::string> &src) override;
+            void read_data(DynamicMessage &dmsg) override;
+    };
+
+    class LIGHT : public AbstractDevice {
+        private:
+            TypeDef::LIGHT states;
+            uint8_t PIN;
+
+            void proc_message_impl(DynamicMessage& dmsg) override;
+        public:
+            ~LIGHT();
+
+            void set_ports(std::unordered_map<std::string, std::string> & src) override;
             void read_data(DynamicMessage &dmsg) override;
     };
     
