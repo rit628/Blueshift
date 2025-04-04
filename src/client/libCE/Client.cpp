@@ -1,6 +1,7 @@
 #include "Client.hpp"
+#include "libnetwork/Protocol.hpp"
 
-Client::Client(std::string c_name): client_socket(client_ctx), bc_socket(client_ctx, udp::endpoint(udp::v4(), 2988)){
+Client::Client(std::string c_name): client_socket(client_ctx), bc_socket(client_ctx, udp::endpoint(udp::v4(), BROADCAST_PORT)){
     this->client_name = c_name; 
     std::cout<<"Client Created: " << c_name <<std::endl; 
 }

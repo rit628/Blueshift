@@ -1,4 +1,5 @@
 #include "Devices.hpp"
+#include <pigpio.h>
 
 using namespace Device;
 
@@ -23,6 +24,10 @@ void TIMER_TEST::set_ports(std::unordered_map<std::string, std::string> &srcs) {
 
 void TIMER_TEST::read_data(DynamicMessage &dmsg) {
     dmsg.packStates(states);
+}
+
+TIMER_TEST::~TIMER_TEST() {
+    write_file.close();
 }
 
 /* LINE_WRITER */
@@ -86,6 +91,39 @@ void LINE_WRITER::set_ports(std::unordered_map<std::string, std::string> &src) {
 
 void LINE_WRITER::read_data(DynamicMessage &dmsg) {
     dmsg.packStates(states);
+}
+
+LINE_WRITER::~LINE_WRITER() {
+    file_stream.close();
+}
+
+/* LIGHT */
+
+void LIGHT::proc_message_impl(DynamicMessage &dmsg) {
+    dmsg.unpackStates(states);
+    if (states.state) {
+        gpioWrite(this->PIN, PI_ON);
+    }
+    else {
+        gpioWrite(this->PIN, PI_OFF);
+    }
+}
+
+void LIGHT::set_ports(std::unordered_map<std::string, std::string> &src) {
+    this->PIN = std::stoi(src["PIN"]);
+    if (gpioInitialise() == PI_INIT_FAILED) {
+            std::cerr << "GPIO setup failed" << std::endl;
+            return;
+    }
+    gpioSetMode(this->PIN, PI_OUTPUT);
+}
+
+void LIGHT::read_data(DynamicMessage &dmsg) {
+    dmsg.packStates(states);
+}
+
+LIGHT::~LIGHT() {
+    gpioTerminate();
 }
 
 std::shared_ptr<AbstractDevice> getDevice(DEVTYPE dtype, std::unordered_map<std::string, std::string> &port_nums, int device_alias) {
