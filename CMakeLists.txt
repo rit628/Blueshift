@@ -32,7 +32,13 @@ FetchContent_Declare(
 )
 set(BOOST_INCLUDE_LIBRARIES ${REQUIRED_BOOST_LIBS})
 
-FetchContent_MakeAvailable(googletest Boost)
+# PiGPIO
+FetchContent_Declare(
+    pigpio
+    URL https://github.com/joan2937/pigpio/archive/refs/tags/v79.zip
+)
+
+FetchContent_MakeAvailable(googletest Boost pigpio)
 
 project($ENV{PROJECT_NAME})
     
@@ -153,8 +159,8 @@ target_link_libraries(master TSQ EM MM NM compiler ${BOOST_LIB_DEPS})
 # CLIENT LIBS AND EXECUTABLE
 file(GLOB_RECURSE LIBDEVICE_SRC ${CLIENT_SRC_DIR}/libDevice/*.cpp)
 add_library(device STATIC ${LIBDEVICE_SRC})
-target_include_directories(device PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
-target_link_libraries(device network dynamic_message ${BOOST_LIB_DEPS})
+target_include_directories(device PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${pigpio_SOURCE_DIR})
+target_link_libraries(device network dynamic_message pigpio ${BOOST_LIB_DEPS})
 
 file(GLOB_RECURSE LIBCE_SRC ${CLIENT_SRC_DIR}/libCE/*.cpp)
 add_library(client_engine STATIC ${LIBCE_SRC})
