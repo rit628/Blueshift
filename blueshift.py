@@ -327,6 +327,9 @@ run_parser.add_argument("binary_args",
 run_parser.add_argument("-l", "--local",
                         help="run selected binary on local host instead of in containerized environment",
                         action="store_true")
+run_parser.add_argument("-p", "--port-forward",
+                        help="forward all container ports to host",
+                        action="store_true")
 run_parser.set_defaults(fn=run)
 
 debug_parser = subparsers.add_parser("debug", help=f"debug selected {PROJECT_NAME} binaries")
