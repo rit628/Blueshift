@@ -108,6 +108,11 @@ def run(args):
         executable = Path(".", TARGET_OUTPUT_DIRECTORY, RUNTIME_OUTPUT_DIRECTORY, args.binary)
         run_cmd([executable, *args.binary_args])
     else:
+        if args.packet_forward:
+            context = subprocess.check_output(["docker", "context", "show"], text=True).strip()
+            if context == "rootless":
+                raise PermissionError("Packet forwarding only possible in rootful context. Try running again with elevated privileges or perform a manual context switch before running.")
+            os.environ["NETWORK_MODE"] = "host"
         run_cmd(["docker", "compose", "run", "--rm", "builder", "run", "-l", args.binary, *args.binary_args])
 
 def debug(args):
@@ -307,8 +312,8 @@ run_parser.add_argument("binary_args",
 run_parser.add_argument("-l", "--local",
                         help="run selected binary on local host instead of in containerized environment",
                         action="store_true")
-run_parser.add_argument("-p", "--port-forward",
-                        help="forward all container ports to host",
+run_parser.add_argument("-p", "--packet-forward",
+                        help="forward all network packets from container LAN to host LAN",
                         action="store_true")
 run_parser.set_defaults(fn=run)
 
