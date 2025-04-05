@@ -101,12 +101,9 @@ def run(args):
         executable = Path(".", TARGET_OUTPUT_DIRECTORY, RUNTIME_OUTPUT_DIRECTORY, args.binary)
         subprocess.run([executable, *args.binary_args], check=True)
     else:
-        port_forward = []
-        if args.binary == "client":
-            port_forward = ["-p", "2988:2988"]
-        elif args.binary == "master":
-            port_forward = ["-p", "60000:60000"]
-        subprocess.run(["docker", "compose", "run", *port_forward, "--rm", "builder", "run", "-l", args.binary, *args.binary_args], check=True)
+        if args.port_forward:
+            os.environ["NETWORK_MODE"] = "host"
+        subprocess.run(["docker", "compose", "run", "-P", "--rm", "builder", "run", "-l", args.binary, *args.binary_args], check=True)
 
 def debug(args):
     debug_target_path = "relwithdebinfo" if args.release else "debug"
@@ -234,7 +231,7 @@ def build(args):
         else:
             c_compiler += "gcc"
             linker += "ld"
-        cmake_args = [c_compiler, cpp_compiler, linker, build_type]
+        cmake_args = [c_compiler, cpp_compiler, linker, build_type, "-Wno-dev"]
         subprocess.run(["cmake", *cmake_args, "-S", ".", "-B", ARTIFACT_DIR], check=True)
         symlink(COMPILE_DB_PATH, Path(".", ARTIFACT_TYPE, "compile_commands.json"))
 
@@ -308,6 +305,9 @@ run_parser.add_argument("binary_args",
                         default=None)
 run_parser.add_argument("-l", "--local",
                         help="run selected binary on local host instead of in containerized environment",
+                        action="store_true")
+run_parser.add_argument("-p", "--port-forward",
+                        help="forward all container ports to host",
                         action="store_true")
 run_parser.set_defaults(fn=run)
 
