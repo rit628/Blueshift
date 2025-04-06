@@ -26,18 +26,25 @@ DEBUG_SERVER_PORT_MAX = os.getenv("DEBUG_SERVER_PORT_MAX")
 NUM_CORES = mp.cpu_count()
 CODELLDB_ADDRESS = ("127.0.0.1", 7349)
 
-def supressPythonErrors():
-    pass
+def run_cmd(cmd, exit_on_failure=True, **kwargs) -> subprocess.CompletedProcess:
+    try:
+        process_result = subprocess.run(cmd, **kwargs)
+    except KeyboardInterrupt:
+        sys.exit(0)
+    if process_result.returncode != 0 and exit_on_failure:
+        sys.exit(process_result.returncode)
+    return process_result
 
-def clean_shutdown(command):
-    subprocess.run(command)
+def get_output(cmd, **kwargs) -> str:
+    kwargs.update(text=True, capture_output=True)
+    return run_cmd(cmd, False, **kwargs).stdout.strip()
 
 def initialize_host():
     Path(REMOTE_OUTPUT_DIRECTORY, "debug").mkdir(parents=True, exist_ok=True)
     Path(REMOTE_OUTPUT_DIRECTORY, "release").mkdir(parents=True, exist_ok=True)
     Path(REMOTE_OUTPUT_DIRECTORY, "minsizerel").mkdir(parents=True, exist_ok=True)
     Path(REMOTE_OUTPUT_DIRECTORY, "relwithdebinfo").mkdir(parents=True, exist_ok=True)
-    context = subprocess.check_output(["docker", "context", "show"], text=True).strip()
+    context = get_output(["docker", "context", "show"])
     if context == "rootless" or context == "desktop-linux":
         os.environ["CONTAINER_UID"] = str(0)
         os.environ["CONTAINER_GID"] = str(0)
@@ -48,7 +55,7 @@ def initialize_host():
 def wait_for_lldb_server(port):
     pattern = re.compile(f"{port}/tcp")
     while(True):
-        out = subprocess.check_output(["docker",  "ps"], text=True)
+        out = get_output(["docker",  "ps"])
         if pattern.search(out):
             return
         time.sleep(.25)
@@ -83,7 +90,7 @@ def attach_to_process(pid, process_name, debug_binary, server_port):
 
 def attach_debugger(process_name, debug_binary, server_port):
     while True:
-        pid = subprocess.run(["docker", "exec", "debugger", "pgrep", "-f", process_name], capture_output=True, text=True).stdout.strip()
+        pid = get_output(["docker", "exec", "debugger", "pgrep", "-f", process_name])
         if pid.isdigit():
             attach_to_process(pid, process_name, debug_binary, server_port)
             return
@@ -96,12 +103,11 @@ def symlink(source : Path | str, target : Path | str, is_directory = False):
     return source
 
 def run(args):
-    sys.stderr = supressPythonErrors()
     if args.local:
         executable = Path(".", TARGET_OUTPUT_DIRECTORY, RUNTIME_OUTPUT_DIRECTORY, args.binary)
-        subprocess.run([executable, *args.binary_args], check=True)
+        run_cmd([executable, *args.binary_args])
     else:
-        subprocess.run(["docker", "compose", "run", "--rm", "builder",  "run", "-l", args.binary, *args.binary_args], check=True)
+        run_cmd(["docker", "compose", "run", "--rm", "builder", "run", "-l", args.binary, *args.binary_args])
 
 def debug(args):
     debug_target_path = "relwithdebinfo" if args.release else "debug"
@@ -113,12 +119,12 @@ def debug(args):
 
     if args.server:
         if args.debugger == "lldb":
-            subprocess.run(["lldb-server", "gdbserver", f"*:{args.server}", "--", executable, *args.binary_args])
+            run_cmd(["lldb-server", "gdbserver", f"*:{args.server}", "--", executable, *args.binary_args])
         else:
-            subprocess.run(["gdbserver", f"*:{args.server}", executable, *args.binary_args])
+            run_cmd(["gdbserver", f"*:{args.server}", executable, *args.binary_args])
     elif args.listen:
-        subprocess.run(["lldb-server", "platform", "--listen", f"*:{args.listen}", "--server",
-                        "--min-gdbserver-port", args.min_server_port, "--max-gdbserver-port", args.max_server_port])
+        run_cmd(["lldb-server", "platform", "--listen", f"*:{args.listen}", "--server",
+                 "--min-gdbserver-port", args.min_server_port, "--max-gdbserver-port", args.max_server_port])
     elif args.local:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             if allow_visual and s.connect_ex(CODELLDB_ADDRESS) == 0: # debug locally with codelldb
@@ -134,16 +140,17 @@ def debug(args):
                 """.encode())
             else: # debug locally in terminal
                 args_command = "--" if args.debugger == "lldb" else "--args"
-                subprocess.run([args.debugger, args_command, executable, *args.binary_args])
+                run_cmd([args.debugger, args_command, executable, *args.binary_args])
     else:
         DEBUG_SERVER_PORT = get_free_port()
         remote_binary = Path(REMOTE_OUTPUT_DIRECTORY, debug_target_path, RUNTIME_OUTPUT_DIRECTORY, args.binary)
         cwd = os.getcwd()
         # Initialize debug server
-        subprocess.run(["docker", "container", "stop", "-t", "1", f"{debug_name}"], stderr=subprocess.DEVNULL)
-        subprocess.run(["docker", "compose", "run", "-d", "--no-deps", "-p", f"{DEBUG_SERVER_PORT}:{DEBUG_SERVER_PORT}",
-                        "--name", debug_name, "--rm", "debugger", "debug", "--server", f"{DEBUG_SERVER_PORT}",
-                        "--debugger", args.debugger, args.binary, *args.binary_args], check=True)
+        run_cmd(["docker", "container", "stop", "-t", "1", f"{debug_name}"], exit_on_failure=False, stderr=subprocess.DEVNULL)
+        run_cmd(["docker", "compose", "--profile", "debug", "run", "-d", "--no-deps",
+                        "-p", f"{DEBUG_SERVER_PORT}:{DEBUG_SERVER_PORT}", "--name", debug_name, "--rm",
+                        "debugger", "debug", "--server", f"{DEBUG_SERVER_PORT}",
+                        "--debugger", args.debugger, args.binary, *args.binary_args])
         wait_for_lldb_server(DEBUG_SERVER_PORT)
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -162,10 +169,10 @@ def debug(args):
                 """.encode())
             elif args.debugger == "lldb": # debug remotely with lldb tui
                 time.sleep(.25) # externally extend gdb-remote connection timeout
-                subprocess.run(["lldb", "-o", f"settings set target.source-map {CONTAINER_MOUNT_DIRECTORY} {cwd}",
+                run_cmd(["lldb", "-o", f"settings set target.source-map {CONTAINER_MOUNT_DIRECTORY} {cwd}",
                                 "-o", f"gdb-remote localhost:{DEBUG_SERVER_PORT}", "--", remote_binary, *args.binary_args])
             else: # debug remotely with gdb tui
-                subprocess.run(["gdb", "-ex", f"target remote localhost:{DEBUG_SERVER_PORT}",
+                run_cmd(["gdb", "-ex", f"target remote localhost:{DEBUG_SERVER_PORT}",
                                 "-ex", f"set substitute-path {CONTAINER_MOUNT_DIRECTORY} {cwd}",
                                 "--args", remote_binary, *args.binary_args])
 
@@ -176,8 +183,8 @@ def deploy(args):
     base_cmd = ["docker", "compose", *profiles]
 
     # ensure containers are properly destroyed
-    atexit.register(clean_shutdown, [*base_cmd, "stop", "-t", "1"])
-    atexit.register(clean_shutdown, [*base_cmd, "down", "-t", "1"])
+    atexit.register(run_cmd, [*base_cmd, "stop", "-t", "1"])
+    atexit.register(run_cmd, [*base_cmd, "down", "-t", "1"])
     
     command = [*base_cmd, "up"]
     os.environ["DEPLOY_SRC"] = str(Path("samples", "src", args.filename))
@@ -202,10 +209,9 @@ def deploy(args):
         for i in range(num_clients): 
             Thread(target=attach_debugger, args=(f"blueshift-client-{i + 1}", client_binary, DEBUG_SERVER_PORT), daemon=True).start()
 
-    subprocess.run(command)
+    run_cmd(command)
 
 def build(args):
-    sys.stderr = supressPythonErrors()
     ARTIFACT_TYPE = args.build_type.lower()
     ARTIFACT_DIR = Path(BUILD_OUTPUT_DIRECTORY, ARTIFACT_TYPE)
     COMPILE_DB_PATH = Path(BUILD_OUTPUT_DIRECTORY, "compile_commands.json")
@@ -213,7 +219,7 @@ def build(args):
                   "--compiler", args.compiler,
                   "--parallel", str(args.parallel)]
     if args.image_build:
-        subprocess.run(["docker", "compose", "build"])
+        run_cmd(["docker", "compose", "build"])
     if args.clean:
         build_args.append("--clean")
         rmtree(ARTIFACT_DIR, ignore_errors=True)
@@ -229,18 +235,19 @@ def build(args):
         else:
             c_compiler += "gcc"
             linker += "ld"
-        cmake_args = [c_compiler, cpp_compiler, linker, build_type]
-        subprocess.run(["cmake", *cmake_args, "-S", ".", "-B", ARTIFACT_DIR], check=True)
+        cmake_args = [c_compiler, cpp_compiler, linker, build_type, "-Wno-dev"]
+        run_cmd(["cmake", *cmake_args, "-S", ".", "-B", ARTIFACT_DIR])
         symlink(COMPILE_DB_PATH, Path(".", ARTIFACT_TYPE, "compile_commands.json"))
 
         # 1 <= j <= n-1 (keep 1 core free for background tasks)
         core_count = str(max(1, min(args.parallel, NUM_CORES - 1)))
-        subprocess.run(["cmake", "--build", ".", "-j", core_count, "-t", *args.make], cwd=f"./{ARTIFACT_DIR}", check=True)
+        run_cmd(["cmake", "--build", ".", "-j", core_count, "-t", *args.make],
+                       cwd=f"./{ARTIFACT_DIR}")
         symlink(TARGET_OUTPUT_DIRECTORY, Path(".", ARTIFACT_TYPE), True)
     else: # build binaries in remote container
         initialize_host()
-        subprocess.run(["docker", "compose", "run", "--rm", "builder",
-                        "build", "-l", *build_args, *args.make], check=True)
+        run_cmd(["docker", "compose", "run", "--rm", "builder",
+                        "build", "-l", *build_args, *args.make])
         symlink(TARGET_OUTPUT_DIRECTORY, Path(".", "remote", ARTIFACT_TYPE))
         curr_db_path = Path(REMOTE_OUTPUT_DIRECTORY, ARTIFACT_TYPE, "compile_commands.json")
         with (curr_db_path.open("r") as db, COMPILE_DB_PATH.open("w") as out):
@@ -253,43 +260,38 @@ def build(args):
                 out.write(line)
 
 def test(args):
-    sys.stderr = supressPythonErrors()
     os.environ["GTEST_COLOR"] = "1"
     ctest_args = [args.verbose, "-R", args.tests_regex]
     ctest_args = list(filter(None, ctest_args))
     if args.local:
         fail_output = ["--output-on-failure"] if not args.no_output_on_failure else []
-        subprocess.run(["ctest", *fail_output, *ctest_args], cwd=f"./{TARGET_OUTPUT_DIRECTORY}", check=True)
+        run_cmd(["ctest", *fail_output, *ctest_args], cwd=f"./{TARGET_OUTPUT_DIRECTORY}")
     else: # test in remote container
         initialize_host()
-        subprocess.run(["docker", "compose", "run", "--rm", "builder", "test", "-l", *ctest_args], check=True)
+        run_cmd(["docker", "compose", "run", "--rm", "builder", "test", "-l", *ctest_args])
 
 def reset(args):
     rmtree(BUILD_OUTPUT_DIRECTORY, ignore_errors=True)
     
     if args.preserve_images: return
     
-    subprocess.run(["docker", "compose", "down", "--rmi", "all", "-v", "--remove-orphans"])
+    run_cmd(["docker", "compose", "down", "--rmi", "all", "-v", "--remove-orphans"])
 
-    network_id = subprocess.check_output(f"docker network ls | grep {NETWORK_NAME} | awk '{{ print $1 }}'",
-                                            text=True, shell=True)
-    container_ids = subprocess.check_output(f"docker container ls | grep {PROJECT_PREFIX} | awk '{{ print $1 }}'",
-                                            text=True, shell=True).strip()
-    image_ids = subprocess.check_output(f"docker image ls | grep {PROJECT_PREFIX} | awk '{{ print $3 }}'",
-                                        text=True, shell=True).strip()
-    volumes = subprocess.check_output(f"docker volume ls | grep {PROJECT_NAME} | awk '{{ print $2 }}'",
-                                        text=True, shell=True).strip()
+    network_id = get_output(f"docker network ls | grep {NETWORK_NAME} | awk '{{ print $1 }}'", shell=True)
+    container_ids = get_output(f"docker container ls | grep {PROJECT_PREFIX} | awk '{{ print $1 }}'", shell=True)
+    image_ids = get_output(f"docker image ls | grep {PROJECT_PREFIX} | awk '{{ print $3 }}'", shell=True)
+    volumes = get_output(f"docker volume ls | grep {PROJECT_NAME} | awk '{{ print $2 }}'", shell=True)
         
     if any((network_id, container_ids, image_ids, volumes)):
-        subprocess.run(["docker", "network", "rm", network_id])
-        subprocess.run(["docker", "container", "stop"] + container_ids.split('\n'))
-        subprocess.run(["docker", "container", "rm", "-f"] + container_ids.split('\n'))
-        subprocess.run(["docker", "image", "prune", "-f"])
-        subprocess.run(["docker", "image", "rm", "-f"] + image_ids.split('\n'))
-        subprocess.run(["docker", "volume", "rm", "-f"] + volumes.split('\n'))
+        run_cmd(["docker", "network", "rm", network_id])
+        run_cmd(["docker", "container", "stop"] + container_ids.split('\n'))
+        run_cmd(["docker", "container", "rm", "-f"] + container_ids.split('\n'))
+        run_cmd(["docker", "image", "prune", "-f"])
+        run_cmd(["docker", "image", "rm", "-f"] + image_ids.split('\n'))
+        run_cmd(["docker", "volume", "rm", "-f"] + volumes.split('\n'))
 
     if args.rm_build_cache:
-        subprocess.run(["docker", "buildx", "prune", "-f"])
+        run_cmd(["docker", "buildx", "prune", "-f"])
 
 parser = argparse.ArgumentParser(description=f"{PROJECT_NAME} development environment build script", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 subparsers = parser.add_subparsers(title="commands")
