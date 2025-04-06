@@ -11,6 +11,7 @@ services:
     container_name: ${BUILD_CONTAINER_NAME}
     user: ${CONTAINER_UID}:${CONTAINER_GID}
     command: ["build", "-l", "-t", "${BUILD_TYPE}"]
+    privileged: ${PRIVILEGED_RUNTIME}
     build:
       context: .
       dockerfile: .docker/builder/Dockerfile

@@ -113,6 +113,7 @@ def run(args):
             if context == "rootless":
                 raise PermissionError("Packet forwarding only possible in rootful context. Try running again with elevated privileges or perform a manual context switch before running.")
             os.environ["NETWORK_MODE"] = "host"
+            os.environ["PRIVILEGED_RUNTIME"] = "true"
         run_cmd(["docker", "compose", "run", "--rm", "builder", "run", "-l", args.binary, *args.binary_args])
 
 def debug(args):
