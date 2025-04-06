@@ -1,0 +1,18 @@
+oblock light(LIGHT target, LINE_WRITER remote) {
+    println(target.state);
+    if (remote.msg == "ON") {
+        target.state = true;
+    }
+    else if (remote.msg == "OFF") {
+        target.state = false;
+    }
+    else {
+        println("INVALID COMMAND");
+    }
+}
+
+setup() {
+    LIGHT rpi_light = "rpi::PIN-26";
+    LINE_WRITER rpi_light_controller = "remote::file-file1.txt"; 
+    light(rpi_light, rpi_light_controller);
+}
