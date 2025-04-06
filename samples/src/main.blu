@@ -8,7 +8,6 @@ oblock printString(TIMER_TEST TT, TIMER_TEST TO, TIMER_TEST TK) {
     TK.test_val -= 999.9; 
 }
 
-
 oblock copyLine(LINE_WRITER lw1, LINE_WRITER lw2){
     println("MESSAGE FROM FILE1.TXT: " + lw1.msg); 
     println("MESSAGE FROM FILE2.TXT: " + lw2.msg); 
@@ -16,16 +15,6 @@ oblock copyLine(LINE_WRITER lw1, LINE_WRITER lw2){
     string new_msg = lw1.msg;
     lw1.msg = lw2.msg;
     lw2.msg = new_msg;
-}
-
-oblock light(LIGHT k) {
-    println(k.state);
-    if (k.state) {
-        k.state = false;
-    }
-    else {
-        k.state = true;
-    }
 }
 
 setup() {
@@ -36,7 +25,5 @@ setup() {
     LINE_WRITER k3 = "blueshift-client-2::file-file2.txt"; 
     
     //printString(L1, L2, L3);
-    //copyLine(k2, k3);
-    LIGHT LBJ = "rpi::PIN-26";
-    light(LBJ);
+    copyLine(k2, k3);
 }
