@@ -97,6 +97,8 @@ services:
         - action: sync+restart
           path: ${TARGET_OUTPUT_DIRECTORY}/${RUNTIME_OUTPUT_DIRECTORY}/client
           target: ${CLIENT_PROGRAM_NAME}
+    expose:
+      - ${BROADCAST_PORT}
     pid: ${DEPLOY_NAMESPACE}
     environment:
       - DEPLOY_NAMESPACE=${DEPLOY_NAMESPACE}

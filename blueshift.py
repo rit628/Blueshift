@@ -53,6 +53,16 @@ def initialize_host():
         os.environ["CONTAINER_UID"] = str(os.getuid())
         os.environ["CONTAINER_GID"] = str(os.getgid())
 
+def forward_broadcasts():
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as listener, \
+         socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as forwarder:
+        listener.bind(("127.0.0.1", 2988))
+        forwarder.bind(("", 0))
+        forwarder.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        while True:
+            data, _ = listener.recvfrom(1024)
+            forwarder.sendto(data, ("255.255.255.255", 2988))
+
 def wait_for_lldb_server(port):
     pattern = re.compile(f"{port}/tcp")
     while(True):
@@ -114,6 +124,9 @@ def run(args):
                 raise PermissionError("Packet forwarding only possible in rootful context. Try running again with elevated privileges or perform a manual context switch before running.")
             os.environ["NETWORK_MODE"] = "host"
             os.environ["PRIVILEGED_RUNTIME"] = "true"
+            if args.udp_broadcast_forward:
+                Thread(target=forward_broadcasts, daemon=True).start()
+        initialize_host()
         run_cmd(["docker", "compose", "run", "--rm", "builder", "run", "-l", args.binary, *args.binary_args])
 
 def debug(args):
@@ -315,6 +328,10 @@ run_parser.add_argument("-l", "--local",
                         action="store_true")
 run_parser.add_argument("-p", "--packet-forward",
                         help="forward all network packets from container LAN to host LAN",
+                        action="store_true")
+run_parser.add_argument("-u", "--udp-broadcast-forward",
+                        help="""start a listener that received udp broadcasts on 127.0.0.1 and forwards them to host LAN
+                                (necessary if running with -p on OSX)""",
                         action="store_true")
 run_parser.set_defaults(fn=run)
 
