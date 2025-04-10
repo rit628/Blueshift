@@ -1,5 +1,48 @@
-#!/bin/bash
-set -a
-source .env
-set +a
-./blueshift $@
+#!/usr/bin/env python3
+import venv
+import os
+import sys
+from subprocess import check_call, check_output
+from pathlib import Path
+
+VENV_DIR = ".venv"
+BIN_DIR = "Scripts" if os.name == "nt" else "bin"
+REQUIREMENTS_FILE = "requirements.txt"
+
+def create_venv():
+    if not Path(VENV_DIR, BIN_DIR, "python3").exists():
+        builder = venv.EnvBuilder(with_pip=True)
+        builder.create(VENV_DIR)
+
+def install_packages():
+    if Path(REQUIREMENTS_FILE).exists():
+        check_call([Path(VENV_DIR, BIN_DIR, "pip"), "install", "-r", REQUIREMENTS_FILE])
+
+def get_installed_packages():
+    output = check_output([Path(VENV_DIR, BIN_DIR, "pip"), "freeze"], text=True)
+    return output.splitlines()
+
+def get_required_packages():
+    if not Path(REQUIREMENTS_FILE).exists():
+        return list()    
+    with open(REQUIREMENTS_FILE) as reqs:
+        return reqs.read().splitlines()
+
+def write_packages(packages):
+    with open(REQUIREMENTS_FILE, "w") as reqs:
+        reqs.writelines(packages)
+
+if __name__ == "__main__":
+    create_venv()
+    installed = get_installed_packages()
+    required = get_required_packages()
+
+    if installed != required:
+        installed_set = set(installed)
+        required_set = set(required)
+        if required_set - installed_set:
+            install_packages()
+        else:
+            write_packages(installed)
+
+    os.execv(Path(VENV_DIR, BIN_DIR, "python3"), ["-c", "blueshift.py", *sys.argv[1:]])
