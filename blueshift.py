@@ -7,8 +7,9 @@ import socket
 import re
 import atexit
 import time
-from dotenv import load_dotenv
 import multiprocessing as mp
+from scapy.all import sniff, UDP
+from dotenv import load_dotenv
 from pathlib import Path
 from threading import Thread
 from shutil import rmtree
@@ -25,6 +26,8 @@ REMOTE_OUTPUT_DIRECTORY = os.getenv("REMOTE_OUTPUT_DIRECTORY")
 TARGET_OUTPUT_DIRECTORY = os.getenv("TARGET_OUTPUT_DIRECTORY")
 DEBUG_SERVER_PORT_MIN = os.getenv("DEBUG_SERVER_PORT_MIN")
 DEBUG_SERVER_PORT_MAX = os.getenv("DEBUG_SERVER_PORT_MAX")
+MASTER_PORT = os.getenv("MASTER_PORT")
+BROADCAST_PORT = os.getenv("BROADCAST_PORT")
 NUM_CORES = mp.cpu_count()
 CODELLDB_ADDRESS = ("127.0.0.1", 7349)
 
@@ -67,15 +70,19 @@ def initialize_host():
         os.environ["CONTAINER_UID"] = str(os.geteuid())
         os.environ["CONTAINER_GID"] = str(os.getegid())
 
-def forward_broadcasts():
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as listener, \
-         socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as forwarder:
-        listener.bind(("127.0.0.1", 2988))
+def forward_broadcast(forward_socket : socket.socket):
+    def fwd(packet):
+        data = bytes(packet[UDP].payload)
+        forward_socket.sendto(data, ("255.255.255.255", int(BROADCAST_PORT)))
+    return fwd
+
+def broadcast_sniffer():
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as forwarder:
         forwarder.bind(("", 0))
         forwarder.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        while True:
-            data, _ = listener.recvfrom(1024)
-            forwarder.sendto(data, ("255.255.255.255", 2988))
+        fwd_port = forwarder.getsockname()[1]
+        sniff(filter=f"udp and dst port {BROADCAST_PORT} and not src port {fwd_port}",
+              prn=forward_broadcast(forwarder), store=False)
 
 def wait_for_lldb_server(port):
     pattern = re.compile(f"{port}/tcp")
@@ -139,7 +146,7 @@ def run(args):
             os.environ["NETWORK_MODE"] = "host"
             os.environ["PRIVILEGED_RUNTIME"] = "true"
             if args.udp_broadcast_forward:
-                Thread(target=forward_broadcasts, daemon=True).start()
+                Thread(target=broadcast_sniffer, daemon=True).start()
         initialize_host()
         run_cmd(["docker", "compose", "run", "--rm", "builder", "run", "-l", args.binary, *args.binary_args])
 
