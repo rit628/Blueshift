@@ -106,3 +106,4 @@ services:
 
 volumes:
   venv:
+    name: ${PROJECT_PREFIX}_venv
