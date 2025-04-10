@@ -21,6 +21,7 @@ services:
     volumes:
       - .:${CONTAINER_MOUNT_DIRECTORY}
       - ./${REMOTE_OUTPUT_DIRECTORY}:${CONTAINER_MOUNT_DIRECTORY}/build
+      - venv:${CONTAINER_MOUNT_DIRECTORY}/.venv
     env_file:
       - .env
 
@@ -102,3 +103,6 @@ services:
     depends_on:
       builder:
         condition: service_completed_successfully
+
+volumes:
+  venv:

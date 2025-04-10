@@ -45,4 +45,5 @@ if __name__ == "__main__":
         else:
             write_packages(installed)
 
-    os.execv(Path(VENV_DIR, BIN_DIR, "python3"), ["-c", "blueshift.py", *sys.argv[1:]])
+    python_path = Path(VENV_DIR, BIN_DIR, "python3")
+    os.execv(python_path, [python_path, "blueshift.py", *sys.argv[1:]])
