@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import argparse
 import os
 import sys
@@ -7,11 +6,13 @@ import socket
 import re
 import atexit
 import time
+from dotenv import load_dotenv
 import multiprocessing as mp
 from pathlib import Path
 from threading import Thread
 from shutil import rmtree
 
+load_dotenv()
 PROJECT_NAME = os.getenv("PROJECT_NAME")
 PROJECT_PREFIX = os.getenv("PROJECT_PREFIX")
 NETWORK_NAME = os.getenv("NETWORK_NAME")
