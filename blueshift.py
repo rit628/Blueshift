@@ -1,4 +1,5 @@
 import argparse
+import functools
 import os
 import sys
 import subprocess
@@ -40,6 +41,19 @@ def get_output(cmd, **kwargs) -> str:
     kwargs.update(text=True, capture_output=True)
     return run_cmd(cmd, False, **kwargs).stdout.strip()
 
+def run_as_src_user(f):
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        uid, gid = os.getuid(), os.getgid()
+        src_perms = os.stat(Path("src"))
+        os.setegid(src_perms.st_gid)
+        os.seteuid(src_perms.st_uid)
+        f(*args, **kwargs)
+        os.setegid(gid)
+        os.seteuid(uid)
+    return wrapper
+
+@run_as_src_user
 def initialize_host():
     Path(REMOTE_OUTPUT_DIRECTORY, "debug").mkdir(parents=True, exist_ok=True)
     Path(REMOTE_OUTPUT_DIRECTORY, "release").mkdir(parents=True, exist_ok=True)
@@ -50,8 +64,8 @@ def initialize_host():
         os.environ["CONTAINER_UID"] = str(0)
         os.environ["CONTAINER_GID"] = str(0)
     else:
-        os.environ["CONTAINER_UID"] = str(os.getuid())
-        os.environ["CONTAINER_GID"] = str(os.getgid())
+        os.environ["CONTAINER_UID"] = str(os.geteuid())
+        os.environ["CONTAINER_GID"] = str(os.getegid())
 
 def wait_for_lldb_server(port):
     pattern = re.compile(f"{port}/tcp")
@@ -249,16 +263,19 @@ def build(args):
         initialize_host()
         run_cmd(["docker", "compose", "run", "--rm", "builder",
                         "build", "-l", *build_args, *args.make])
-        symlink(TARGET_OUTPUT_DIRECTORY, Path(".", "remote", ARTIFACT_TYPE))
-        curr_db_path = Path(REMOTE_OUTPUT_DIRECTORY, ARTIFACT_TYPE, "compile_commands.json")
-        with (curr_db_path.open("r") as db, COMPILE_DB_PATH.open("w") as out):
-            cwd = os.getcwd()
-            build_dir = str(Path(CONTAINER_MOUNT_DIRECTORY, ARTIFACT_DIR))
-            replacement_dir = str(Path(cwd, TARGET_OUTPUT_DIRECTORY))
-            for line in db:
-                line = line.replace(build_dir, replacement_dir)  # replace build dir
-                line = line.replace(CONTAINER_MOUNT_DIRECTORY, cwd)  # replace source dir
-                out.write(line)
+        @run_as_src_user
+        def link_compile_commands():
+            symlink(TARGET_OUTPUT_DIRECTORY, Path(".", "remote", ARTIFACT_TYPE))
+            curr_db_path = Path(REMOTE_OUTPUT_DIRECTORY, ARTIFACT_TYPE, "compile_commands.json")
+            with (curr_db_path.open("r") as db, COMPILE_DB_PATH.open("w") as out):
+                cwd = os.getcwd()
+                build_dir = str(Path(CONTAINER_MOUNT_DIRECTORY, ARTIFACT_DIR))
+                replacement_dir = str(Path(cwd, TARGET_OUTPUT_DIRECTORY))
+                for line in db:
+                    line = line.replace(build_dir, replacement_dir)  # replace build dir
+                    line = line.replace(CONTAINER_MOUNT_DIRECTORY, cwd)  # replace source dir
+                    out.write(line)
+        link_compile_commands()
 
 def test(args):
     os.environ["GTEST_COLOR"] = "1"
@@ -290,6 +307,9 @@ def reset(args):
         run_cmd(["docker", "image", "prune", "-f"])
         run_cmd(["docker", "image", "rm", "-f"] + image_ids.split('\n'))
         run_cmd(["docker", "volume", "rm", "-f"] + volumes.split('\n'))
+
+    if args.system_prune:
+        run_cmd(["docker", "system", "prune", "--volumes", "-af"])
 
     if args.rm_build_cache:
         run_cmd(["docker", "buildx", "prune", "-f"])
@@ -421,6 +441,9 @@ reset_parser.add_argument("--rm-build-cache",
                           action="store_true")
 reset_parser.add_argument("--preserve-images",
                           help="prevent resetting of container images",
+                          action="store_true")
+reset_parser.add_argument("--system-prune",
+                          help="prune all system images and volumes (even those not associated with blueshift)",
                           action="store_true")
 reset_parser.set_defaults(fn=reset)
 
