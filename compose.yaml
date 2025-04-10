@@ -10,13 +10,15 @@ services:
     container_name: ${BUILD_CONTAINER_NAME}
     user: ${CONTAINER_UID}:${CONTAINER_GID}
     command: ["build", "-l", "-t", "${BUILD_TYPE}"]
+    group_add:
+      - root
+      - kmem
+      - gpio
     build:
       context: .
       dockerfile: .docker/builder/Dockerfile
       args:
         - WORKDIR=${CONTAINER_MOUNT_DIRECTORY}
-        - CONTAINER_UID=${CONTAINER_UID}
-        - CONTAINER_GID=${CONTAINER_GID}
     image: ${BUILD_IMAGE_NAME}
     volumes:
       - .:${CONTAINER_MOUNT_DIRECTORY}

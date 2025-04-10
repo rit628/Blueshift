@@ -13,7 +13,7 @@
 
 ## File & Directory Structure
 - `bls` - Primary build script for Blueshift. This is the main script you should use for building, running, and testing the project. For a list of commands and options run `./bls --help`. Further, for help with any of the commands and their respective subcommands/options, run `./bls [command] --help`.
-- `blueshift` - This script contains the logic for the primary build script. DO NOT use it directly as it will be missing the necessary environment variables to run successfully. However, any edits or new additions to the build script should be made here as `bls` is meant to be a thin wrapper around this script.
+- `blueshift.py` - This script contains the logic for the primary build script. Any edits or new additions to the build script should be made here as `bls` is meant to be a thin wrapper around this script.
 - `CMakeLists.txt` - Contains all build targets. Update whenever adding a new module, library, or test suite.
 - `compose.yaml` - Contains the image, container, and network configurations for Blueshift's containerized environment. This file can generally be ignored unless there are problems with the primary build script.
 - `.docker` - Contains Dockerfiles for building and running Blueshift. These files will rarely need updating and can generally be ignored unless there are problems with the primary build script

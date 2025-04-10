@@ -1,9 +1,5 @@
 FROM debian:12
 
-ARG CONTAINER_UID
-
-ARG CONTAINER_GID
-
 ARG WORKDIR
 
 WORKDIR ${WORKDIR}
@@ -19,6 +15,9 @@ update-alternatives --install /usr/bin/lldb lldb /usr/bin/lldb-19 100 && \
 update-alternatives --install /usr/bin/lldb-server lldb-server /usr/bin/lldb-server-19 100 && \
 update-alternatives --install /usr/bin/lld lld /usr/bin/lld-19 100 && \
 update-alternatives --install /usr/bin/clang clang /usr/bin/clang-19 100 && \
-update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-19 100
+update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-19 100 && \
+mkdir .venv && \
+chmod 777 .venv && \
+groupadd gpio
 
 ENTRYPOINT [ "./bls" ]

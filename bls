@@ -2,12 +2,13 @@
 import venv
 import os
 import sys
+import functools
 from subprocess import check_call, check_output
 from pathlib import Path
 
-VENV_DIR = ".venv"
-BIN_DIR = "Scripts" if os.name == "nt" else "bin"
-REQUIREMENTS_FILE = "requirements.txt"
+VENV_DIR = Path(".venv")
+BIN_DIR = Path("Scripts" if os.name == "nt" else "bin")
+REQUIREMENTS_FILE = Path("requirements.txt")
 
 def create_venv():
     if not Path(VENV_DIR, BIN_DIR, "python3").exists():
@@ -15,24 +16,37 @@ def create_venv():
         builder.create(VENV_DIR)
 
 def install_packages():
-    if Path(REQUIREMENTS_FILE).exists():
-        check_call([Path(VENV_DIR, BIN_DIR, "pip"), "install", "-r", REQUIREMENTS_FILE])
+    if REQUIREMENTS_FILE.exists():
+        check_call([Path(VENV_DIR, BIN_DIR, "pip"), "--no-cache-dir", "install", "-r", REQUIREMENTS_FILE])
 
 def get_installed_packages():
-    output = check_output([Path(VENV_DIR, BIN_DIR, "pip"), "freeze"], text=True)
+    output = check_output([Path(VENV_DIR, BIN_DIR, "pip"), "--no-cache-dir", "freeze"], text=True)
     return output.splitlines()
 
 def get_required_packages():
-    if not Path(REQUIREMENTS_FILE).exists():
+    if not REQUIREMENTS_FILE.exists():
         return list()    
-    with open(REQUIREMENTS_FILE) as reqs:
+    with REQUIREMENTS_FILE.open() as reqs:
         return reqs.read().splitlines()
 
 def write_packages(packages):
-    with open(REQUIREMENTS_FILE, "w") as reqs:
+    with REQUIREMENTS_FILE.open("w") as reqs:
         reqs.writelines(packages)
 
-if __name__ == "__main__":
+def run_as_src_user(f):
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        uid, gid = os.getuid(), os.getgid()
+        src_perms = os.stat(Path("src"))
+        os.setegid(src_perms.st_gid)
+        os.seteuid(src_perms.st_uid)
+        f(*args, **kwargs)
+        os.setegid(gid)
+        os.seteuid(uid)
+    return wrapper
+
+@run_as_src_user
+def main():
     create_venv()
     installed = get_installed_packages()
     required = get_required_packages()
@@ -45,5 +59,7 @@ if __name__ == "__main__":
         else:
             write_packages(installed)
 
+if __name__ == "__main__":
+    main()
     python_path = Path(VENV_DIR, BIN_DIR, "python3")
     os.execv(python_path, [python_path, "blueshift.py", *sys.argv[1:]])
