@@ -1,0 +1,34 @@
+oblock light(LIGHT red_light, LIGHT green_light, LIGHT blue_light, LINE_WRITER remote) {
+
+    if(remote.msg == "RED"){
+        red_light.state = true; 
+        green_light.state = false; 
+        blue_light.state = false; 
+    }
+    else if(remote.msg == "GREEN"){
+        red_light.state = false; 
+        green_light.state = true; 
+        blue_light.state = false; 
+
+    }
+    else if(remote.msg == "BLUE"){
+        red_light.state = false; 
+        green_light.state = false; 
+        blue_light.state = true; 
+
+    }
+    else{
+        red_light.state = false; 
+        green_light.state = false; 
+        blue_light.state = false; 
+    }
+}
+
+setup() {
+    LIGHT red_light = "rpi::PIN-26";
+    LIGHT green_light = "rpi::PIN-12";
+    LIGHT blue_light = "rpi::PIN-19"; 
+
+    LINE_WRITER rpi_light_controller = "remote::file-file1.txt"; 
+    light(red_light, green_light, blue_light, rpi_light_controller);
+}

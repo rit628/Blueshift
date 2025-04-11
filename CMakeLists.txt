@@ -104,10 +104,16 @@ add_library(interpreter STATIC ${LIBINTERPRETER_SRC})
 target_include_directories(interpreter PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
 target_link_libraries(interpreter lang_common types ${BOOST_LIB_DEPS})
 
+file(GLOB_RECURSE LIBOPTIMIZER_SRC ${LANG_SRC_DIR}/libOptimizer/*.cpp)
+add_library(optimizer STATIC ${LIBOPTIMIZER_SRC})
+target_include_directories(optimizer PUBLIC ${BLS_CONFIG} ${LANG_COMMON} ${LANG_SRC_DIR})
+target_link_libraries(optimizer lang_common types ${BOOST_LIB_DEPS})
+
 file(GLOB_RECURSE LIBCOMPILER_SRC ${LANG_SRC_DIR}/libcompiler/*.cpp)
 add_library(compiler STATIC ${LIBCOMPILER_SRC})
 target_include_directories(compiler PUBLIC ${BLS_CONFIG} ${LANG_COMMON} ${LANG_SRC_DIR})
-target_link_libraries(compiler lang_common lexer parser interpreter ${BOOST_LIB_DEPS})
+target_link_libraries(compiler lang_common lexer parser interpreter optimizer ${BOOST_LIB_DEPS})
+
 
 add_executable(lang ${LANG_SRC_DIR}/main.cpp)
 target_link_libraries(lang compiler ${BOOST_LIB_DEPS})

@@ -422,6 +422,7 @@ namespace BlsLang {
             };
 
             While() = default;
+            
             While(std::unique_ptr<AstNode::Expression> condition
                 , std::vector<std::unique_ptr<AstNode::Statement>> block
                 , LOOP_TYPE type = LOOP_TYPE::WHILE)
