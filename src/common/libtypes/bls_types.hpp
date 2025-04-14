@@ -1,5 +1,7 @@
 #pragma once
 #include <cmath>
+#include <cstddef>
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -69,12 +71,12 @@ struct BlsType : std::variant<std::monostate, bool, int64_t, double, std::string
   using std::variant<std::monostate, bool, int64_t, double, std::string, std::shared_ptr<HeapDescriptor>>::variant;
   explicit operator bool() const;
   friend BlsType operator-(const BlsType& operand);
-  friend BlsType operator<(const BlsType& lhs, const BlsType& rhs);
-  friend BlsType operator<=(const BlsType& lhs, const BlsType& rhs);
-  friend BlsType operator>(const BlsType& lhs, const BlsType& rhs);
-  friend BlsType operator>=(const BlsType& lhs, const BlsType& rhs);
-  friend BlsType operator!=(const BlsType& lhs, const BlsType& rhs);
-  friend BlsType operator==(const BlsType& lhs, const BlsType& rhs);
+  friend bool operator<(const BlsType& lhs, const BlsType& rhs);
+  friend bool operator<=(const BlsType& lhs, const BlsType& rhs);
+  friend bool operator>(const BlsType& lhs, const BlsType& rhs);
+  friend bool operator>=(const BlsType& lhs, const BlsType& rhs);
+  friend bool operator!=(const BlsType& lhs, const BlsType& rhs);
+  friend bool operator==(const BlsType& lhs, const BlsType& rhs);
   friend BlsType operator+(const BlsType& lhs, const BlsType& rhs);
   friend BlsType operator-(const BlsType& lhs, const BlsType& rhs);
   friend BlsType operator*(const BlsType& lhs, const BlsType& rhs);
@@ -82,15 +84,22 @@ struct BlsType : std::variant<std::monostate, bool, int64_t, double, std::string
   friend BlsType operator%(const BlsType& lhs, const BlsType& rhs);
   friend BlsType operator^(const BlsType& lhs, const BlsType& rhs);
   friend bool typeCompatible(const BlsType& lhs, const BlsType& rhs);
+  friend std::ostream& operator<<(std::ostream& os, const BlsType& obj);
   template<typename Archive>
   void serialize(Archive& ar, const unsigned int version);
 };
 
+template<>
+struct std::hash<BlsType> {
+    size_t operator()(const BlsType& obj) const;
+};
+
 class HeapDescriptor {
   protected: 
-    TYPE objType = TYPE::ANY; 
+    TYPE objType = TYPE::ANY;
     TYPE keyType = TYPE::ANY;
-    TYPE contType = TYPE::ANY; 
+    TYPE contType = TYPE::ANY;
+    BlsType sampleElement = std::monostate();
 
   public:
     HeapDescriptor() = default;
@@ -101,6 +110,7 @@ class HeapDescriptor {
     TYPE getKey() { return this->keyType; }
     TYPE getCont() { return this->contType; }
     TYPE getType() { return this->objType; }
+    BlsType& getSampleElement() { return this->sampleElement; }
     virtual BlsType& access(BlsType &obj) = 0;
     BlsType& access(BlsType &&obj) { return access(obj); };
     virtual int getSize() { return 1; }
