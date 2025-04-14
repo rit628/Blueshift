@@ -3,6 +3,7 @@
 #include "liblexer/lexer.hpp"
 #include "libparser/parser.hpp"
 #include "libinterpreter/interpreter.hpp"
+#include "libanalyzer/analyzer.hpp"
 #include "token.hpp"
 #include <memory>
 #include <vector>
@@ -22,6 +23,7 @@ namespace BlsLang {
             std::unique_ptr<AstNode> ast;
             Lexer lexer;
             Parser parser;
+            Analyzer analyzer;
             Interpreter masterInterpreter;
             std::vector<Interpreter> euInterpreters;
             std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks;

@@ -7,6 +7,7 @@
 #include <string>
 #include <variant>
 #include <vector>
+#include <boost/range/iterator_range.hpp>
 
 using namespace BlsLang;
 
@@ -75,7 +76,7 @@ std::any Analyzer::visit(AstNode::Function::Oblock& ast) {
 }
 
 std::any Analyzer::visit(AstNode::Setup& ast) {
-    cs.pushFrame(CallStack<std::string>::Frame::Context::SETUP, "_setup");
+    cs.pushFrame(CallStack<std::string>::Frame::Context::SETUP, "__setup__");
     for (auto&& statement : ast.getStatements()) {
         statement->accept(*this);
     }
@@ -97,23 +98,23 @@ std::any Analyzer::visit(AstNode::Statement::While& ast) {
 
 std::any Analyzer::visit(AstNode::Statement::Return& ast) {
     auto& functionName = cs.getFrameName();
-    if (functionName == "_setup") {
-        throw std::runtime_error("No return statements allowed in setup()");
+    if (functionName == "__setup__") {
+        throw RuntimeError("No return statements allowed in setup()");
     }
     auto parentSignature = (procedures.contains(functionName)) ? procedures.at(functionName) : oblocks.at(functionName);
     auto expectedReturnType = getTypeEnum(parentSignature.returnType);
     auto& value = ast.getValue();
     if (value.has_value()) {
         if (expectedReturnType == TYPE::void_t) {
-            throw std::runtime_error("void function should not return a value");
+            throw RuntimeError("void function should not return a value");
         }
         auto visited = value->get()->accept(*this);
         if (!typeCompatible(parentSignature.returnType, resolve(visited))) {
-            throw std::runtime_error("invalid return type");
+            throw RuntimeError("Invalid return type for " + functionName);
         }
     }
     else if (expectedReturnType != TYPE::void_t) {
-        throw std::runtime_error("non void function should return a value");
+        throw RuntimeError("non void function should return a value");
     }
     return std::monostate();
 }
@@ -161,7 +162,6 @@ std::any Analyzer::visit(AstNode::Expression::Access& ast) {
 std::any Analyzer::visit(AstNode::Expression::Literal& ast) {
     std::any literal;
     const auto convert = overloads {
-        [&literal](size_t value) {literal = BlsType((int64_t)value);},
         [&literal](auto value) { literal = BlsType(value); }
     };
     std::visit(convert, ast.getLiteral());
@@ -169,22 +169,71 @@ std::any Analyzer::visit(AstNode::Expression::Literal& ast) {
 }
 
 std::any Analyzer::visit(AstNode::Expression::List& ast) {
-    
+    auto list = std::make_shared<VectorDescriptor>(TYPE::ANY);
+    auto& elements = ast.getElements();
+    BlsType initIdx = 0;
+    auto addElement = [&, this](auto& element) {
+        auto literal = element->accept(*this);
+        auto& resolved = resolve(literal);
+        list->append(resolved);
+        return resolved;
+    };
+
+    if (elements.size() > 0) {
+        addElement(elements.at(0));
+        list->setCont(getTypeEnum(list->access(initIdx)));
+    }
+    for (auto&& element : boost::make_iterator_range(elements.begin() + 1, elements.end())) {
+        auto value = addElement(element);
+        if (!typeCompatible(list->access(initIdx), value)) {
+            throw RuntimeError("List literal declaration must be of homogeneous type.");
+        }
+    }
+
+    return BlsType(list);
 }
 
 std::any Analyzer::visit(AstNode::Expression::Set& ast) {
-    throw std::runtime_error("no support for sets in phase 0");
+    throw RuntimeError("no support for sets in phase 0");
 }
 
 std::any Analyzer::visit(AstNode::Expression::Map& ast) {
+    auto map = std::make_shared<MapDescriptor>(TYPE::ANY);
+    auto& elements = ast.getElements();
+    BlsType initKey, initVal;
+    auto addElement = [&, this](auto& element) {
+        auto key = element.first->accept(*this);
+        auto keyType = getTypeEnum(resolve(key));
+        if (keyType > TYPE::PRIMITIVE_COUNT) {
+            throw RuntimeError("Invalid key type for map");
+        }
+        auto value = element.second->accept(*this);
+        auto& resolvedKey = resolve(key), resolvedVal = resolve(value);
+        map->emplace(resolvedKey, resolvedVal);
+        return std::pair(resolvedKey, resolvedVal);
+    };
 
+    if (elements.size() > 0) {
+        std::tie(initKey, initVal) = addElement(elements.at(0));
+        map->setCont(getTypeEnum(initVal));
+        
+    }
+    for (auto&& element : boost::make_iterator_range(elements.begin() + 1, elements.end())) {
+        auto&& [key, value] = addElement(element);
+        if (!typeCompatible(initKey, key)
+         || !typeCompatible(map->access(initKey),value)) {
+            throw RuntimeError("Map literal declaration must be of homogeneous type.");
+        }
+    }
+
+    return BlsType(map);
 }
 
 std::any Analyzer::visit(AstNode::Specifier::Type& ast) {
     TYPE primaryType = getTypeEnum(ast.getName());
     const auto& typeArgs = ast.getTypeArgs();
     if (primaryType == TYPE::list_t) {
-        if (typeArgs.size() != 1) throw std::runtime_error("list may only have a single type argument");
+        if (typeArgs.size() != 1) throw RuntimeError("List may only have a single type argument.");
         auto argType = getTypeEnum(typeArgs.at(0)->getName());
         auto list = std::make_shared<VectorDescriptor>(argType);
         auto arg = typeArgs.at(0)->accept(*this);
@@ -192,14 +241,14 @@ std::any Analyzer::visit(AstNode::Specifier::Type& ast) {
         return BlsType(list);
     }
     else if (primaryType == TYPE::map_t) {
-        if (typeArgs.size() != 2) throw std::runtime_error("map must have two type arguments");
+        if (typeArgs.size() != 2) throw RuntimeError("Map must have two type arguments.");
         auto keyType = getTypeEnum(typeArgs.at(0)->getName());
         if (keyType > TYPE::PRIMITIVE_COUNT || keyType == TYPE::void_t) {
-            throw std::runtime_error("invalid key type for map");
+            throw RuntimeError("Invalid key type for map.");
         }
         auto valType = getTypeEnum(typeArgs.at(1)->getName());
         if (valType == TYPE::void_t) {
-            throw std::runtime_error("invalid value type for map");
+            throw RuntimeError("Invalid value type for map.");
         }
         auto map = std::make_shared<MapDescriptor>(TYPE::map_t, keyType, valType);
         auto key = typeArgs.at(0)->accept(*this);
@@ -248,12 +297,12 @@ std::any Analyzer::visit(AstNode::Specifier::Type& ast) {
             #undef DEVTYPE_END
 
             default:
-                throw std::runtime_error("container type must include element type arguments");
+                throw RuntimeError("Container type must include element type arguments.");
             break;
         }
     }
     else {
-        throw std::runtime_error("primitive or devtype cannot include type arguments");
+        throw RuntimeError("Primitive or devtype cannot include type arguments.");
     }
 }
 
