@@ -21,6 +21,7 @@ void Compiler::compileFile(const std::string& source) {
 void Compiler::compileSource(const std::string& source) {
     tokens = lexer.lex(source);
     ast = parser.parse(tokens);
+    ast->accept(analyzer);
     ast->accept(masterInterpreter);
     auto& masterOblocks = masterInterpreter.getOblocks();
     auto& descriptors = masterInterpreter.getOblockDescriptors();

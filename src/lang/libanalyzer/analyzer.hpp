@@ -4,8 +4,10 @@
 #include "include/reserved_tokens.hpp"
 #include "visitor.hpp"
 #include <cstdint>
+#include <iostream>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace BlsLang {
@@ -67,6 +69,7 @@ namespace BlsLang {
 
             CallStack<std::string> cs;
             std::unordered_map<std::string, FunctionSignature> procedures, oblocks;
+            std::unordered_set<BlsType> literals;
     };
 
     inline constexpr Analyzer::BINARY_OPERATOR Analyzer::getBinOpEnum(std::string_view op) {

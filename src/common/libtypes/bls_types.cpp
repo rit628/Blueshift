@@ -1,9 +1,14 @@
 #include "bls_types.hpp"
 #include "typedefs.hpp"
+#include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 #include <variant>
+#include <boost/functional/hash.hpp>
+#include <boost/range/iterator_range_core.hpp>
+#include <vector>
 
 template<class... Ts>
 struct overloads : Ts... { using Ts::operator()...; };
@@ -76,8 +81,8 @@ BlsType operator-(const BlsType& operand) {
     }, operand);
 }
 
-BlsType operator<(const BlsType& lhs, const BlsType& rhs) {
-    return std::visit([](const auto& a, const auto& b) -> BlsType {
+bool operator<(const BlsType& lhs, const BlsType& rhs) {
+    return std::visit([](const auto& a, const auto& b) -> bool {
         if constexpr (Comparable<decltype(a), decltype(b)>) {
             return a < b;
         }
@@ -87,8 +92,8 @@ BlsType operator<(const BlsType& lhs, const BlsType& rhs) {
     }, lhs, rhs);
 }
 
-BlsType operator<=(const BlsType& lhs, const BlsType& rhs) {
-    return std::visit([](const auto& a, const auto& b) -> BlsType {
+bool operator<=(const BlsType& lhs, const BlsType& rhs) {
+    return std::visit([](const auto& a, const auto& b) -> bool {
         if constexpr (Comparable<decltype(a), decltype(b)>) {
             return a <= b;
         }
@@ -98,8 +103,8 @@ BlsType operator<=(const BlsType& lhs, const BlsType& rhs) {
     }, lhs, rhs);
 }
 
-BlsType operator>(const BlsType& lhs, const BlsType& rhs) {
-    return std::visit([](const auto& a, const auto& b) -> BlsType {
+bool operator>(const BlsType& lhs, const BlsType& rhs) {
+    return std::visit([](const auto& a, const auto& b) -> bool {
         if constexpr (Comparable<decltype(a), decltype(b)>) {
             return a > b;
         }
@@ -109,8 +114,8 @@ BlsType operator>(const BlsType& lhs, const BlsType& rhs) {
     }, lhs, rhs);
 }
 
-BlsType operator>=(const BlsType& lhs, const BlsType& rhs) {
-    return std::visit([](const auto& a, const auto& b) -> BlsType {
+bool operator>=(const BlsType& lhs, const BlsType& rhs) {
+    return std::visit([](const auto& a, const auto& b) -> bool {
         if constexpr (Comparable<decltype(a), decltype(b)>) {
             return a >= b;
         }
@@ -120,8 +125,8 @@ BlsType operator>=(const BlsType& lhs, const BlsType& rhs) {
     }, lhs, rhs);
 }
 
-BlsType operator!=(const BlsType& lhs, const BlsType& rhs) {
-    return std::visit([](const auto& a, const auto& b) -> BlsType {
+bool operator!=(const BlsType& lhs, const BlsType& rhs) {
+    return std::visit([](const auto& a, const auto& b) -> bool {
         if constexpr (WeaklyComparable<decltype(a), decltype(b)>) {
             return a != b;
         }
@@ -131,8 +136,8 @@ BlsType operator!=(const BlsType& lhs, const BlsType& rhs) {
     }, lhs, rhs);
 }
 
-BlsType operator==(const BlsType& lhs, const BlsType& rhs) {
-    return std::visit([](const auto& a, const auto& b) -> BlsType {
+bool operator==(const BlsType& lhs, const BlsType& rhs) {
+    return std::visit([](const auto& a, const auto& b) -> bool {
         if constexpr (WeaklyComparable<decltype(a), decltype(b)>) {
             return a == b;
         }
@@ -223,41 +228,6 @@ BlsType operator^(const BlsType& lhs, const BlsType& rhs) {
 }
 
 bool typeCompatible(const BlsType& lhs, const BlsType& rhs) {
-    const static auto getInnerType = [](const std::shared_ptr<HeapDescriptor>& container) -> BlsType {
-        switch (container->getType()) {
-            case TYPE::list_t:
-                return container->access(0);
-            break;
-
-            case TYPE::map_t:
-                switch (container->getKey()) {
-                    case TYPE::bool_t:
-                        return container->access(bool());
-                    break;
-
-                    case TYPE::int_t:
-                        return container->access(int64_t());
-                    break;
-
-                    case TYPE::float_t:
-                        return container->access(double());
-                    break;
-
-                    case TYPE::string_t:
-                        return container->access(std::string());
-                    break;
-                    
-                    default:
-                    break;
-                }
-            break;
-            
-            default:
-            break;
-        }
-        return std::monostate();
-    };
-
     const static auto compareTypes = [](TYPE a, TYPE b)  {
         switch (a) {
             case TYPE::int_t:
@@ -294,18 +264,88 @@ bool typeCompatible(const BlsType& lhs, const BlsType& rhs) {
                 return false;
             }
 
-            BlsType aInner = getInnerType(a), bInner = getInnerType(b);
+            BlsType aInner = a->getSampleElement(), bInner = b->getSampleElement();
             return typeCompatible(aInner, bInner);
         },
         [](const auto& a, const auto& b) {
-            if constexpr (Numeric<decltype(a)> && Numeric<decltype(b)>) {
-                return true;
-            }
-            else {
-                return getTypeEnum(a) == getTypeEnum(b);
-            }
+            return compareTypes(getTypeEnum(a), getTypeEnum(b));
         }
     }, lhs, rhs);
+}
+
+std::ostream& operator<<(std::ostream& os, const BlsType& obj) {
+    std::visit(overloads {
+        [&](const std::shared_ptr<HeapDescriptor>& x) {
+            switch (x->getType()) {
+                case TYPE::list_t: {
+                    auto list = std::dynamic_pointer_cast<VectorDescriptor>(x);
+                    auto& internalVector = list->getVector();
+                    os << "[";
+                    if (list->getSize() > 0) {
+                        os << internalVector.front();
+                    }
+                    for (auto&& element : boost::make_iterator_range(internalVector.begin() + 1, internalVector.end())) {
+                        os << ", " << element;
+                    }
+                    os << "]";
+                }
+                break;
+                case TYPE::map_t: {
+                    auto map = std::dynamic_pointer_cast<MapDescriptor>(x);
+                    auto& internalMap = map->getMap();
+                    auto beginIt = internalMap.begin();
+                    os << "{";
+                    if (map->getSize() > 0) {
+                        auto& [key, val] = *beginIt;
+                        os << key << " : " << val;
+                        beginIt++;
+                    }
+                    for (auto&& [key, val] : boost::make_iterator_range(beginIt, internalMap.end())) {
+                        os << ", " << key << " : " << val;
+                    }
+                    os << "}";
+                }
+                break;
+                default:
+                break;
+            }
+        },
+        [&](const bool& x) {
+            os << ((x) ? "true" : "false");
+        },
+        [&](const auto& x) {
+            os << x;
+        }
+    }, obj);
+}
+
+size_t std::hash<BlsType>::operator()(const BlsType& obj) const {
+    return std::visit(overloads {
+        [](const std::shared_ptr<HeapDescriptor>& x) -> size_t {
+            size_t seed;
+            switch (x->getType()) {
+                case TYPE::list_t:
+                    boost::hash_combine(seed, std::dynamic_pointer_cast<VectorDescriptor>(x)->getVector());
+                break;
+                case TYPE::map_t:
+                    boost::hash_combine(seed, std::dynamic_pointer_cast<MapDescriptor>(x)->getMap());
+                break;
+                default:
+                    seed = 0;
+                break;
+            }
+            return seed;
+        },
+        [](const std::monostate& x) -> size_t {
+            return 0;
+        },
+        [](const std::string& x) -> size_t {
+            return std::hash<std::string>{}(x);
+        },
+        [](auto x) -> size_t {
+            return std::hash<decltype(x)>{}(x);
+        }
+    }, obj);
 }
 
 MapDescriptor::MapDescriptor(TYPE contType) {

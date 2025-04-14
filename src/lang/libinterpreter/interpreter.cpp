@@ -258,7 +258,8 @@ std::any Interpreter::visit(AstNode::Statement::Declaration& ast) {
     auto& name = ast.getName();
     auto& value = ast.getValue();
     if (cs.checkContext(CallStack<std::string>::Frame::Context::SETUP)) {
-        auto devtype = std::any_cast<DEVTYPE>(ast.getType()->accept(*this));
+        auto devtypeObj = ast.getType()->accept(*this);
+        auto devtype = static_cast<DEVTYPE>(getTypeEnum(resolve(devtypeObj)));
         auto binding = value->get()->accept(*this);
         auto resolved = resolve(binding);
         if (!std::holds_alternative<std::string>(resolved)) {
@@ -291,35 +292,35 @@ std::any Interpreter::visit(AstNode::Expression::Binary& ast) {
     auto op = getBinOpEnum(ast.getOp());
     switch (op) {
         case BINARY_OPERATOR::OR:
-            return lhs || rhs;
+            return BlsType(lhs || rhs); // convert back to BlsType from bool conversion
         break;
 
         case BINARY_OPERATOR::AND:
-            return lhs && rhs;
+            return BlsType(lhs && rhs); // convert back to BlsType from bool conversion
         break;
 
         case BINARY_OPERATOR::LT:
-            return lhs < rhs;
+            return BlsType(lhs < rhs); // convert back to BlsType from bool conversion
         break;
         
         case BINARY_OPERATOR::LE:
-            return lhs <= rhs;
+            return BlsType(lhs <= rhs); // convert back to BlsType from bool conversion
         break;
 
         case BINARY_OPERATOR::GT:
-            return lhs > rhs;
+            return BlsType(lhs > rhs); // convert back to BlsType from bool conversion
         break;
 
         case BINARY_OPERATOR::GE:
-            return lhs >= rhs;
+            return BlsType(lhs >= rhs); // convert back to BlsType from bool conversion
         break;
 
         case BINARY_OPERATOR::NE:
-            return lhs != rhs;
+            return BlsType(lhs != rhs); // convert back to BlsType from bool conversion
         break;
 
         case BINARY_OPERATOR::EQ:
-            return lhs == rhs;
+            return BlsType(lhs == rhs); // convert back to BlsType from bool conversion
         break;
 
         case BINARY_OPERATOR::ADD:
@@ -388,7 +389,7 @@ std::any Interpreter::visit(AstNode::Expression::Unary& ast) {
     
     switch (op) {
         case UNARY_OPERATOR::NOT:
-            return !object;
+            return BlsType(!object); // convert back to BlsType from bool conversion
         break;
 
         case UNARY_OPERATOR::NEG:
@@ -569,20 +570,24 @@ std::any Interpreter::visit(AstNode::Specifier::Type& ast) {
     TYPE primaryType = getTypeEnum(ast.getName());
     const auto& typeArgs = ast.getTypeArgs();
     if (primaryType == TYPE::list_t) {
-        if (typeArgs.size() != 1) throw RuntimeError("list may only have a single type argument");
-        auto list = std::make_shared<VectorDescriptor>(TYPE::ANY);
+        if (typeArgs.size() != 1) throw RuntimeError("List may only have a single type argument.");
+        auto argType = getTypeEnum(typeArgs.at(0)->getName());
+        auto list = std::make_shared<VectorDescriptor>(argType);
         auto arg = typeArgs.at(0)->accept(*this);
         list->append(resolve(arg));
         return BlsType(list);
     }
     else if (primaryType == TYPE::map_t) {
-        if (typeArgs.size() != 2) throw RuntimeError("map must have two type arguments");
+        if (typeArgs.size() != 2) throw RuntimeError("Map must have two type arguments.");
         auto keyType = getTypeEnum(typeArgs.at(0)->getName());
+        if (keyType > TYPE::PRIMITIVE_COUNT || keyType == TYPE::void_t) {
+            throw RuntimeError("Invalid key type for map.");
+        }
         auto valType = getTypeEnum(typeArgs.at(1)->getName());
         if (valType == TYPE::void_t) {
-            throw RuntimeError("invalid value type for map");
+            throw RuntimeError("Invalid value type for map.");
         }
-        auto map = std::make_shared<MapDescriptor>(TYPE::ANY);
+        auto map = std::make_shared<MapDescriptor>(TYPE::map_t, keyType, valType);
         auto key = typeArgs.at(0)->accept(*this);
         auto value = typeArgs.at(1)->accept(*this);
         map->emplace(resolve(key), resolve(value));
@@ -590,55 +595,52 @@ std::any Interpreter::visit(AstNode::Specifier::Type& ast) {
     }
     else if (typeArgs.empty()) {
         switch (primaryType) {
+            // explicit default constructors for declaration
             case TYPE::void_t:
                 return BlsType(std::monostate());
             break;
 
             case TYPE::bool_t:
-                return BlsType(bool());
+                return BlsType(bool(false));
             break;
 
             case TYPE::int_t:
-                return BlsType(int());
+                return BlsType(int64_t(0));
             break;
 
             case TYPE::float_t:
-                return BlsType(float());
+                return BlsType(double(0.0));
             break;
 
             case TYPE::string_t:
-                return BlsType(std::string());
+                return BlsType(std::string(""));
             break;
 
             #define DEVTYPE_BEGIN(name) \
-            case TYPE::name: \
-                return DEVTYPE::name;
-            #define ATTRIBUTE(...)
+            case TYPE::name: { \
+                using namespace TypeDef; \
+                auto devtype = std::make_shared<MapDescriptor>(TYPE::name, TYPE::string_t, TYPE::ANY); \
+                BlsType attr, attrVal;
+            #define ATTRIBUTE(name, type) \
+                attr = BlsType(#name); \
+                attrVal = BlsType(type()); \
+                devtype->emplace(attr, attrVal);
             #define DEVTYPE_END \
-            break;
+                return BlsType(devtype); \
+            break; \
+            }
             #include "DEVTYPES.LIST"
             #undef DEVTYPE_BEGIN
             #undef ATTRIBUTE
             #undef DEVTYPE_END
 
-            #define CONTAINER_BEGIN(name, ...) \
-            case TYPE::name##_t: \
-                throw RuntimeError("container type must include element type arguments"); \
-            break;
-            #define METHOD(...)
-            #define CONTAINER_END
-            #include "CONTAINER_TYPES.LIST"
-            #undef CONTAINER_BEGIN
-            #undef METHOD
-            #undef CONTAINER_END
-            
             default:
-                throw RuntimeError("invalid type");
+                throw RuntimeError("Container type must include element type arguments.");
             break;
         }
     }
     else {
-        throw RuntimeError("primitive or devtype cannot include type arguments");
+        throw RuntimeError("Primitive or devtype cannot include type arguments.");
     }
 }
 

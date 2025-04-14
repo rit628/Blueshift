@@ -1,9 +1,9 @@
+#include "error_types.hpp"
 #include "libtypes/typedefs.hpp"
 #include "analyzer.hpp"
 #include "libtypes/bls_types.hpp"
 #include "call_stack.hpp"
 #include <any>
-#include <stdexcept>
 #include <string>
 #include <variant>
 #include <vector>
@@ -99,32 +99,36 @@ std::any Analyzer::visit(AstNode::Statement::While& ast) {
 std::any Analyzer::visit(AstNode::Statement::Return& ast) {
     auto& functionName = cs.getFrameName();
     if (functionName == "__setup__") {
-        throw RuntimeError("No return statements allowed in setup()");
+        throw SemanticError("No return statements allowed in setup()");
     }
     auto parentSignature = (procedures.contains(functionName)) ? procedures.at(functionName) : oblocks.at(functionName);
     auto expectedReturnType = getTypeEnum(parentSignature.returnType);
     auto& value = ast.getValue();
     if (value.has_value()) {
         if (expectedReturnType == TYPE::void_t) {
-            throw RuntimeError("void function should not return a value");
+            throw SemanticError("void function should not return a value");
         }
         auto visited = value->get()->accept(*this);
         if (!typeCompatible(parentSignature.returnType, resolve(visited))) {
-            throw RuntimeError("Invalid return type for " + functionName);
+            throw SemanticError("Invalid return type for " + functionName);
         }
     }
     else if (expectedReturnType != TYPE::void_t) {
-        throw RuntimeError("non void function should return a value");
+        throw SemanticError("non void function should return a value");
     }
     return std::monostate();
 }
 
 std::any Analyzer::visit(AstNode::Statement::Continue& ast) {
-
+    if (!cs.checkContext(CallStack<std::string>::Frame::Context::LOOP)) {
+        throw SemanticError("continue statement outside of loop context.");
+    }
 }
 
 std::any Analyzer::visit(AstNode::Statement::Break& ast) {
-
+    if (!cs.checkContext(CallStack<std::string>::Frame::Context::LOOP)) {
+        throw SemanticError("break statement outside of loop context.");
+    }
 }
 
 std::any Analyzer::visit(AstNode::Statement::Declaration& ast) {
@@ -165,6 +169,7 @@ std::any Analyzer::visit(AstNode::Expression::Literal& ast) {
         [&literal](auto value) { literal = BlsType(value); }
     };
     std::visit(convert, ast.getLiteral());
+    literals.emplace(resolve(literal));
     return literal;
 }
 
@@ -182,19 +187,22 @@ std::any Analyzer::visit(AstNode::Expression::List& ast) {
     if (elements.size() > 0) {
         addElement(elements.at(0));
         list->setCont(getTypeEnum(list->access(initIdx)));
-    }
-    for (auto&& element : boost::make_iterator_range(elements.begin() + 1, elements.end())) {
-        auto value = addElement(element);
-        if (!typeCompatible(list->access(initIdx), value)) {
-            throw RuntimeError("List literal declaration must be of homogeneous type.");
+        list->getSampleElement() = list->access(initIdx);
+        for (auto&& element : boost::make_iterator_range(elements.begin() + 1, elements.end())) {
+            auto value = addElement(element);
+            if (!typeCompatible(list->access(initIdx), value)) {
+                throw SemanticError("List literal declaration must be of homogeneous type.");
+            }
         }
     }
+    
+    literals.emplace(BlsType(list));
 
     return BlsType(list);
 }
 
 std::any Analyzer::visit(AstNode::Expression::Set& ast) {
-    throw RuntimeError("no support for sets in phase 0");
+    throw SemanticError("no support for sets in phase 0");
 }
 
 std::any Analyzer::visit(AstNode::Expression::Map& ast) {
@@ -205,7 +213,7 @@ std::any Analyzer::visit(AstNode::Expression::Map& ast) {
         auto key = element.first->accept(*this);
         auto keyType = getTypeEnum(resolve(key));
         if (keyType > TYPE::PRIMITIVE_COUNT) {
-            throw RuntimeError("Invalid key type for map");
+            throw SemanticError("Invalid key type for map");
         }
         auto value = element.second->accept(*this);
         auto& resolvedKey = resolve(key), resolvedVal = resolve(value);
@@ -216,15 +224,17 @@ std::any Analyzer::visit(AstNode::Expression::Map& ast) {
     if (elements.size() > 0) {
         std::tie(initKey, initVal) = addElement(elements.at(0));
         map->setCont(getTypeEnum(initVal));
-        
-    }
-    for (auto&& element : boost::make_iterator_range(elements.begin() + 1, elements.end())) {
-        auto&& [key, value] = addElement(element);
-        if (!typeCompatible(initKey, key)
-         || !typeCompatible(map->access(initKey),value)) {
-            throw RuntimeError("Map literal declaration must be of homogeneous type.");
+        map->getSampleElement() = initVal;
+        for (auto&& element : boost::make_iterator_range(elements.begin() + 1, elements.end())) {
+            auto&& [key, value] = addElement(element);
+            if (!typeCompatible(initKey, key)
+             || !typeCompatible(initVal,value)) {
+                throw SemanticError("Map literal declaration must be of homogeneous type.");
+            }
         }
     }
+
+    literals.emplace(BlsType(map));
 
     return BlsType(map);
 }
@@ -233,49 +243,52 @@ std::any Analyzer::visit(AstNode::Specifier::Type& ast) {
     TYPE primaryType = getTypeEnum(ast.getName());
     const auto& typeArgs = ast.getTypeArgs();
     if (primaryType == TYPE::list_t) {
-        if (typeArgs.size() != 1) throw RuntimeError("List may only have a single type argument.");
+        if (typeArgs.size() != 1) throw SemanticError("List may only have a single type argument.");
         auto argType = getTypeEnum(typeArgs.at(0)->getName());
         auto list = std::make_shared<VectorDescriptor>(argType);
         auto arg = typeArgs.at(0)->accept(*this);
         list->append(resolve(arg));
+        list->getSampleElement() = resolve(arg);
         return BlsType(list);
     }
     else if (primaryType == TYPE::map_t) {
-        if (typeArgs.size() != 2) throw RuntimeError("Map must have two type arguments.");
+        if (typeArgs.size() != 2) throw SemanticError("Map must have two type arguments.");
         auto keyType = getTypeEnum(typeArgs.at(0)->getName());
         if (keyType > TYPE::PRIMITIVE_COUNT || keyType == TYPE::void_t) {
-            throw RuntimeError("Invalid key type for map.");
+            throw SemanticError("Invalid key type for map.");
         }
         auto valType = getTypeEnum(typeArgs.at(1)->getName());
         if (valType == TYPE::void_t) {
-            throw RuntimeError("Invalid value type for map.");
+            throw SemanticError("Invalid value type for map.");
         }
         auto map = std::make_shared<MapDescriptor>(TYPE::map_t, keyType, valType);
         auto key = typeArgs.at(0)->accept(*this);
         auto value = typeArgs.at(1)->accept(*this);
         map->emplace(resolve(key), resolve(value));
+        map->getSampleElement() = resolve(value);
         return BlsType(map);
     }
     else if (typeArgs.empty()) {
         switch (primaryType) {
+            // explicit default constructors for declaration
             case TYPE::void_t:
                 return BlsType(std::monostate());
             break;
 
             case TYPE::bool_t:
-                return BlsType(bool());
+                return BlsType(bool(false));
             break;
 
             case TYPE::int_t:
-                return BlsType(int64_t());
+                return BlsType(int64_t(0));
             break;
 
             case TYPE::float_t:
-                return BlsType(double());
+                return BlsType(double(0.0));
             break;
 
             case TYPE::string_t:
-                return BlsType(std::string());
+                return BlsType(std::string(""));
             break;
 
             #define DEVTYPE_BEGIN(name) \
@@ -297,12 +310,12 @@ std::any Analyzer::visit(AstNode::Specifier::Type& ast) {
             #undef DEVTYPE_END
 
             default:
-                throw RuntimeError("Container type must include element type arguments.");
+                throw SemanticError("Container type must include element type arguments.");
             break;
         }
     }
     else {
-        throw RuntimeError("Primitive or devtype cannot include type arguments.");
+        throw SemanticError("Primitive or devtype cannot include type arguments.");
     }
 }
 
