@@ -93,8 +93,11 @@ class HeapDescriptor {
     TYPE contType = TYPE::ANY; 
 
   public:
-    HeapDescriptor() = default; 
-    virtual ~HeapDescriptor() = default; 
+    HeapDescriptor() = default;
+    virtual ~HeapDescriptor() = default;
+    void setKey(TYPE keyType) { this->keyType = keyType; }
+    void setCont(TYPE contType) { this->contType = contType; }
+    void setType(TYPE objType) { this->objType = objType; }
     TYPE getKey() { return this->keyType; }
     TYPE getCont() { return this->contType; }
     TYPE getType() { return this->objType; }
@@ -113,7 +116,6 @@ class MapDescriptor : public HeapDescriptor{
 
   public:
     friend class DynamicMessage; 
-    friend class VM; 
 
     MapDescriptor(TYPE contType);
     MapDescriptor(TYPE objType, TYPE keyType, TYPE contType);
@@ -137,7 +139,6 @@ class VectorDescriptor : public HeapDescriptor, std::enable_shared_from_this<Vec
 
   public: 
     friend class DynamicMessage; 
-    friend class VM; 
 
     VectorDescriptor(std::string cont_code);
     VectorDescriptor(TYPE contType);
