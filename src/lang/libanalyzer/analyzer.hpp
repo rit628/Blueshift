@@ -8,6 +8,7 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <variant>
 #include <vector>
 
 namespace BlsLang {
@@ -65,10 +66,15 @@ namespace BlsLang {
                 std::string name;
                 BlsType returnType;
                 std::vector<BlsType> parameterTypes;
+                bool variadic = false;
             };
 
             CallStack<std::string> cs;
-            std::unordered_map<std::string, FunctionSignature> procedures, oblocks;
+            std::unordered_map<std::string, FunctionSignature> procedures = {
+                {"println", {"println", std::monostate(), {}, true}},
+                {"print", {"print", std::monostate(), {}, true}}
+            };
+            std::unordered_map<std::string, FunctionSignature> oblocks;
             std::unordered_set<BlsType> literals;
     };
 

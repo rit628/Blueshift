@@ -317,6 +317,7 @@ std::ostream& operator<<(std::ostream& os, const BlsType& obj) {
             os << x;
         }
     }, obj);
+    return os;
 }
 
 size_t std::hash<BlsType>::operator()(const BlsType& obj) const {

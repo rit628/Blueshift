@@ -134,7 +134,7 @@ namespace BlsLang {
         if constexpr (std::is_same<T, std::string>()) {
             auto& locals = cs.back().locals;
             if (!locals.contains(index)) {
-                throw RuntimeError("local variable: " + index + " does not exist");
+                throw SemanticError("local variable: " + index + " does not exist");
             }
             return locals[index];
         }
