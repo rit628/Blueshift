@@ -1,5 +1,5 @@
 #pragma once
-#include "bls_types.hpp"
+#include "libtypes/bls_types.hpp"
 #include "call_stack.hpp"
 #include "libbytecode/bytecode_processor.hpp"
 #include <cstddef>
@@ -23,7 +23,6 @@ namespace BlsLang {
         
         private:
             CallStack<size_t> cs;
-            size_t instruction;
     };
 
 }

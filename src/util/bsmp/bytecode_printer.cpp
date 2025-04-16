@@ -1,6 +1,7 @@
 #include "bytecode_printer.hpp"
-#include "libHD/HeapDescriptors.hpp"
+#include "libtypes/bls_types.hpp"
 #include <cstdint>
+#include <iostream>
 
 void BytecodePrinter::setOutputStream(std::ostream& stream) {
     outputStream = &stream;

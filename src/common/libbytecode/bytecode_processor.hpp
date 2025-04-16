@@ -1,5 +1,5 @@
 #pragma once
-#include "libHD/HeapDescriptors.hpp"
+#include "libtypes/bls_types.hpp"
 #include <fstream>
 #include <cstdint>
 
@@ -21,5 +21,6 @@ class BytecodeProcessor {
         #undef OPCODE_END
 
         std::ifstream bytecode;
+        size_t instruction;
         std::vector<BlsType> literalPool;
 };

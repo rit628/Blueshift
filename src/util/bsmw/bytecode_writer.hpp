@@ -2,6 +2,7 @@
 #include "libbytecode/bytecode_processor.hpp"
 #include <cstdint>
 #include <fstream>
+#include <iostream>
 
 class BytecodeWriter {
     public:

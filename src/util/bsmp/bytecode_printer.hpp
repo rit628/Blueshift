@@ -1,6 +1,7 @@
 #pragma once
 #include "libbytecode/bytecode_processor.hpp"
 #include <cstdint>
+#include <iostream>
 
 class BytecodePrinter : public BytecodeProcessor {
     public:

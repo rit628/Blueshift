@@ -1,8 +1,9 @@
 #include "bytecode_writer.hpp"
-#include "libHD/HeapDescriptors.hpp"
+#include "libtypes/bls_types.hpp"
+#include "libbytecode/include/opcodes.hpp"
 #include <cstdint>
 #include <sstream>
-#include "libbytecode/include/opcodes.hpp"
+#include <iostream>
 
 void BytecodeWriter::loadMnemonicBytecode(const std::string& filename) {
     mnemonicBytecode.open(filename);

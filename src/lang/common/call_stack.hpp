@@ -35,7 +35,7 @@ namespace BlsLang {
                 using container_t = std::conditional_t<IntAddressable<T>, std::vector<BlsType>, std::unordered_map<T, BlsType>>;
 
                 Frame(Context context) requires StringAddressable<T> : context(context) {}
-                Frame(size_t returnAddress, std::span<BlsType> arguments, size_t localSize) requires IntAddressable<T>;
+                Frame(size_t returnAddress, std::span<BlsType> arguments) requires IntAddressable<T>;
                 
                 Context context = Context::FUNCTION;
                 size_t returnAddress;
@@ -46,9 +46,10 @@ namespace BlsLang {
             CallStack() = default;
 
             void pushFrame(Frame::Context context) requires StringAddressable<T>;
-            void pushFrame(size_t returnAddress, std::span<BlsType> arguments, size_t localSize) requires IntAddressable<T>;
+            void pushFrame(size_t returnAddress, std::span<BlsType> arguments) requires IntAddressable<T>;
             size_t popFrame();
             void pushOperand(BlsType&& operand) requires IntAddressable<T>;
+            void pushOperand(BlsType& operand) requires IntAddressable<T>;
             BlsType popOperand() requires IntAddressable<T>;
             void setLocal(T index, BlsType value);
             BlsType& getLocal(T index);
@@ -60,10 +61,8 @@ namespace BlsLang {
     };
 
     template<StackType T>
-    inline CallStack<T>::Frame::Frame(size_t returnAddress, std::span<BlsType> arguments, size_t localSize) requires IntAddressable<T> : returnAddress(returnAddress) {
-        locals.reserve(localSize);
+    inline CallStack<T>::Frame::Frame(size_t returnAddress, std::span<BlsType> arguments) requires IntAddressable<T> : returnAddress(returnAddress) {
         locals.assign(arguments.begin(), arguments.end());
-        locals.resize(localSize);
     }
 
     template<StackType T>
@@ -76,8 +75,8 @@ namespace BlsLang {
     }
 
     template<StackType T>
-    inline void CallStack<T>::pushFrame(size_t returnAddress, std::span<BlsType> arguments, size_t localSize) requires IntAddressable<T> {
-        cs.push(Frame(returnAddress, arguments, localSize));
+    inline void CallStack<T>::pushFrame(size_t returnAddress, std::span<BlsType> arguments) requires IntAddressable<T> {
+        cs.push(Frame(returnAddress, arguments));
     }
 
     template<StackType T>
@@ -100,6 +99,11 @@ namespace BlsLang {
     }
 
     template<StackType T>
+    inline void CallStack<T>::pushOperand(BlsType& operand) requires IntAddressable<T> {
+        cs.top().operands.push(operand);
+    }
+
+    template<StackType T>
     inline BlsType CallStack<T>::popOperand() requires IntAddressable<T> {
         auto& operands = cs.top().operands;
         auto operand = operands.top();
@@ -113,7 +117,13 @@ namespace BlsLang {
             cs.back().locals[index] = value;
         }
         else {
-            cs.top().locals[index] = value;
+            auto& locals = cs.top().locals;
+            if (index < locals.size()) {
+                locals[index] = value;
+            }
+            else {
+                locals.push_back(value);
+            }
         }
     }
 

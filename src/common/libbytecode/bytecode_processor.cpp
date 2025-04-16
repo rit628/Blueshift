@@ -2,6 +2,7 @@
 #include "include/opcodes.hpp"
 #include <cstdint>
 #include <cstring>
+#include <iostream>
 
 void BytecodeProcessor::loadBytecode(const std::string& filename) {
     bytecode.open(filename, std::ios::binary);
