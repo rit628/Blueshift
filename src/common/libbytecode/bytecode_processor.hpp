@@ -6,6 +6,7 @@
 class BytecodeProcessor {
     public:
         void loadBytecode(const std::string& filename);
+        void loadLiterals();
         void dispatch();
 
     protected:
@@ -21,6 +22,6 @@ class BytecodeProcessor {
         #undef OPCODE_END
 
         std::ifstream bytecode;
-        size_t instruction;
+        size_t instruction, instructionOffset;
         std::vector<BlsType> literalPool;
 };

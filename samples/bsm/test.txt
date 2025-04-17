@@ -1,3 +1,12 @@
+LITERALS_BEGIN
+[
+false,
+1,
+2.0,
+"test",
+{"a" : 1, "b" : 2}
+]
+BYTECODE_BEGIN
 CALL 5 0
 NOT
 LT
