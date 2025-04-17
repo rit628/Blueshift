@@ -1,4 +1,5 @@
 #pragma once
+#include "include/Common.hpp"
 #include "libtypes/bls_types.hpp"
 #include <fstream>
 #include <cstdint>
@@ -6,8 +7,11 @@
 class BytecodeProcessor {
     public:
         void loadBytecode(const std::string& filename);
-        void loadLiterals();
         void dispatch();
+
+    private:
+        void readHeader();
+        void loadLiterals();
 
     protected:
         #define OPCODE_BEGIN(code) \
@@ -24,4 +28,5 @@ class BytecodeProcessor {
         std::ifstream bytecode;
         size_t instruction, instructionOffset;
         std::vector<BlsType> literalPool;
+        std::vector<OBlockDesc> oblockDescs;
 };

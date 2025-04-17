@@ -1,4 +1,5 @@
 #include "bytecode_writer.hpp"
+#include "include/Common.hpp"
 #include "libDM/DynamicMessage.hpp"
 #include "libtypes/bls_types.hpp"
 #include "libbytecode/include/opcodes.hpp"
@@ -10,8 +11,10 @@
 #include <boost/json.hpp>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 #include <variant>
 #include <vector>
+#include <boost/archive/binary_oarchive.hpp>
 
 using namespace boost::json;
 
@@ -25,6 +28,32 @@ static std::stringstream& operator>>(std::stringstream& ss, uint8_t& num) {
     return ss;
 }
 
+DeviceDescriptor tag_invoke(const value_to_tag<DeviceDescriptor>&, value const& jv) {
+    auto& obj = jv.as_object();
+    DeviceDescriptor desc;
+    desc.device_name = value_to<std::string>(obj.at("device_name"));
+    desc.devtype = static_cast<DEVTYPE>(value_to<uint32_t>(obj.at("devtype")));
+    desc.controller = value_to<std::string>(obj.at("controller"));
+    desc.port_maps = value_to<std::unordered_map<std::string, std::string>>(obj.at("port_maps"));
+    desc.isInterrupt = value_to<bool>(obj.at("isInterrupt"));
+    desc.isVtype = value_to<bool>(obj.at("isVtype"));
+    desc.isConst = value_to<bool>(obj.at("isConst"));
+    desc.polling_period = value_to<int>(obj.at("polling_period"));
+    return desc;
+}
+
+OBlockDesc tag_invoke(const value_to_tag<OBlockDesc>&, value const& jv) {
+    auto& obj = jv.as_object();
+    OBlockDesc desc;
+    desc.name = value_to<std::string>(obj.at("name"));
+    desc.binded_devices = value_to<std::vector<DeviceDescriptor>>(obj.at("binded_devices"));
+    desc.bytecode_offset = value_to<int>(obj.at("bytecode_offset"));
+    desc.dropRead = value_to<bool>(obj.at("dropRead"));
+    desc.dropWrite = value_to<bool>(obj.at("dropWrite"));
+    desc.synchronize_states = value_to<bool>(obj.at("synchronize_states"));
+    return desc;
+}
+
 void BytecodeWriter::loadMnemonicBytecode(const std::string& filename) {
     std::fstream input;
     input.open(filename);
@@ -35,9 +64,16 @@ void BytecodeWriter::loadMnemonicBytecode(const std::string& filename) {
 }
 
 void BytecodeWriter::writeHeader(std::ostream& stream) {
-    std::string buf, poolJSON;
+    std::string buf, oblockDescJSON;
     while ((std::getline(mnemonicBytecode, buf)) && (buf != "LITERALS_BEGIN")) {
-        poolJSON += buf;
+        oblockDescJSON += buf;
+    }
+    array descArray = parse(oblockDescJSON).get_array();
+    uint16_t descSize = descArray.size();
+    stream.write(reinterpret_cast<const char *>(&descSize), sizeof(descSize));
+    boost::archive::binary_oarchive oa(stream);
+    for (auto&& desc : descArray) {
+        oa << value_to<OBlockDesc>(desc);
     }
 }
 

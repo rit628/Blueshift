@@ -24,7 +24,7 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
 # Boost
-set(REQUIRED_BOOST_LIBS asio thread regex lockfree type_index math json)
+set(REQUIRED_BOOST_LIBS asio thread regex lockfree type_index math json serialization)
 list(TRANSFORM REQUIRED_BOOST_LIBS PREPEND Boost:: OUTPUT_VARIABLE BOOST_LIB_DEPS)
 FetchContent_Declare(
     Boost
@@ -80,6 +80,7 @@ target_link_libraries(network TSQ ${BOOST_LIB_DEPS})
 file(GLOB_RECURSE LIBBYTECODE_SRC ${COMMON_SRC_DIR}/libbytecode/*.cpp)
 add_library(bytecode STATIC ${LIBBYTECODE_SRC})
 target_include_directories(bytecode PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
+target_link_libraries(bytecode ${BOOST_LIB_DEPS})
 
 # LANG LIBS AND EXECUTABLE
 file(GLOB_RECURSE LANG_COMMON_SRC ${LANG_COMMON}/*.cpp)

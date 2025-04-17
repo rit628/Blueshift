@@ -1,5 +1,7 @@
 #pragma once
 #include "libDM/DynamicMessage.hpp"
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/unordered_map.hpp>
 
 enum class PROTOCOLS
 {
@@ -31,7 +33,19 @@ struct DeviceDescriptor{
     bool isInterrupt = false; 
     bool isVtype = false; 
     bool isConst = true; 
-    int polling_period = 1000; 
+    int polling_period = 1000;
+
+    template<typename Archive>
+    void serialize(Archive& ar, const unsigned int version) {
+        ar & device_name;
+        ar & devtype;
+        ar & controller;
+        ar & port_maps;
+        ar & isInterrupt;
+        ar & isVtype;
+        ar & isConst;
+        ar & polling_period;
+    }
 }; 
 
 struct OBlockDesc{
@@ -59,7 +73,17 @@ struct OBlockDesc{
     /*
         Synchronize State: Block until all states of refreshed (true for now)
     */
-    bool synchronize_states = true; 
+    bool synchronize_states = true;
+
+    template<typename Archive>
+    void serialize(Archive& ar, const unsigned int version) {
+        ar & name;
+        ar & binded_devices;
+        ar & bytecode_offset;
+        ar & dropRead;
+        ar & dropWrite;
+        ar & synchronize_states;
+    }
 }; 
 
 struct O_Info

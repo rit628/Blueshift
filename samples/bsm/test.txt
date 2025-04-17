@@ -1,3 +1,26 @@
+[
+    {
+        "name" : "main",
+        "binded_devices" : [
+            {
+                "device_name" : "T1",
+                "devtype" : 0,
+                "controller" : "CTL",
+                "port_maps" : {
+                    "file" : "omar.txt"
+                },
+                "isInterrupt" : false,
+                "isVtype" : false,
+                "isConst" : true,
+                "polling_period" : 1000
+            }
+        ],
+        "bytecode_offset" : 5,
+        "dropRead" : true,
+        "dropWrite" : true,
+        "synchronize_states" : true
+    }
+]
 LITERALS_BEGIN
 [
 false,
