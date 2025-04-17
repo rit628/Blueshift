@@ -3,6 +3,11 @@
 #include <cstdint>
 #include <iostream>
 
+static std::ostream& operator<<(std::ostream& os, uint8_t& num) {
+    os << static_cast<uint16_t>(num);
+    return os;
+}
+
 void BytecodePrinter::setOutputStream(std::ostream& stream) {
     outputStream = &stream;
 }

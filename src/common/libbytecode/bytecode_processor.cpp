@@ -12,20 +12,16 @@ void BytecodeProcessor::loadBytecode(const std::string& filename) {
 }
 
 void BytecodeProcessor::dispatch() {
-    char buf[sizeof(uint16_t) + 1];
-    while (bytecode.get(buf[0])) {
-        OPCODE code = static_cast<OPCODE>(buf[0]);
-        uint16_t currAddress;
+    OPCODE code;
+    while (bytecode.read(reinterpret_cast<char*>(&code), sizeof(code))) {
         switch (code) {
             #define OPCODE_BEGIN(code) \
             case OPCODE::code: {
             #define ARGUMENT(arg, type) \
                 type arg; \
-                bytecode.read(buf, sizeof(type)); \
-                std::memcpy(&arg, buf, sizeof(type)); \
-                instruction += sizeof(type);
+                bytecode.read(reinterpret_cast<char*>(&arg), sizeof(type));
             #define OPCODE_END(code, args...) \
-                currAddress = ++instruction; \
+                instruction = bytecode.tellg(); \
                 code(args); \
             break; \
             } 
@@ -34,11 +30,11 @@ void BytecodeProcessor::dispatch() {
             #undef ARGUMENT
             #undef OPCODE_END
             default:
-                currAddress = ++instruction;
+                instruction = bytecode.tellg();
                 std::cerr << "INVALID OPCODE" << std::endl;
             break;
         }
-        if (currAddress != instruction) { // instruction ptr modified by opcode (JMP, CALL, etc.)
+        if (bytecode.tellg() != instruction) { // instruction ptr modified by opcode (JMP, CALL, etc.)
             bytecode.seekg(instruction);
         }
     }

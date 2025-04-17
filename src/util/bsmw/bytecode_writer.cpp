@@ -5,6 +5,13 @@
 #include <sstream>
 #include <iostream>
 
+static std::stringstream& operator>>(std::stringstream& ss, uint8_t& num) {
+    uint16_t temp;
+    ss >> temp;
+    num = temp;
+    return ss;
+}
+
 void BytecodeWriter::loadMnemonicBytecode(const std::string& filename) {
     mnemonicBytecode.open(filename);
     if (!mnemonicBytecode.is_open()) {
