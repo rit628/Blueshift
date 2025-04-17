@@ -16,5 +16,7 @@ int main(int argc, char** argv) {
         stream = &output;
     }
     bsmp.setOutputStream(*stream);
+    bsmp.printHeader();
+    bsmp.printLiteralPool();
     bsmp.dispatch();
 }

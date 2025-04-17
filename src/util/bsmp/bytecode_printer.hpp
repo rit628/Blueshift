@@ -6,6 +6,8 @@
 class BytecodePrinter : public BytecodeProcessor {
     public:
         void setOutputStream(std::ostream& stream = std::cout);
+        void printHeader();
+        void printLiteralPool();
 
     protected:
         #define OPCODE_BEGIN(code) \
