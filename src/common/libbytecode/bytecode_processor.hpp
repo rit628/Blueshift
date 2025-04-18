@@ -8,6 +8,7 @@ class BytecodeProcessor {
     public:
         void loadBytecode(const std::string& filename);
         void dispatch();
+        std::vector<OBlockDesc> getOblockDescriptors() { return oblockDescs; }
 
     private:
         void readHeader();

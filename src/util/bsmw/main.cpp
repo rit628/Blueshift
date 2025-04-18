@@ -10,11 +10,11 @@ int main(int argc, char** argv) {
         return 1; 
     }
     input = "./samples/bsm/" + std::string(argv[1]);
-    BytecodeWriter bsmp;
-    bsmp.loadMnemonicBytecode(input);
+    BytecodeWriter bsmw;
+    bsmw.loadMnemonicBytecode(input);
     if (argc == 3) {
         output.open("./samples/bsm/" + std::string(argv[2]));
         stream = &output;
     }
-    bsmp.convertToBinary(*stream);
+    bsmw.convertToBinary(*stream);
 }

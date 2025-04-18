@@ -56,7 +56,7 @@ void BytecodeProcessor::dispatch() {
 void BytecodeProcessor::readHeader() {
     uint16_t descriptorCount;
     bytecode.read(reinterpret_cast<char*>(&descriptorCount), sizeof(descriptorCount));
-    boost::archive::binary_iarchive ia(bytecode);
+    boost::archive::binary_iarchive ia(bytecode, boost::archive::archive_flags::no_header);
     for (uint16_t i = 0; i < descriptorCount; i++) {
         OBlockDesc temp;
         ia >> temp;
@@ -67,64 +67,10 @@ void BytecodeProcessor::readHeader() {
 void BytecodeProcessor::loadLiterals() {
     uint16_t poolSize;
     bytecode.read(reinterpret_cast<char*>(&poolSize), sizeof(poolSize));
-
-    auto deserializeHeapDescriptor = [this]() {
-        std::vector<char> serialized;
-        auto size = serialized.size();
-        bytecode.read(reinterpret_cast<char*>(&size), sizeof(size));
-        serialized.resize(size);
-        bytecode.read(reinterpret_cast<char*>(serialized.data()), size);
-        DynamicMessage dmsg;
-        dmsg.Capture(serialized);
-        return dmsg.toTree();
-    };
-
+    boost::archive::binary_iarchive ia(bytecode, boost::archive::archive_flags::no_header);
     for (uint16_t i = 0; i < poolSize; i++) {
-        TYPE literalType;
-        bytecode.read(reinterpret_cast<char*>(&literalType), sizeof(literalType));
         BlsType literal;
-        switch (literalType) {
-            case TYPE::bool_t: {
-                bool val;
-                bytecode.read(reinterpret_cast<char*>(&val), sizeof(val));
-                literal = val;
-                break;
-            }
-            case TYPE::int_t: {
-                int64_t val;
-                bytecode.read(reinterpret_cast<char*>(&val), sizeof(val));
-                literal = val;
-                break;
-            }
-            case TYPE::float_t: {
-                double val;
-                bytecode.read(reinterpret_cast<char*>(&val), sizeof(val));
-                literal = val;
-                break;
-            }
-            case TYPE::string_t: {
-                std::string val;
-                auto size = val.size();
-                bytecode.read(reinterpret_cast<char*>(&size), sizeof(size));
-                val.resize(size);
-                bytecode.read(reinterpret_cast<char*>(val.data()), size);
-                literal = val;
-                break;
-            }
-            case TYPE::list_t: {
-                auto enclosingMap = deserializeHeapDescriptor();
-                BlsType target = "__SERIALIZED_LIST__";
-                literal = enclosingMap->access(target);
-                break;
-            }
-            case TYPE::map_t: {
-                literal = deserializeHeapDescriptor();
-                break;
-            }
-            default: {
-                throw std::runtime_error("invalid literal");
-            }
-        }
+        ia >> literal;
         literalPool.push_back(literal);
     }
     instructionOffset = bytecode.tellg();

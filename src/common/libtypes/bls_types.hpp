@@ -1,12 +1,18 @@
 #pragma once
 #include <cmath>
+#include <iostream>
 #include <memory>
 #include <mutex>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <variant>
 #include <cstdint>
 #include <vector>
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/base_object.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/unordered_map.hpp>
 
 enum class TYPE : uint32_t {
     void_t
@@ -76,6 +82,8 @@ struct BlsType : std::variant<std::monostate, bool, int64_t, double, std::string
   friend BlsType operator%(const BlsType& lhs, const BlsType& rhs);
   friend BlsType operator^(const BlsType& lhs, const BlsType& rhs);
   friend bool typeCompatible(const BlsType& lhs, const BlsType& rhs);
+  template<typename Archive>
+  void serialize(Archive& ar, const unsigned int version);
 };
 
 class HeapDescriptor {
@@ -94,6 +102,8 @@ class HeapDescriptor {
     BlsType& access(BlsType &&obj) { return access(obj); };
     virtual int getSize() { return 1; }
 
+    template<typename Archive>
+    void serialize(Archive& ar, const unsigned int version);
 };
 
 class MapDescriptor : public HeapDescriptor{
@@ -115,6 +125,9 @@ class MapDescriptor : public HeapDescriptor{
     std::unordered_map<std::string, BlsType> getMap() { return *this->map; }
     int getSize() override { return this->map->size(); }
 
+    friend class boost::serialization::access;
+    template<typename Archive>
+    void serialize(Archive& ar, const unsigned int version);
 };
 
 class VectorDescriptor : public HeapDescriptor, std::enable_shared_from_this<VectorDescriptor>{
@@ -137,6 +150,9 @@ class VectorDescriptor : public HeapDescriptor, std::enable_shared_from_this<Vec
     std::vector<BlsType>& getVector() { return *this->vector; }
     int getSize() override { return this->vector->size(); }
 
+    friend class boost::serialization::access;
+    template<typename Archive>
+    void serialize(Archive& ar, const unsigned int version);
 };
 
 constexpr TYPE getTypeEnum(const std::string& type) {
@@ -166,3 +182,76 @@ constexpr TYPE getTypeEnum(const std::string& type) {
 }
 TYPE getTypeEnum(const BlsType& obj);
 std::string stringify(const BlsType& value);
+
+template<typename Archive>
+inline void BlsType::serialize(Archive& ar, const unsigned int version) {
+  auto type = getTypeEnum(*this);
+  ar & type;
+  switch (type) {
+    case TYPE::bool_t:
+      if (std::holds_alternative<std::monostate>(*this)) {
+        *this = bool();
+      }
+      ar & std::get<bool>(*this);
+    break;
+    case TYPE::int_t:
+      if (std::holds_alternative<std::monostate>(*this)) {
+        *this = int64_t();
+      }
+      ar & std::get<int64_t>(*this);
+    break;
+    case TYPE::float_t:
+      if (std::holds_alternative<std::monostate>(*this)) {
+        *this = double();
+      }
+      ar & std::get<double>(*this);
+    break;
+    case TYPE::string_t:
+      if (std::holds_alternative<std::monostate>(*this)) {
+        *this = std::string();
+      }
+      ar & std::get<std::string>(*this);
+    break;
+    case TYPE::list_t: {
+      if (std::holds_alternative<std::monostate>(*this)) {
+        *this = std::make_shared<VectorDescriptor>(TYPE::ANY);;
+      }
+      auto heapDesc = std::get<std::shared_ptr<HeapDescriptor>>(*this);
+      auto resolvedDesc = std::dynamic_pointer_cast<VectorDescriptor>(heapDesc);
+      ar & *resolvedDesc.get();
+      break;
+    }
+    case TYPE::map_t: {
+      if (std::holds_alternative<std::monostate>(*this)) {
+        *this = std::make_shared<MapDescriptor>(TYPE::ANY);;
+      }
+      auto heapDesc = std::get<std::shared_ptr<HeapDescriptor>>(*this);
+      auto resolvedDesc = std::dynamic_pointer_cast<MapDescriptor>(heapDesc);
+      ar & *resolvedDesc.get();
+      break;
+    }
+    default:
+      throw std::runtime_error("Non serializable type");
+    break;
+  }
+}
+
+template<typename Archive>
+void HeapDescriptor::serialize(Archive& ar, const unsigned int version) {
+  ar & objType;
+  ar & keyType;
+  ar & contType;
+}
+
+template<typename Archive>
+void MapDescriptor::serialize(Archive & ar, const unsigned int version) {
+  // serialize base class information
+  ar & boost::serialization::base_object<HeapDescriptor>(*this);
+  ar & *map.get();
+}
+
+template<typename Archive>
+void VectorDescriptor::serialize(Archive & ar, const unsigned int version) {
+  ar & boost::serialization::base_object<HeapDescriptor>(*this);
+  ar & *vector.get();
+}

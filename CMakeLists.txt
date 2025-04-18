@@ -65,7 +65,8 @@ add_library(TSQ STATIC ${LIBTSQ_SRC})
 
 file(GLOB_RECURSE LIBTYPES_SRC ${COMMON_SRC_DIR}/libtypes/*.cpp)
 add_library(types STATIC ${LIBTYPES_SRC})
-target_include_directories(types PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
+target_include_directories(types PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${BOOST_LIB_DEPS})
+target_link_libraries(types ${BOOST_LIB_DEPS})
 
 file(GLOB_RECURSE LIBDM_SRC ${COMMON_SRC_DIR}/libDM/*.cpp)
 add_library(dynamic_message STATIC ${LIBDM_SRC})

@@ -71,7 +71,7 @@ void BytecodeWriter::writeHeader(std::ostream& stream) {
     array descArray = parse(oblockDescJSON).get_array();
     uint16_t descSize = descArray.size();
     stream.write(reinterpret_cast<const char *>(&descSize), sizeof(descSize));
-    boost::archive::binary_oarchive oa(stream);
+    boost::archive::binary_oarchive oa(stream, boost::archive::archive_flags::no_header);
     for (auto&& desc : descArray) {
         oa << value_to<OBlockDesc>(desc);
     }
@@ -120,54 +120,11 @@ void BytecodeWriter::writeLiteralPool(std::ostream& stream) {
 
     uint16_t poolSize = pool.size();
     stream.write(reinterpret_cast<const char *>(&poolSize), sizeof(poolSize));
+    boost::archive::binary_oarchive oa(stream, boost::archive::archive_flags::no_header);
     
     for (auto&& literal : pool) {
         auto converted = convertToBlsType(literal);
-        std::visit(overloads {
-            [&](bool& value) {
-                auto type = TYPE::bool_t;
-                stream.write(reinterpret_cast<const char *>(&type), sizeof(type));
-                stream.write(reinterpret_cast<const char *>(&value), sizeof(value));
-            },
-            [&](int64_t& value) {
-                auto type = TYPE::int_t;
-                stream.write(reinterpret_cast<const char *>(&type), sizeof(type));
-                stream.write(reinterpret_cast<const char *>(&value), sizeof(value));
-            },
-            [&](double& value) {
-                auto type = TYPE::float_t;
-                stream.write(reinterpret_cast<const char *>(&type), sizeof(type));
-                stream.write(reinterpret_cast<const char *>(&value), sizeof(value));
-            },
-            [&](std::string& value) {
-                auto type = TYPE::string_t;
-                auto size = value.size();
-                stream.write(reinterpret_cast<const char *>(&type), sizeof(type));
-                stream.write(reinterpret_cast<const char *>(&size), sizeof(size));
-                stream.write(value.c_str(), size);
-            },
-            [&](std::shared_ptr<HeapDescriptor>& value) {
-                auto type = value->getType();
-                // Nested data structures and lists dont work at the moment
-                if (type == TYPE::list_t) {
-                    auto temp = std::make_shared<MapDescriptor>(TYPE::ANY);
-                    BlsType key = "__SERIALIZED_LIST__";
-                    BlsType val = value;
-                    temp->emplace(key, val);
-                    value = temp;
-                }
-                DynamicMessage dmsg;
-                dmsg.makeFromRoot(value);
-                auto serialized = dmsg.Serialize();
-                auto size = serialized.size();
-                stream.write(reinterpret_cast<const char *>(&type), sizeof(type));
-                stream.write(reinterpret_cast<const char *>(&size), sizeof(size));
-                stream.write(serialized.data(), size);
-            },
-            [](auto& value) {
-                throw std::runtime_error("invalid literal");
-            }
-        }, converted);
+        oa << converted;
     }
 }
 
