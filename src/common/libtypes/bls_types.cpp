@@ -245,7 +245,7 @@ bool typeCompatible(const BlsType& lhs, const BlsType& rhs) {
             break;
             
             default:
-                return a != b;
+                return a == b;
             break;
         }
     };
@@ -268,7 +268,7 @@ bool typeCompatible(const BlsType& lhs, const BlsType& rhs) {
             return typeCompatible(aInner, bInner);
         },
         [](const auto& a, const auto& b) {
-            return compareTypes(getTypeEnum(a), getTypeEnum(b));
+            return compareTypes(getType(a), getType(b));
         }
     }, lhs, rhs);
 }
@@ -383,7 +383,7 @@ void MapDescriptor::emplace(BlsType& obj, BlsType& newDesc) {
 
 VectorDescriptor::VectorDescriptor(std::string cont_code) {
     this->objType = TYPE::list_t;
-    this->contType = getTypeEnum(cont_code); 
+    this->contType = getTypeFromName(cont_code); 
     vector = std::make_shared<std::vector<BlsType>>(); 
 }
 
@@ -410,7 +410,7 @@ void VectorDescriptor::append(BlsType& newObj){
     this->vector->push_back(newObj);
 }
 
-TYPE getTypeEnum(const BlsType& obj) {
+TYPE getType(const BlsType& obj) {
     return std::visit(overloads {
         [](std::monostate) { return TYPE::void_t; },
         [](bool) { return TYPE::bool_t; },

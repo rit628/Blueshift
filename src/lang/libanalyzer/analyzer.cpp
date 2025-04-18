@@ -27,7 +27,7 @@ std::any Analyzer::visit(AstNode::Source& ast) {
         oblock->accept(*this);
     }
 
-    ast.getSetup()->accept(*this);
+    // ast.getSetup()->accept(*this);
 
     return std::monostate();
 }
@@ -103,7 +103,7 @@ std::any Analyzer::visit(AstNode::Statement::If& ast) {
     };
 
     auto conditionResult = condition->accept(*this);
-    if (getTypeEnum(resolve(conditionResult)) != TYPE::bool_t) {
+    if (getType(resolve(conditionResult)) != TYPE::bool_t) {
         throw SemanticError("Condition must resolve to a boolean value");
     }
     // TODO: add checks for unreachable code
@@ -127,7 +127,7 @@ std::any Analyzer::visit(AstNode::Statement::For& ast) {
     }
     if (condition.has_value()) {
         auto conditionResult = condition->get()->accept(*this);
-        if (getTypeEnum(resolve(conditionResult)) != TYPE::bool_t) {
+        if (getType(resolve(conditionResult)) != TYPE::bool_t) {
             throw SemanticError("Condition must resolve to a boolean value");
         }
     }
@@ -148,7 +148,7 @@ std::any Analyzer::visit(AstNode::Statement::While& ast) {
 
     cs.pushFrame(CallStack<std::string>::Frame::Context::LOOP);
     auto conditionResult = condition->accept(*this);
-    if (getTypeEnum(resolve(conditionResult)) != TYPE::bool_t) {
+    if (getType(resolve(conditionResult)) != TYPE::bool_t) {
         throw SemanticError("Condition must resolve to a boolean value");
     }
     // TODO: add checks for unreachable code
@@ -165,7 +165,7 @@ std::any Analyzer::visit(AstNode::Statement::Return& ast) {
         throw SemanticError("No return statements allowed in setup()");
     }
     auto parentSignature = (procedures.contains(functionName)) ? procedures.at(functionName) : oblocks.at(functionName);
-    auto expectedReturnType = getTypeEnum(parentSignature.returnType);
+    auto expectedReturnType = getType(parentSignature.returnType);
     auto& value = ast.getValue();
     if (value.has_value()) {
         if (expectedReturnType == TYPE::void_t) {
@@ -202,7 +202,7 @@ std::any Analyzer::visit(AstNode::Statement::Declaration& ast) {
     auto& value = ast.getValue();
     if (value.has_value()) {
         auto literal = value->get()->accept(*this);
-        if (!typeCompatible(resolve(literal), resolve(typedObj))) {
+        if (!typeCompatible(resolve(typedObj), resolve(literal))) {
             throw SemanticError("Invalid initialization for declaration");
         }
         cs.setLocal(name, resolve(literal));
@@ -375,7 +375,7 @@ std::any Analyzer::visit(AstNode::Expression::Method& ast) {
     auto& object = cs.getLocal(ast.getObject());
     auto& methodName = ast.getMethodName();
     auto& methodArgs = ast.getArguments();
-    auto objType = getTypeEnum(object);
+    auto objType = getType(object);
     if (objType < TYPE::PRIMITIVE_COUNT || objType > TYPE::CONTAINER_COUNT) {
         throw SemanticError("Methods may only be applied on container type objects.");
     }
@@ -433,7 +433,7 @@ std::any Analyzer::visit(AstNode::Expression::Access& ast) {
     auto& member = ast.getMember();
     auto& subscript = ast.getSubscript();
     if (member.has_value()) {
-        switch (getTypeEnum(object)) {
+        switch (getType(object)) {
             #define DEVTYPE_BEGIN(name) \
             case TYPE::name: \
                 if (false) { } // trick for short circuiting
@@ -457,7 +457,7 @@ std::any Analyzer::visit(AstNode::Expression::Access& ast) {
         return std::ref(accessible->access(memberName));
     }
     else if (subscript.has_value()) {
-        auto objType = getTypeEnum(object);
+        auto objType = getType(object);
         if (objType < TYPE::PRIMITIVE_COUNT || objType > TYPE::CONTAINER_COUNT) {
             throw SemanticError("Subscript access only possible on container type objects");
         }
@@ -493,7 +493,7 @@ std::any Analyzer::visit(AstNode::Expression::List& ast) {
 
     if (elements.size() > 0) {
         addElement(elements.at(0));
-        list->setCont(getTypeEnum(list->access(initIdx)));
+        list->setCont(getType(list->access(initIdx)));
         list->getSampleElement() = list->access(initIdx);
         for (auto&& element : boost::make_iterator_range(elements.begin() + 1, elements.end())) {
             auto value = addElement(element);
@@ -518,7 +518,7 @@ std::any Analyzer::visit(AstNode::Expression::Map& ast) {
     BlsType initKey, initVal;
     auto addElement = [&, this](auto& element) {
         auto key = element.first->accept(*this);
-        auto keyType = getTypeEnum(resolve(key));
+        auto keyType = getType(resolve(key));
         if (keyType > TYPE::PRIMITIVE_COUNT) {
             throw SemanticError("Invalid key type for map");
         }
@@ -530,7 +530,7 @@ std::any Analyzer::visit(AstNode::Expression::Map& ast) {
 
     if (elements.size() > 0) {
         std::tie(initKey, initVal) = addElement(elements.at(0));
-        map->setCont(getTypeEnum(initVal));
+        map->setCont(getType(initVal));
         map->getSampleElement() = initVal;
         for (auto&& element : boost::make_iterator_range(elements.begin() + 1, elements.end())) {
             auto&& [key, value] = addElement(element);
@@ -547,11 +547,11 @@ std::any Analyzer::visit(AstNode::Expression::Map& ast) {
 }
 
 std::any Analyzer::visit(AstNode::Specifier::Type& ast) {
-    TYPE primaryType = getTypeEnum(ast.getName());
+    TYPE primaryType = getTypeFromName(ast.getName());
     const auto& typeArgs = ast.getTypeArgs();
     if (primaryType == TYPE::list_t) {
         if (typeArgs.size() != 1) throw SemanticError("List may only have a single type argument.");
-        auto argType = getTypeEnum(typeArgs.at(0)->getName());
+        auto argType = getTypeFromName(typeArgs.at(0)->getName());
         auto list = std::make_shared<VectorDescriptor>(argType);
         auto arg = typeArgs.at(0)->accept(*this);
         list->append(resolve(arg));
@@ -560,11 +560,11 @@ std::any Analyzer::visit(AstNode::Specifier::Type& ast) {
     }
     else if (primaryType == TYPE::map_t) {
         if (typeArgs.size() != 2) throw SemanticError("Map must have two type arguments.");
-        auto keyType = getTypeEnum(typeArgs.at(0)->getName());
+        auto keyType = getTypeFromName(typeArgs.at(0)->getName());
         if (keyType > TYPE::PRIMITIVE_COUNT || keyType == TYPE::void_t) {
             throw SemanticError("Invalid key type for map.");
         }
-        auto valType = getTypeEnum(typeArgs.at(1)->getName());
+        auto valType = getTypeFromName(typeArgs.at(1)->getName());
         if (valType == TYPE::void_t) {
             throw SemanticError("Invalid value type for map.");
         }
