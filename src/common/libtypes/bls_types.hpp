@@ -188,6 +188,9 @@ inline void BlsType::serialize(Archive& ar, const unsigned int version) {
   auto type = getTypeEnum(*this);
   ar & type;
   switch (type) {
+    case TYPE::void_t:
+      *this = std::monostate();
+    break;
     case TYPE::bool_t:
       if (std::holds_alternative<std::monostate>(*this)) {
         *this = bool();
