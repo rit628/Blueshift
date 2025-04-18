@@ -1,4 +1,5 @@
 #include "virtual_machine.hpp"
+#include "libbytecode/bytecode_processor.hpp"
 #include "libtypes/bls_types.hpp"
 #include <cstdint>
 #include <iostream>
@@ -9,6 +10,14 @@
 
 using namespace BlsLang;
 
+void VirtualMachine::transform(size_t oblockOffset, std::vector<BlsType>& deviceStates) {
+    instruction = oblockOffset + instructionOffset;
+    signal = SIGNAL::SIGSTART;
+    cs.pushFrame(instruction, deviceStates);
+    dispatch();
+    cs.popFrame();
+}
+
 void VirtualMachine::CALL(uint16_t address, uint8_t argc, int) {
     std::vector<BlsType> args;
     for (uint8_t i = 0; i < argc; i++) {
@@ -16,6 +25,10 @@ void VirtualMachine::CALL(uint16_t address, uint8_t argc, int) {
     }
     cs.pushFrame(instruction, args);
     instruction = address;
+}
+
+void VirtualMachine::EMIT(uint8_t signal, int) {
+    this->signal = static_cast<SIGNAL>(signal);
 }
 
 void VirtualMachine::PUSH(uint8_t index, int) {

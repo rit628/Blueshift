@@ -3,6 +3,10 @@ OPCODE_BEGIN(CALL)
     ARGUMENT(argc, uint8_t)
 OPCODE_END(CALL, address, argc)
 
+OPCODE_BEGIN(EMIT)
+    ARGUMENT(signal, uint8_t)
+OPCODE_END(EMIT, signal)
+
 OPCODE_BEGIN(PUSH)
     ARGUMENT(index, uint8_t)
 OPCODE_END(PUSH, index)

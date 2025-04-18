@@ -9,6 +9,8 @@
 namespace BlsLang {
     
     class VirtualMachine : public BytecodeProcessor {
+        public:
+            void transform(size_t oblockOffset, std::vector<BlsType>& deviceStates);
         protected:
             #define OPCODE_BEGIN(code) \
             void code(

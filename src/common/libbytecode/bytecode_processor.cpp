@@ -47,6 +47,7 @@ void BytecodeProcessor::dispatch() {
                 throw std::runtime_error("INVALID OPCODE");
             break;
         }
+        if (signal == SIGNAL::SIGSTOP) break;
         if (bytecode.tellg() != instruction) { // instruction ptr modified by opcode (JMP, CALL, etc.)
             bytecode.seekg(instruction + instructionOffset); // values are relative to bytecode start
         }

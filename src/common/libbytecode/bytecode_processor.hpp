@@ -6,6 +6,12 @@
 
 class BytecodeProcessor {
     public:
+        enum class SIGNAL : uint8_t {
+            SIGSTART,
+            SIGSTOP,
+            COUNT
+        };
+
         void loadBytecode(const std::string& filename);
         void dispatch();
         std::vector<OBlockDesc> getOblockDescriptors() { return oblockDescs; }
@@ -30,4 +36,5 @@ class BytecodeProcessor {
         size_t instruction, instructionOffset;
         std::vector<BlsType> literalPool;
         std::vector<OBlockDesc> oblockDescs;
+        SIGNAL signal = SIGNAL::SIGSTART;
 };
