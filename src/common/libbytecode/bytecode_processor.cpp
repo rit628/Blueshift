@@ -32,7 +32,7 @@ void BytecodeProcessor::dispatch() {
         switch (instructionStruct->opcode) {
             #define OPCODE_BEGIN(code) \
             case OPCODE::code: { \
-                auto& resolvedInstruction = static_cast<INSTRUCTION_##code&>(*instructionStruct);
+                auto& resolvedInstruction = reinterpret_cast<INSTRUCTION::code&>(*instructionStruct);
             #define ARGUMENT(arg, type) \
                 type& arg = resolvedInstruction.arg;
             #define OPCODE_END(code, args...) \
@@ -91,7 +91,7 @@ void BytecodeProcessor::loadInstructions() {
                 type arg; \
                 bytecode.read(reinterpret_cast<char*>(&arg), sizeof(type));
             #define OPCODE_END(code, args...) \
-                instructions.push_back(std::make_unique<INSTRUCTION_##code>(INSTRUCTION_##code{OPCODE::code, args})); \
+                instructions.push_back(std::make_unique<INSTRUCTION::code>(INSTRUCTION::code{{OPCODE::code}, args})); \
                 break; \
             } 
             #include "include/OPCODES.LIST"
