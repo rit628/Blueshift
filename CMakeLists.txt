@@ -118,7 +118,7 @@ target_link_libraries(ticker network TSQ ${BOOST_LIB_DEPS})
 file(GLOB_RECURSE LIBEM_SRC ${MASTER_SRC_DIR}/libEM/*.cpp)
 add_library(EM STATIC ${LIBEM_SRC})
 target_include_directories(EM PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${MASTER_SRC_DIR})
-target_link_libraries(EM TSM TSQ dynamic_message interpreter ${BOOST_LIB_DEPS})
+target_link_libraries(EM TSM TSQ dynamic_message virtual_machine ${BOOST_LIB_DEPS})
 
 file(GLOB_RECURSE LIBMM_SRC ${MASTER_SRC_DIR}/libMM/*.cpp)
 add_library(MM STATIC ${LIBMM_SRC})
@@ -132,7 +132,7 @@ target_link_libraries(NM network dynamic_message ticker ${BOOST_LIB_DEPS})
 
 add_executable(master ${MASTER_SRC_DIR}/main.cpp)
 target_include_directories(master PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_SRC_DIR})
-target_link_libraries(master TSQ EM MM NM compiler ${BOOST_LIB_DEPS})
+target_link_libraries(master TSQ EM MM NM compiler virtual_machine ${BOOST_LIB_DEPS})
 
 # CLIENT LIBS AND EXECUTABLE
 file(GLOB_RECURSE LIBDEVICE_SRC ${CLIENT_SRC_DIR}/libDevice/*.cpp)

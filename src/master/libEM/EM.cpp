@@ -1,39 +1,38 @@
 #include "EM.hpp"
+#include "include/Common.hpp"
 #include <memory>
 
-ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<vector<DynamicMasterMessage>> &readMM, 
-    TSQ<DynamicMasterMessage> &sendMM, 
-    std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks)
+ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<vector<DynamicMasterMessage>> &readMM, TSQ<DynamicMasterMessage> &sendMM)
     : readMM(readMM), sendMM(sendMM)
 {
     this->OblockList = OblockList;
-    for(int i = 0; i < OblockList.size(); i++)
+    for(auto& oDesc : this->OblockList)
     {
-        string OblockName = OblockList.at(i).name;
+        string OblockName = oDesc.name;
         vector<string> devices;
         vector<bool> isVtype;
         vector<string> controllers;
-        for(int j = 0; j < OblockList.at(i).binded_devices.size(); j++)
+        int oblockOffset = oDesc.bytecode_offset; 
+
+        for(auto& bindedDev : oDesc.binded_devices)
         {
-            devices.push_back(OblockList.at(i).binded_devices.at(j).device_name);
-            isVtype.push_back(OblockList.at(i).binded_devices.at(j).isVtype);
-            controllers.push_back(OblockList.at(i).binded_devices.at(j).controller);
+            devices.push_back(bindedDev.device_name);
+            isVtype.push_back(bindedDev.isVtype);
+            controllers.push_back(bindedDev.controller);
         }
-        auto function = oblocks[OblockName];
-        EU_map[OblockName] = std::make_unique<ExecutionUnit>
-        (OblockName, devices, isVtype, controllers, this->vtypeHMMsMap, this->sendMM, function);
+        EU_map[OblockName] = std::make_unique<ExecutionUnit>(OblockName, devices, isVtype, controllers, 
+        this->vtypeHMMsMap, this->sendMM, oblockOffset);
     }
 }
 
 ExecutionUnit::ExecutionUnit(string OblockName, vector<string> devices, vector<bool> isVtype, vector<string> controllers,
-    TSM<string, vector<HeapMasterMessage>> &vtypeHMMsMap, TSQ<DynamicMasterMessage> &sendMM, 
-    function<vector<BlsType>(vector<BlsType>)>  transform_function)
+    TSM<string, vector<HeapMasterMessage>> &vtypeHMMsMap, TSQ<DynamicMasterMessage> &sendMM, int oblockOffset)
 {
     this->OblockName = OblockName;
     this->devices = devices;
     this->isVtype = isVtype;
     this->controllers = controllers;
-    this->transform_function = transform_function;
+    this->bytecodeOffset = oblockOffset; 
     this->info.oblock = OblockName;
 
     //this->running(vtypeHMMsMap, sendMM);
@@ -90,8 +89,12 @@ void ExecutionUnit::running(TSM<string, vector<HeapMasterMessage>> &vtypeHMMsMap
                 transformableStates.push_back(result->at(i).heapTree);
             }
         }
+
+        // TODO: Populate written to transformed states here: 
     
-        transformableStates = transform_function(transformableStates);
+        this->vm.transform(this->bytecodeOffset, transformableStates); 
+
+        // TODO: Extract the written states here: 
 
         for(int i = 0; i < transformableStates.size(); i++)
         {
