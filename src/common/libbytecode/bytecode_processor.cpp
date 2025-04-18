@@ -22,19 +22,20 @@ void BytecodeProcessor::loadBytecode(const std::string& filename) {
     }
     readHeader();
     loadLiterals();
+    loadInstructions();
 }
 
 void BytecodeProcessor::dispatch() {
-    OPCODE code;
-    while (bytecode.read(reinterpret_cast<char*>(&code), sizeof(code))) {
-        switch (code) {
+    while (instruction != instructions.size()) {
+        auto& instructionStruct = instructions[instruction];
+        instruction++;
+        switch (instructionStruct->opcode) {
             #define OPCODE_BEGIN(code) \
-            case OPCODE::code: {
+            case OPCODE::code: { \
+                auto& resolvedInstruction = static_cast<INSTRUCTION_##code&>(*instructionStruct);
             #define ARGUMENT(arg, type) \
-                type arg; \
-                bytecode.read(reinterpret_cast<char*>(&arg), sizeof(type));
+                type& arg = resolvedInstruction.arg;
             #define OPCODE_END(code, args...) \
-                instruction = bytecode.tellg(); \
                 code(args); \
                 break; \
             } 
@@ -43,15 +44,19 @@ void BytecodeProcessor::dispatch() {
             #undef ARGUMENT
             #undef OPCODE_END
             default:
-                instruction = bytecode.tellg();
-                throw std::runtime_error("INVALID OPCODE");
             break;
         }
-        if (signal == SIGNAL::SIGSTOP) break;
-        if (bytecode.tellg() != instruction) { // instruction ptr modified by opcode (JMP, CALL, etc.)
-            bytecode.seekg(instruction + instructionOffset); // values are relative to bytecode start
+        switch (signal) {
+            case SIGNAL::SIGSTART:
+            break;
+            case SIGNAL::SIGSTOP:
+                goto exit;
+            break;
+            default:
+            break;
         }
     }
+    exit: ;
 }
 
 void BytecodeProcessor::readHeader() {
@@ -74,5 +79,28 @@ void BytecodeProcessor::loadLiterals() {
         ia >> literal;
         literalPool.push_back(literal);
     }
-    instructionOffset = bytecode.tellg();
+}
+
+void BytecodeProcessor::loadInstructions() {
+    OPCODE code;
+    while (bytecode.read(reinterpret_cast<char*>(&code), sizeof(code))) {
+        switch (code) {
+            #define OPCODE_BEGIN(code) \
+            case OPCODE::code: {
+            #define ARGUMENT(arg, type) \
+                type arg; \
+                bytecode.read(reinterpret_cast<char*>(&arg), sizeof(type));
+            #define OPCODE_END(code, args...) \
+                instructions.push_back(std::make_unique<INSTRUCTION_##code>(INSTRUCTION_##code{OPCODE::code, args})); \
+                break; \
+            } 
+            #include "include/OPCODES.LIST"
+            #undef OPCODE_BEGIN
+            #undef ARGUMENT
+            #undef OPCODE_END
+            default:
+                throw std::runtime_error("INVALID OPCODE");
+            break;
+        }
+    }
 }

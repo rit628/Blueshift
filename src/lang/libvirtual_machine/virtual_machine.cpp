@@ -11,7 +11,7 @@
 using namespace BlsLang;
 
 void VirtualMachine::transform(size_t oblockOffset, std::vector<BlsType>& deviceStates) {
-    instruction = oblockOffset + instructionOffset;
+    instruction = oblockOffset;
     signal = SIGNAL::SIGSTART;
     cs.pushFrame(instruction, deviceStates);
     dispatch();
@@ -194,7 +194,7 @@ void VirtualMachine::BRANCH(uint16_t address, int) {
 
 void VirtualMachine::RETURN(int) {
     auto result = cs.popOperand();
-    cs.popFrame();
+    instruction = cs.popFrame();
     if (!std::holds_alternative<std::monostate>(result)) {
         cs.pushOperand(result);
     }

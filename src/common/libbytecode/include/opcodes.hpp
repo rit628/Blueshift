@@ -12,3 +12,18 @@ enum class OPCODE : uint8_t {
     #undef OPCODE_END
     COUNT
 };
+
+struct INSTRUCTION {
+    OPCODE opcode;
+};
+
+#define OPCODE_BEGIN(code) \
+struct INSTRUCTION_##code : public INSTRUCTION {
+#define ARGUMENT(arg, type) \
+    type arg;
+#define OPCODE_END(...) \
+};
+#include "OPCODES.LIST"
+#undef OPCODE_BEGIN
+#undef ARGUMENT
+#undef OPCODE_END

@@ -15,7 +15,7 @@
                 "polling_period" : 1000
             }
         ],
-        "bytecode_offset" : 5,
+        "bytecode_offset" : 2,
         "dropRead" : true,
         "dropWrite" : true,
         "synchronize_states" : true
@@ -31,6 +31,6 @@ false,
 {"a" : 1, "b" : 2}
 ]
 BYTECODE_BEGIN
-CALL 5 0
+CALL 2 0
 NOT
 LT

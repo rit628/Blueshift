@@ -1,8 +1,12 @@
 #pragma once
 #include "include/Common.hpp"
+#include "libbytecode/include/opcodes.hpp"
 #include "libtypes/bls_types.hpp"
 #include <fstream>
 #include <cstdint>
+#include <functional>
+#include <memory>
+#include <vector>
 
 class BytecodeProcessor {
     public:
@@ -19,6 +23,7 @@ class BytecodeProcessor {
     private:
         void readHeader();
         void loadLiterals();
+        void loadInstructions();
 
     protected:
         #define OPCODE_BEGIN(code) \
@@ -33,8 +38,9 @@ class BytecodeProcessor {
         #undef OPCODE_END
 
         std::ifstream bytecode;
-        size_t instruction, instructionOffset;
-        std::vector<BlsType> literalPool;
+        size_t instruction;
         std::vector<OBlockDesc> oblockDescs;
+        std::vector<BlsType> literalPool;
+        std::vector<std::unique_ptr<INSTRUCTION>> instructions;
         SIGNAL signal = SIGNAL::SIGSTART;
 };

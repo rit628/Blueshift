@@ -122,7 +122,7 @@ class MapDescriptor : public HeapDescriptor{
     // WE assume for now that all objects are of type string 
     void emplace(BlsType& obj, BlsType& newDesc);
     // Also only used for debugging
-    std::unordered_map<std::string, BlsType> getMap() { return *this->map; }
+    std::unordered_map<std::string, BlsType>& getMap() { return *this->map; }
     int getSize() override { return this->map->size(); }
 
     friend class boost::serialization::access;
