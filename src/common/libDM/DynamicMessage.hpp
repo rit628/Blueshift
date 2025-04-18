@@ -2,6 +2,7 @@
 
 #include <concepts>
 #include <cstdint>
+#include <cstring>
 #include <deque>
 #include <stdexcept>
 #include <variant>
@@ -9,7 +10,6 @@
 #include <memory> 
 #include <unordered_map> 
 #include <map>
-#include <boost/type_index.hpp> 
 #include <iostream> 
 #include "libtypes/bls_types.hpp"
 #include "libtypes/typedefs.hpp"
@@ -214,8 +214,6 @@ class DynamicMessage{
             }
 
         }
-
-        std::string type_name = boost::typeindex::type_id_with_cvr<T>().pretty_name(); 
 
         Descriptor desc; 
         // test if vector

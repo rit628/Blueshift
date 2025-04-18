@@ -24,7 +24,7 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
 # Boost
-set(REQUIRED_BOOST_LIBS asio thread regex lockfree type_index math)
+set(REQUIRED_BOOST_LIBS asio thread regex lockfree type_index math json serialization)
 list(TRANSFORM REQUIRED_BOOST_LIBS PREPEND Boost:: OUTPUT_VARIABLE BOOST_LIB_DEPS)
 FetchContent_Declare(
     Boost
@@ -65,7 +65,8 @@ add_library(TSQ STATIC ${LIBTSQ_SRC})
 
 file(GLOB_RECURSE LIBTYPES_SRC ${COMMON_SRC_DIR}/libtypes/*.cpp)
 add_library(types STATIC ${LIBTYPES_SRC})
-target_include_directories(types PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
+target_include_directories(types PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${BOOST_LIB_DEPS})
+target_link_libraries(types ${BOOST_LIB_DEPS})
 
 file(GLOB_RECURSE LIBDM_SRC ${COMMON_SRC_DIR}/libDM/*.cpp)
 add_library(dynamic_message STATIC ${LIBDM_SRC})
@@ -76,6 +77,11 @@ file(GLOB_RECURSE LIBNETWORK_SRC ${COMMON_SRC_DIR}/libnetwork/*.cpp)
 add_library(network STATIC ${LIBNETWORK_SRC})
 target_include_directories(network PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
 target_link_libraries(network TSQ ${BOOST_LIB_DEPS})
+
+file(GLOB_RECURSE LIBBYTECODE_SRC ${COMMON_SRC_DIR}/libbytecode/*.cpp)
+add_library(bytecode STATIC ${LIBBYTECODE_SRC})
+target_include_directories(bytecode PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
+target_link_libraries(bytecode ${BOOST_LIB_DEPS})
 
 # LANG LIBS AND EXECUTABLE
 file(GLOB_RECURSE LANG_COMMON_SRC ${LANG_COMMON}/*.cpp)
@@ -98,13 +104,18 @@ add_library(interpreter STATIC ${LIBINTERPRETER_SRC})
 target_include_directories(interpreter PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
 target_link_libraries(interpreter lang_common types ${BOOST_LIB_DEPS})
 
+file(GLOB_RECURSE LIBVIRTUALMACHINE_SRC ${LANG_SRC_DIR}/libvirtual_machine/*.cpp)
+add_library(virtual_machine STATIC ${LIBVIRTUALMACHINE_SRC})
+target_include_directories(virtual_machine PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
+target_link_libraries(virtual_machine lang_common types bytecode ${BOOST_LIB_DEPS})
+
 file(GLOB_RECURSE LIBCOMPILER_SRC ${LANG_SRC_DIR}/libcompiler/*.cpp)
 add_library(compiler STATIC ${LIBCOMPILER_SRC})
 target_include_directories(compiler PUBLIC ${BLS_CONFIG} ${LANG_COMMON} ${LANG_SRC_DIR})
 target_link_libraries(compiler lang_common lexer parser interpreter ${BOOST_LIB_DEPS})
 
 add_executable(lang ${LANG_SRC_DIR}/main.cpp)
-target_link_libraries(lang compiler ${BOOST_LIB_DEPS})
+target_link_libraries(lang compiler virtual_machine ${BOOST_LIB_DEPS})
 
 # MASTER LIBS AND EXECUTABLE
 file(GLOB_RECURSE LIBTSM_SRC ${MASTER_SRC_DIR}/libTSM/*.cpp)
@@ -151,6 +162,16 @@ target_link_libraries(client device client_engine ${BOOST_LIB_DEPS})
 
 # UTILITY EXECUTABLES
 add_executable(echo ${UTIL_SRC_DIR}/echo/main.cpp)
+
+file(GLOB_RECURSE BSMP_SRC ${UTIL_SRC_DIR}/bsmp/*.cpp)
+add_executable(bsmp ${BSMP_SRC})
+target_include_directories(bsmp PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
+target_link_libraries(bsmp bytecode types ${BOOST_LIB_DEPS})
+
+file(GLOB_RECURSE BSMW_SRC ${UTIL_SRC_DIR}/bsmw/*.cpp)
+add_executable(bsmw ${BSMW_SRC})
+target_include_directories(bsmw PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
+target_link_libraries(bsmw bytecode types ${BOOST_LIB_DEPS})
 
 # TESTS
 enable_testing()
