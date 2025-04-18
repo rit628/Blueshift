@@ -260,7 +260,7 @@ std::any Interpreter::visit(AstNode::Statement::Declaration& ast) {
     auto& value = ast.getValue();
     if (cs.checkContext(CallStack<std::string>::Frame::Context::SETUP)) {
         auto devtypeObj = ast.getType()->accept(*this);
-        auto devtype = static_cast<DEVTYPE>(getTypeEnum(resolve(devtypeObj)));
+        auto devtype = static_cast<DEVTYPE>(getType(resolve(devtypeObj)));
         auto binding = value->get()->accept(*this);
         auto resolved = resolve(binding);
         if (!std::holds_alternative<std::string>(resolved)) {
@@ -566,11 +566,11 @@ std::any Interpreter::visit(AstNode::Expression::Map& ast) {
 }
 
 std::any Interpreter::visit(AstNode::Specifier::Type& ast) {
-    TYPE primaryType = getTypeEnum(ast.getName());
+    TYPE primaryType = getTypeFromName(ast.getName());
     const auto& typeArgs = ast.getTypeArgs();
     if (primaryType == TYPE::list_t) {
         if (typeArgs.size() != 1) throw RuntimeError("List may only have a single type argument.");
-        auto argType = getTypeEnum(typeArgs.at(0)->getName());
+        auto argType = getTypeFromName(typeArgs.at(0)->getName());
         auto list = std::make_shared<VectorDescriptor>(argType);
         auto arg = typeArgs.at(0)->accept(*this);
         list->append(resolve(arg));
@@ -578,11 +578,11 @@ std::any Interpreter::visit(AstNode::Specifier::Type& ast) {
     }
     else if (primaryType == TYPE::map_t) {
         if (typeArgs.size() != 2) throw RuntimeError("Map must have two type arguments.");
-        auto keyType = getTypeEnum(typeArgs.at(0)->getName());
+        auto keyType = getTypeFromName(typeArgs.at(0)->getName());
         if (keyType > TYPE::PRIMITIVE_COUNT || keyType == TYPE::void_t) {
             throw RuntimeError("Invalid key type for map.");
         }
-        auto valType = getTypeEnum(typeArgs.at(1)->getName());
+        auto valType = getTypeFromName(typeArgs.at(1)->getName());
         if (valType == TYPE::void_t) {
             throw RuntimeError("Invalid value type for map.");
         }

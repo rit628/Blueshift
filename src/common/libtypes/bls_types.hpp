@@ -166,7 +166,7 @@ class VectorDescriptor : public HeapDescriptor, std::enable_shared_from_this<Vec
     void serialize(Archive& ar, const unsigned int version);
 };
 
-constexpr TYPE getTypeEnum(const std::string& type) {
+constexpr TYPE getTypeFromName(const std::string& type) {
   if (type == "void") return TYPE::void_t;
   if (type == "bool") return TYPE::bool_t;
   if (type == "int") return TYPE::int_t;
@@ -191,12 +191,12 @@ constexpr TYPE getTypeEnum(const std::string& type) {
   if (type == "ANY") return TYPE::ANY;
   return TYPE::COUNT;
 }
-TYPE getTypeEnum(const BlsType& obj);
+TYPE getType(const BlsType& obj);
 std::string stringify(const BlsType& value);
 
 template<typename Archive>
 inline void BlsType::serialize(Archive& ar, const unsigned int version) {
-  auto type = getTypeEnum(*this);
+  auto type = getType(*this);
   ar & type;
   switch (type) {
     case TYPE::void_t:
