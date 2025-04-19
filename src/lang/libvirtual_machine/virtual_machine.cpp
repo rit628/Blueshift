@@ -187,7 +187,7 @@ void VirtualMachine::JMP(uint16_t address, int) {
 
 void VirtualMachine::BRANCH(uint16_t address, int) {
     auto condition = cs.popOperand();
-    if (condition) {
+    if (!condition) {
         instruction = address;
     }
 }
