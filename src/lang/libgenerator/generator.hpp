@@ -30,6 +30,11 @@ namespace BlsLang {
             #undef AST_NODE
         
         private:
+            enum class ACCESS_CONTEXT : uint8_t {
+                  READ
+                , WRITE
+            };
+
             #define OPCODE_BEGIN(code) \
             std::unique_ptr<INSTRUCTION::code> create##code(
             #define ARGUMENT(arg, type) \
@@ -47,6 +52,7 @@ namespace BlsLang {
             std::unordered_map<std::string, INSTRUCTION::CALL> procedureMap;
             std::vector<std::unique_ptr<INSTRUCTION>> instructions;
             std::stack<uint16_t> loopIndices, breakIndices; // needed for break and continue generation
+            ACCESS_CONTEXT accessContext = ACCESS_CONTEXT::READ; // needed for assignment generation
     };
 
 }

@@ -215,11 +215,185 @@ std::any Generator::visit(AstNode::Statement::Expression& ast) {
 }
 
 std::any Generator::visit(AstNode::Expression::Binary& ast) {
+    auto op = getBinOpEnum(ast.getOp());
+    switch (op) {
+        case BINARY_OPERATOR::OR:
+            ast.getLeft()->accept(*this);
+            ast.getRight()->accept(*this);
+            instructions.push_back(createOR());
+        break;
 
+        case BINARY_OPERATOR::AND:
+            ast.getLeft()->accept(*this);
+            ast.getRight()->accept(*this);
+            instructions.push_back(createAND());
+        break;
+
+        case BINARY_OPERATOR::LT:
+            ast.getLeft()->accept(*this);
+            ast.getRight()->accept(*this);
+            instructions.push_back(createLT());
+        break;
+        
+        case BINARY_OPERATOR::LE:
+            ast.getLeft()->accept(*this);
+            ast.getRight()->accept(*this);
+            instructions.push_back(createLE());
+        break;
+
+        case BINARY_OPERATOR::GT:
+            ast.getLeft()->accept(*this);
+            ast.getRight()->accept(*this);
+            instructions.push_back(createGT());
+        break;
+
+        case BINARY_OPERATOR::GE:
+            ast.getLeft()->accept(*this);
+            ast.getRight()->accept(*this);
+            instructions.push_back(createGE());
+        break;
+
+        case BINARY_OPERATOR::NE:
+            ast.getLeft()->accept(*this);
+            ast.getRight()->accept(*this);
+            instructions.push_back(createNE());
+        break;
+
+        case BINARY_OPERATOR::EQ:
+            ast.getLeft()->accept(*this);
+            ast.getRight()->accept(*this);
+            instructions.push_back(createEQ());
+        break;
+
+        case BINARY_OPERATOR::ADD:
+            ast.getLeft()->accept(*this);
+            ast.getRight()->accept(*this);
+            instructions.push_back(createADD());
+        break;
+        
+        case BINARY_OPERATOR::SUB:
+            ast.getLeft()->accept(*this);
+            ast.getRight()->accept(*this);
+            instructions.push_back(createSUB());
+        break;
+
+        case BINARY_OPERATOR::MUL:
+            ast.getLeft()->accept(*this);
+            ast.getRight()->accept(*this);
+            instructions.push_back(createMUL());
+        break;
+
+        case BINARY_OPERATOR::DIV:
+            ast.getLeft()->accept(*this);
+            ast.getRight()->accept(*this);
+            instructions.push_back(createDIV());
+        break;
+
+        case BINARY_OPERATOR::MOD:
+            ast.getLeft()->accept(*this);
+            ast.getRight()->accept(*this);
+            instructions.push_back(createMOD());
+        break;
+        
+        case BINARY_OPERATOR::EXP:
+            ast.getLeft()->accept(*this);
+            ast.getRight()->accept(*this);
+            instructions.push_back(createEXP());
+        break;
+
+        case BINARY_OPERATOR::ASSIGN:
+            ast.getRight()->accept(*this);
+            accessContext = ACCESS_CONTEXT::WRITE;
+            accessContext = ACCESS_CONTEXT::READ;
+        break;
+
+        case BINARY_OPERATOR::ASSIGN_ADD:
+            ast.getLeft()->accept(*this); // visit lhs as operand
+            ast.getRight()->accept(*this);
+            instructions.push_back(createADD());
+            accessContext = ACCESS_CONTEXT::WRITE;
+            ast.getLeft()->accept(*this); // visit lhs again as write target
+            accessContext = ACCESS_CONTEXT::READ;
+        break;
+
+        case BINARY_OPERATOR::ASSIGN_SUB:
+            ast.getLeft()->accept(*this); // visit lhs as operand
+            ast.getRight()->accept(*this);
+            instructions.push_back(createSUB());
+            accessContext = ACCESS_CONTEXT::WRITE;
+            ast.getLeft()->accept(*this); // visit lhs again as write target
+            accessContext = ACCESS_CONTEXT::READ;
+        break;
+
+        case BINARY_OPERATOR::ASSIGN_MUL:
+            ast.getLeft()->accept(*this); // visit lhs as operand
+            ast.getRight()->accept(*this);
+            instructions.push_back(createMUL());
+            accessContext = ACCESS_CONTEXT::WRITE;
+            ast.getLeft()->accept(*this); // visit lhs again as write target
+            accessContext = ACCESS_CONTEXT::READ;
+        break;
+
+        case BINARY_OPERATOR::ASSIGN_DIV:
+            ast.getLeft()->accept(*this); // visit lhs as operand
+            ast.getRight()->accept(*this);
+            instructions.push_back(createDIV());
+            accessContext = ACCESS_CONTEXT::WRITE;
+            ast.getLeft()->accept(*this); // visit lhs again as write target
+            accessContext = ACCESS_CONTEXT::READ;
+        break;
+
+        case BINARY_OPERATOR::ASSIGN_MOD:
+            ast.getLeft()->accept(*this); // visit lhs as operand
+            ast.getRight()->accept(*this);
+            instructions.push_back(createMOD());
+            accessContext = ACCESS_CONTEXT::WRITE;
+            ast.getLeft()->accept(*this); // visit lhs again as write target
+            accessContext = ACCESS_CONTEXT::READ;
+        break;
+
+        case BINARY_OPERATOR::ASSIGN_EXP:
+            ast.getLeft()->accept(*this); // visit lhs as operand
+            ast.getRight()->accept(*this);
+            instructions.push_back(createEXP());
+            accessContext = ACCESS_CONTEXT::WRITE;
+            ast.getLeft()->accept(*this); // visit lhs again as write target
+            accessContext = ACCESS_CONTEXT::READ;
+        break;
+
+        default:
+            throw std::runtime_error("Invalid operator supplied.");
+        break;
+    }
+    return 0;
 }
 
 std::any Generator::visit(AstNode::Expression::Unary& ast) {
+    // ignore operator afixment in phase 1 vm
+    ast.getExpression()->accept(*this);
+    auto op = getUnOpEnum(ast.getOp());
+    
+    switch (op) {
+        case UNARY_OPERATOR::NOT:
+            instructions.push_back(createNOT());
+        break;
 
+        case UNARY_OPERATOR::NEG:
+            instructions.push_back(createNEG());
+        break;
+
+        case UNARY_OPERATOR::INC:
+            instructions.push_back(createINC(0)); // temporary value, change to actual index using ast decoration
+        break;
+
+        case UNARY_OPERATOR::DEC:
+            instructions.push_back(createDEC(0)); // temporary value, change to actual index using ast decoration
+        break;
+
+        default:
+            throw std::runtime_error("Invalid operator supplied.");
+        break;
+    }
 }
 
 std::any Generator::visit(AstNode::Expression::Group& ast) {
