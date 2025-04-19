@@ -34,9 +34,7 @@ BlsObject Generator::visit(AstNode::Source& ast) {
 
 BlsObject Generator::visit(AstNode::Function::Procedure& ast) {
     uint16_t address = instructions.size();
-    uint8_t argc = ast.getParameters().size();
-    auto callInstruction = INSTRUCTION::CALL{ {OPCODE::CALL}, address, argc};
-    procedureMap.emplace(ast.getName(), callInstruction);
+    procedureAddresses.emplace(ast.getName(), address);
     for (auto&& statement : ast.getStatements()) {
         statement->accept(*this);
     }
@@ -399,15 +397,45 @@ BlsObject Generator::visit(AstNode::Expression::Unary& ast) {
 }
 
 BlsObject Generator::visit(AstNode::Expression::Group& ast) {
-
+    return ast.getExpression()->accept(*this);
 }
 
 BlsObject Generator::visit(AstNode::Expression::Method& ast) {
-
+    // need to push object based on index using object name
+    ast.getObject();
+    auto& methodName = ast.getMethodName();
+    for (auto&& arg : ast.getArguments()) {
+        arg->accept(*this);
+    }
+    if (methodName == "append") {
+        instructions.push_back(createAPPEND());
+    }
+    else if (methodName == "emplace") {
+        instructions.push_back(createEMPLACE());
+    }
+    else if (methodName == "size") {
+        instructions.push_back(createSIZE());
+    }
+    return 0;
 }
 
 BlsObject Generator::visit(AstNode::Expression::Function& ast) {
-
+    auto& args = ast.getArguments();
+    for (auto&& arg : args) {
+        arg->accept(*this);
+    }
+    auto& name = ast.getName();
+    if (name == "println") {
+        instructions.push_back(createPRINTLN(args.size()));
+    }
+    else if (name == "print") {
+        instructions.push_back(createPRINT(args.size()));
+    }
+    else {
+        auto address = procedureAddresses.at(name);
+        instructions.push_back(createCALL(address, args.size()));
+    }
+    return 0;
 }
 
 BlsObject Generator::visit(AstNode::Expression::Access& ast) {
@@ -431,7 +459,8 @@ BlsObject Generator::visit(AstNode::Expression::Map& ast) {
 }
 
 BlsObject Generator::visit(AstNode::Specifier::Type& ast) {
-
+    // type declarations dont need to be visited in generator
+    return 0;
 }
 
 #define OPCODE_BEGIN(code) \
