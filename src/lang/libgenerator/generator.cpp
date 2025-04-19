@@ -11,7 +11,6 @@
 #include <optional>
 #include <stdexcept>
 #include <boost/archive/binary_oarchive.hpp>
-#include <unordered_set>
 
 using namespace BlsLang;
 
@@ -129,6 +128,7 @@ BlsObject Generator::visit(AstNode::Statement::For& ast) {
     if (incrementExpression.has_value()) {
         incrementExpression->get()->accept(*this);
     }
+    // maybe add a discard operation for the expression result
 
     for (auto&& statement : ast.getBlock()) {
         statement->accept(*this);
@@ -207,158 +207,131 @@ BlsObject Generator::visit(AstNode::Statement::Break& ast) {
 }
 
 BlsObject Generator::visit(AstNode::Statement::Declaration& ast) {
-
+    auto type = getTypeEnum(ast.getType()->getName());
+    auto index = ast.getLocalIndex();
+    instructions.push_back(createMKTYPE(index, static_cast<uint8_t>(type)));
+    auto& value = ast.getValue();
+    if (value.has_value()) {
+        value->get()->accept(*this);
+    }
+    return 0;
 }
 
 BlsObject Generator::visit(AstNode::Statement::Expression& ast) {
-
+    return ast.getExpression()->accept(*this);
 }
 
 BlsObject Generator::visit(AstNode::Expression::Binary& ast) {
     auto op = getBinOpEnum(ast.getOp());
+    if (op != BINARY_OPERATOR::ASSIGN) { // visit lhs and rhs as args to binary operation
+        ast.getLeft()->accept(*this);
+        ast.getRight()->accept(*this);
+    }
+
     switch (op) {
         case BINARY_OPERATOR::OR:
-            ast.getLeft()->accept(*this);
-            ast.getRight()->accept(*this);
             instructions.push_back(createOR());
         break;
 
         case BINARY_OPERATOR::AND:
-            ast.getLeft()->accept(*this);
-            ast.getRight()->accept(*this);
             instructions.push_back(createAND());
         break;
 
         case BINARY_OPERATOR::LT:
-            ast.getLeft()->accept(*this);
-            ast.getRight()->accept(*this);
             instructions.push_back(createLT());
         break;
         
         case BINARY_OPERATOR::LE:
-            ast.getLeft()->accept(*this);
-            ast.getRight()->accept(*this);
             instructions.push_back(createLE());
         break;
 
         case BINARY_OPERATOR::GT:
-            ast.getLeft()->accept(*this);
-            ast.getRight()->accept(*this);
             instructions.push_back(createGT());
         break;
 
         case BINARY_OPERATOR::GE:
-            ast.getLeft()->accept(*this);
-            ast.getRight()->accept(*this);
             instructions.push_back(createGE());
         break;
 
         case BINARY_OPERATOR::NE:
-            ast.getLeft()->accept(*this);
-            ast.getRight()->accept(*this);
             instructions.push_back(createNE());
         break;
 
         case BINARY_OPERATOR::EQ:
-            ast.getLeft()->accept(*this);
-            ast.getRight()->accept(*this);
             instructions.push_back(createEQ());
         break;
 
         case BINARY_OPERATOR::ADD:
-            ast.getLeft()->accept(*this);
-            ast.getRight()->accept(*this);
             instructions.push_back(createADD());
         break;
         
         case BINARY_OPERATOR::SUB:
-            ast.getLeft()->accept(*this);
-            ast.getRight()->accept(*this);
             instructions.push_back(createSUB());
         break;
 
         case BINARY_OPERATOR::MUL:
-            ast.getLeft()->accept(*this);
-            ast.getRight()->accept(*this);
             instructions.push_back(createMUL());
         break;
 
         case BINARY_OPERATOR::DIV:
-            ast.getLeft()->accept(*this);
-            ast.getRight()->accept(*this);
             instructions.push_back(createDIV());
         break;
 
         case BINARY_OPERATOR::MOD:
-            ast.getLeft()->accept(*this);
-            ast.getRight()->accept(*this);
             instructions.push_back(createMOD());
         break;
         
         case BINARY_OPERATOR::EXP:
-            ast.getLeft()->accept(*this);
-            ast.getRight()->accept(*this);
             instructions.push_back(createEXP());
         break;
 
         case BINARY_OPERATOR::ASSIGN:
             ast.getRight()->accept(*this);
             accessContext = ACCESS_CONTEXT::WRITE;
-            accessContext = ACCESS_CONTEXT::READ;
+            ast.getLeft()->accept(*this); // visit lhs as write target
+            ast.getLeft()->accept(*this); // visit lhs as expresion result
         break;
 
         case BINARY_OPERATOR::ASSIGN_ADD:
-            ast.getLeft()->accept(*this); // visit lhs as operand
-            ast.getRight()->accept(*this);
             instructions.push_back(createADD());
             accessContext = ACCESS_CONTEXT::WRITE;
-            ast.getLeft()->accept(*this); // visit lhs again as write target
-            accessContext = ACCESS_CONTEXT::READ;
+            ast.getLeft()->accept(*this); // visit lhs as write target
+            ast.getLeft()->accept(*this); // visit lhs as expresion result
         break;
 
         case BINARY_OPERATOR::ASSIGN_SUB:
-            ast.getLeft()->accept(*this); // visit lhs as operand
-            ast.getRight()->accept(*this);
             instructions.push_back(createSUB());
             accessContext = ACCESS_CONTEXT::WRITE;
-            ast.getLeft()->accept(*this); // visit lhs again as write target
-            accessContext = ACCESS_CONTEXT::READ;
+            ast.getLeft()->accept(*this); // visit lhs as write target
+            ast.getLeft()->accept(*this); // visit lhs as expresion result
         break;
 
         case BINARY_OPERATOR::ASSIGN_MUL:
-            ast.getLeft()->accept(*this); // visit lhs as operand
-            ast.getRight()->accept(*this);
             instructions.push_back(createMUL());
             accessContext = ACCESS_CONTEXT::WRITE;
-            ast.getLeft()->accept(*this); // visit lhs again as write target
-            accessContext = ACCESS_CONTEXT::READ;
+            ast.getLeft()->accept(*this); // visit lhs as write target
+            ast.getLeft()->accept(*this); // visit lhs as expresion result
         break;
 
         case BINARY_OPERATOR::ASSIGN_DIV:
-            ast.getLeft()->accept(*this); // visit lhs as operand
-            ast.getRight()->accept(*this);
             instructions.push_back(createDIV());
             accessContext = ACCESS_CONTEXT::WRITE;
-            ast.getLeft()->accept(*this); // visit lhs again as write target
-            accessContext = ACCESS_CONTEXT::READ;
+            ast.getLeft()->accept(*this); // visit lhs as write target
+            ast.getLeft()->accept(*this); // visit lhs as expresion result
         break;
 
         case BINARY_OPERATOR::ASSIGN_MOD:
-            ast.getLeft()->accept(*this); // visit lhs as operand
-            ast.getRight()->accept(*this);
             instructions.push_back(createMOD());
             accessContext = ACCESS_CONTEXT::WRITE;
-            ast.getLeft()->accept(*this); // visit lhs again as write target
-            accessContext = ACCESS_CONTEXT::READ;
+            ast.getLeft()->accept(*this); // visit lhs as write target
+            ast.getLeft()->accept(*this); // visit lhs as expresion result
         break;
 
         case BINARY_OPERATOR::ASSIGN_EXP:
-            ast.getLeft()->accept(*this); // visit lhs as operand
-            ast.getRight()->accept(*this);
             instructions.push_back(createEXP());
             accessContext = ACCESS_CONTEXT::WRITE;
-            ast.getLeft()->accept(*this); // visit lhs again as write target
-            accessContext = ACCESS_CONTEXT::READ;
+            ast.getLeft()->accept(*this); // visit lhs as write target
+            ast.getLeft()->accept(*this); // visit lhs as expresion result
         break;
 
         default:
@@ -369,31 +342,54 @@ BlsObject Generator::visit(AstNode::Expression::Binary& ast) {
 }
 
 BlsObject Generator::visit(AstNode::Expression::Unary& ast) {
-    // ignore operator afixment in phase 1 vm
-    ast.getExpression()->accept(*this);
     auto op = getUnOpEnum(ast.getOp());
+    auto position = ast.getPosition();
     
     switch (op) {
         case UNARY_OPERATOR::NOT:
+            ast.getExpression()->accept(*this);
             instructions.push_back(createNOT());
         break;
 
         case UNARY_OPERATOR::NEG:
+            ast.getExpression()->accept(*this);
             instructions.push_back(createNEG());
         break;
 
         case UNARY_OPERATOR::INC:
-            instructions.push_back(createINC(0)); // temporary value, change to actual index using ast decoration
+            if (position == AstNode::Expression::Unary::OPERATOR_POSITION::PREFIX) {
+                ast.getExpression()->accept(*this); // visit as expression result
+            }
+            ast.getExpression()->accept(*this); // visit as operand to inc
+            instructions.push_back(createPUSH(1)); // push literal 1
+            instructions.push_back(createADD());
+            accessContext = ACCESS_CONTEXT::WRITE;
+            ast.getExpression()->accept(*this); // visit again as write target
+            if (position == AstNode::Expression::Unary::OPERATOR_POSITION::POSTFIX) {
+                ast.getExpression()->accept(*this); // visit as expression result
+            }
         break;
 
         case UNARY_OPERATOR::DEC:
-            instructions.push_back(createDEC(0)); // temporary value, change to actual index using ast decoration
+            if (position == AstNode::Expression::Unary::OPERATOR_POSITION::PREFIX) {
+                ast.getExpression()->accept(*this); // visit as expression result
+            }
+            ast.getExpression()->accept(*this); // visit as operand to inc
+            instructions.push_back(createPUSH(1)); // push literal 1
+            instructions.push_back(createSUB());
+            accessContext = ACCESS_CONTEXT::WRITE;
+            ast.getExpression()->accept(*this); // visit again as write target
+            if (position == AstNode::Expression::Unary::OPERATOR_POSITION::POSTFIX) {
+                ast.getExpression()->accept(*this); // visit as expression result
+            }
         break;
 
         default:
             throw std::runtime_error("Invalid operator supplied.");
         break;
     }
+
+    return 0;
 }
 
 BlsObject Generator::visit(AstNode::Expression::Group& ast) {
@@ -401,8 +397,7 @@ BlsObject Generator::visit(AstNode::Expression::Group& ast) {
 }
 
 BlsObject Generator::visit(AstNode::Expression::Method& ast) {
-    // need to push object based on index using object name
-    ast.getObject();
+    instructions.push_back(createLOAD(ast.getLocalIndex()));
     auto& methodName = ast.getMethodName();
     for (auto&& arg : ast.getArguments()) {
         arg->accept(*this);
@@ -439,11 +434,11 @@ BlsObject Generator::visit(AstNode::Expression::Function& ast) {
 }
 
 BlsObject Generator::visit(AstNode::Expression::Access& ast) {
-
+    
 }
 
 BlsObject Generator::visit(AstNode::Expression::Literal& ast) {
-
+    
 }
 
 BlsObject Generator::visit(AstNode::Expression::List& ast) {
@@ -459,8 +454,7 @@ BlsObject Generator::visit(AstNode::Expression::Map& ast) {
 }
 
 BlsObject Generator::visit(AstNode::Specifier::Type& ast) {
-    // type declarations dont need to be visited in generator
-    return 0;
+    return 0; // type declarations dont need to be visited in generator
 }
 
 #define OPCODE_BEGIN(code) \
