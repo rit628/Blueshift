@@ -4,7 +4,9 @@
 #include "libtypes/bls_types.hpp"
 #include "visitor.hpp"
 #include <cstddef>
+#include <cstdint>
 #include <ostream>
+#include <stack>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -44,6 +46,7 @@ namespace BlsLang {
             std::vector<BlsType> literalPool;
             std::unordered_map<std::string, INSTRUCTION::CALL> procedureMap;
             std::vector<std::unique_ptr<INSTRUCTION>> instructions;
+            std::stack<uint16_t> loopIndices, breakIndices; // needed for break and continue generation
     };
 
 }
