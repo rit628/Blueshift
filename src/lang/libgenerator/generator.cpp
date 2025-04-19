@@ -115,6 +115,7 @@ std::any Generator::visit(AstNode::Statement::For& ast) {
         initStatement->get()->accept(*this);
     }
     uint16_t loopStart = instructions.size();
+    loopIndices.push(loopStart); // for use in continue JMP instructions
 
     auto& condition = ast.getCondition();
     if (condition.has_value()) {
@@ -133,7 +134,15 @@ std::any Generator::visit(AstNode::Statement::For& ast) {
         statement->accept(*this);
     }
     instructions.push_back(createJMP(loopStart));
-    loopBranchInstruction.address = instructions.size();
+    uint16_t endAddress = instructions.size();
+    loopBranchInstruction.address = endAddress;
+
+    loopIndices.pop(); // in scope continue JMP instructions emitted, index no longer necessary
+    for (size_t i = 0; i < breakIndices.size(); i++) {  // set break JMP indices
+        auto& breakInstruction = instructions.at(breakIndices.top());
+        static_cast<INSTRUCTION::JMP&>(*breakInstruction).address = endAddress;
+        breakIndices.pop();
+    }
     
     return 0;
 }
@@ -146,12 +155,13 @@ std::any Generator::visit(AstNode::Statement::While& ast) {
         instructions.push_back(std::move(jmpPtr));
     }
     uint16_t loopStart = instructions.size();
+    loopIndices.push(loopStart); // for use in continue JMP instructions
 
     ast.getCondition()->accept(*this);
     auto loopBranchPtr = createBRANCH(0);
     auto& loopBranchInstruction = *loopBranchPtr;
     instructions.push_back(std::move(loopBranchPtr));
-    if (doJMPInstruction.has_value()) { // skip branch condition with do JMP
+    if (doJMPInstruction.has_value()) { // skip branch condition with do statement JMP
         doJMPInstruction->get().address = instructions.size();
     }
 
@@ -159,7 +169,15 @@ std::any Generator::visit(AstNode::Statement::While& ast) {
         statement->accept(*this);
     }
     instructions.push_back(createJMP(loopStart));
-    loopBranchInstruction.address = instructions.size();
+    uint16_t endAddress = instructions.size();
+    loopBranchInstruction.address = endAddress;
+
+    loopIndices.pop(); // in scope continue JMP instructions emitted, index no longer necessary
+    for (size_t i = 0; i < breakIndices.size(); i++) {  // set break JMP indices
+        auto& breakInstruction = instructions.at(breakIndices.top());
+        static_cast<INSTRUCTION::JMP&>(*breakInstruction).address = endAddress;
+        breakIndices.pop();
+    }
 
     return 0;
 }
@@ -177,11 +195,15 @@ std::any Generator::visit(AstNode::Statement::Return& ast) {
 }
 
 std::any Generator::visit(AstNode::Statement::Continue& ast) {
-
+    uint16_t parentLoopIndex = loopIndices.top();
+    instructions.push_back(createJMP(parentLoopIndex));
+    return 0;
 }
 
 std::any Generator::visit(AstNode::Statement::Break& ast) {
-
+    breakIndices.push(instructions.size());
+    instructions.push_back(createJMP(0));
+    return 0;
 }
 
 std::any Generator::visit(AstNode::Statement::Declaration& ast) {
