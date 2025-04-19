@@ -1,5 +1,6 @@
 #include "generator.hpp"
 #include "ast.hpp"
+#include "libbytecode/bytecode_processor.hpp"
 #include "libbytecode/include/opcodes.hpp"
 #include "libtypes/bls_types.hpp"
 #include <any>
@@ -48,6 +49,7 @@ BlsObject Generator::visit(AstNode::Function::Oblock& ast) {
     for (auto&& statement : ast.getStatements()) {
         statement->accept(*this);
     }
+    instructions.push_back(createEMIT(static_cast<uint8_t>(BytecodeProcessor::SIGNAL::SIGSTOP)));
     return 0;
 }
 
