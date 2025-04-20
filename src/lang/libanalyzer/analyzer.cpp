@@ -48,7 +48,7 @@ std::any Analyzer::visit(AstNode::Function::Procedure& ast) {
     cs.pushFrame(CallStack<std::string>::Frame::Context::FUNCTION, procedureName);
     auto params = ast.getParameters();
     for (int i = 0; i < params.size(); i++) {
-        cs.setLocal(params.at(i), parameterTypes.at(i));
+        cs.addLocal(params.at(i), parameterTypes.at(i));
     }
     for (auto&& statement : ast.getStatements()) {
         statement->accept(*this);
@@ -71,7 +71,7 @@ std::any Analyzer::visit(AstNode::Function::Oblock& ast) {
     cs.pushFrame(CallStack<std::string>::Frame::Context::FUNCTION, oblockName);
     auto params = ast.getParameters();
     for (int i = 0; i < params.size(); i++) {
-        cs.setLocal(params.at(i), parameterTypes.at(i));
+        cs.addLocal(params.at(i), parameterTypes.at(i));
     }
     for (auto&& statement : ast.getStatements()) {
         statement->accept(*this);
@@ -251,11 +251,12 @@ std::any Analyzer::visit(AstNode::Statement::Declaration& ast) {
         if (!typeCompatible(resolve(typedObj), resolve(literal))) {
             throw SemanticError("Invalid initialization for declaration");
         }
-        cs.setLocal(name, resolve(literal));
+        cs.addLocal(name, resolve(literal));
     }
     else {
-        cs.setLocal(name, resolve(typedObj));
+        cs.addLocal(name, resolve(typedObj));
     }
+    ast.getLocalIndex() = cs.getLocalIndex(name);
     return std::monostate();
 }
 
@@ -418,10 +419,12 @@ std::any Analyzer::visit(AstNode::Expression::Group& ast) {
 }
 
 std::any Analyzer::visit(AstNode::Expression::Method& ast) {
-    auto& object = cs.getLocal(ast.getObject());
+    auto& objectName = ast.getObject();
+    auto& object = cs.getLocal(objectName);
     auto& methodName = ast.getMethodName();
     auto& methodArgs = ast.getArguments();
     auto objType = getType(object);
+    ast.getLocalIndex() = cs.getLocalIndex(objectName);
     if (objType < TYPE::PRIMITIVE_COUNT || objType > TYPE::CONTAINER_COUNT) {
         throw SemanticError("Methods may only be applied on container type objects.");
     }
@@ -475,9 +478,11 @@ std::any Analyzer::visit(AstNode::Expression::Function& ast) {
 }
 
 std::any Analyzer::visit(AstNode::Expression::Access& ast) {
-    auto& object = cs.getLocal(ast.getObject());
+    auto& objectName = ast.getObject();
+    auto& object = cs.getLocal(objectName);
     auto& member = ast.getMember();
     auto& subscript = ast.getSubscript();
+    ast.getLocalIndex() = cs.getLocalIndex(objectName);
     if (member.has_value()) {
         switch (getType(object)) {
             #define DEVTYPE_BEGIN(name) \
