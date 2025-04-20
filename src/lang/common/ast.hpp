@@ -96,9 +96,13 @@ namespace BlsLang {
     class AstNode::Expression::List : public AstNode::Expression {
         public:
             List() = default;
-            List(std::vector<std::unique_ptr<AstNode::Expression>> elements)
-               : elements(std::move(elements)) {}
-            List(std::initializer_list<AstNode::Expression*> elements)
+            List(std::vector<std::unique_ptr<AstNode::Expression>> elements
+               , BlsType literal = std::monostate())
+               : elements(std::move(elements))
+               , literal(literal) {}
+            List(std::initializer_list<AstNode::Expression*> elements
+               , BlsType literal = std::monostate())
+               : literal(literal)
             {
                 for (auto&& element : elements) {
                     this->elements.push_back(std::unique_ptr<AstNode::Expression>(element));
@@ -138,9 +142,14 @@ namespace BlsLang {
     class AstNode::Expression::Map : public AstNode::Expression {
         public:
             Map() = default;
-            Map(std::vector<std::pair<std::unique_ptr<AstNode::Expression>, std::unique_ptr<AstNode::Expression>>> elements)
-              : elements(std::move(elements)) {}
-            Map(std::initializer_list<std::initializer_list<AstNode::Expression*>> elements) {
+            Map(std::vector<std::pair<std::unique_ptr<AstNode::Expression>, std::unique_ptr<AstNode::Expression>>> elements
+              , BlsType literal = std::monostate())
+              : elements(std::move(elements))
+              , literal(literal) {}
+            Map(std::initializer_list<std::initializer_list<AstNode::Expression*>> elements
+              , BlsType literal = std::monostate())
+              : literal(literal)
+            {
                 for (const auto& pair : elements) {
                     if (pair.size() != 2) {
                         throw std::invalid_argument("Initializer list must consist only of pairs.");
@@ -165,24 +174,33 @@ namespace BlsLang {
     class AstNode::Expression::Access : public AstNode::Expression {
         public:
             Access() = default;
-            Access(std::string object)
+            Access(std::string object
+                 , uint8_t localIndex = 0)
                  : object(std::move(object))
                  , subscript(std::move(std::nullopt))
-                 , member(std::move(std::nullopt)) {}
+                 , member(std::move(std::nullopt))
+                 , localIndex(localIndex) {}
             Access(std::string object
-                 , std::unique_ptr<AstNode::Expression> subscript)
+                 , std::unique_ptr<AstNode::Expression> subscript
+                 , uint8_t localIndex = 0)
                  : object(std::move(object))
                  , subscript(std::move(subscript))
-                 , member(std::move(std::nullopt)) {}
+                 , member(std::move(std::nullopt))
+                 , localIndex(localIndex) {}
             Access(std::string object
-                 , AstNode::Expression* subscript)
+                 , AstNode::Expression* subscript
+                 , uint8_t localIndex = 0)
                  : object(std::move(object))
                  , subscript(std::move(subscript))
-                 , member(std::move(std::nullopt)) {}
-            Access(std::string object, std::string member)
+                 , member(std::move(std::nullopt))
+                 , localIndex(localIndex) {}
+            Access(std::string object
+                 , std::string member
+                 , uint8_t localIndex = 0)
                  : object(std::move(object))
                  , subscript(std::move(std::nullopt))
-                 , member(std::move(member)) {}
+                 , member(std::move(member))
+                 , localIndex(localIndex) {}
             
             std::any accept(Visitor& v) override;
 
@@ -229,15 +247,19 @@ namespace BlsLang {
             Method() = default;
             Method(std::string object
                  , std::string methodName
-                 , std::vector<std::unique_ptr<AstNode::Expression>> arguments)
+                 , std::vector<std::unique_ptr<AstNode::Expression>> arguments
+                 , uint8_t localIndex = 0)
                  : object(std::move(object))
                  , methodName(std::move(methodName))
-                 , arguments(std::move(arguments)) {}
+                 , arguments(std::move(arguments))
+                 , localIndex(localIndex) {}
             Method(std::string object
                  , std::string methodName
-                 , std::initializer_list<AstNode::Expression*> arguments)
+                 , std::initializer_list<AstNode::Expression*> arguments
+                 , uint8_t localIndex = 0)
                  : object(std::move(object))
                  , methodName(std::move(methodName))
+                 , localIndex(localIndex)
             {
                 for (auto&& arg : arguments) {
                     this->arguments.push_back(std::unique_ptr<AstNode::Expression>(arg));
@@ -370,16 +392,20 @@ namespace BlsLang {
             Declaration() = default;
             Declaration(std::string name
                       , std::unique_ptr<AstNode::Specifier::Type> type
-                      , std::optional<std::unique_ptr<AstNode::Expression>> value)
+                      , std::optional<std::unique_ptr<AstNode::Expression>> value
+                      , uint8_t localIndex = 0)
                       : name(std::move(name))
                       , type(std::move(type))
-                      , value(std::move(value)) {}
+                      , value(std::move(value))
+                      , localIndex(localIndex) {}
             Declaration(std::string name
                       , AstNode::Specifier::Type* type
-                      , AstNode::Expression* value)
+                      , AstNode::Expression* value
+                      , uint8_t localIndex = 0)
                       : name(std::move(name))
                       , type(type)
-                      , value(value) {}
+                      , value(value)
+                      , localIndex(localIndex) {}
 
             std::any accept(Visitor& v) override;
 
