@@ -3,6 +3,7 @@
 #include "libEM/EM.hpp"
 #include "libMM/MM.hpp"
 #include "libNM/MasterNM.hpp"
+#include "libvirtual_machine/virtual_machine.hpp"
 #include <functional>
 
 using DMM = DynamicMasterMessage;
@@ -19,22 +20,20 @@ int main(int argc, char *argv[]){
         return 1;
     }
     
-    printf("pre compilation\n");
-    // Makes interpreter
+
     BlsLang::Compiler compiler;
     compiler.compileFile(filename); 
-    printf("past compilation\n");
-
-    //auto oblocks = interpreter.getOblockDescriptors();
-    std::vector<OBlockDesc> oblocks = compiler.getOblockDescriptors(); 
-    auto functions = compiler.getOblocks();  
+    auto& depMap = compiler.getDependencyGraph(); 
+    
+    // VM To read the 
+    BlsLang::VirtualMachine temp_vm;
+    temp_vm.loadBytecode("./samples/bsm/test.bsm"); 
+    auto oblocks = temp_vm.getOblockDescriptors(); 
 
     // EM and MM
     TSQ<DMM> EM_MM_queue; 
     TSQ<std::vector<DMM>> MM_EM_queue; 
 
-    auto& depMap = compiler.getDependencyGraph(); 
-    
     // NM and MM
     TSQ<DMM> NM_MM_queue; 
     TSQ<DMM> MM_NM_queue; 
@@ -45,11 +44,11 @@ int main(int argc, char *argv[]){
     NM.start(); 
 
 
-    ExecutionManager EM(oblocks, MM_EM_queue, EM_MM_queue, functions, depMap); 
+    ExecutionManager EM(oblocks, MM_EM_queue, EM_MM_queue, depMap); 
     std::thread t3([&](){EM.running();});
     
     // Make Mailbox (runs with EM and NM)
-    MasterMailbox MM(oblocks, NM_MM_queue, EM_MM_queue, MM_NM_queue, MM_EM_queue); 
+    MasterMailbox MM(oblocks, NM_MM_queue, EM_MM_queue, MM_NM_queue, MM_EM_queue, depMap); 
     std::thread t1([&](){MM.runningEM();}); 
     std::thread t2([&](){MM.runningNM();});   
     

@@ -1,17 +1,14 @@
 #pragma once
-
 #include "libTSQ/TSQ.hpp"
 #include "libTSM/TSM.hpp"
-#include "libDM/DynamicMessage.hpp"
 #include "include/Common.hpp"
-#include "../../lang/libinterpreter/interpreter.hpp"
-#include "../../lang/common/ast.hpp"
-#include <unordered_map>
+#include "libvirtual_machine/virtual_machine.hpp"
+#include "libdepgraph/depgraph.hpp"
 #include <thread>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
-#include <functional>
 using namespace std;
 
 
@@ -27,12 +24,18 @@ class ExecutionUnit
     TSQ<vector<DynamicMasterMessage>> EUcache;
     thread executionThread;
     bool stop = false;
-    ExecutionUnit(string OblockName, vector<string> devices, vector<bool> isVtype, vector<string> controllers, 
-        TSM<string, vector<HeapMasterMessage>> &vtypeHMMsMap, TSQ<DynamicMasterMessage> &sendMM, 
-        function<vector<BlsType>(vector<BlsType>)>  transform_function);
+
+    ExecutionUnit(const string& OblockName, vector<string>& devices, vector<bool>& isVtype, vector<string>& controllers, 
+    TSM<string, vector<HeapMasterMessage>> &vtypeHMMsMap, TSQ<DynamicMasterMessage> &sendMM, int bytecodeOffset, 
+    vector<DeviceDescriptor> &devList);
+
     void running( TSM<string, vector<HeapMasterMessage>> &vtypeHMMsMap, TSQ<DynamicMasterMessage> &sendMM);
-    //vector<shared_ptr<HeapDescriptor>> transformState(vector<shared_ptr<HeapDescriptor>> HMM_List);
-    function<vector<BlsType>(vector<BlsType>)>  transform_function;
+
+    BlsLang::VirtualMachine vm; 
+    int oblockOffset = 0; 
+    std::unordered_map<std::string, int> devicePosMap; 
+    std::unordered_map<std::string, DeviceDescriptor> devDescs; 
+    
     ~ExecutionUnit();
 };
 
@@ -41,15 +44,17 @@ class ExecutionManager
     public:
     //ExecutionManager() = default;
     ExecutionManager(vector<OBlockDesc> OblockList, TSQ<vector<DynamicMasterMessage>> &readMM, 
-        TSQ<DynamicMasterMessage> &sendMM, 
-        std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks);
+        TSQ<DynamicMasterMessage> &sendMM, GlobalContext& depMap);
     ExecutionUnit &assign(DynamicMasterMessage DMM);
     void running();
     TSQ<vector<DynamicMasterMessage>> &readMM;
     TSQ<DynamicMasterMessage> &sendMM;
     unordered_map<string, unique_ptr<ExecutionUnit>> EU_map;
     vector<OBlockDesc> OblockList;
-    //vector<HeapMasterMessage> vtypeHMMs;
     TSM<string, vector<HeapMasterMessage>> vtypeHMMsMap;
+
+
+
+    
 };
 

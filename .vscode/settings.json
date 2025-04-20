@@ -4,4 +4,11 @@
     "lldb.verboseLogging": true,
     "C_Cpp.intelliSenseEngine": "disabled",
     "clangd.enable": true,
+    "github.copilot.enable": {
+        "*": false,
+        "plaintext": false,
+        "markdown": false,
+        "scminput": false,
+        "C++": true
+    },
 }

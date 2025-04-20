@@ -9,6 +9,7 @@
 #include <variant>
 #include <cstdint>
 #include <vector>
+#include <unordered_set> 
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/base_object.hpp>
 #include <boost/serialization/vector.hpp>
@@ -91,6 +92,7 @@ class HeapDescriptor {
     TYPE objType = TYPE::ANY; 
     TYPE keyType = TYPE::ANY;
     TYPE contType = TYPE::ANY; 
+    std::unordered_set<std::string> alteredAtr; 
 
   public:
     HeapDescriptor() = default; 
@@ -101,6 +103,9 @@ class HeapDescriptor {
     virtual BlsType& access(BlsType &obj) = 0;
     BlsType& access(BlsType &&obj) { return access(obj); };
     virtual int getSize() { return 1; }
+    // determined if the subtree was updated by the virtual machine: 
+    bool updated = false;
+    std::unordered_set<std::string>& getAlteredAtr(){return this->alteredAtr;} 
 
     template<typename Archive>
     void serialize(Archive& ar, const unsigned int version);
@@ -123,7 +128,7 @@ class MapDescriptor : public HeapDescriptor{
     void emplace(BlsType& obj, BlsType& newDesc);
     // Also only used for debugging
     std::unordered_map<std::string, BlsType>& getMap() { return *this->map; }
-    int getSize() override { return this->map->size(); }
+    int getSize() override { return this->map->size();}
 
     friend class boost::serialization::access;
     template<typename Archive>

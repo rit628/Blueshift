@@ -117,7 +117,7 @@ target_link_libraries(virtual_machine lang_common types bytecode ${BOOST_LIB_DEP
 file(GLOB_RECURSE LIBCOMPILER_SRC ${LANG_SRC_DIR}/libcompiler/*.cpp)
 add_library(compiler STATIC ${LIBCOMPILER_SRC})
 target_include_directories(compiler PUBLIC ${BLS_CONFIG} ${LANG_COMMON} ${LANG_SRC_DIR})
-target_link_libraries(compiler lang_common lexer parser interpreter depgraph ${BOOST_LIB_DEPS})
+target_link_libraries(compiler lang_common lexer parser interpreter virtual_machine depgraph ${BOOST_LIB_DEPS})
 
 add_executable(lang ${LANG_SRC_DIR}/main.cpp)
 target_link_libraries(lang compiler virtual_machine ${BOOST_LIB_DEPS})
@@ -133,8 +133,8 @@ target_link_libraries(ticker network TSQ ${BOOST_LIB_DEPS})
 
 file(GLOB_RECURSE LIBEM_SRC ${MASTER_SRC_DIR}/libEM/*.cpp)
 add_library(EM STATIC ${LIBEM_SRC})
-target_include_directories(EM PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${MASTER_SRC_DIR})
-target_link_libraries(EM TSM TSQ dynamic_message interpreter ${BOOST_LIB_DEPS})
+target_include_directories(EM PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${MASTER_SRC_DIR} ${LANG_SRC_DIR})
+target_link_libraries(EM TSM TSQ dynamic_message virtual_machine depgraph ${BOOST_LIB_DEPS})
 
 file(GLOB_RECURSE LIBMM_SRC ${MASTER_SRC_DIR}/libMM/*.cpp)
 add_library(MM STATIC ${LIBMM_SRC})

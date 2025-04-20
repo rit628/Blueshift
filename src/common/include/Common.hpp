@@ -56,7 +56,7 @@ struct OBlockDesc{
 
     std::string name; 
     std::vector<DeviceDescriptor> binded_devices; 
-    int bytecode_offset; 
+    int bytecode_offset = 0; 
 
     // Reading Config
 

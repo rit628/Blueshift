@@ -52,16 +52,6 @@ namespace Device {
             void set_ports(std::unordered_map<std::string, std::string> &src) override;
             void read_data(DynamicMessage &dmsg) override;
     };
-    
-    #define DEVTYPE_BEGIN(name) \
-    static_assert(std::derived_from<name, AbstractDevice>, #name " must inherit from AbstractDevice");
-    #define ATTRIBUTE(...)
-    #define DEVTYPE_END
-    #include "DEVTYPES.LIST"
-    #undef DEVTYPE_BEGIN
-    #undef ATTRIBUTE
-    #undef DEVTYPE_END
-}
-
+}    
 // Device reciever object returns and sets up an object 
 std::shared_ptr<AbstractDevice> getDevice(DEVTYPE dtype, std::unordered_map<std::string, std::string> &port_nums, int device_alias);

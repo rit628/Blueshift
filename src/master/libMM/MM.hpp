@@ -3,6 +3,7 @@
 #include "libTSQ/TSQ.hpp"
 #include "libDM/DynamicMessage.hpp"
 #include "libEM/EM.hpp"
+#include "libdepgraph/depgraph.hpp"
 #include <unordered_map>
 #include <map>
 #include <memory>
@@ -59,8 +60,6 @@ struct WriterBox
     WriterBox() = default;
 };
 
-
-
 class MasterMailbox
 {
     public:
@@ -68,8 +67,10 @@ class MasterMailbox
     TSQ<DynamicMasterMessage> &readEM;
     TSQ<DynamicMasterMessage> &sendNM;
     TSQ<vector<DynamicMasterMessage>> &sendEM;
+
     MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMessage> &readNM, TSQ<DynamicMasterMessage> &readEM,
-         TSQ<DynamicMasterMessage> &sendNM, TSQ<vector<DynamicMasterMessage>> &sendEM);
+         TSQ<DynamicMasterMessage> &sendNM, TSQ<vector<DynamicMasterMessage>> &sendEM, GlobalContext& depGraph);
+
     vector<OBlockDesc> OBlockList;
     unordered_map<string, unique_ptr<ReaderBox>> oblockReadMap;
     unordered_map<string, vector<shared_ptr<TSQ<DynamicMasterMessage>>>> interruptMap;

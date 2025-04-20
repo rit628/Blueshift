@@ -783,7 +783,9 @@ class DynamicMessage{
    void makeFromRoot(std::shared_ptr<HeapDescriptor> heapDesc){
         if(auto mapDesc = std::dynamic_pointer_cast<MapDescriptor>(heapDesc)){
             for(auto pair : *mapDesc->map){
-                makeFromHeap(pair.first, pair.second); 
+                if(heapDesc->getAlteredAtr().contains(pair.first)){
+                    makeFromHeap(pair.first, pair.second); 
+                }
             }
          }
         else{

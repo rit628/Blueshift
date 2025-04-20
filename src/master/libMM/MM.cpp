@@ -1,24 +1,28 @@
 #include "MM.hpp"
+#include "libdepgraph/depgraph.hpp"
 #include <memory>
 
 MasterMailbox::MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMessage> &readNM, 
-    TSQ<DynamicMasterMessage> &readEM, TSQ<DynamicMasterMessage> &sendNM, TSQ<vector<DynamicMasterMessage>> &sendEM)
+    TSQ<DynamicMasterMessage> &readEM, TSQ<DynamicMasterMessage> &sendNM, TSQ<vector<DynamicMasterMessage>> &sendEM
+    , GlobalContext &depGraph)
+    
 : readNM(readNM), readEM(readEM), sendNM(sendNM), sendEM(sendEM)
 {
     this->OBlockList = OBlockList;
-    for(int i = 0; i < OBlockList.size(); i++)
+    for(auto& oblock : OBlockList)
     {
-        oblockReadMap[OBlockList.at(i).name] = make_unique<ReaderBox>(OBlockList.at(i).dropRead, 
-        OBlockList.at(i).dropWrite, OBlockList.at(i).name);
-        for(int j = 0; j < OBlockList.at(i).binded_devices.size(); j++)
+        oblockReadMap[oblock.name] = make_unique<ReaderBox>(oblock.dropRead, 
+        oblock.dropWrite, oblock.name);
+        
+        for(const DeviceID &device : depGraph.oblockConnections[oblock.name].inDeviceList)
         {
-            string deviceName = OBlockList.at(i).binded_devices.at(j).device_name;
             auto TSQPtr = make_shared<TSQ<DynamicMasterMessage>>();
-            oblockReadMap[OBlockList.at(i).name]->waitingQs.push_back(TSQPtr);
-            readTSQMap[OBlockList.at(i).name][deviceName] = TSQPtr;
-            writeMap[deviceName] = make_unique<WriterBox>(deviceName);
+            oblockReadMap[oblock.name]->waitingQs.push_back(TSQPtr);
+            readTSQMap[oblock.name][device] = TSQPtr;
+            writeMap[device] = make_unique<WriterBox>(device);
         }
     }
+
     for(int i = 0; i < OBlockList.size(); i++)
     {
         for(int j = 0; j < OBlockList.at(i).binded_devices.size(); j++)

@@ -1,4 +1,4 @@
-
+#pragma once
 #include "binding_parser.hpp"
 #include "libtypes/bls_types.hpp"
 #include "call_stack.hpp"
