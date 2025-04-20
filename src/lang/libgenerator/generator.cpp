@@ -486,11 +486,24 @@ BlsObject Generator::visit(AstNode::Expression::Access& ast) {
 }
 
 BlsObject Generator::visit(AstNode::Expression::Literal& ast) {
-    
+    BlsType literal = std::visit([](auto& l){ return BlsType(l); }, ast.getLiteral());
+    instructions.push_back(createPUSH(literalPool.at(literal)));
+    return 0;
 }
 
 BlsObject Generator::visit(AstNode::Expression::List& ast) {
-
+    auto& literal = ast.getLiteral();
+    auto& expressions = ast.getElements();
+    auto& list = std::dynamic_pointer_cast<VectorDescriptor>(std::get<std::shared_ptr<HeapDescriptor>>(literal))->getVector();
+    for (size_t i = 0; i < list.size(); i++) {
+        if (std::holds_alternative<std::monostate>(list.at(i))) { // sub expression needs to be evaluated at runtime
+            instructions.push_back(createPUSH(literalPool.at(literal)));
+            instructions.push_back(createPUSH(i));
+            expressions.at(i)->accept(*this);
+        }
+    }
+    instructions.push_back(createPUSH(literalPool.at(literal)));
+    return 0;
 }
 
 BlsObject Generator::visit(AstNode::Expression::Set& ast) {
@@ -498,7 +511,22 @@ BlsObject Generator::visit(AstNode::Expression::Set& ast) {
 }
 
 BlsObject Generator::visit(AstNode::Expression::Map& ast) {
-    
+    auto& literal = ast.getLiteral();
+    auto& expressions = ast.getElements();
+    auto& map = std::dynamic_pointer_cast<MapDescriptor>(std::get<std::shared_ptr<HeapDescriptor>>(literal))->getMap();
+    for (auto&& [key, value] : expressions) {
+        auto* keyLiteral = dynamic_cast<AstNode::Expression::Literal*>(key.get());
+        if (!keyLiteral
+         || std::holds_alternative<std::monostate>(map.at(std::get<std::string>(keyLiteral->getLiteral())))) {
+            // key value pair not in map literal at runtime; emplace
+            instructions.push_back(createPUSH(literalPool.at(literal)));
+            key->accept(*this);
+            value->accept(*this);
+            instructions.push_back(createEMPLACE());
+        }
+    }
+    instructions.push_back(createPUSH(literalPool.at(literal)));
+    return 0;
 }
 
 BlsObject Generator::visit(AstNode::Specifier::Type& ast) {
