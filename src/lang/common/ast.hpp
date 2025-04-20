@@ -1,4 +1,5 @@
 #pragma once
+#include "libtypes/bls_types.hpp"
 #include <any>
 #include <cstddef>
 #include <cstdint>
@@ -107,9 +108,11 @@ namespace BlsLang {
             std::any accept(Visitor& v) override;
 
             auto& getElements() { return elements; }
+            auto& getLiteral() { return literal; }
 
         private:
             std::vector<std::unique_ptr<AstNode::Expression>> elements;
+            BlsType literal;
     };
 
     class AstNode::Expression::Set : public AstNode::Expression {
@@ -152,9 +155,11 @@ namespace BlsLang {
             std::any accept(Visitor& v) override;
 
             auto& getElements() { return elements; }
+            auto& getLiteral() { return literal; }
 
         private:
             std::vector<std::pair<std::unique_ptr<AstNode::Expression>, std::unique_ptr<AstNode::Expression>>> elements;
+            BlsType literal;
     };
 
     class AstNode::Expression::Access : public AstNode::Expression {
@@ -184,11 +189,13 @@ namespace BlsLang {
             auto& getObject() { return object; }
             auto& getSubscript() { return subscript; }
             auto& getMember() { return member; }
+            auto& getLocalIndex() { return localIndex; }
 
         private:
             std::string object;
             std::optional<std::unique_ptr<AstNode::Expression>> subscript;
             std::optional<std::string> member;
+            uint8_t localIndex;
     };
 
     class AstNode::Expression::Function : public AstNode::Expression {
@@ -242,11 +249,13 @@ namespace BlsLang {
             auto& getObject() { return object; }
             auto& getMethodName() { return methodName; }
             auto& getArguments() { return arguments; }
+            auto& getLocalIndex() { return localIndex; }
 
         private:
             std::string object;
             std::string methodName;
             std::vector<std::unique_ptr<AstNode::Expression>> arguments;
+            uint8_t localIndex;
     };
 
     class AstNode::Expression::Group : public AstNode::Expression {
@@ -377,11 +386,13 @@ namespace BlsLang {
             auto& getName() { return name; }
             auto& getType() { return type; }
             auto& getValue() { return value; }
+            auto& getLocalIndex() { return localIndex; }
 
         private:
             std::string name;
             std::unique_ptr<AstNode::Specifier::Type> type;
             std::optional<std::unique_ptr<AstNode::Expression>> value;
+            uint8_t localIndex;
     };
 
     class AstNode::Statement::Continue : public AstNode::Statement {
