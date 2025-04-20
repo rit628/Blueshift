@@ -17,7 +17,7 @@ namespace BlsLang {
         public:
             Generator(std::ostream& outputStream
                     , std::unordered_map<std::string, OBlockDesc> oblockDescriptors
-                    , std::vector<BlsType> literalPool)
+                    , std::unordered_map<BlsType, uint8_t> literalPool)
                     : outputStream(outputStream)
                     , oblockDescriptors(oblockDescriptors)
                     , literalPool(literalPool) {}
@@ -48,7 +48,7 @@ namespace BlsLang {
 
             std::ostream& outputStream;
             std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
-            std::vector<BlsType> literalPool;
+            std::unordered_map<BlsType, uint8_t> literalPool;
             std::unordered_map<std::string, uint16_t> procedureAddresses;
             std::vector<std::unique_ptr<INSTRUCTION>> instructions;
             std::stack<uint16_t> loopIndices, breakIndices; // needed for break and continue generation

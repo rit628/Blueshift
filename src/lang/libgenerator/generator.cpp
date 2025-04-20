@@ -11,6 +11,8 @@
 #include <optional>
 #include <stdexcept>
 #include <boost/archive/binary_oarchive.hpp>
+#include <utility>
+#include <variant>
 
 using namespace BlsLang;
 
@@ -188,7 +190,7 @@ BlsObject Generator::visit(AstNode::Statement::Return& ast) {
         returnExpression->get()->accept(*this);
     }
     else {  // push void value
-        instructions.push_back(createPUSH(0));
+        instructions.push_back(createPUSH(literalPool.at(std::monostate())));
     }
     instructions.push_back(createRETURN());
     return 0;
@@ -223,115 +225,120 @@ BlsObject Generator::visit(AstNode::Statement::Expression& ast) {
 
 BlsObject Generator::visit(AstNode::Expression::Binary& ast) {
     auto op = getBinOpEnum(ast.getOp());
-    if (op != BINARY_OPERATOR::ASSIGN) { // visit lhs and rhs as args to binary operation
+    static auto createBinaryOperation = [&ast, this](std::unique_ptr<INSTRUCTION>&& instruction) {
         ast.getLeft()->accept(*this);
         ast.getRight()->accept(*this);
-    }
+        instructions.push_back(std::move(instruction));
+    };
+
+    static auto createCompoundAssignment = [&ast, this](std::unique_ptr<INSTRUCTION>&& instruction) {
+        // visit lhs as write target
+        accessContext = ACCESS_CONTEXT::WRITE;
+        ast.getLeft()->accept(*this);
+
+        // visit both sides to create operation and move store past it
+        auto storeInstruction = std::move(instructions.back());
+        instructions.pop_back();
+        createBinaryOperation(std::move(instruction));
+        instructions.push_back(std::move(storeInstruction));
+
+        ast.getLeft()->accept(*this); // visit lhs as operation result
+    };
 
     switch (op) {
         case BINARY_OPERATOR::OR:
-            instructions.push_back(createOR());
+            createBinaryOperation(createOR());
         break;
 
         case BINARY_OPERATOR::AND:
-            instructions.push_back(createAND());
+            createBinaryOperation(createAND());
         break;
 
         case BINARY_OPERATOR::LT:
-            instructions.push_back(createLT());
+            createBinaryOperation(createLT());
         break;
         
         case BINARY_OPERATOR::LE:
-            instructions.push_back(createLE());
+            createBinaryOperation(createLE());
         break;
 
         case BINARY_OPERATOR::GT:
-            instructions.push_back(createGT());
+            createBinaryOperation(createGT());
         break;
 
         case BINARY_OPERATOR::GE:
-            instructions.push_back(createGE());
+            createBinaryOperation(createGE());
         break;
 
         case BINARY_OPERATOR::NE:
-            instructions.push_back(createNE());
+            createBinaryOperation(createNE());
         break;
 
         case BINARY_OPERATOR::EQ:
-            instructions.push_back(createEQ());
+            createBinaryOperation(createEQ());
         break;
 
         case BINARY_OPERATOR::ADD:
-            instructions.push_back(createADD());
+            createBinaryOperation(createADD());
         break;
         
         case BINARY_OPERATOR::SUB:
-            instructions.push_back(createSUB());
+            createBinaryOperation(createSUB());
         break;
 
         case BINARY_OPERATOR::MUL:
-            instructions.push_back(createMUL());
+            createBinaryOperation(createMUL());
         break;
 
         case BINARY_OPERATOR::DIV:
-            instructions.push_back(createDIV());
+            createBinaryOperation(createDIV());
         break;
 
         case BINARY_OPERATOR::MOD:
-            instructions.push_back(createMOD());
+            createBinaryOperation(createMOD());
         break;
         
         case BINARY_OPERATOR::EXP:
-            instructions.push_back(createEXP());
+            createBinaryOperation(createEXP());
         break;
 
-        case BINARY_OPERATOR::ASSIGN:
-            ast.getRight()->accept(*this);
+        case BINARY_OPERATOR::ASSIGN: {
+            // visit lhs as write target
             accessContext = ACCESS_CONTEXT::WRITE;
-            ast.getLeft()->accept(*this); // visit lhs as write target
-            ast.getLeft()->accept(*this); // visit lhs as expresion result
+            ast.getLeft()->accept(*this);
+
+            // visit rhs and move store past rhs instructions
+            auto storeInstruction = std::move(instructions.back());
+            instructions.pop_back();
+            ast.getRight()->accept(*this);
+            instructions.push_back(std::move(storeInstruction));
+
+            ast.getLeft()->accept(*this); // visit lhs as operation result
+        }
         break;
 
         case BINARY_OPERATOR::ASSIGN_ADD:
-            instructions.push_back(createADD());
-            accessContext = ACCESS_CONTEXT::WRITE;
-            ast.getLeft()->accept(*this); // visit lhs as write target
-            ast.getLeft()->accept(*this); // visit lhs as expresion result
+            createCompoundAssignment(createADD());
         break;
 
         case BINARY_OPERATOR::ASSIGN_SUB:
-            instructions.push_back(createSUB());
-            accessContext = ACCESS_CONTEXT::WRITE;
-            ast.getLeft()->accept(*this); // visit lhs as write target
-            ast.getLeft()->accept(*this); // visit lhs as expresion result
+            createCompoundAssignment(createSUB());
         break;
 
         case BINARY_OPERATOR::ASSIGN_MUL:
-            instructions.push_back(createMUL());
-            accessContext = ACCESS_CONTEXT::WRITE;
-            ast.getLeft()->accept(*this); // visit lhs as write target
-            ast.getLeft()->accept(*this); // visit lhs as expresion result
+            createCompoundAssignment(createMUL());
         break;
 
         case BINARY_OPERATOR::ASSIGN_DIV:
-            instructions.push_back(createDIV());
-            accessContext = ACCESS_CONTEXT::WRITE;
-            ast.getLeft()->accept(*this); // visit lhs as write target
-            ast.getLeft()->accept(*this); // visit lhs as expresion result
+            createCompoundAssignment(createDIV());
         break;
 
         case BINARY_OPERATOR::ASSIGN_MOD:
-            instructions.push_back(createMOD());
-            accessContext = ACCESS_CONTEXT::WRITE;
-            ast.getLeft()->accept(*this); // visit lhs as write target
-            ast.getLeft()->accept(*this); // visit lhs as expresion result
+            createCompoundAssignment(createMOD());
         break;
 
         case BINARY_OPERATOR::ASSIGN_EXP:
-            instructions.push_back(createEXP());
-            accessContext = ACCESS_CONTEXT::WRITE;
-            ast.getLeft()->accept(*this); // visit lhs as write target
-            ast.getLeft()->accept(*this); // visit lhs as expresion result
+            createCompoundAssignment(createEXP());
         break;
 
         default:
@@ -344,6 +351,30 @@ BlsObject Generator::visit(AstNode::Expression::Binary& ast) {
 BlsObject Generator::visit(AstNode::Expression::Unary& ast) {
     auto op = getUnOpEnum(ast.getOp());
     auto position = ast.getPosition();
+
+    static auto createCompoundAssignment = [&, this](std::unique_ptr<INSTRUCTION>&& instruction) {
+        if (position == AstNode::Expression::Unary::OPERATOR_POSITION::POSTFIX) {
+            ast.getExpression()->accept(*this); // read before operation
+        }
+
+        // visit expression as write target
+        accessContext = ACCESS_CONTEXT::WRITE;
+        ast.getExpression()->accept(*this);
+
+        auto storeInstruction = std::move(instructions.back());
+        instructions.pop_back();
+
+        // create unary op
+        ast.getExpression()->accept(*this); // visit as operand
+        instructions.push_back(createPUSH(literalPool.at(1))); // push literal 1
+        instructions.push_back(std::move(instruction));
+
+        instructions.push_back(std::move(storeInstruction)); // move store past unary op
+
+        if (position == AstNode::Expression::Unary::OPERATOR_POSITION::PREFIX) {
+            ast.getExpression()->accept(*this); // read after operation
+        }
+    };
     
     switch (op) {
         case UNARY_OPERATOR::NOT:
@@ -357,31 +388,11 @@ BlsObject Generator::visit(AstNode::Expression::Unary& ast) {
         break;
 
         case UNARY_OPERATOR::INC:
-            if (position == AstNode::Expression::Unary::OPERATOR_POSITION::PREFIX) {
-                ast.getExpression()->accept(*this); // visit as expression result
-            }
-            ast.getExpression()->accept(*this); // visit as operand to inc
-            instructions.push_back(createPUSH(1)); // push literal 1
-            instructions.push_back(createADD());
-            accessContext = ACCESS_CONTEXT::WRITE;
-            ast.getExpression()->accept(*this); // visit again as write target
-            if (position == AstNode::Expression::Unary::OPERATOR_POSITION::POSTFIX) {
-                ast.getExpression()->accept(*this); // visit as expression result
-            }
+            createCompoundAssignment(createADD());
         break;
 
         case UNARY_OPERATOR::DEC:
-            if (position == AstNode::Expression::Unary::OPERATOR_POSITION::PREFIX) {
-                ast.getExpression()->accept(*this); // visit as expression result
-            }
-            ast.getExpression()->accept(*this); // visit as operand to inc
-            instructions.push_back(createPUSH(1)); // push literal 1
-            instructions.push_back(createSUB());
-            accessContext = ACCESS_CONTEXT::WRITE;
-            ast.getExpression()->accept(*this); // visit again as write target
-            if (position == AstNode::Expression::Unary::OPERATOR_POSITION::POSTFIX) {
-                ast.getExpression()->accept(*this); // visit as expression result
-            }
+            createCompoundAssignment(createSUB());
         break;
 
         default:
@@ -434,7 +445,44 @@ BlsObject Generator::visit(AstNode::Expression::Function& ast) {
 }
 
 BlsObject Generator::visit(AstNode::Expression::Access& ast) {
-    
+    auto localIndex = ast.getLocalIndex();
+    auto& member = ast.getMember();
+    auto& subscript = ast.getSubscript();
+    if (member.has_value()) {
+        if (accessContext == ACCESS_CONTEXT::READ) {
+            instructions.push_back(createLOAD(localIndex));
+            instructions.push_back(createPUSH(literalPool.at(member.value())));
+            instructions.push_back(createALOAD());
+        }
+        else {
+            instructions.push_back(createLOAD(localIndex));
+            instructions.push_back(createPUSH(literalPool.at(member.value())));
+            instructions.push_back(createASTORE());
+        }
+    }
+    else if (subscript.has_value()) {
+        if (accessContext == ACCESS_CONTEXT::READ) {
+            instructions.push_back(createLOAD(localIndex));
+            subscript->get()->accept(*this);
+            instructions.push_back(createALOAD());
+        }
+        else {
+            instructions.push_back(createLOAD(localIndex));
+            accessContext = ACCESS_CONTEXT::READ; // set accessContext to read for sub expression
+            subscript->get()->accept(*this);
+            instructions.push_back(createASTORE());
+        }
+    }
+    else {
+        if (accessContext == ACCESS_CONTEXT::READ) {
+            instructions.push_back(createLOAD(localIndex));
+        }
+        else {
+            instructions.push_back(createSTORE(localIndex));
+        }
+    }
+    accessContext = ACCESS_CONTEXT::READ; // reset accessContext
+    return 0;
 }
 
 BlsObject Generator::visit(AstNode::Expression::Literal& ast) {
@@ -450,7 +498,7 @@ BlsObject Generator::visit(AstNode::Expression::Set& ast) {
 }
 
 BlsObject Generator::visit(AstNode::Expression::Map& ast) {
-
+    
 }
 
 BlsObject Generator::visit(AstNode::Specifier::Type& ast) {

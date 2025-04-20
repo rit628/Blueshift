@@ -75,16 +75,18 @@ void VirtualMachine::LOAD(uint8_t index, int) {
     cs.pushOperand(variable);
 }
 
-void VirtualMachine::INC(uint8_t index, int) {
-    auto variable = cs.getLocal(index);
-    variable = variable + 1;
-    cs.pushOperand(variable);
+void VirtualMachine::ASTORE(int) {
+    auto value = cs.popOperand();
+    auto index = cs.popOperand();
+    auto object = cs.popOperand();
+    std::get<std::shared_ptr<HeapDescriptor>>(object)->access(index) = value;
 }
 
-void VirtualMachine::DEC(uint8_t index, int) {
-    auto variable = cs.getLocal(index);
-    variable = variable - 1;
-    cs.pushOperand(variable);
+void VirtualMachine::ALOAD(int) {
+    auto index = cs.popOperand();
+    auto object = cs.popOperand();
+    auto value = std::get<std::shared_ptr<HeapDescriptor>>(object)->access(index);
+    cs.pushOperand(value);
 }
 
 void VirtualMachine::NOT(int) {
@@ -198,13 +200,6 @@ void VirtualMachine::RETURN(int) {
     if (!std::holds_alternative<std::monostate>(result)) {
         cs.pushOperand(result);
     }
-}
-
-void VirtualMachine::ACC(int) {
-    auto index = cs.popOperand();
-    auto object = cs.popOperand();
-    auto value = std::get<std::shared_ptr<HeapDescriptor>>(object)->access(index);
-    cs.pushOperand(value);
 }
 
 void VirtualMachine::EMPLACE(int) {
