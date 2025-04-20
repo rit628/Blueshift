@@ -276,88 +276,88 @@ std::any Analyzer::visit(AstNode::Expression::Binary& ast) {
     auto op = getBinOpEnum(ast.getOp());
     // operator type checking done by overload specialization
     switch (op) {
-        case Analyzer::BINARY_OPERATOR::OR:
+        case BINARY_OPERATOR::OR:
             return BlsType(lhs || rhs); // convert back to BlsType from bool conversion
         break;
 
-        case Analyzer::BINARY_OPERATOR::AND:
+        case BINARY_OPERATOR::AND:
             return BlsType(lhs && rhs); // convert back to BlsType from bool conversion
         break;
 
-        case Analyzer::BINARY_OPERATOR::LT:
+        case BINARY_OPERATOR::LT:
             return BlsType(lhs < rhs); // convert back to BlsType from bool conversion
         break;
         
-        case Analyzer::BINARY_OPERATOR::LE:
+        case BINARY_OPERATOR::LE:
             return BlsType(lhs <= rhs); // convert back to BlsType from bool conversion
         break;
 
-        case Analyzer::BINARY_OPERATOR::GT:
+        case BINARY_OPERATOR::GT:
             return BlsType(lhs > rhs); // convert back to BlsType from bool conversion
         break;
 
-        case Analyzer::BINARY_OPERATOR::GE:
+        case BINARY_OPERATOR::GE:
             return BlsType(lhs >= rhs); // convert back to BlsType from bool conversion
         break;
 
-        case Analyzer::BINARY_OPERATOR::NE:
+        case BINARY_OPERATOR::NE:
             return BlsType(lhs != rhs); // convert back to BlsType from bool conversion
         break;
 
-        case Analyzer::BINARY_OPERATOR::EQ:
+        case BINARY_OPERATOR::EQ:
             return BlsType(lhs == rhs); // convert back to BlsType from bool conversion
         break;
 
-        case Analyzer::BINARY_OPERATOR::ADD:
+        case BINARY_OPERATOR::ADD:
             return lhs + rhs;
         break;
         
-        case Analyzer::BINARY_OPERATOR::SUB:
+        case BINARY_OPERATOR::SUB:
             return lhs - rhs;
         break;
 
-        case Analyzer::BINARY_OPERATOR::MUL:
+        case BINARY_OPERATOR::MUL:
             return lhs * rhs;
         break;
 
-        case Analyzer::BINARY_OPERATOR::DIV:
+        case BINARY_OPERATOR::DIV:
             return lhs / rhs;
         break;
 
-        case Analyzer::BINARY_OPERATOR::MOD:
+        case BINARY_OPERATOR::MOD:
             return lhs % rhs;
         break;
         
-        case Analyzer::BINARY_OPERATOR::EXP:
+        case BINARY_OPERATOR::EXP:
             return lhs ^ rhs;
         break;
 
         // TODO: verify that lhs is not a temporary expression (needs dep graph)
-        case Analyzer::BINARY_OPERATOR::ASSIGN:
+        case BINARY_OPERATOR::ASSIGN:
             return lhs = rhs;
         break;
 
-        case Analyzer::BINARY_OPERATOR::ASSIGN_ADD:
+        case BINARY_OPERATOR::ASSIGN_ADD:
             return lhs = lhs + rhs;
         break;
 
-        case Analyzer::BINARY_OPERATOR::ASSIGN_SUB:
+        case BINARY_OPERATOR::ASSIGN_SUB:
             return lhs = lhs - rhs;
         break;
 
-        case Analyzer::BINARY_OPERATOR::ASSIGN_MUL:
+        case BINARY_OPERATOR::ASSIGN_MUL:
             return lhs = lhs * rhs;
         break;
 
-        case Analyzer::BINARY_OPERATOR::ASSIGN_DIV:
+        case BINARY_OPERATOR::ASSIGN_DIV:
             return lhs = lhs / rhs;
         break;
 
-        case Analyzer::BINARY_OPERATOR::ASSIGN_MOD:
+        case BINARY_OPERATOR::ASSIGN_MOD:
             return lhs = lhs % rhs;
         break;
 
-        case Analyzer::BINARY_OPERATOR::ASSIGN_EXP:
+        case BINARY_OPERATOR::ASSIGN_EXP:
             return lhs = lhs ^ rhs;
         break;
 
@@ -375,15 +375,15 @@ std::any Analyzer::visit(AstNode::Expression::Unary& ast) {
     
     // operator type checking done by overload specialization
     switch (op) {
-        case Analyzer::UNARY_OPERATOR::NOT:
+        case UNARY_OPERATOR::NOT:
             return BlsType(!object); // convert back to BlsType from bool conversion
         break;
 
-        case Analyzer::UNARY_OPERATOR::NEG:
+        case UNARY_OPERATOR::NEG:
             return -object;
         break;
 
-        case Analyzer::UNARY_OPERATOR::INC:
+        case UNARY_OPERATOR::INC:
             if (position == AstNode::Expression::Unary::OPERATOR_POSITION::PREFIX) {
                 object = object + 1;
                 return object;
@@ -395,7 +395,7 @@ std::any Analyzer::visit(AstNode::Expression::Unary& ast) {
             }
         break;
 
-        case Analyzer::UNARY_OPERATOR::DEC:
+        case UNARY_OPERATOR::DEC:
             if (position == AstNode::Expression::Unary::OPERATOR_POSITION::PREFIX) {
                 object = object - 1;
                 return object;
