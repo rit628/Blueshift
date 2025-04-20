@@ -104,6 +104,11 @@ add_library(interpreter STATIC ${LIBINTERPRETER_SRC})
 target_include_directories(interpreter PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
 target_link_libraries(interpreter lang_common types ${BOOST_LIB_DEPS})
 
+file(GLOB_RECURSE LIBDEPGRAPH_SRC ${LANG_SRC_DIR}/libdepgraph/*.cpp)
+add_library(depgraph STATIC ${LIBDEPGRAPH_SRC})
+target_include_directories(depgraph PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
+target_link_libraries(depgraph lang_common types ${BOOST_LIB_DEPS})
+
 file(GLOB_RECURSE LIBVIRTUALMACHINE_SRC ${LANG_SRC_DIR}/libvirtual_machine/*.cpp)
 add_library(virtual_machine STATIC ${LIBVIRTUALMACHINE_SRC})
 target_include_directories(virtual_machine PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
@@ -112,7 +117,7 @@ target_link_libraries(virtual_machine lang_common types bytecode ${BOOST_LIB_DEP
 file(GLOB_RECURSE LIBCOMPILER_SRC ${LANG_SRC_DIR}/libcompiler/*.cpp)
 add_library(compiler STATIC ${LIBCOMPILER_SRC})
 target_include_directories(compiler PUBLIC ${BLS_CONFIG} ${LANG_COMMON} ${LANG_SRC_DIR})
-target_link_libraries(compiler lang_common lexer parser interpreter ${BOOST_LIB_DEPS})
+target_link_libraries(compiler lang_common lexer parser interpreter depgraph ${BOOST_LIB_DEPS})
 
 add_executable(lang ${LANG_SRC_DIR}/main.cpp)
 target_link_libraries(lang compiler virtual_machine ${BOOST_LIB_DEPS})
@@ -202,6 +207,7 @@ file(GLOB_RECURSE LANG_E2E_TESTS ${LANG_TEST_DIR}/e2e/*.cpp)
 add_executable(test_lang ${LANG_E2E_TESTS})
 target_include_directories(test_lang PUBLIC ${TEST_DEPS} ${LANG_COMMON} ${LANG_SRC_DIR})
 target_link_libraries(test_lang compiler lang_common GTest::gtest_main)
+
 
 # MASTER TESTS
 file(GLOB_RECURSE LIBTSM_TESTS ${MASTER_TEST_DIR}/libTSM/*.cpp)

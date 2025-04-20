@@ -1,0 +1,40 @@
+oblock hello(LIGHT l1, LIGHT m1, LIGHT t1){
+    int a = m1.rpm; 
+    b = t1.temp; 
+    l1.state = 65; 
+}
+
+oblock goodbye(LIGHT l1, LIGHT b1){
+    if(b1.down){
+        l1.state = true; 
+    }
+    else{
+        l1.state = false; 
+    }
+}
+
+oblock james(LIGHT thermy, LIGHT motor){
+    for(int i = 0; i < thermy.temp; i++){
+        motor.rpm += 69; 
+    }   
+}
+
+oblock lamar(LIGHT jack, LIGHT button){
+    if(button.down){
+        jack.rpm++; 
+    }
+}
+
+
+setup(){
+    LIGHT red_light = "CTL1::PIN-20"; 
+    LIGHT blue_light = "CTL2::PIN-21";  
+    LIGHT push_button = "CTL1::PIN-1"; 
+    LIGHT thermometer = "CTL2::PIN-1";
+    LIGHT fanMotor = "CTL1::PIN-2,OPASO-4"; 
+
+    hello(blue_light, fanMotor, thermometer); 
+    goodbye(red_light, push_button); 
+    james(thermometer, fanMotor); 
+    lamar(fanMotor, push_button); 
+}

@@ -33,8 +33,7 @@ int main(int argc, char *argv[]){
     TSQ<DMM> EM_MM_queue; 
     TSQ<std::vector<DMM>> MM_EM_queue; 
 
-    DMM light_dmm;
-    DeviceDescriptor dd = compiler.getDeviceDescriptors()["L1"];
+    auto& depMap = compiler.getDependencyGraph(); 
     
     // NM and MM
     TSQ<DMM> NM_MM_queue; 
@@ -46,7 +45,7 @@ int main(int argc, char *argv[]){
     NM.start(); 
 
 
-    ExecutionManager EM(oblocks, MM_EM_queue, EM_MM_queue, functions); 
+    ExecutionManager EM(oblocks, MM_EM_queue, EM_MM_queue, functions, depMap); 
     std::thread t3([&](){EM.running();});
     
     // Make Mailbox (runs with EM and NM)
