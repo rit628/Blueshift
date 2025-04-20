@@ -45,7 +45,7 @@ std::any Interpreter::visit(AstNode::Function::Procedure& ast) {
             throw RuntimeError("Invalid number of arguments provided to procedure call.");
         }
         for (int i = 0; i < params.size(); i++) {
-            exec.cs.setLocal(params.at(i), args.at(i));
+            exec.cs.addLocal(params.at(i), args.at(i));
         }
 
         try {
@@ -77,7 +77,7 @@ std::any Interpreter::visit(AstNode::Function::Oblock& ast) {
             throw RuntimeError("Invalid number of arguments provided to oblock call.");
         }
         for (int i = 0; i < params.size(); i++) {
-            exec.cs.setLocal(params.at(i), args.at(i));
+            exec.cs.addLocal(params.at(i), args.at(i));
         }
 
         for (auto&& statement : statements) {
@@ -272,10 +272,10 @@ std::any Interpreter::visit(AstNode::Statement::Declaration& ast) {
     }
     else if (value.has_value()) {
         auto literal = value->get()->accept(*this);
-        cs.setLocal(name, resolve(literal));
+        cs.addLocal(name, resolve(literal));
     }
     else {
-        cs.setLocal(name, resolve(typedObj));
+        cs.addLocal(name, resolve(typedObj));
     }
     return std::monostate();
 }

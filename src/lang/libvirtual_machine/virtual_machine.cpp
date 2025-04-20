@@ -62,7 +62,7 @@ void VirtualMachine::MKTYPE(uint8_t index, uint8_t type, int) {
             value = std::monostate();
         break;
     }
-    cs.setLocal(index, value);
+    cs.addLocal(index, value);
 }
 
 void VirtualMachine::STORE(uint8_t index, int) {
