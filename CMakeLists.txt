@@ -203,6 +203,11 @@ add_executable(test_libparser ${LIBPARSER_TESTS})
 target_include_directories(test_libparser PUBLIC ${TEST_DEPS} ${LANG_COMMON} ${LANG_SRC_DIR}/libparser)
 target_link_libraries(test_libparser parser lang_common GTest::gtest_main)
 
+file(GLOB_RECURSE LIBANALYZER_TESTS ${LANG_TEST_DIR}/libanalyzer/*.cpp)
+add_executable(test_libanalyzer ${LIBANALYZER_TESTS})
+target_include_directories(test_libanalyzer PUBLIC ${TEST_DEPS} ${LANG_COMMON} ${LANG_SRC_DIR}/libanalyzer)
+target_link_libraries(test_libanalyzer analyzer lang_common GTest::gtest_main)
+
 file(GLOB_RECURSE LANG_E2E_TESTS ${LANG_TEST_DIR}/e2e/*.cpp)
 add_executable(test_lang ${LANG_E2E_TESTS})
 target_include_directories(test_lang PUBLIC ${TEST_DEPS} ${LANG_COMMON} ${LANG_SRC_DIR})
@@ -227,6 +232,7 @@ target_link_libraries(test_libMM MM GTest::gtest_main)
 include(GoogleTest)
 gtest_discover_tests(test_liblexer)
 gtest_discover_tests(test_libparser)
+gtest_discover_tests(test_libanalyzer)
 gtest_discover_tests(
     test_lang
     WORKING_DIRECTORY ${LANG_TEST_DIR}/e2e/samples
