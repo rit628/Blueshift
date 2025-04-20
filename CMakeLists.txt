@@ -200,12 +200,12 @@ target_link_libraries(test_liblexer lexer lang_common GTest::gtest_main)
 
 file(GLOB_RECURSE LIBPARSER_TESTS ${LANG_TEST_DIR}/libparser/*.cpp)
 add_executable(test_libparser ${LIBPARSER_TESTS})
-target_include_directories(test_libparser PUBLIC ${TEST_DEPS} ${LANG_COMMON} ${LANG_SRC_DIR}/libparser)
+target_include_directories(test_libparser PUBLIC ${TEST_DEPS} ${LANG_COMMON} ${LANG_SRC_DIR}/libparser ${LANG_TEST_DIR}/include)
 target_link_libraries(test_libparser parser lang_common GTest::gtest_main)
 
 file(GLOB_RECURSE LIBANALYZER_TESTS ${LANG_TEST_DIR}/libanalyzer/*.cpp)
 add_executable(test_libanalyzer ${LIBANALYZER_TESTS})
-target_include_directories(test_libanalyzer PUBLIC ${TEST_DEPS} ${LANG_COMMON} ${LANG_SRC_DIR}/libanalyzer)
+target_include_directories(test_libanalyzer PUBLIC ${TEST_DEPS} ${LANG_COMMON} ${LANG_SRC_DIR}/libanalyzer ${LANG_TEST_DIR}/include)
 target_link_libraries(test_libanalyzer analyzer lang_common GTest::gtest_main)
 
 file(GLOB_RECURSE LANG_E2E_TESTS ${LANG_TEST_DIR}/e2e/*.cpp)
