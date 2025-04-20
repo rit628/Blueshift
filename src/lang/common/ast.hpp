@@ -1,4 +1,5 @@
 #pragma once
+#include "libtypes/bls_types.hpp"
 #include <any>
 #include <cstddef>
 #include <cstdint>
@@ -107,9 +108,11 @@ namespace BlsLang {
             std::any accept(Visitor& v) override;
 
             auto& getElements() { return elements; }
+            auto& getLiteral() { return literal; }
 
         private:
             std::vector<std::unique_ptr<AstNode::Expression>> elements;
+            BlsType literal;
     };
 
     class AstNode::Expression::Set : public AstNode::Expression {
@@ -152,9 +155,11 @@ namespace BlsLang {
             std::any accept(Visitor& v) override;
 
             auto& getElements() { return elements; }
+            auto& getLiteral() { return literal; }
 
         private:
             std::vector<std::pair<std::unique_ptr<AstNode::Expression>, std::unique_ptr<AstNode::Expression>>> elements;
+            BlsType literal;
     };
 
     class AstNode::Expression::Access : public AstNode::Expression {
