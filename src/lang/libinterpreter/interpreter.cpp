@@ -290,87 +290,87 @@ std::any Interpreter::visit(AstNode::Expression::Binary& ast) {
 
     auto op = getBinOpEnum(ast.getOp());
     switch (op) {
-        case Interpreter::BINARY_OPERATOR::OR:
+        case BINARY_OPERATOR::OR:
             return lhs || rhs;
         break;
 
-        case Interpreter::BINARY_OPERATOR::AND:
+        case BINARY_OPERATOR::AND:
             return lhs && rhs;
         break;
 
-        case Interpreter::BINARY_OPERATOR::LT:
+        case BINARY_OPERATOR::LT:
             return lhs < rhs;
         break;
         
-        case Interpreter::BINARY_OPERATOR::LE:
+        case BINARY_OPERATOR::LE:
             return lhs <= rhs;
         break;
 
-        case Interpreter::BINARY_OPERATOR::GT:
+        case BINARY_OPERATOR::GT:
             return lhs > rhs;
         break;
 
-        case Interpreter::BINARY_OPERATOR::GE:
+        case BINARY_OPERATOR::GE:
             return lhs >= rhs;
         break;
 
-        case Interpreter::BINARY_OPERATOR::NE:
+        case BINARY_OPERATOR::NE:
             return lhs != rhs;
         break;
 
-        case Interpreter::BINARY_OPERATOR::EQ:
+        case BINARY_OPERATOR::EQ:
             return lhs == rhs;
         break;
 
-        case Interpreter::BINARY_OPERATOR::ADD:
+        case BINARY_OPERATOR::ADD:
             return lhs + rhs;
         break;
         
-        case Interpreter::BINARY_OPERATOR::SUB:
+        case BINARY_OPERATOR::SUB:
             return lhs - rhs;
         break;
 
-        case Interpreter::BINARY_OPERATOR::MUL:
+        case BINARY_OPERATOR::MUL:
             return lhs * rhs;
         break;
 
-        case Interpreter::BINARY_OPERATOR::DIV:
+        case BINARY_OPERATOR::DIV:
             return lhs / rhs;
         break;
 
-        case Interpreter::BINARY_OPERATOR::MOD:
+        case BINARY_OPERATOR::MOD:
             return lhs % rhs;
         break;
         
-        case Interpreter::BINARY_OPERATOR::EXP:
+        case BINARY_OPERATOR::EXP:
             return lhs ^ rhs;
         break;
 
-        case Interpreter::BINARY_OPERATOR::ASSIGN:
+        case BINARY_OPERATOR::ASSIGN:
             return lhs = rhs;
         break;
 
-        case Interpreter::BINARY_OPERATOR::ASSIGN_ADD:
+        case BINARY_OPERATOR::ASSIGN_ADD:
             return lhs = lhs + rhs;
         break;
 
-        case Interpreter::BINARY_OPERATOR::ASSIGN_SUB:
+        case BINARY_OPERATOR::ASSIGN_SUB:
             return lhs = lhs - rhs;
         break;
 
-        case Interpreter::BINARY_OPERATOR::ASSIGN_MUL:
+        case BINARY_OPERATOR::ASSIGN_MUL:
             return lhs = lhs * rhs;
         break;
 
-        case Interpreter::BINARY_OPERATOR::ASSIGN_DIV:
+        case BINARY_OPERATOR::ASSIGN_DIV:
             return lhs = lhs / rhs;
         break;
 
-        case Interpreter::BINARY_OPERATOR::ASSIGN_MOD:
+        case BINARY_OPERATOR::ASSIGN_MOD:
             return lhs = lhs % rhs;
         break;
 
-        case Interpreter::BINARY_OPERATOR::ASSIGN_EXP:
+        case BINARY_OPERATOR::ASSIGN_EXP:
             return lhs = lhs ^ rhs;
         break;
 
@@ -387,15 +387,15 @@ std::any Interpreter::visit(AstNode::Expression::Unary& ast) {
     auto position = ast.getPosition();
     
     switch (op) {
-        case Interpreter::UNARY_OPERATOR::NOT:
+        case UNARY_OPERATOR::NOT:
             return !object;
         break;
 
-        case Interpreter::UNARY_OPERATOR::NEG:
+        case UNARY_OPERATOR::NEG:
             return -object;
         break;
 
-        case Interpreter::UNARY_OPERATOR::INC:
+        case UNARY_OPERATOR::INC:
             if (position == AstNode::Expression::Unary::OPERATOR_POSITION::PREFIX) {
                 object = object + 1;
                 return object;
@@ -407,7 +407,7 @@ std::any Interpreter::visit(AstNode::Expression::Unary& ast) {
             }
         break;
 
-        case Interpreter::UNARY_OPERATOR::DEC:
+        case UNARY_OPERATOR::DEC:
             if (position == AstNode::Expression::Unary::OPERATOR_POSITION::PREFIX) {
                 object = object - 1;
                 return object;
