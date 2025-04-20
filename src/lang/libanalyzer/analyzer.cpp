@@ -522,7 +522,10 @@ std::any Analyzer::visit(AstNode::Expression::Literal& ast) {
         [&literal](auto value) { literal = BlsType(value); }
     };
     std::visit(convert, ast.getLiteral());
-    literals.emplace(resolve(literal));
+    auto& resolved = resolve(literal);
+    if (!literalPool.contains(resolved)) {
+        literalPool.emplace(resolve(literal), literalCount++);
+    }
     return literal;
 }
 
@@ -548,10 +551,13 @@ std::any Analyzer::visit(AstNode::Expression::List& ast) {
             }
         }
     }
-    
-    literals.emplace(BlsType(list));
 
-    return BlsType(list);
+    auto wrappedList = BlsType(list);
+    if (!literalPool.contains(wrappedList)) {
+        literalPool.emplace(wrappedList, literalCount++);
+    }
+
+    return wrappedList;
 }
 
 std::any Analyzer::visit(AstNode::Expression::Set& ast) {
@@ -587,9 +593,12 @@ std::any Analyzer::visit(AstNode::Expression::Map& ast) {
         }
     }
 
-    literals.emplace(BlsType(map));
+    auto wrappedMap = BlsType(map);
+    if (!literalPool.contains(wrappedMap)) {
+        literalPool.emplace(wrappedMap, literalCount++);
+    }
 
-    return BlsType(map);
+    return wrappedMap;
 }
 
 std::any Analyzer::visit(AstNode::Specifier::Type& ast) {

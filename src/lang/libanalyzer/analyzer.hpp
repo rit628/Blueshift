@@ -8,7 +8,6 @@
 #include <iostream>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <variant>
 #include <vector>
 
@@ -81,7 +80,11 @@ namespace BlsLang {
             std::unordered_map<std::string, FunctionSignature> oblocks;
             std::unordered_map<std::string, DeviceDescriptor> deviceDescriptors;
             std::vector<OBlockDesc> oblockDescriptors;
-            std::unordered_set<BlsType> literals;
+            std::unordered_map<BlsType, uint8_t> literalPool = {
+                {std::monostate(), 0},  // for void return values
+                {1, 1}  // for increment & decrement expressions
+            };
+            uint8_t literalCount = literalPool.size();
     };
 
     inline constexpr Analyzer::BINARY_OPERATOR Analyzer::getBinOpEnum(std::string_view op) {
