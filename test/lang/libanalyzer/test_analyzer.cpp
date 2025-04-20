@@ -3,12 +3,45 @@
 #include "fixtures/analyzer_test.hpp"
 #include "include/reserved_tokens.hpp"
 #include "test_macros.hpp"
+#include <cstdint>
 #include <gtest/gtest.h>
 #include <memory>
 
 namespace BlsLang {
+    
+    GROUP_TEST_F(AnalyzerTest, TypeTests, ValidDeclaration) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Declaration(
+            "x",
+            new AstNode::Specifier::Type(
+                PRIMITIVE_INT,
+                {}
+            )
+            ,
+            new AstNode::Expression::Literal(
+                int64_t(2)
+            )
+        ));
 
-    GROUP_TEST_F(AnalyzerTest, TypeTests, BadDeclaration) {
+        auto decoratedAst = std::unique_ptr<AstNode>(new AstNode::Statement::Declaration(
+            "x",
+            new AstNode::Specifier::Type(
+                PRIMITIVE_INT,
+                {}
+            )
+            ,
+            new AstNode::Expression::Literal(
+                int64_t(2)
+            ),
+            0
+        ));
+
+        Metadata expectedMetadata;
+        expectedMetadata.literalPool.emplace(2, 2);
+
+        TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, TypeTests, InvalidDeclaration) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Declaration(
             "x",
             new AstNode::Specifier::Type(

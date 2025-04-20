@@ -48,6 +48,7 @@ namespace BlsLang {
             };
 
             CallStack() = default;
+            CallStack(Frame::Context defaultContext) requires StringAddressable<T>;
 
             void pushFrame(Frame::Context context, const std::string& name = "") requires StringAddressable<T>;
             void pushFrame(size_t returnAddress, std::span<BlsType> arguments) requires IntAddressable<T>;
@@ -65,6 +66,11 @@ namespace BlsLang {
             using cstack_t = std::conditional_t<std::same_as<T, std::string>, std::vector<Frame>, std::stack<Frame>>;
             cstack_t cs;
     };
+
+    template<StackType T>
+    inline CallStack<T>::CallStack(Frame::Context defaultContext) requires StringAddressable<T> {
+        pushFrame(defaultContext);
+    }
 
     template<StackType T>
     inline CallStack<T>::Frame::Frame(size_t returnAddress, std::span<BlsType> arguments) requires IntAddressable<T> : returnAddress(returnAddress) {
@@ -120,9 +126,8 @@ namespace BlsLang {
     template<StackType T>
     inline void CallStack<T>::addLocal(T index, BlsType value) {
         if constexpr (std::is_same<T, std::string>()) {
-            auto& locals = cs.back().locals;
-            auto& localCount = cs.back().localCount;
-            locals[index] = {localCount++, value};
+            auto& frame = cs.back();
+            frame.locals[index] = {frame.localCount++, value};
         }
         else {
             auto& locals = cs.top().locals;
