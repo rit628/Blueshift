@@ -1,3 +1,5 @@
+#include "ast.hpp"
+#include "binding_parser.hpp"
 #include "error_types.hpp"
 #include "libtypes/typedefs.hpp"
 #include "analyzer.hpp"
@@ -27,7 +29,7 @@ std::any Analyzer::visit(AstNode::Source& ast) {
         oblock->accept(*this);
     }
 
-    // ast.getSetup()->accept(*this);
+    ast.getSetup()->accept(*this);
 
     return std::monostate();
 }
@@ -80,11 +82,58 @@ std::any Analyzer::visit(AstNode::Function::Oblock& ast) {
 }
 
 std::any Analyzer::visit(AstNode::Setup& ast) {
-    cs.pushFrame(CallStack<std::string>::Frame::Context::SETUP, "__setup__");
     for (auto&& statement : ast.getStatements()) {
-        statement->accept(*this);
+        if (auto* deviceBinding = dynamic_cast<AstNode::Statement::Declaration*>(statement.get())) {
+            auto& name = deviceBinding->getName();
+            auto devtypeObj = deviceBinding->getType()->accept(*this);
+            auto devtype = static_cast<DEVTYPE>(getType(resolve(devtypeObj)));
+
+            auto& value = deviceBinding->getValue();
+            if (!value.has_value()) {
+                throw SemanticError("DEVTYPE binding cannot be empty");
+            }
+
+            auto binding = value->get()->accept(*this);
+            auto resolvedBinding = resolve(binding);
+            if (!std::holds_alternative<std::string>(resolvedBinding)) {
+                throw SemanticError("DEVTYPE binding must be a string literal");
+            }
+            auto& bindStr = std::get<std::string>(resolvedBinding);
+            auto devDesc = parseDeviceBinding(name, devtype, bindStr);
+            deviceDescriptors.emplace(name, devDesc);
+        }
+        else if (auto* statementExpression = dynamic_cast<AstNode::Statement::Expression*>(statement.get())) {
+            auto* oblockBinding = dynamic_cast<AstNode::Expression::Function*>(statementExpression);
+            if (!oblockBinding) {
+                throw SemanticError("Statement within setup() must be an oblock binding expression or device binding declaration");
+            }
+            auto& name = oblockBinding->getName();
+            auto& args = oblockBinding->getArguments();
+            if (!oblocks.contains(name)) {
+                throw SemanticError(name + " does not refer to an oblock");
+            }
+            OBlockDesc desc;
+            desc.name = name;
+            auto& devices = desc.binded_devices;
+            for (auto&& arg : args) {
+                auto* expr = dynamic_cast<AstNode::Expression::Access*>(arg.get());
+                if (expr == nullptr || expr->getMember().has_value() || expr->getSubscript().has_value()) {
+                    throw SemanticError("Invalid oblock binding in setup()");
+                }
+                try {
+                    devices.push_back(deviceDescriptors.at(expr->getObject()));
+                }
+                catch (std::out_of_range) {
+                    throw RuntimeError(expr->getObject() + " does not refer to a device binding");
+                }
+            }
+            oblockDescriptors.push_back(desc);
+            return std::monostate();
+        }
+        else {
+            throw SemanticError("Statement within setup() must be an oblock binding expression or device binding declaration");
+        }
     }
-    cs.popFrame();
     return true;
 }
 
@@ -161,9 +210,6 @@ std::any Analyzer::visit(AstNode::Statement::While& ast) {
 
 std::any Analyzer::visit(AstNode::Statement::Return& ast) {
     auto& functionName = cs.getFrameName();
-    if (functionName == "__setup__") {
-        throw SemanticError("No return statements allowed in setup()");
-    }
     auto parentSignature = (procedures.contains(functionName)) ? procedures.at(functionName) : oblocks.at(functionName);
     auto expectedReturnType = getType(parentSignature.returnType);
     auto& value = ast.getValue();

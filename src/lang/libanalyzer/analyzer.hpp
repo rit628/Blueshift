@@ -1,4 +1,5 @@
 #pragma once
+#include "include/Common.hpp"
 #include "libtypes/bls_types.hpp"
 #include "call_stack.hpp"
 #include "include/reserved_tokens.hpp"
@@ -24,6 +25,9 @@ namespace BlsLang {
             #undef AST_NODE_ABSTRACT
             #undef AST_NODE
             
+            auto& getDeviceDescriptors() { return deviceDescriptors; }
+            auto& getOblockDescriptors() { return oblockDescriptors; }
+
         private:
             enum class BINARY_OPERATOR : uint8_t {
                   AND
@@ -75,6 +79,8 @@ namespace BlsLang {
                 {"print", {"print", std::monostate(), {}, true}}
             };
             std::unordered_map<std::string, FunctionSignature> oblocks;
+            std::unordered_map<std::string, DeviceDescriptor> deviceDescriptors;
+            std::vector<OBlockDesc> oblockDescriptors;
             std::unordered_set<BlsType> literals;
     };
 
