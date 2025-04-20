@@ -531,12 +531,23 @@ std::any Analyzer::visit(AstNode::Expression::Literal& ast) {
 
 std::any Analyzer::visit(AstNode::Expression::List& ast) {
     auto list = std::make_shared<VectorDescriptor>(TYPE::ANY);
+    auto listLiteral = std::make_shared<VectorDescriptor>(TYPE::ANY);
     auto& elements = ast.getElements();
     BlsType initIdx = 0;
     auto addElement = [&, this](auto& element) {
         auto literal = element->accept(*this);
         auto& resolved = resolve(literal);
         list->append(resolved);
+        auto& valExpressionType = typeid(*element);
+        if (valExpressionType == typeid(AstNode::Expression::Literal)
+            || valExpressionType == typeid(AstNode::Expression::List)
+            || valExpressionType == typeid(AstNode::Expression::Map)) { // element can be added at compile time
+                listLiteral->append(resolved);
+        }
+        else {
+            BlsType null = std::monostate();
+            listLiteral->append(null);
+        }
         return resolved;
     };
 
@@ -552,12 +563,13 @@ std::any Analyzer::visit(AstNode::Expression::List& ast) {
         }
     }
 
-    auto wrappedList = BlsType(list);
-    if (!literalPool.contains(wrappedList)) {
-        literalPool.emplace(wrappedList, literalCount++);
+    if (!literalPool.contains(listLiteral)) {
+        literalPool.emplace(listLiteral, literalCount++);
     }
 
-    return wrappedList;
+    ast.getLiteral() = listLiteral;
+
+    return BlsType(list);
 }
 
 std::any Analyzer::visit(AstNode::Expression::Set& ast) {
@@ -566,6 +578,7 @@ std::any Analyzer::visit(AstNode::Expression::Set& ast) {
 
 std::any Analyzer::visit(AstNode::Expression::Map& ast) {
     auto map = std::make_shared<MapDescriptor>(TYPE::ANY);
+    auto mapLiteral = std::make_shared<MapDescriptor>(TYPE::ANY);
     auto& elements = ast.getElements();
     BlsType initKey, initVal;
     auto addElement = [&, this](auto& element) {
@@ -575,8 +588,22 @@ std::any Analyzer::visit(AstNode::Expression::Map& ast) {
             throw SemanticError("Invalid key type for map");
         }
         auto value = element.second->accept(*this);
-        auto& resolvedKey = resolve(key), resolvedVal = resolve(value);
+        auto& resolvedKey = resolve(key);
+        auto& resolvedVal = resolve(value);
         map->emplace(resolvedKey, resolvedVal);
+        auto& keyExpressionType = typeid(*element.first);
+        if (keyExpressionType == typeid(AstNode::Expression::Literal)) { // key can be added at compile time
+            auto& valExpressionType = typeid(*element.second);
+            if (valExpressionType == typeid(AstNode::Expression::Literal)
+             || valExpressionType == typeid(AstNode::Expression::List)
+             || valExpressionType == typeid(AstNode::Expression::Map)) { // value can be added at compile time
+                mapLiteral->emplace(resolvedKey, resolvedVal);
+            }
+            else {
+                BlsType null = std::monostate();
+                mapLiteral->emplace(resolvedKey, null);
+            }
+        }
         return std::pair(resolvedKey, resolvedVal);
     };
 
@@ -593,12 +620,13 @@ std::any Analyzer::visit(AstNode::Expression::Map& ast) {
         }
     }
 
-    auto wrappedMap = BlsType(map);
-    if (!literalPool.contains(wrappedMap)) {
-        literalPool.emplace(wrappedMap, literalCount++);
+    if (!literalPool.contains(mapLiteral)) {
+        literalPool.emplace(mapLiteral, literalCount++);
     }
 
-    return wrappedMap;
+    ast.getLiteral() = mapLiteral;
+
+    return BlsType(map);
 }
 
 std::any Analyzer::visit(AstNode::Specifier::Type& ast) {
