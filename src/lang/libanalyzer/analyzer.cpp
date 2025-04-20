@@ -103,7 +103,7 @@ std::any Analyzer::visit(AstNode::Setup& ast) {
             deviceDescriptors.emplace(name, devDesc);
         }
         else if (auto* statementExpression = dynamic_cast<AstNode::Statement::Expression*>(statement.get())) {
-            auto* oblockBinding = dynamic_cast<AstNode::Expression::Function*>(statementExpression);
+            auto* oblockBinding = dynamic_cast<AstNode::Expression::Function*>(statementExpression->getExpression().get());
             if (!oblockBinding) {
                 throw SemanticError("Statement within setup() must be an oblock binding expression or device binding declaration");
             }
