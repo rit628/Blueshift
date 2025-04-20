@@ -338,7 +338,7 @@ size_t std::hash<BlsType>::operator()(const BlsType& obj) const {
             return seed;
         },
         [](const std::monostate& x) -> size_t {
-            return 0;
+            return std::hash<std::monostate>{}(x);
         },
         [](const std::string& x) -> size_t {
             return std::hash<std::string>{}(x);
