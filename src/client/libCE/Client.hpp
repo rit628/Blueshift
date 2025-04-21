@@ -72,7 +72,8 @@ class Client{
         void updateTicker(); 
         // Temp timers 
         std::vector<Timer> start_timers; 
-
+        // Signal Handler thread
+        std::thread signalerThread; 
 
         /*
             State management information
@@ -82,6 +83,7 @@ class Client{
         std::unordered_map<uint16_t, std::unique_ptr<DeviceTimer>> client_ticker;
         std::vector<std::unique_ptr<DeviceInterruptor>> interruptors;
         std::vector<std::thread> global_interrupts;  
+        bool listening = false; 
 
 
     public: 
@@ -95,6 +97,9 @@ class Client{
 
         // shutdown
         void shutdown();
+
+        // Signal Handler: 
+        void handleSignal(); 
 
         /*
             Connection stuff

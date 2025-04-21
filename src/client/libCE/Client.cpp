@@ -1,4 +1,6 @@
 #include "Client.hpp"
+#include "libnetwork/Connection.hpp"
+#include <thread>
 
 Client::Client(std::string c_name): client_socket(client_ctx), bc_socket(client_ctx, udp::endpoint(udp::v4(), 2988)){
     this->client_name = c_name; 
@@ -32,10 +34,28 @@ void Client::sendCallback(uint16_t deviceCode){
     this->client_connection->send(sm); 
 }
 
+void Client::handleSignal(){
+    while(true){
+        std::unique_lock<std::mutex> lock(this->client_connection->signalMut); 
+        SIGNAL connectSignal = this->client_connection->state;
+        this->client_connection->signalCv.wait(lock ,[connectSignal]{return (connectSignal != SIGNAL::OK);}); 
 
+        switch(connectSignal){
+            case(SIGNAL::CONNECTION_FAILED):
+                std::cout<<"Connection dropped... Restarting Client"<<std::endl; 
+                this->client_ctx.stop(); 
+                this->listening = false; 
+                this->broadcastListen(); 
+                break; 
+            default: 
+                std::cout<<"ReHandle Connection"<<std::endl; 
+                break; 
+        } 
+    }
+}
 
 void Client::listener(){
-    while(1){
+    while(this->listening){
 
         auto inMsg = this->in_queue.read().sm; 
         
@@ -185,7 +205,7 @@ void Client::listener(){
 }
 
 void Client::broadcastListen(){
-    while(1){
+    while(true){
         std::cout<<"CLIENT: waiting for client connection"<<std::endl; 
         std::vector<char> buffer(MAX_NAME_LEN); 
         udp::endpoint master_endpoint; 
@@ -210,9 +230,11 @@ bool Client::attemptConnection(boost::asio::ip::address master_address){
         tcp::endpoint master_endpoint(master_address, MASTER_PORT); 
 
         this->client_connection->connectToMaster(master_endpoint, this->client_name);
+        this->listening = true; 
 
         this->listenerThread = std::thread([this](){this->listener();});
         this->ctxThread = std::thread([this](){this->client_ctx.run();});   
+        this->signalerThread = std::thread([this](){this->handleSignal();}); 
 
         if(this->listenerThread.joinable()){
             this->listenerThread.join(); 
@@ -221,6 +243,10 @@ bool Client::attemptConnection(boost::asio::ip::address master_address){
         // Join the threads to maintian concurrency
         if(this->ctxThread.joinable()){
             this->ctxThread.join(); 
+        }
+
+        if(this->signalerThread.joinable()){
+            this->signalerThread.join(); 
         }
 
         std::cout<<this->client_name + " Connection successful!"<<std::endl; 
@@ -233,7 +259,6 @@ bool Client::attemptConnection(boost::asio::ip::address master_address){
     }
     
 }
-
 
 // TO BE COMPLETED BY PHASE 3
 bool Client::connectTo(const std::string &endpt, const uint16_t port){

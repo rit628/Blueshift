@@ -1,4 +1,5 @@
  #include "Connection.hpp"
+#include <mutex>
  
 Connection::Connection(boost::asio::io_context &in_ctx, 
 tcp::socket socket ,Owner own_type, TSQ<OwnedSentMessage> &in_msg, std::string &ip_addr) 
@@ -13,6 +14,7 @@ tcp::socket socket ,Owner own_type, TSQ<OwnedSentMessage> &in_msg, std::string &
 void Connection::connectToClient(){
     if(this->own == Owner::MASTER){
         if(this->socket.is_open()){
+            this->state = SIGNAL::OK; 
             this->readHeader(); 
         }
     }
@@ -110,6 +112,11 @@ void Connection::readHeader(){
         }
         else{
             std::cerr<<"READ HEADER ERROR: "<<ec.message()<<std::endl; 
+            {
+                std::lock_guard<std::mutex> lock(this->signalMut); 
+                this->state = SIGNAL::CONNECTION_FAILED; 
+            }
+            this->signalCv.notify_one();
             this->socket.close(); 
         }
     }); 
@@ -172,10 +179,10 @@ void Connection::writeBody(){
 
 void Connection::addToQueue(){
     if(this->own == Owner::MASTER){
-        this->in_queue.write({this->shared_from_this(), this->currMessage}); 
+        this->in_queue.write({.connection=this->shared_from_this(), .sm=this->currMessage}); 
     }
     else if(this->own == Owner::CLIENT){
-        this->in_queue.write({nullptr, this->currMessage}); 
+        this->in_queue.write({.connection=nullptr, .sm=this->currMessage}); 
     }
     
     this->readHeader(); 

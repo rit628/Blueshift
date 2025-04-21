@@ -1,6 +1,8 @@
 #pragma once
 
 #include <boost/asio.hpp>
+#include <condition_variable>
+#include <mutex>
 #include "libTSQ/TSQ.hpp"
 #include "Protocol.hpp"
 
@@ -12,6 +14,11 @@ enum class Owner{
 }; 
 
 struct OwnedSentMessage; 
+
+enum class SIGNAL{
+    OK, 
+    CONNECTION_FAILED,
+}; 
 
 class Connection : public enable_shared_from_this<Connection>{
     private: 
@@ -38,19 +45,25 @@ class Connection : public enable_shared_from_this<Connection>{
 
     public: 
 
+     
         Connection(boost::asio::io_context &in_ctx, tcp::socket i_socket, Owner own_type, TSQ<OwnedSentMessage> &in_msg, std::string &ip_addr);
         ~Connection() = default; 
 
+        SIGNAL state = SIGNAL::OK; 
+        std::mutex signalMut; 
+        std::condition_variable signalCv; 
 
         void connectToMaster(tcp::endpoint endpoints, std::string &name); 
         void connectToClient(); 
         bool disconnect(); 
         bool isConnected() const; 
 
+
         std::string& getIP(); 
         void send(const SentMessage &sm); 
         std::string& getName(); 
         void setName(std::string& cname); 
+        
 
         // Used to connect Master to external APIs (phase 3)
         void connectToServer(boost::asio::ip::tcp::resolver::results_type &results); 
