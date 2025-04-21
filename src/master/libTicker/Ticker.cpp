@@ -142,8 +142,6 @@ void MTicker::sendTicker(std::vector<Timer> &timerList, std::string &ctl, std::u
 // Update vol Thread
 void MTicker::updateVol(){
     std::cout<<"To be implemented"<<std::endl; 
-
-
 }
 
 // Volatility object

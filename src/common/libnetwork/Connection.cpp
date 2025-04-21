@@ -1,9 +1,18 @@
  #include "Connection.hpp"
+#include "boost/asio/write.hpp"
+#include "boost/system/detail/error_code.hpp"
+#include "libnetwork/Protocol.hpp"
+#include <array>
+#include <cstddef>
  
 Connection::Connection(boost::asio::io_context &in_ctx, 
 tcp::socket socket ,Owner own_type, TSQ<OwnedSentMessage> &in_msg, std::string &ip_addr) 
 : ctx(in_ctx), socket(std::move(socket)), in_queue(in_msg)
     {
+        for(int i = 0 ; i < IN_MSGSIZE ; i++){
+            this->in_tickets.push_back(i); 
+        }
+
         own = own_type;
         ip = ip_addr; 
     };
@@ -54,14 +63,12 @@ void Connection::connectToMaster(tcp::endpoint master_ep ,std::string &name){
 
 void Connection::connectToServer(boost::asio::ip::tcp::resolver::results_type &results){
     boost::asio::async_connect(this->socket, results, 
-    [this](boost::system::error_code ec, tcp::endpoint endpt){
+    [](boost::system::error_code ec, tcp::endpoint endpt){
         if(!ec){
             std::cout<<"Read Header"<<std::endl; 
         }
     });
 }
-
-
 
 bool Connection::disconnect(){
     if(this->isConnected()){
@@ -81,13 +88,15 @@ std::string& Connection::getIP(){
 
 void Connection::send(const SentMessage &sm){
     boost::asio::post(this->ctx, [this, sm](){
-        bool write_empty = this->out_queue.isEmpty(); 
-        this->out_queue.write(sm); 
-
-        // if empty before new item added, then add the object
-        if(write_empty){   
-            writeHeader(); 
-        }
+        boost::asio::async_write(this->socket, std::array{
+            boost::asio::buffer(&sm.header, sizeof(SentHeader)),
+            boost::asio::buffer(sm.body.data(), sm.header.body_size)
+        },
+        [](boost::system::error_code ec, size_t size) {
+            if (ec) {
+                std::cerr << "Error Writing Message: " << ec.message() << std::endl;
+            }
+        });
     });
 }
 
@@ -96,17 +105,17 @@ std::string& Connection::getName(){
 }
 
 void Connection::readHeader(){
-    boost::asio::async_read(this->socket, boost::asio::buffer(&this->currMessage.header, sizeof(SentHeader)) ,[this]
-    (boost::system::error_code ec, size_t len){
+    int index = this->in_tickets.back();
+    this->in_tickets.pop_back();
+
+    auto& header = this->in_messageBuffer.at(index).header;
+
+    boost::asio::async_read(this->socket, boost::asio::buffer(&header, sizeof(SentHeader)) ,
+    [this, index](boost::system::error_code ec, size_t len){
         if(!ec){
-            if(this->currMessage.header.body_size > 0){
-                int newSize = this->currMessage.header.body_size; 
-                this->currMessage.body.resize(newSize); 
-                this->readBody();
-            }
-            else{
-                addToQueue();  
-            }
+            auto& bodySize = this->in_messageBuffer.at(index).header.body_size;
+            this->in_messageBuffer.at(index).body.resize(bodySize); 
+            this->readBody(index);
         }
         else{
             std::cerr<<"READ HEADER ERROR: "<<ec.message()<<std::endl; 
@@ -116,11 +125,12 @@ void Connection::readHeader(){
 }
 
 
-void Connection::readBody(){
-    boost::asio::async_read(this->socket, boost::asio::buffer(this->currMessage.body.data(), this->currMessage.header.body_size), 
-    [this](boost::system::error_code ec, size_t len){ 
+void Connection::readBody(int index){
+    auto& readMsg = this->in_messageBuffer.at(index);
+    boost::asio::async_read(this->socket, boost::asio::buffer(readMsg.body.data(), readMsg.header.body_size), 
+    [this, index](boost::system::error_code ec, size_t len){ 
         if(!ec){
-            addToQueue(); 
+            this->addToQueue(index); 
         }
         else{
             std::cerr<<"Connection: READ BODY"<<ec.message()<<std::endl; 
@@ -128,56 +138,15 @@ void Connection::readBody(){
     }); 
 }
 
-void Connection::writeHeader(){
-    auto frontQueue = this->out_queue.peek(); 
-    boost::asio::async_write(this->socket, boost::asio::buffer(&frontQueue.header, sizeof(SentHeader)), 
-    [frontQueue, this](boost::system::error_code ec, size_t size){
-        if(!ec){
-            if(frontQueue.header.body_size > 0){
-                writeBody(); 
-            }
-            else{
-                // Pop and restart queue
-                this->out_queue.read(); 
-                if(!this->out_queue.isEmpty()){
-                    writeHeader(); 
-                }
-            }
-        }
-        else{
-            std::cerr<<"Error Writing Header: "<<ec.message()<<std::endl; 
-
-        }
-    }); 
-
-}
-
-void Connection::writeBody(){
-    auto frontQueue = this->out_queue.peek();
-    boost::asio::async_write(this->socket, boost::asio::buffer(frontQueue.body.data(), frontQueue.header.body_size), 
-    [&, this](boost::system::error_code ec, size_t len){
-        if(!ec){    
-            // pop the latest message off the stack and write header if no empty
-            this->out_queue.read(); 
-            if(!this->out_queue.isEmpty()){
-                writeHeader(); 
-            }
-        }   
-        else{
-            std::cerr<<"Error writing header: "<<ec.message()<<std::endl; 
-           
-        }
-    }); 
-}
-
-void Connection::addToQueue(){
+void Connection::addToQueue(int val){
     if(this->own == Owner::MASTER){
-        this->in_queue.write({this->shared_from_this(), this->currMessage}); 
+        this->in_queue.write({.connection=this->shared_from_this(), .sm=this->in_messageBuffer.at(val)}); 
     }
     else if(this->own == Owner::CLIENT){
-        this->in_queue.write({nullptr, this->currMessage}); 
+        this->in_queue.write({.connection=nullptr, .sm=this->in_messageBuffer.at(val)}); 
     }
     
+    this->in_tickets.push_front(val); 
     this->readHeader(); 
 }
 

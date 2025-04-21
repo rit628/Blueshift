@@ -1,8 +1,13 @@
 #pragma once
 
+#include <array>
 #include <boost/asio.hpp>
 #include "libTSQ/TSQ.hpp"
 #include "Protocol.hpp"
+#include <memory>
+#include <list>
+
+#define IN_MSGSIZE 256
 
 using boost::asio::ip::tcp; 
 
@@ -20,7 +25,11 @@ class Connection : public enable_shared_from_this<Connection>{
         Owner own; 
         std::string ip;
         std::string client_name; 
-        SentMessage currMessage; 
+        //SentMessage currMessage; 
+
+        // in_message buffer 
+        std::array<SentMessage, IN_MSGSIZE> in_messageBuffer; 
+        std::list<int> in_tickets; 
 
         // Confirm Connection (checks if the targeted device is the right device)
         bool connectionConfirm; 
@@ -30,11 +39,9 @@ class Connection : public enable_shared_from_this<Connection>{
         TSQ<OwnedSentMessage> &in_queue; 
 
         // Async Reader Writer functions: 
-        void addToQueue(); 
+        void addToQueue(int index); 
         void readHeader(); 
-        void readBody(); 
-        void writeHeader(); 
-        void writeBody(); 
+        void readBody(int index); 
 
     public: 
 
