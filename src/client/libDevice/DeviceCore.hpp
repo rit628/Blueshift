@@ -406,19 +406,6 @@ class DeviceInterruptor{
             }
         }
 
-        static void _gpio_alert_cb(int gpio, int level, uint32_t tick, void *userdata)
-        {
-            // recover our handler
-            auto handler = static_cast<std::function<bool()>*>(userdata);
-
-            // call it; if it returns false, unregister & clean up
-            if (!(*handler)())
-            {
-                gpioSetAlertFuncEx(gpio, nullptr, nullptr);
-                delete handler;
-            }
-        }
-
         template <typename ...T> 
         void IGpioWatcher(int portNum, std::function<bool(int, int , uint32_t)> interruptHandle)
         {
