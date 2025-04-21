@@ -68,6 +68,8 @@ set(LANG_COMMON ${LANG_SRC_DIR}/common)
 # COMMON LIBS
 file(GLOB_RECURSE LIBTSQ_SRC ${COMMON_SRC_DIR}/libTSQ/*.cpp)
 add_library(TSQ STATIC ${LIBTSQ_SRC})
+target_include_directories(TSQ PUBLIC ${BOOST_LIB_DEPS})
+target_link_libraries(TSQ ${BOOST_LIB_DEPS})
 
 file(GLOB_RECURSE LIBTYPES_SRC ${COMMON_SRC_DIR}/libtypes/*.cpp)
 add_library(types STATIC ${LIBTYPES_SRC})

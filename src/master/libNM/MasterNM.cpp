@@ -250,8 +250,11 @@ void MasterNM::masterRead(){
 
 void MasterNM::update(){
     while(1){
-        auto omar = this->in_queue.read(); 
-        this->handleMessage(omar); 
+        while(!this->in_queue.isEmpty()){
+            auto omar = this->in_queue.read();
+            std::cout<<"Recieved the message"<<std::endl; 
+            this->handleMessage(omar);
+        }
     }
 }
 

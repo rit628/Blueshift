@@ -34,7 +34,7 @@ class Connection : public enable_shared_from_this<Connection>{
         void readHeader(); 
         void readBody(); 
         void writeHeader(); 
-        void writeBody(); 
+        void writeBody(SentMessage writeMsg); 
 
     public: 
 

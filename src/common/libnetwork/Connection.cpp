@@ -1,4 +1,5 @@
  #include "Connection.hpp"
+#include "libnetwork/Protocol.hpp"
  
 Connection::Connection(boost::asio::io_context &in_ctx, 
 tcp::socket socket ,Owner own_type, TSQ<OwnedSentMessage> &in_msg, std::string &ip_addr) 
@@ -129,16 +130,15 @@ void Connection::readBody(){
 }
 
 void Connection::writeHeader(){
-    auto frontQueue = this->out_queue.peek(); 
-    boost::asio::async_write(this->socket, boost::asio::buffer(&frontQueue.header, sizeof(SentHeader)), 
-    [frontQueue, this](boost::system::error_code ec, size_t size){
+    SentMessage writeMsg = this->out_queue.read(); 
+    boost::asio::async_write(this->socket, boost::asio::buffer(&writeMsg.header, sizeof(SentHeader)), 
+    [writeMsg,this](boost::system::error_code ec, size_t size){
         if(!ec){
-            if(frontQueue.header.body_size > 0){
-                writeBody(); 
+            if(writeMsg.header.body_size > 0){
+                writeBody(writeMsg); 
             }
             else{
                 // Pop and restart queue
-                this->out_queue.read(); 
                 if(!this->out_queue.isEmpty()){
                     writeHeader(); 
                 }
@@ -152,13 +152,11 @@ void Connection::writeHeader(){
 
 }
 
-void Connection::writeBody(){
-    auto frontQueue = this->out_queue.peek();
-    boost::asio::async_write(this->socket, boost::asio::buffer(frontQueue.body.data(), frontQueue.header.body_size), 
-    [&, this](boost::system::error_code ec, size_t len){
+void Connection::writeBody(SentMessage msgRef){
+    boost::asio::async_write(this->socket, boost::asio::buffer(msgRef.body.data(), msgRef.header.body_size), 
+    [this](boost::system::error_code ec, size_t len){
         if(!ec){    
             // pop the latest message off the stack and write header if no empty
-            this->out_queue.read(); 
             if(!this->out_queue.isEmpty()){
                 writeHeader(); 
             }
