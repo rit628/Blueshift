@@ -1,6 +1,8 @@
 #include "Devices.hpp"
 #include "libDM/DynamicMessage.hpp"
 //#include <pigpio.h>
+#include <iostream>
+#include <functional> 
 
 using namespace Device;
 
@@ -128,15 +130,14 @@ LIGHT::~LIGHT() {
 }
 
 /* BUTTON */
-void BUTTON::handleInterrupt(int gpio, int level, uint32_t tick, void* self) {
-    auto* button = reinterpret_cast<BUTTON*>(self);
+bool BUTTON::handleInterrupt(int gpio, int level, uint32_t tick) {
     if (level == 0) {
-        button->states.pressed = true;
+        states.pressed = true;
     } else if (level == 1) {
-        button->states.pressed = false;
+        states.pressed = false;
     }
-    button->signaler.store(true);
-    button->signaler.notify_all();
+    std::cout << "interrupted!" << std::endl;
+    return true; 
 }
 
 void BUTTON::set_ports(std::unordered_map<std::string, std::string> &src)
@@ -149,8 +150,10 @@ void BUTTON::set_ports(std::unordered_map<std::string, std::string> &src)
     }
     gpioSetMode(this->PIN, PI_INPUT);
     gpioSetPullUpDown(this->PIN, PI_PUD_UP);
-    gpioSetAlertFuncEx(this->PIN, handleInterrupt, this);
-    this->addGPIOIWatch(this->PIN, &this->signaler);
+
+    auto bound = std::bind(&BUTTON::handleInterrupt, std::ref(*this), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3); 
+
+    addGPIOIWatch(this->PIN, bound);
 }
 
 void BUTTON::proc_message_impl(DynamicMessage &dmsg)

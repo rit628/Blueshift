@@ -9,11 +9,15 @@
 #include <boost/asio.hpp>
 #include <chrono> 
 #include "libnetwork/Connection.hpp"
+#include <memory>
 #include <mutex>
 #include <sys/inotify.h>
+#include <tuple>
 #include <unistd.h> 
+#include <utility>
 #include <vector>
 #include <pigpio.h>
+#include <thread>
 
 #define VOLATILITY_LIST_SIZE 10
 
@@ -43,7 +47,7 @@ enum class SrcType{
 
 struct Interrupt_Desc{
         SrcType src_type;
-        std::variant<std::atomic<bool>*, std::function<bool()>> interruptHandle;
+        std::variant<std::function<bool()>, std::function<bool(int, int, uint32_t)>> interruptHandle;
         std::string file_src;
         int port_num;
 }; 
@@ -75,7 +79,7 @@ class AbstractDevice{
             this->Idesc_list.push_back({SrcType::UNIX_FILE, handler, fileName, 0}); 
         }
 
-        void addGPIOIWatch(int gpio_port, std::atomic<bool>* interruptHandle){
+        void addGPIOIWatch(int gpio_port, std::function<bool(int, int, uint32_t)> interruptHandle){
 
             if(!hasInterrupt){
                 hasInterrupt = true; 
@@ -415,12 +419,29 @@ class DeviceInterruptor{
             }
         }
 
-        void IGpioWatcher(int portNum, std::atomic<bool>* interruptHandle)
+        template <typename ...T> 
+        void IGpioWatcher(int portNum, std::function<bool(int, int , uint32_t)> interruptHandle)
         {
+            std::tuple<int, int, uint32_t> args;
+            bool signaler = false; 
+            std::pair<bool, std::tuple<int, int, uint32_t>> stuff; 
+
+            auto popArgs = [](int gpio, int level, unsigned int tick, void* data) -> void{
+                auto& [signaler, args] = *(std::pair<bool, std::tuple<int, int, uint32_t>> *)data;
+                args = std::make_tuple(gpio, level, tick); 
+                signaler = true; 
+            }; 
+
+            gpioSetAlertFuncEx(portNum, popArgs, &stuff);
+
             while (true) {
-                interruptHandle->wait(true);
-                this->sendMessage();
-                interruptHandle->store(false);
+               if(signaler){
+                    bool ret = std::apply(interruptHandle, args); 
+                    if(ret){
+                        this->sendMessage();
+                        signaler = false;  
+                    }
+               }
             }
         }
         
@@ -450,7 +471,7 @@ class DeviceInterruptor{
 
                     case(SrcType::GPIO): {
                         this->globalWatcherThreads.emplace_back([&, this](){
-                            this->IGpioWatcher(idesc.port_num, std::get<std::atomic<bool>*>(idesc.interruptHandle));         
+                            this->IGpioWatcher(idesc.port_num, std::get<std::function<bool(int, int, uint32_t)>>(idesc.interruptHandle));         
                         });
                         break; 
                     }

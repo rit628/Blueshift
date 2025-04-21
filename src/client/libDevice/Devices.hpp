@@ -83,7 +83,7 @@ namespace Device {
             ~BUTTON();
             void set_ports(std::unordered_map<std::string, std::string> &src) override;
             void read_data(DynamicMessage &dmsg) override;
-            static void handleInterrupt(int gpio, int level, uint32_t tick, void* button);
+            bool handleInterrupt(int gpio, int level, uint32_t tick);
     };
 
     class MOTOR : public AbstractDevice 
