@@ -69,6 +69,65 @@ namespace Device {
             void set_ports(std::unordered_map<std::string, std::string> & src) override;
             void read_data(DynamicMessage &dmsg) override;
     };
+
+    class BUTTON : public AbstractDevice
+    {
+        private: 
+            TypeDef::BUTTON states;
+            int PIN;
+            void proc_message_impl(DynamicMessage &dmsg) override;
+            atomic<bool> pressed;
+
+        public:
+            ~BUTTON();
+            void set_ports(std::unordered_map<std::string, std::string> &src) override;
+            void read_data(DynamicMessage &dmsg) override;
+            bool handleInterrupt();
+    };
+
+    class MOTOR : public AbstractDevice 
+    {
+        private:
+            TypeDef::MOTOR states;
+            void proc_message_impl(DynamicMessage &dmsg) override;
+            int speed;
+            int in1_pin, in2_pin, pwm_pin;
+            unsigned pwm_range;
+
+        public:
+            ~MOTOR();
+            void set_ports(std::unordered_map<std::string, std::string> &src) override;
+            void read_data(DynamicMessage &dmsg) override;
+            void apply_speed(int speed);
+    };
+
+    class POTENTIOMETER : public AbstractDevice
+    {
+        private:
+            TypeDef::POTENTIOMETER states;
+            int spi_handle    = -1;
+            int spi_channel   = 0;
+            int spi_speed     = 1350000;
+            int adc_channel   = 0;
+            void proc_message_impl(DynamicMessage &dmsg) override;
+        public:
+            void set_ports(std::unordered_map<std::string, std::string> &src) override;
+            void read_data(DynamicMessage &dmsg) override;
+            ~POTENTIOMETER();
+    };
+
+    class SWITCH : public AbstractDevice
+    {
+        private:
+            TypeDef::SWITCH states;
+            int PIN;
+            bool up;
+            void proc_message_impl(DynamicMessage &dmsg) override;
+        public:
+            void set_ports(std::unordered_map<std::string, std::string> &src) override;
+            void read_data(DynamicMessage &dmsg) override;
+            ~SWITCH();
+    };
     
     #define DEVTYPE_BEGIN(name) \
     static_assert(std::derived_from<name, AbstractDevice>, #name " must inherit from AbstractDevice");
@@ -78,7 +137,7 @@ namespace Device {
     #undef DEVTYPE_BEGIN
     #undef ATTRIBUTE
     #undef DEVTYPE_END
-}
+};
 
 // Device reciever object returns and sets up an object 
 std::shared_ptr<AbstractDevice> getDevice(DEVTYPE dtype, std::unordered_map<std::string, std::string> &port_nums, int device_alias);

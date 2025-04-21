@@ -13,6 +13,7 @@
 #include <sys/inotify.h>
 #include <unistd.h> 
 #include <vector>
+#include <pigpio.h>
 
 #define VOLATILITY_LIST_SIZE 10
 
@@ -401,8 +402,25 @@ class DeviceInterruptor{
             }
         }
 
-        void IGpioWatcher(int portNum, std::function<bool()> handler){
-                std::cerr<<"GPIO Interrupts not yet supported!"<<std::endl; 
+        static void _gpio_alert_cb(int gpio, int level, uint32_t tick, void *userdata)
+        {
+            // recover our handler
+            auto handler = static_cast<std::function<bool()>*>(userdata);
+
+            // call it; if it returns false, unregister & clean up
+            if (!(*handler)())
+            {
+                gpioSetAlertFuncEx(gpio, nullptr, nullptr);
+                delete handler;
+            }
+        }
+
+        void IGpioWatcher(int portNum, std::function<bool()> handler)
+        {
+            //gpioSetMode(portNum, PI_INPUT);
+            //gpioSetPullUpDown(portNum, PI_PUD_UP);
+            auto handlerPtr = new std::function<bool()>(std::move(handler));
+            gpioSetAlertFuncEx(portNum, _gpio_alert_cb, handlerPtr);
         }
         
     public: 
