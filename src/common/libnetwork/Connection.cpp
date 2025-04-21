@@ -135,7 +135,7 @@ void Connection::writeHeader(){
     [writeMsg,this](boost::system::error_code ec, size_t size){
         if(!ec){
             if(writeMsg.header.body_size > 0){
-                writeBody(writeMsg); 
+                writeBody(); 
             }
             else{
                 // Pop and restart queue
@@ -153,8 +153,9 @@ void Connection::writeHeader(){
 
 }
 
-void Connection::writeBody(SentMessage msgRef){
-    boost::asio::async_write(this->socket, boost::asio::buffer(msgRef.body.data(), msgRef.header.body_size), 
+void Connection::writeBody(){
+    SentMessage writeMsg = this->out_queue.peek(); 
+    boost::asio::async_write(this->socket, boost::asio::buffer(writeMsg.body.data(), writeMsg.header.body_size), 
     [this](boost::system::error_code ec, size_t len){
         if(!ec){    
             // pop the latest message off the stack and write header if no empty
