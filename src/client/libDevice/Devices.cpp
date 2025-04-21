@@ -128,12 +128,15 @@ LIGHT::~LIGHT() {
 }
 
 /* BUTTON */
-bool BUTTON::handleInterrupt()
-{
-    // 3) ISR context: just set your flag
-    pressed.store(true, std::memory_order_relaxed);
-    // return true to keep watching; return false to auto‐unregister
-    return true;
+void BUTTON::handleInterrupt(int gpio, int level, uint32_t tick, void* self) {
+    auto* button = reinterpret_cast<BUTTON*>(self);
+    if (level == 0) {
+        button->states.pressed = true;
+    } else if (level == 1) {
+        button->states.pressed = false;
+    }
+    button->signaler.store(true);
+    button->signaler.notify_all();
 }
 
 void BUTTON::set_ports(std::unordered_map<std::string, std::string> &src)
@@ -146,18 +149,18 @@ void BUTTON::set_ports(std::unordered_map<std::string, std::string> &src)
     }
     gpioSetMode(this->PIN, PI_INPUT);
     gpioSetPullUpDown(this->PIN, PI_PUD_UP);
-    //IGpioWatcher(this->PIN, [this](){return this->handleInterrupt();});
+    gpioSetAlertFuncEx(this->PIN, handleInterrupt, this);
+    this->addGPIOIWatch(this->PIN, &this->signaler);
 }
 
 void BUTTON::proc_message_impl(DynamicMessage &dmsg)
 {
+    // should do nothing
     dmsg.unpackStates(states);
 }
 
 void BUTTON::read_data(DynamicMessage &dmsg)
 {
-    states.pressed = pressed.exchange(false, std::memory_order_relaxed);
-    //states.pressed = false;
     dmsg.packStates(states);
 }
 
