@@ -42,10 +42,10 @@ enum class SrcType{
 
 
 struct Interrupt_Desc{
-        SrcType src_type; 
-        std::function<bool()> handler; 
+        SrcType src_type;
+        std::variant<std::atomic<bool>*, std::function<bool()>> interruptHandle;
         std::string file_src;
-        int port_num; 
+        int port_num;
 }; 
 
 inline bool sendState(){
@@ -75,12 +75,12 @@ class AbstractDevice{
             this->Idesc_list.push_back({SrcType::UNIX_FILE, handler, fileName, 0}); 
         }
 
-        void addGPIOIWatch(int gpio_port, std::function<bool()> handler = sendState){
+        void addGPIOIWatch(int gpio_port, std::atomic<bool>* interruptHandle){
 
             if(!hasInterrupt){
                 hasInterrupt = true; 
             }
-            this->Idesc_list.push_back({SrcType::GPIO, handler, "", gpio_port}); 
+            this->Idesc_list.push_back({SrcType::GPIO, interruptHandle, "", gpio_port}); 
         }
 
         virtual void set_ports(std::unordered_map<std::string, std::string> &src) = 0;  
@@ -415,12 +415,13 @@ class DeviceInterruptor{
             }
         }
 
-        void IGpioWatcher(int portNum, std::function<bool()> handler)
+        void IGpioWatcher(int portNum, std::atomic<bool>* interruptHandle)
         {
-            //gpioSetMode(portNum, PI_INPUT);
-            //gpioSetPullUpDown(portNum, PI_PUD_UP);
-            auto handlerPtr = new std::function<bool()>(std::move(handler));
-            gpioSetAlertFuncEx(portNum, _gpio_alert_cb, handlerPtr);
+            while (true) {
+                interruptHandle->wait(true);
+                this->sendMessage();
+                interruptHandle->store(false);
+            }
         }
         
     public: 
@@ -442,14 +443,14 @@ class DeviceInterruptor{
                 switch(idesc.src_type){
                     case(SrcType::UNIX_FILE) : {
                         this->globalWatcherThreads.emplace_back([idesc, this](){
-                            this->IFileWatcher(idesc.file_src, idesc.handler); 
+                            this->IFileWatcher(idesc.file_src, std::get<std::function<bool()>>(idesc.interruptHandle)); 
                         }); 
                         break; 
                     }
 
                     case(SrcType::GPIO): {
                         this->globalWatcherThreads.emplace_back([&, this](){
-                            this->IGpioWatcher(idesc.port_num, idesc.handler);         
+                            this->IGpioWatcher(idesc.port_num, std::get<std::atomic<bool>*>(idesc.interruptHandle));         
                         });
                         break; 
                     }
