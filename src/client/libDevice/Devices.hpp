@@ -5,6 +5,7 @@
 #include "libtypes/typedefs.hpp"
 #include <atomic>
 #include <concepts>
+#include <cstdint>
 #include <cstdio>
 #include <iostream>
 #include <fstream>
@@ -74,15 +75,15 @@ namespace Device {
     {
         private: 
             TypeDef::BUTTON states;
-            int PIN;
+            uint8_t PIN;
+            std::atomic<bool> signaler;
             void proc_message_impl(DynamicMessage &dmsg) override;
-            atomic<bool> pressed;
 
         public:
             ~BUTTON();
             void set_ports(std::unordered_map<std::string, std::string> &src) override;
             void read_data(DynamicMessage &dmsg) override;
-            bool handleInterrupt();
+            static void handleInterrupt(int gpio, int level, uint32_t tick, void* button);
     };
 
     class MOTOR : public AbstractDevice 
