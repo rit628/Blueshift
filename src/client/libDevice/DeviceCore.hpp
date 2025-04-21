@@ -422,9 +422,7 @@ class DeviceInterruptor{
         template <typename ...T> 
         void IGpioWatcher(int portNum, std::function<bool(int, int , uint32_t)> interruptHandle)
         {
-            std::tuple<int, int, uint32_t> args;
-            bool signaler = false; 
-            std::pair<bool, std::tuple<int, int, uint32_t>> stuff; 
+            std::pair<bool, std::tuple<int, int, uint32_t>> data; 
 
             auto popArgs = [](int gpio, int level, unsigned int tick, void* data) -> void{
                 auto& [signaler, args] = *(std::pair<bool, std::tuple<int, int, uint32_t>> *)data;
@@ -432,9 +430,10 @@ class DeviceInterruptor{
                 signaler = true; 
             }; 
 
-            gpioSetAlertFuncEx(portNum, popArgs, &stuff);
+            gpioSetAlertFuncEx(portNum, popArgs, &data);
 
             while (true) {
+               auto& [signaler, args] = data;
                if(signaler){
                     bool ret = std::apply(interruptHandle, args); 
                     if(ret){
