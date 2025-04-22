@@ -1,0 +1,27 @@
+
+
+oblock demoOblock(READ_FILE_POLL lw, BUTTON b1, LIGHT redL, LIGHT greenL){
+    if(b1.pressed){
+        if(lw.msg == "RED"){
+            redL.on = true; 
+            greenL.on = false; 
+        }
+        else if(lw.msg == "GREEN"){
+            redL.on = false;  
+            greenL.on = true; 
+        }
+    }
+    else{
+        redL.state = false; 
+        greenL.state = false; 
+    }   
+}
+
+setup(){
+    READ_FILE_POLL lw = "COLIN::file-omar.txt"; 
+    BUTTON push_button = ZERO::PIN-26; 
+    LIGHT red_light = RPI::PIN-21; 
+    LIGHT green_light = RPI::PIN-16; 
+    
+    demoOblock(lw, push_button, read_light, green_light); 
+}
