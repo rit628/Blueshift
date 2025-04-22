@@ -134,7 +134,7 @@ READ_FILE_POLL::~READ_FILE_POLL(){
 
 void LIGHT::proc_message_impl(DynamicMessage &dmsg) {
     dmsg.unpackStates(states);
-    if (states.state) {
+    if (states.on) {
         gpioWrite(this->PIN, PI_ON);
     }
     else {
