@@ -6,11 +6,11 @@ oblock demoOblock(READ_FILE_POLL lw, BUTTON b1, LIGHT redL, LIGHT greenL){
 
 
 
-        if(lw.msg == "RED "){
+        if(lw.msg == "RED"){
             redL.on = true; 
             greenL.on = false; 
         }
-        else if(lw.msg == "GREEN "){
+        else if(lw.msg == "GREEN"){
             redL.on = false;  
             greenL.on = true; 
         }
