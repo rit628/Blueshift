@@ -4,6 +4,8 @@
 #include <chrono>
 #include <iostream>
 #include <functional> 
+#include <string>
+#include <unordered_map>
 
 using namespace Device;
 
@@ -101,6 +103,33 @@ LINE_WRITER::~LINE_WRITER() {
     file_stream.close();
 }
 
+/* LINE_WRITER_POLL */
+void READ_FILE_POLL::set_ports(std::unordered_map<std::string, std::string> &srcs){
+    this->filename = "./samples/client/" + srcs["file"]; 
+    this->file_stream.open(filename);
+    if(this->file_stream.is_open()){
+        std::cout<<"Could find file"<<std::endl; 
+    } 
+    else{
+        std::cout<<"Could not find file"<<std::endl; 
+    }
+}
+
+void READ_FILE_POLL::proc_message_impl(DynamicMessage &dmsg){
+
+
+}
+
+
+void READ_FILE_POLL::read_data(DynamicMessage &dmsg){
+    std::getline(this->file_stream, states.msg); 
+    dmsg.packStates(states); 
+}
+
+READ_FILE_POLL::~READ_FILE_POLL(){
+    this->file_stream.close(); 
+}
+
 /* LIGHT */
 
 void LIGHT::proc_message_impl(DynamicMessage &dmsg) {
@@ -182,49 +211,6 @@ BUTTON::~BUTTON()
     gpioTerminate();
 }
 
-/* SWITCH */
-void SWITCH::set_ports(std::unordered_map<std::string, std::string> &src)
-{
-    this->PIN = std::stoi(src.at("PIN"));
-    std::string pull = src.count("PULL") ? src.at("PULL") : "DOWN";
-
-    if(gpioInitialise() == PI_INIT_FAILED) 
-    {
-        std::cerr << "GPIO init failed" << std::endl;           
-        return;
-    }
-    gpioSetMode(this->PIN, PI_INPUT);
-    if(pull == "UP") 
-    {
-        gpioSetPullUpDown(this->PIN, PI_PUD_UP);
-    } 
-    else 
-    {
-        gpioSetPullUpDown(this->PIN, PI_PUD_DOWN);        
-    }
-}
-
-void SWITCH::proc_message_impl(DynamicMessage &dmsg)
-{
-    dmsg.unpackStates(states);
-}
-
-void SWITCH::read_data(DynamicMessage &dmsg)
-{
-    // If pulled‐down: HIGH = closed, LOW = open
-    // If pulled‐up:   LOW  = closed, HIGH = open
-    bool closed = (gpioRead(this->PIN) == (up ? PI_LOW : PI_HIGH));
-    states.closed = closed;
-    dmsg.packStates(states);
-}
-
-SWITCH::~SWITCH() 
-{
-    gpioTerminate();
-}
-
-/* MOTOR */
-
 void MOTOR::set_ports(std::unordered_map<std::string, std::string> &src)
 {
     in1_pin  = std::stoi(src.at("IN1"));
@@ -295,71 +281,6 @@ MOTOR::~MOTOR()
 {
     gpioTerminate();
 }
-
-
-/* POTENTIOMETER */
-void POTENTIOMETER::set_ports(std::unordered_map<std::string, std::string> &src)
-{
-    spi_channel = std::stoi(src.at("SPI_CHANNEL"));
-    spi_speed = std::stoi(src.at("SPI_SPEED"));
-    adc_channel = std::stoi(src.at("ADC_CHANNEL"));
-        
-    if(gpioInitialise() == PI_INIT_FAILED) {
-        std::cerr << "GPIO init failed" << std::endl;
-        return;
-    }
-    // Open SPI channel; flags=0 selects mode 0, CS uses CE0/CE1 by channel
-    spi_handle = spiOpen(spi_channel, spi_speed, 0);
-    if(spi_handle < 0) 
-    {
-        std::cerr << "Failed to open SPI channel: " << spi_handle << std::endl;
-    }
-}
-
-void POTENTIOMETER::proc_message_impl(DynamicMessage &dmsg)
-{
-    dmsg.unpackStates(states);
-}
-
-void POTENTIOMETER::read_data(DynamicMessage &dmsg)
-{
-    if(spi_handle < 0) 
-    {
-        std::cerr << "SPI not initialized" << std::endl;
-        return;
-    }
-
-    // MCP3008 protocol: start bit, single‑ended, channel bits
-    char tx[3];
-    tx[0] = 0x01;                                      // start bit
-    tx[1] = static_cast<char>(0x80 | (adc_channel << 4));
-    tx[2] = 0x00;
-
-    char rx[3] = {0};
-    int status = spiXfer(spi_handle, tx, rx, 3);
-    if (status < 0) 
-    {
-        std::cerr << "SPI transfer failed: " << status << std::endl;
-        return;
-    }
-
-    // assemble 10‑bit result: lower 2 bits of rx[1], all of rx[2]
-    int raw = ((rx[1] & 0x03) << 8) | rx[2];
-    states.raw = raw;
-    states.normalized = raw / 1023.0;
-
-    dmsg.packStates(states);
-}
-
-POTENTIOMETER::~POTENTIOMETER() 
-{               
-    if (spi_handle >= 0)
-    {
-        spiClose(spi_handle);
-    }
-    gpioTerminate(); 
-}
-
 
 std::shared_ptr<AbstractDevice> getDevice(DEVTYPE dtype, std::unordered_map<std::string, std::string> &port_nums, int device_alias) {
     switch(dtype){
