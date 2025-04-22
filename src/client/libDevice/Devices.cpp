@@ -1,6 +1,7 @@
 #include "Devices.hpp"
 #include "libDM/DynamicMessage.hpp"
-//#include <pigpio.h>
+#include <pigpio.h>
+#include <chrono>
 #include <iostream>
 #include <functional> 
 
@@ -131,16 +132,21 @@ LIGHT::~LIGHT() {
 
 /* BUTTON */
 bool BUTTON::handleInterrupt(int gpio, int level, uint32_t tick) {
-
-    states.pressed = !states.pressed;
-
-    std::cout << "interrupted!" << std::endl;
-    return true; 
+    static auto DEBOUNCE_TIME = std::chrono::microseconds(10);
+    if (level == FALLING_EDGE) {
+        std::cout << "FALLING_EDGE" << std::endl;
+        states.pressed = true;
+    } else if (level == RISING_EDGE) {
+        std::cout << "RISING_EDGE" << std::endl;
+        states.pressed = false;
+    }
+    return (std::chrono::high_resolution_clock::now() - lastPress < DEBOUNCE_TIME); 
 }
 
 void BUTTON::set_ports(std::unordered_map<std::string, std::string> &src)
 {
     this->PIN = std::stoi(src.at("PIN"));
+    this->lastPress = std::chrono::high_resolution_clock::now();
     if (gpioInitialise() == PI_INIT_FAILED) 
     {
         std::cerr << "GPIO setup failed" << std::endl;
