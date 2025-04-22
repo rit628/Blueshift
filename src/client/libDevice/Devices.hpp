@@ -76,7 +76,7 @@ namespace Device {
         private: 
             TypeDef::BUTTON states;
             uint8_t PIN;
-            std::atomic<bool> signaler;
+            std::chrono::high_resolution_clock::time_point lastPress;
             void proc_message_impl(DynamicMessage &dmsg) override;
 
         public:
