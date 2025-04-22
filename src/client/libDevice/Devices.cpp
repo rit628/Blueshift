@@ -161,7 +161,7 @@ LIGHT::~LIGHT() {
 
 /* BUTTON */
 bool BUTTON::handleInterrupt(int gpio, int level, uint32_t tick) {
-    static auto DEBOUNCE_TIME = std::chrono::microseconds(10);
+    // static auto DEBOUNCE_TIME = std::chrono::microseconds(10);
     if (level == RISING_EDGE) {
         states.pressed = true;
     }
@@ -171,10 +171,11 @@ bool BUTTON::handleInterrupt(int gpio, int level, uint32_t tick) {
     else {
         return false;
     }
-    auto currPress = std::chrono::high_resolution_clock::now();
-    bool ret = (currPress - lastPress) > DEBOUNCE_TIME;
-    lastPress = currPress;
-    return ret;
+    // auto currPress = std::chrono::high_resolution_clock::now();
+    // bool ret = (currPress - lastPress) > DEBOUNCE_TIME;
+    // lastPress = currPress;
+    // return ret;
+    return true;
 
 }
 
