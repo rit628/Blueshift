@@ -123,6 +123,7 @@ void READ_FILE_POLL::proc_message_impl(DynamicMessage &dmsg){
 
 void READ_FILE_POLL::read_data(DynamicMessage &dmsg){
     std::getline(this->file_stream, states.msg); 
+    this->file_stream.seekg(0, std::ios::beg); 
     dmsg.packStates(states); 
 }
 
