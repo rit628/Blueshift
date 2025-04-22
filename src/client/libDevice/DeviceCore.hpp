@@ -99,20 +99,20 @@ class AbstractDevice{
                 std::unique_lock lk(m);
                 cv.wait(lk, [this]{ return !watchersPaused; });
             }
-            std::cout << "step 1: aquired lock from manageWatcher after unpausing" << std::endl;
+            // std::cout << "step 1: aquired lock from manageWatcher after unpausing" << std::endl;
 
             {
                 std::lock_guard lk(m);
                 processing = true;
             }
-            std::cout << "step 2: processing to true, notify manageWatcher" << std::endl;
+            // std::cout << "step 2: processing to true, notify manageWatcher" << std::endl;
             cv.notify_one();
 
             {
                 std::unique_lock lk(m);
                 cv.wait(lk, [this]{ return watchersPaused; });
             }
-            std::cout << "step 5: aquired lock from manageWatcher after pausing" << std::endl;
+            // std::cout << "step 5: aquired lock from manageWatcher after pausing" << std::endl;
             
             // tell interruptors to start again
             {
@@ -120,7 +120,7 @@ class AbstractDevice{
                 proc_message_impl(input);
                 processing = false;
             }
-            std::cout << "step 6: processing to false, notify manageWatcher" << std::endl;
+            // std::cout << "step 6: processing to false, notify manageWatcher" << std::endl;
             cv.notify_one();
         }
 
@@ -342,28 +342,28 @@ class DeviceInterruptor{
                     std::unique_lock lk(m);
                     cv.wait(lk, [&processing] { return processing; });
                 }
-                std::cout << "step 3: aquired lock from proc_message after init" << std::endl;
+                // std::cout << "step 3: aquired lock from proc_message after init" << std::endl;
 
                 {
                     std::lock_guard lk(m);
                     disableWatchers();
                     watchersPaused = true;
                 }
-                std::cout << "step 4: watchersPaused to true, notify proc_message" << std::endl;
+                // std::cout << "step 4: watchersPaused to true, notify proc_message" << std::endl;
                 cv.notify_one();
 
                 {
                     std::unique_lock lk(m);
                     cv.wait(lk, [&processing] { return !processing; });
                 }
-                std::cout << "step 7: aquired lock from proc_message after processing" << std::endl;
+                // std::cout << "step 7: aquired lock from proc_message after processing" << std::endl;
 
                 {
                     std::lock_guard lk(m);
                     enableWatchers();
                     watchersPaused = false;
                 }
-                std::cout << "step 8: watchersPaused to false, notify proc_message" << std::endl;
+                // std::cout << "step 8: watchersPaused to false, notify proc_message" << std::endl;
                 cv.notify_one();
             }
         }

@@ -21,7 +21,7 @@ namespace BlsLang {
         result.isConst = true; 
         result.isInterrupt = false; 
         result.isVtype = false; 
-        result.polling_period = 100; 
+        result.polling_period = 25; 
         std::string portMap = bindingContents[2];
         int idx = 0;
 
