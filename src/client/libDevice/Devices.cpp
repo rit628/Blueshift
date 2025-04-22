@@ -131,11 +131,9 @@ LIGHT::~LIGHT() {
 
 /* BUTTON */
 bool BUTTON::handleInterrupt(int gpio, int level, uint32_t tick) {
-    if (level == 0) {
-        states.pressed = true;
-    } else if (level == 1) {
-        states.pressed = false;
-    }
+
+    states.pressed = !states.pressed;
+
     std::cout << "interrupted!" << std::endl;
     return true; 
 }
