@@ -6,7 +6,7 @@ MasterNM::MasterNM(std::vector<OBlockDesc> &desc_list, TSQ<DMM> &in_msg, TSQ<DMM
 : master_socket(master_ctx), master_acceptor(master_ctx, tcp::endpoint(tcp::v4(), MASTER_PORT)), 
   EMM_in_queue(in_msg), EMM_out_queue(out_q), tickerTable(desc_list)
 {
-    std::cout<<"Master started!"<<std::endl; 
+    //std::cout<<"Master started!"<<std::endl; 
     writeConfig(desc_list); 
 
 }
@@ -141,7 +141,7 @@ void MasterNM::listenForConnections(){
         //this->connection_map["unassigned"] = std::move(newCon);
         newCon->connectToClient(); 
 
-        std::cout<<"MOVED CONNECTION"<<std::endl; 
+        //std::cout<<"MOVED CONNECTION"<<std::endl; 
 
         // Send Messages to logic: 
         listenForConnections(); 
@@ -213,8 +213,6 @@ void MasterNM::masterRead(){
 
         auto new_state = this->EMM_in_queue.read(); 
 
-        std::cout<<"MASTER NM MESSAGE RECEIVED"<<std::endl; 
-
         SentMessage sm_main;
 
         std::string cont = new_state.info.controller; 
@@ -254,7 +252,7 @@ void MasterNM::update(){
     while(1){
         while(!this->in_queue.isEmpty()){
             auto omar = this->in_queue.read();
-            std::cout<<"Recieved the message"<<std::endl; 
+            //std::cout<<"Recieved the message"<<std::endl; 
             this->handleMessage(omar);
         }
     }
@@ -438,7 +436,7 @@ void MasterNM::sendInitialTicker(std::shared_ptr<Connection> &con_obj){
 
    
 
-    std::cout<<"Sent inital ticker"<<std::endl; 
+   std::cout<<"Sent inital ticker"<<std::endl; 
 }
 
 

@@ -141,7 +141,7 @@ void ExecutionManager::running()
             for(auto& pair : EU_map)
             {
                 O_Info info = pair.second->info;
-                std::cout<<"Requesting States for : "<<info.oblock<<std::endl;
+                //std::cout<<"Requesting States for : "<<info.oblock<<std::endl;
                 DynamicMessage dm;
                 DynamicMasterMessage requestDMM(dm, info, PROTOCOLS::REQUESTINGSTATES, false);
                 this->sendMM.write(requestDMM);
@@ -152,7 +152,7 @@ void ExecutionManager::running()
         
         vector<DynamicMasterMessage> currentDMMs = this->readMM.read();
 
-        std::cout<<"Recieved States"<<std::endl;
+        //std::cout<<"Recieved States"<<std::endl;
        
         ExecutionUnit &assignedUnit = assign(currentDMMs.at(0));
 
@@ -160,7 +160,7 @@ void ExecutionManager::running()
     
         if(assignedUnit.EUcache.getSize() < 3)
         {   
-            std::cout<<"Requesting States"<<std::endl;
+            //std::cout<<"Requesting States"<<std::endl;
             DynamicMessage dm;
             O_Info info = assignedUnit.info;
             DynamicMasterMessage requestDMM(dm, info, PROTOCOLS::REQUESTINGSTATES, false);

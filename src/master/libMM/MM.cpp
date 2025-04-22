@@ -54,12 +54,12 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
             {
                 DynamicMasterMessage DMMtoSend = writeMap.at(DMM.info.device)->waitingQ.read();
                 this->sendNM.write(DMMtoSend);
-                cout << "Callback recieved on an nonempty Q" << endl;
+                //cout << "Callback recieved on an nonempty Q" << endl;
             }
             else
             {
                 writeMap.at(DMM.info.device)->waitingForCallback = false;
-                cout << "Callback recieved on an empty Q" << endl;
+                //cout << "Callback recieved on an empty Q" << endl;
             }
             //this->sendNM.write(DMMtoSend);
             // Diarreah
@@ -79,7 +79,7 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
                     bool dr = OBlockList.at(i).dropRead;
                     
                     if(dr){ 
-                        std::cout<<"INTERRUPT DROP STATES RECEIED"<<std::endl;
+                        //std::cout<<"INTERRUPT DROP STATES RECEIED"<<std::endl;
                         DMM.info.oblock = interruptName_map.at(DMM.info.device).at(i);
                         interuptTSQ.clearQueue(); 
                         interuptTSQ.write(DMM);
@@ -100,7 +100,7 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
 
                 if(assignedBox.dropRead == true)
                 {
-                    std::cout<<"Dropped read"<<std::endl;
+                    //std::cout<<"Dropped read"<<std::endl;
                     assignedTSQ.clearQueue();
                     assignedTSQ.write(DMM);
                     assignedBox.handleRequest(sendEM);
@@ -139,23 +139,23 @@ void MasterMailbox::assignEM(DynamicMasterMessage DMM)
 
             if(dropWrite == true && assignedBox.waitingForCallback == true)
             {
-                cout << "Ignoring write" << endl;
+                //cout << "Ignoring write" << endl;
                 //assignedBox.waitingQ.write(DMM);
             }
             else if(dropWrite == false && assignedBox.waitingForCallback == true)
             {
-                cout << "Storing message in Q until callback is recieved" << endl;
+                //cout << "Storing message in Q until callback is recieved" << endl;
                 assignedBox.waitingQ.write(DMM);
             }
             else if(dropWrite == false && assignedBox.waitingForCallback == false)
             {
-                cout << "Send direct as callback was already recieved" << endl;
+                //cout << "Send direct as callback was already recieved" << endl;
                 this->sendNM.write(DMM);
                 assignedBox.waitingForCallback = true;
             }
             else if(dropWrite == true && assignedBox.waitingForCallback == false)
             {
-                cout << "Send direct as even though drop write is true it is not waiting for callback" << endl;
+                //cout << "Send direct as even though drop write is true it is not waiting for callback" << endl;
                 this->sendNM.write(DMM);
                 assignedBox.waitingForCallback = true;
             }
@@ -174,7 +174,7 @@ void MasterMailbox::runningNM()
     while(1)
     {
         DynamicMasterMessage currentDMM = this->readNM.read();  
-        std::cout<<"absorbed"<<std::endl;
+        //std::cout<<"absorbed"<<std::endl;
         assignNM(currentDMM);
     }
 }
