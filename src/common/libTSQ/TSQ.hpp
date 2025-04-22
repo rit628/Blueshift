@@ -6,63 +6,60 @@
 using namespace std;
 
 template<class T>
-class TSQ
-{
-    private:
-        queue<T> sharedQueue;
-        mutex mut;
-        condition_variable cv;
-        bool isReading = true;
-        bool canWrite = true;
-    public:
-        TSQ() = default;
-        T read()
+class TSQ {
+private:
+    std::queue<T> sharedQueue;
+    std::mutex mut;
+    std::condition_variable cv;
+
+public:
+    TSQ() = default;
+
+    // Read and remove the front item from the queue (blocking if empty)
+    T read() {
+        std::unique_lock<std::mutex> lock(mut);
+        cv.wait(lock, [this]() { return !sharedQueue.empty(); });
+
+        T data = sharedQueue.front();
+        sharedQueue.pop();
+        return data;
+    }
+
+    // Peek at the front item without removing it (blocking if empty)
+    T peek() {
+        std::unique_lock<std::mutex> lock(mut);
+        cv.wait(lock, [this]() { return !sharedQueue.empty(); });
+
+        return sharedQueue.front();
+    }
+
+    // Write new data to the queue and notify one waiting reader
+    void write(const T& new_data) {
         {
-            unique_lock<mutex> mut(this->mut);
-            this->cv.wait(mut, [this]() {return !this->sharedQueue.empty();});
-            canWrite = false;
-            T read_data = this->sharedQueue.front();
-            this->sharedQueue.pop();
-            mut.unlock();
-            canWrite = true;
-            this->cv.notify_one();
-            return read_data;
+            std::lock_guard<std::mutex> lock(mut);
+            sharedQueue.push(new_data);
         }
-        T peek()
-        {
-            unique_lock<mutex> mut(this->mut);
-            this->cv.wait(mut, [this]() {return !this->sharedQueue.empty();});
-            canWrite = false;
-            T read_data = this->sharedQueue.front();
-            mut.unlock();
-            canWrite = true;
-            this->cv.notify_one();
-            return read_data;
-        }
-        void write(T new_data)
-        {
-            unique_lock<mutex> mut(this->mut);
-            this->cv.wait(mut, [this]() {return this->canWrite;});
-            this->sharedQueue.push(new_data);
-            mut.unlock();
-            this->cv.notify_one();
-        }
-        int getSize()
-        {
-            return this->sharedQueue.size();
-        }
-        void clearQueue()
-        {
-            queue<T> emptyQueue; 
-            this->sharedQueue.swap(emptyQueue);
-        }
-        queue<T> &getQueue()
-        {
-            return this->sharedQueue;
-        }
-        bool isEmpty()
-        {
-            if(this->sharedQueue.empty()){return true;}
-            else{return false;}
-        }
+        cv.notify_one();  // Wake up one waiting thread (read/peek)
+    }
+
+    // Returns current size of the queue (thread-safe)
+    int getSize() {
+        std::lock_guard<std::mutex> lock(mut);
+        return static_cast<int>(sharedQueue.size());
+    }
+
+    // Clears the queue (thread-safe)
+    void clearQueue() {
+        std::lock_guard<std::mutex> lock(mut);
+        std::queue<T> emptyQueue;
+        std::swap(sharedQueue, emptyQueue);
+    }
+
+    // Returns true if the queue is empty (thread-safe)
+    bool isEmpty() {
+        std::lock_guard<std::mutex> lock(mut);
+        return sharedQueue.empty();
+    }
+
+    // Deleted getQueue() to enforce encapsulation
 };

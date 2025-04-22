@@ -29,30 +29,30 @@ class MapDescriptor;
 // Message Header (Data Map Size ): 
 struct MsgHeader{
     // Size of lump data: // (Total message size)
-    uint32_t lumpData_sz; 
+    uint32_t lumpData_sz = 0; 
     // Number of Descriptors (list of heap descriptor size) 
-    uint32_t descList_sz; 
+    uint32_t descList_sz = 0; 
     // Descriptor size
-    uint32_t DescOffset; 
+    uint32_t DescOffset = 0; 
     // lump offset: 
-    uint32_t lumpOffset;
+    uint32_t lumpOffset = 0;
     // Data map size: 
-    uint32_t dataMap_location; 
+    uint32_t dataMap_location = 0; 
 }; 
 
 
 // Descriptor Object: 
 struct Descriptor{
     // Object Type: 
-    TYPE descType; 
+    TYPE descType = TYPE::NONE; 
     // Number of elements in list
     uint32_t numElements = 0; 
     // Size of element (1 if singular element, n for containers with n elements)
     uint8_t eleSize = 0; 
     // Offset in lump element
-    uint32_t lumpOffset; 
+    uint32_t lumpOffset = 0; 
     // Container Type 
-    TYPE contained_type;
+    TYPE contained_type = TYPE::NONE;
 };
 
 
@@ -420,6 +420,8 @@ class DynamicMessage{
     // Used to capture an incomming object based on the descriptor: 
 
     void Capture(std::vector<char> &recvString){
+        if (recvString.empty()) return;
+        
         MsgHeader obj; 
 
         // Copy Header
