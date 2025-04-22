@@ -425,9 +425,9 @@ class DeviceInterruptor{
                     bool ret = std::apply(interruptHandle, args); 
                     if(ret){
                         this->sendMessage();
-                        signaler = false;  
                         std::this_thread::sleep_for(std::chrono::milliseconds(5));
                     }
+                    signaler = false;
                }
             }
         }
