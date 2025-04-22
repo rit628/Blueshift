@@ -102,34 +102,21 @@ namespace Device {
             void apply_speed(int speed);
     };
 
-    class POTENTIOMETER : public AbstractDevice
-    {
-        private:
-            TypeDef::POTENTIOMETER states;
-            int spi_handle    = -1;
-            int spi_channel   = 0;
-            int spi_speed     = 1350000;
-            int adc_channel   = 0;
-            void proc_message_impl(DynamicMessage &dmsg) override;
-        public:
-            void set_ports(std::unordered_map<std::string, std::string> &src) override;
-            void read_data(DynamicMessage &dmsg) override;
-            ~POTENTIOMETER();
-    };
+    class READ_FILE_POLL : public AbstractDevice{
+        private: 
+            TypeDef::READ_FILE_POLL states;
+            std::string filename;
+            std::ifstream file_stream;
 
-    class SWITCH : public AbstractDevice
-    {
-        private:
-            TypeDef::SWITCH states;
-            int PIN;
-            bool up;
-            void proc_message_impl(DynamicMessage &dmsg) override;
+            void proc_message_impl(DynamicMessage& dmsg) override;
+
         public:
+            ~READ_FILE_POLL();
             void set_ports(std::unordered_map<std::string, std::string> &src) override;
             void read_data(DynamicMessage &dmsg) override;
-            ~SWITCH();
-    };
-    
+
+    }; 
+
     #define DEVTYPE_BEGIN(name) \
     static_assert(std::derived_from<name, AbstractDevice>, #name " must inherit from AbstractDevice");
     #define ATTRIBUTE(...)
