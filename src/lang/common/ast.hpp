@@ -1,6 +1,6 @@
 #pragma once
 #include "libtypes/bls_types.hpp"
-#include <any>
+#include <variant>
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
@@ -15,6 +15,7 @@
 namespace BlsLang {
 
     class Visitor;
+    using BlsObject = std::variant<BlsType, std::reference_wrapper<BlsType>>;
 
     class AstNode {
         public:
@@ -25,7 +26,7 @@ namespace BlsLang {
             class Setup;
             class Source;
             
-            virtual std::any accept(Visitor& v) = 0;
+            virtual BlsObject accept(Visitor& v) = 0;
             virtual ~AstNode() = default;
 
             friend std::ostream& operator<<(std::ostream& os, const AstNode& node);
@@ -51,7 +52,7 @@ namespace BlsLang {
                 }
             }
             
-            std::any accept(Visitor& v) override;
+            BlsObject accept(Visitor& v) override;
 
             auto& getName() { return name; }
             auto& getTypeArgs() { return typeArgs; }
@@ -85,7 +86,7 @@ namespace BlsLang {
             Literal(bool literal)           : literal(std::move(literal)) {}
             Literal(std::string literal)    : literal(std::move(literal)) {}
 
-            std::any accept(Visitor& v) override;
+            BlsObject accept(Visitor& v) override;
 
             auto& getLiteral() { return literal; }
 
@@ -109,7 +110,7 @@ namespace BlsLang {
                 }
             }
 
-            std::any accept(Visitor& v) override;
+            BlsObject accept(Visitor& v) override;
 
             auto& getElements() { return elements; }
             auto& getLiteral() { return literal; }
@@ -131,7 +132,7 @@ namespace BlsLang {
                 }
             }
 
-            std::any accept(Visitor& v) override;
+            BlsObject accept(Visitor& v) override;
 
             auto& getElements() { return elements; }
 
@@ -161,7 +162,7 @@ namespace BlsLang {
                 }
             }
 
-            std::any accept(Visitor& v) override;
+            BlsObject accept(Visitor& v) override;
 
             auto& getElements() { return elements; }
             auto& getLiteral() { return literal; }
@@ -202,7 +203,7 @@ namespace BlsLang {
                  , member(std::move(member))
                  , localIndex(localIndex) {}
             
-            std::any accept(Visitor& v) override;
+            BlsObject accept(Visitor& v) override;
 
             auto& getObject() { return object; }
             auto& getSubscript() { return subscript; }
@@ -232,7 +233,7 @@ namespace BlsLang {
                 }
             }
 
-            std::any accept(Visitor& v) override;
+            BlsObject accept(Visitor& v) override;
 
             auto& getName() { return name; }
             auto& getArguments() { return arguments; }
@@ -266,7 +267,7 @@ namespace BlsLang {
                 }
             }
 
-            std::any accept(Visitor& v) override;
+            BlsObject accept(Visitor& v) override;
 
             auto& getObject() { return object; }
             auto& getMethodName() { return methodName; }
@@ -288,7 +289,7 @@ namespace BlsLang {
             Group(AstNode::Expression* expression)
                 : expression(expression) {}
             
-            std::any accept(Visitor& v) override;
+            BlsObject accept(Visitor& v) override;
 
             auto& getExpression() { return expression; }
 
@@ -317,7 +318,7 @@ namespace BlsLang {
                 , expression(expression)
                 , position(position) {}
         
-            std::any accept(Visitor& v) override;
+            BlsObject accept(Visitor& v) override;
 
             auto& getOp() { return op; }
             auto& getExpression() { return expression; }
@@ -345,7 +346,7 @@ namespace BlsLang {
                  , left(left)
                  , right(right) {}
             
-            std::any accept(Visitor& v) override;
+            BlsObject accept(Visitor& v) override;
 
             auto& getOp() { return op; }
             auto& getLeft() { return left; }
@@ -379,7 +380,7 @@ namespace BlsLang {
             Expression(AstNode::Expression* expression)
                      : expression(expression) {}
 
-            std::any accept(Visitor& v) override;
+            BlsObject accept(Visitor& v) override;
 
             auto& getExpression() { return expression; }
 
@@ -407,7 +408,7 @@ namespace BlsLang {
                       , value(value)
                       , localIndex(localIndex) {}
 
-            std::any accept(Visitor& v) override;
+            BlsObject accept(Visitor& v) override;
 
             auto& getName() { return name; }
             auto& getType() { return type; }
@@ -425,14 +426,14 @@ namespace BlsLang {
         public:
             Continue() = default;
 
-            std::any accept(Visitor& v) override;
+            BlsObject accept(Visitor& v) override;
     };
 
     class AstNode::Statement::Break : public AstNode::Statement {
         public:
             Break() = default;
 
-            std::any accept(Visitor& v) override;
+            BlsObject accept(Visitor& v) override;
     };
 
     class AstNode::Statement::Return : public AstNode::Statement {
@@ -443,7 +444,7 @@ namespace BlsLang {
             Return(AstNode::Expression* value = nullptr)
                  : value(value) {}
 
-            std::any accept(Visitor& v) override;
+            BlsObject accept(Visitor& v) override;
 
             auto& getValue() { return value; }
 
@@ -477,7 +478,7 @@ namespace BlsLang {
                 }
             }
 
-            std::any accept(Visitor& v) override;
+            BlsObject accept(Visitor& v) override;
 
             auto& getCondition() { return condition; }
             auto& getBlock() { return block; }
@@ -513,7 +514,7 @@ namespace BlsLang {
                 }
             }
             
-            std::any accept(Visitor& v) override;
+            BlsObject accept(Visitor& v) override;
 
             auto& getInitStatement() { return initStatement; }
             auto& getCondition() { return condition; }
@@ -555,7 +556,7 @@ namespace BlsLang {
                 }
             }
             
-            std::any accept(Visitor& v) override;
+            BlsObject accept(Visitor& v) override;
 
             auto& getCondition() { return condition; }
             auto& getBlock() { return block; }
@@ -645,7 +646,7 @@ namespace BlsLang {
                    , std::move(parameters)
                    , std::move(statements)) {}
             
-            std::any accept(Visitor& v) override;
+            BlsObject accept(Visitor& v) override;
     };
 
     class AstNode::Function::Oblock : public AstNode::Function {
@@ -672,7 +673,7 @@ namespace BlsLang {
                    , std::move(parameters)
                    , std::move(statements)) {}
 
-            std::any accept(Visitor& v) override;
+            BlsObject accept(Visitor& v) override;
     };
 
     class AstNode::Setup : public AstNode {
@@ -687,7 +688,7 @@ namespace BlsLang {
                 }
             }
 
-            std::any accept(Visitor& v) override;
+            BlsObject accept(Visitor& v) override;
 
             auto& getStatements() { return statements; }
                     
@@ -717,7 +718,7 @@ namespace BlsLang {
                 this->setup.reset(setup);
             }
 
-            std::any accept(Visitor& v) override;
+            BlsObject accept(Visitor& v) override;
 
             auto& getProcedures() { return procedures; }
             auto& getOblocks() { return oblocks; }

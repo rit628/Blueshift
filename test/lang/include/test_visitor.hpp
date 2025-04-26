@@ -1,4 +1,5 @@
 #pragma once
+#include "ast.hpp"
 #include "visitor.hpp"
 #include <gtest/gtest.h>
 #include <stack>
@@ -11,7 +12,7 @@ namespace BlsLang {
             void addExpectedAst(std::unique_ptr<AstNode> expectedAst) { this->expectedAst = std::move(expectedAst); }
             #define AST_NODE_ABSTRACT(...)
             #define AST_NODE(Node) \
-            std::any visit(Node& ast) override;
+            BlsObject visit(Node& ast) override;
             #include "include/NODE_TYPES.LIST"
             #undef AST_NODE_ABSTRACT
             #undef AST_NODE
@@ -20,7 +21,7 @@ namespace BlsLang {
             std::stack<std::unique_ptr<AstNode>> expectedVisits;
     };
 
-    inline std::any Tester::visit(AstNode::Source& ast) {
+    inline BlsObject Tester::visit(AstNode::Source& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedSource = dynamic_cast<AstNode::Source&>(*toCast);
     
@@ -51,7 +52,7 @@ namespace BlsLang {
         return true;
     }
     
-    inline std::any Tester::visit(AstNode::Function::Procedure& ast) {
+    inline BlsObject Tester::visit(AstNode::Function::Procedure& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedProcedure = dynamic_cast<AstNode::Function::Procedure&>(*toCast);
 
@@ -82,7 +83,7 @@ namespace BlsLang {
         return true;
     }
     
-    inline std::any Tester::visit(AstNode::Function::Oblock& ast) {
+    inline BlsObject Tester::visit(AstNode::Function::Oblock& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedOblock = dynamic_cast<AstNode::Function::Oblock&>(*toCast);
     
@@ -109,7 +110,7 @@ namespace BlsLang {
         return true;
     }
     
-    inline std::any Tester::visit(AstNode::Setup& ast) {
+    inline BlsObject Tester::visit(AstNode::Setup& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedSetup = dynamic_cast<AstNode::Setup&>(*toCast);
     
@@ -124,7 +125,7 @@ namespace BlsLang {
         return true;
     }
     
-    inline std::any Tester::visit(AstNode::Statement::If& ast) {
+    inline BlsObject Tester::visit(AstNode::Statement::If& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedIf = dynamic_cast<AstNode::Statement::If&>(*toCast);
     
@@ -164,7 +165,7 @@ namespace BlsLang {
         return true;
     }
     
-    inline std::any Tester::visit(AstNode::Statement::For& ast) {
+    inline BlsObject Tester::visit(AstNode::Statement::For& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedFor = dynamic_cast<AstNode::Statement::For&>(*toCast);
     
@@ -207,7 +208,7 @@ namespace BlsLang {
         return true;
     }
     
-    inline std::any Tester::visit(AstNode::Statement::While& ast) {
+    inline BlsObject Tester::visit(AstNode::Statement::While& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedWhile = dynamic_cast<AstNode::Statement::While&>(*toCast);
 
@@ -231,7 +232,7 @@ namespace BlsLang {
         return true;
     }
     
-    inline std::any Tester::visit(AstNode::Statement::Return& ast) {
+    inline BlsObject Tester::visit(AstNode::Statement::Return& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedReturn = dynamic_cast<AstNode::Statement::Return&>(*toCast);
     
@@ -247,21 +248,21 @@ namespace BlsLang {
         return true;
     }
 
-    inline std::any Tester::visit(AstNode::Statement::Continue& ast) {
+    inline BlsObject Tester::visit(AstNode::Statement::Continue& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedContinue = dynamic_cast<AstNode::Statement::Continue&>(*toCast);
         
         return true;
     }
     
-    inline std::any Tester::visit(AstNode::Statement::Break& ast) {
+    inline BlsObject Tester::visit(AstNode::Statement::Break& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedBreak = dynamic_cast<AstNode::Statement::Break&>(*toCast);
         
         return true;
     }
 
-    inline std::any Tester::visit(AstNode::Statement::Declaration& ast) {
+    inline BlsObject Tester::visit(AstNode::Statement::Declaration& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedDeclaration = dynamic_cast<AstNode::Statement::Declaration&>(*toCast);
     
@@ -287,7 +288,7 @@ namespace BlsLang {
         return true;
     }
     
-    inline std::any Tester::visit(AstNode::Statement::Expression& ast) {
+    inline BlsObject Tester::visit(AstNode::Statement::Expression& ast) {
         auto& toCast = (expectedVisits.empty()) ? *expectedAst : *expectedVisits.top();
         auto& expectedExpressionStatement = dynamic_cast<AstNode::Statement::Expression&>(toCast);
     
@@ -300,7 +301,7 @@ namespace BlsLang {
         return true;
     }
     
-    inline std::any Tester::visit(AstNode::Expression::Binary& ast) {
+    inline BlsObject Tester::visit(AstNode::Expression::Binary& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedBinary = dynamic_cast<AstNode::Expression::Binary&>(*toCast);
     
@@ -321,7 +322,7 @@ namespace BlsLang {
         return true;
     }
     
-    inline std::any Tester::visit(AstNode::Expression::Unary& ast) {
+    inline BlsObject Tester::visit(AstNode::Expression::Unary& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedUnary = dynamic_cast<AstNode::Expression::Unary&>(*toCast);
     
@@ -337,7 +338,7 @@ namespace BlsLang {
         return true;
     }
     
-    inline std::any Tester::visit(AstNode::Expression::Group& ast) {
+    inline BlsObject Tester::visit(AstNode::Expression::Group& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedGroup = dynamic_cast<AstNode::Expression::Group&>(*toCast);
     
@@ -350,7 +351,7 @@ namespace BlsLang {
         return true;
     }
     
-    inline std::any Tester::visit(AstNode::Expression::Method& ast) {
+    inline BlsObject Tester::visit(AstNode::Expression::Method& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedMethod = dynamic_cast<AstNode::Expression::Method&>(*toCast);
     
@@ -368,7 +369,7 @@ namespace BlsLang {
         return true;
     }
     
-    inline std::any Tester::visit(AstNode::Expression::Function& ast) {
+    inline BlsObject Tester::visit(AstNode::Expression::Function& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedFunction = dynamic_cast<AstNode::Expression::Function&>(*toCast);
     
@@ -383,7 +384,7 @@ namespace BlsLang {
         return true;
     }
     
-    inline std::any Tester::visit(AstNode::Expression::Access& ast) {
+    inline BlsObject Tester::visit(AstNode::Expression::Access& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedAccess = dynamic_cast<AstNode::Expression::Access&>(*toCast);
     
@@ -405,7 +406,7 @@ namespace BlsLang {
         return true;
     }
     
-    inline std::any Tester::visit(AstNode::Expression::Literal& ast) {
+    inline BlsObject Tester::visit(AstNode::Expression::Literal& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedLiteral = dynamic_cast<AstNode::Expression::Literal&>(*toCast);
     
@@ -425,7 +426,7 @@ namespace BlsLang {
         return true;
     }
 
-    inline std::any Tester::visit(AstNode::Expression::List& ast) {
+    inline BlsObject Tester::visit(AstNode::Expression::List& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedList = dynamic_cast<AstNode::Expression::List&>(*toCast);
 
@@ -440,7 +441,7 @@ namespace BlsLang {
         return true;
     }
 
-    inline std::any Tester::visit(AstNode::Expression::Set& ast) {
+    inline BlsObject Tester::visit(AstNode::Expression::Set& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedSet = dynamic_cast<AstNode::Expression::Set&>(*toCast);
 
@@ -454,7 +455,7 @@ namespace BlsLang {
         return true;
     }
 
-    inline std::any Tester::visit(AstNode::Expression::Map& ast) {
+    inline BlsObject Tester::visit(AstNode::Expression::Map& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedMap = dynamic_cast<AstNode::Expression::Map&>(*toCast);
 
@@ -476,7 +477,7 @@ namespace BlsLang {
         return true;
     }
     
-    inline std::any Tester::visit(AstNode::Specifier::Type& ast) {
+    inline BlsObject Tester::visit(AstNode::Specifier::Type& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         auto& expectedType = dynamic_cast<AstNode::Specifier::Type&>(*toCast);
     

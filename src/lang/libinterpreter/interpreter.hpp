@@ -1,4 +1,5 @@
 #pragma once
+#include "ast.hpp"
 #include "boost/range/iterator_range_core.hpp"
 #include "include/Common.hpp"
 #include "call_stack.hpp"
@@ -23,7 +24,7 @@ namespace BlsLang {
 
             #define AST_NODE_ABSTRACT(...)
             #define AST_NODE(Node) \
-            std::any visit(Node& ast) override;
+            BlsObject visit(Node& ast) override;
             #include "include/NODE_TYPES.LIST"
             #undef AST_NODE_ABSTRACT
             #undef AST_NODE
@@ -33,17 +34,15 @@ namespace BlsLang {
             auto& getOblockDescriptors() { return oblockDescriptors; }
 
         private:
-            BlsType& resolve(std::any& val);
-
             CallStack<std::string> cs;
-            std::unordered_map<std::string, std::function<std::any(Interpreter&, std::vector<BlsType>)>> procedures = {
-                {"println", [](Interpreter&, std::vector<BlsType> args) -> std::any {
+            std::unordered_map<std::string, std::function<BlsType(Interpreter&, std::vector<BlsType>)>> procedures = {
+                {"println", [](Interpreter&, std::vector<BlsType> args) {
                     for (auto&& arg : args) {
                         std::cout << arg << std::endl;
                     }
                     return std::monostate();
                 }},
-                {"print", [](Interpreter&, std::vector<BlsType> args) -> std::any {
+                {"print", [](Interpreter&, std::vector<BlsType> args) {
                     if (args.size() > 0) {
                         std::cout << args.at(0) << std::flush;
                         for (auto&& arg : boost::make_iterator_range(args.begin()+1, args.end())) {

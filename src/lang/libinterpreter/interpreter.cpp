@@ -19,7 +19,7 @@ using namespace BlsLang;
 template<class... Ts>
 struct overloads : Ts... { using Ts::operator()...; };
 
-std::any Interpreter::visit(AstNode::Source& ast) {
+BlsObject Interpreter::visit(AstNode::Source& ast) {
     for (auto&& procedure : ast.getProcedures()) {
         procedure->accept(*this);
     }
@@ -33,11 +33,10 @@ std::any Interpreter::visit(AstNode::Source& ast) {
     return std::monostate();
 }
 
-std::any Interpreter::visit(AstNode::Function::Procedure& ast) {
+BlsObject Interpreter::visit(AstNode::Function::Procedure& ast) {
     auto& procedureName = ast.getName();
 
-    auto procedure = [&ast](Interpreter& exec, std::vector<BlsType> args) -> std::any {
-        auto& procedureName = ast.getName();
+    auto procedure = [&ast](Interpreter& exec, std::vector<BlsType> args) -> BlsType {
         auto& params = ast.getParameters();
         auto& statements = ast.getStatements();
         exec.cs.pushFrame(CallStack<std::string>::Frame::Context::FUNCTION);
@@ -53,7 +52,7 @@ std::any Interpreter::visit(AstNode::Function::Procedure& ast) {
                 statement->accept(exec);
             }
         } 
-        catch (std::any& ret) {
+        catch (BlsObject& ret) {
             BlsType result = exec.resolve(ret);
             exec.cs.popFrame();
             return result;
@@ -65,11 +64,10 @@ std::any Interpreter::visit(AstNode::Function::Procedure& ast) {
     return std::monostate();
 }
 
-std::any Interpreter::visit(AstNode::Function::Oblock& ast) {
+BlsObject Interpreter::visit(AstNode::Function::Oblock& ast) {
     auto& oblockName = ast.getName();
 
     auto oblock = [&ast](Interpreter& exec, std::vector<BlsType> args) -> std::vector<BlsType> {
-        auto& oblockName = ast.getName();
         auto& params = ast.getParameters();
         auto& statements = ast.getStatements();
         exec.cs.pushFrame(CallStack<std::string>::Frame::Context::FUNCTION);
@@ -95,7 +93,7 @@ std::any Interpreter::visit(AstNode::Function::Oblock& ast) {
     return std::monostate();
 }
 
-std::any Interpreter::visit(AstNode::Setup& ast) {
+BlsObject Interpreter::visit(AstNode::Setup& ast) {
     cs.pushFrame(CallStack<std::string>::Frame::Context::SETUP);
     for (auto&& statement : ast.getStatements()) {
         statement->accept(*this);
@@ -104,14 +102,13 @@ std::any Interpreter::visit(AstNode::Setup& ast) {
     return true;
 }
 
-std::any Interpreter::visit(AstNode::Statement::If& ast) {
+BlsObject Interpreter::visit(AstNode::Statement::If& ast) {
     auto checkCondition = [this](AstNode& expr) {
-        auto conditionResult = expr.accept(*this);
-        auto resolvedCondition = resolve(conditionResult);
-        if (!std::holds_alternative<bool>(resolvedCondition)) {
+        auto conditionResult = resolve(expr.accept(*this));
+        if (!std::holds_alternative<bool>(conditionResult)) {
             throw RuntimeError("Condition must resolve to a boolean value");
         }
-        return std::get<bool>(resolvedCondition);
+        return std::get<bool>(conditionResult);
     };
 
     auto execBlock = [this](std::vector<std::unique_ptr<AstNode::Statement>>& statements) {
@@ -139,7 +136,7 @@ std::any Interpreter::visit(AstNode::Statement::If& ast) {
     }
 }
 
-std::any Interpreter::visit(AstNode::Statement::For& ast) {
+BlsObject Interpreter::visit(AstNode::Statement::For& ast) {
     auto& initStatement = ast.getInitStatement();
     auto& condition = ast.getCondition();
     auto& incrementExpression = ast.getIncrementExpression();
@@ -155,12 +152,11 @@ std::any Interpreter::visit(AstNode::Statement::For& ast) {
     }
     if (condition.has_value()) {
         conditionExec = [&condition, this]() {
-            auto conditionResult = condition->get()->accept(*this);
-            auto resolvedCondition = resolve(conditionResult);
-            if (!std::holds_alternative<bool>(resolvedCondition)) {
+            auto conditionResult = resolve(condition->get()->accept(*this));
+            if (!std::holds_alternative<bool>(conditionResult)) {
                 throw RuntimeError("Condition must resolve to a boolean value");
             }
-            return std::get<bool>(resolvedCondition);
+            return std::get<bool>(conditionResult);
         };
     }
     if (incrementExpression.has_value()) {
@@ -185,7 +181,7 @@ std::any Interpreter::visit(AstNode::Statement::For& ast) {
     return std::monostate();
 }
 
-std::any Interpreter::visit(AstNode::Statement::While& ast) {
+BlsObject Interpreter::visit(AstNode::Statement::While& ast) {
     auto& type = ast.getType();
     auto& condition = ast.getCondition();
     auto& statements = ast.getBlock();
@@ -206,12 +202,11 @@ std::any Interpreter::visit(AstNode::Statement::While& ast) {
     }
 
     auto conditionExec = [&condition, this]() {
-        auto conditionResult = condition->accept(*this);
-        auto resolvedCondition = resolve(conditionResult);
-        if (!std::holds_alternative<bool>(resolvedCondition)) {
+        auto conditionResult = resolve(condition->accept(*this));
+        if (!std::holds_alternative<bool>(conditionResult)) {
             throw RuntimeError("Condition must resolve to a boolean value");
         }
-        return std::get<bool>(resolvedCondition);
+        return std::get<bool>(conditionResult);
     };
     while (conditionExec()) {
         try {
@@ -231,7 +226,7 @@ std::any Interpreter::visit(AstNode::Statement::While& ast) {
     return std::monostate();
 }
 
-std::any Interpreter::visit(AstNode::Statement::Return& ast) {
+BlsObject Interpreter::visit(AstNode::Statement::Return& ast) {
     auto& value = ast.getValue();
     if (value.has_value()) {
         auto literal = value->get()->accept(*this);
@@ -240,88 +235,87 @@ std::any Interpreter::visit(AstNode::Statement::Return& ast) {
     return std::monostate();
 }
 
-std::any Interpreter::visit(AstNode::Statement::Continue& ast) {
+BlsObject Interpreter::visit(AstNode::Statement::Continue& ast) {
     if (!cs.checkContext(CallStack<std::string>::Frame::Context::LOOP)) {
         throw RuntimeError("continue statement outside of loop context.");
     }
     throw ast;
 }
 
-std::any Interpreter::visit(AstNode::Statement::Break& ast) {
+BlsObject Interpreter::visit(AstNode::Statement::Break& ast) {
     if (!cs.checkContext(CallStack<std::string>::Frame::Context::LOOP)) {
         throw RuntimeError("break statement outside of loop context.");
     }
     throw ast;
 }
 
-std::any Interpreter::visit(AstNode::Statement::Declaration& ast) {
-    auto typedObj = ast.getType()->accept(*this);
+BlsObject Interpreter::visit(AstNode::Statement::Declaration& ast) {
+    auto typedObj = resolve(ast.getType()->accept(*this));
     auto& name = ast.getName();
     auto& value = ast.getValue();
     if (cs.checkContext(CallStack<std::string>::Frame::Context::SETUP)) {
-        auto devtypeObj = ast.getType()->accept(*this);
-        auto devtype = static_cast<DEVTYPE>(getType(resolve(devtypeObj)));
-        auto binding = value->get()->accept(*this);
-        auto resolved = resolve(binding);
-        if (!std::holds_alternative<std::string>(resolved)) {
+        auto devtypeObj = resolve(ast.getType()->accept(*this));
+        auto devtype = static_cast<DEVTYPE>(getType(devtypeObj));
+        auto binding = resolve(value->get()->accept(*this));
+        if (!std::holds_alternative<std::string>(binding)) {
             throw RuntimeError("binding for devtype must be a string literal");
         }
-        auto& bindStr = std::get<std::string>(resolved);
+        auto& bindStr = std::get<std::string>(binding);
         auto devDesc = parseDeviceBinding(name, devtype, bindStr);
         deviceDescriptors.emplace(name, devDesc);
     }
     else if (value.has_value()) {
-        auto literal = value->get()->accept(*this);
-        cs.addLocal(name, resolve(literal));
+        auto literal = resolve(value->get()->accept(*this));
+        cs.addLocal(name, literal);
     }
     else {
-        cs.addLocal(name, resolve(typedObj));
+        cs.addLocal(name, typedObj);
     }
     return std::monostate();
 }
 
-std::any Interpreter::visit(AstNode::Statement::Expression& ast) {
+BlsObject Interpreter::visit(AstNode::Statement::Expression& ast) {
     return ast.getExpression()->accept(*this);
 }
 
-std::any Interpreter::visit(AstNode::Expression::Binary& ast) {
-    auto lRes = ast.getLeft()->accept(*this);
-    auto rRes = ast.getRight()->accept(*this);
-    auto& lhs = resolve(lRes);
-    auto& rhs = resolve(rRes);
+BlsObject Interpreter::visit(AstNode::Expression::Binary& ast) {
+    auto leftResult = ast.getLeft()->accept(*this);
+    auto& lhs = resolve(leftResult);
+    auto rightResult = ast.getRight()->accept(*this);
+    auto& rhs = resolve(rightResult);
 
     auto op = getBinOpEnum(ast.getOp());
     switch (op) {
         case BINARY_OPERATOR::OR:
-            return BlsType(lhs || rhs); // convert back to BlsType from bool conversion
+            return lhs || rhs;
         break;
 
         case BINARY_OPERATOR::AND:
-            return BlsType(lhs && rhs); // convert back to BlsType from bool conversion
+            return lhs && rhs;
         break;
 
         case BINARY_OPERATOR::LT:
-            return BlsType(lhs < rhs); // convert back to BlsType from bool conversion
+            return lhs < rhs;
         break;
         
         case BINARY_OPERATOR::LE:
-            return BlsType(lhs <= rhs); // convert back to BlsType from bool conversion
+            return lhs <= rhs;
         break;
 
         case BINARY_OPERATOR::GT:
-            return BlsType(lhs > rhs); // convert back to BlsType from bool conversion
+            return lhs > rhs;
         break;
 
         case BINARY_OPERATOR::GE:
-            return BlsType(lhs >= rhs); // convert back to BlsType from bool conversion
+            return lhs >= rhs;
         break;
 
         case BINARY_OPERATOR::NE:
-            return BlsType(lhs != rhs); // convert back to BlsType from bool conversion
+            return lhs != rhs;
         break;
 
         case BINARY_OPERATOR::EQ:
-            return BlsType(lhs == rhs); // convert back to BlsType from bool conversion
+            return lhs == rhs;
         break;
 
         case BINARY_OPERATOR::ADD:
@@ -382,7 +376,7 @@ std::any Interpreter::visit(AstNode::Expression::Binary& ast) {
     }
 }
 
-std::any Interpreter::visit(AstNode::Expression::Unary& ast) {
+BlsObject Interpreter::visit(AstNode::Expression::Unary& ast) {
     auto expression = ast.getExpression()->accept(*this);
     auto& object = resolve(expression);
     auto op = getUnOpEnum(ast.getOp());
@@ -390,7 +384,7 @@ std::any Interpreter::visit(AstNode::Expression::Unary& ast) {
     
     switch (op) {
         case UNARY_OPERATOR::NOT:
-            return BlsType(!object); // convert back to BlsType from bool conversion
+            return !object;
         break;
 
         case UNARY_OPERATOR::NEG:
@@ -427,17 +421,17 @@ std::any Interpreter::visit(AstNode::Expression::Unary& ast) {
     }
 }
 
-std::any Interpreter::visit(AstNode::Expression::Group& ast) {
+BlsObject Interpreter::visit(AstNode::Expression::Group& ast) {
     return ast.getExpression()->accept(*this);
 }
 
-std::any Interpreter::visit(AstNode::Expression::Method& ast) {
+BlsObject Interpreter::visit(AstNode::Expression::Method& ast) {
     auto& object = ast.getObject();
     auto& args = ast.getArguments();
     std::vector<BlsType> resolvedArgs;
     for (auto&& arg : args) {
-        auto visited = arg->accept(*this);
-        resolvedArgs.push_back(resolve(visited));
+        auto visited = resolve(arg->accept(*this));
+        resolvedArgs.push_back(visited);
     }
     auto& methodName = ast.getMethodName();
     if (!std::holds_alternative<std::shared_ptr<HeapDescriptor>>(cs.getLocal(object))) {
@@ -469,7 +463,7 @@ std::any Interpreter::visit(AstNode::Expression::Method& ast) {
     return std::monostate();
 }
 
-std::any Interpreter::visit(AstNode::Expression::Function& ast) {
+BlsObject Interpreter::visit(AstNode::Expression::Function& ast) {
     auto& name = ast.getName();
     auto& args = ast.getArguments();
     if (cs.checkContext(CallStack<std::string>::Frame::Context::SETUP)) {
@@ -496,8 +490,8 @@ std::any Interpreter::visit(AstNode::Expression::Function& ast) {
     }
     std::vector<BlsType> argObjects;
     for (auto&& arg : args) {
-        auto result = arg->accept(*this);
-        argObjects.push_back(resolve(result));
+        auto result = resolve(arg->accept(*this));
+        argObjects.push_back(result);
     }
     if (!procedures.contains(name)) {
         throw RuntimeError("No procedure named: " + name);
@@ -506,7 +500,7 @@ std::any Interpreter::visit(AstNode::Expression::Function& ast) {
     return f(*this, argObjects);
 }
 
-std::any Interpreter::visit(AstNode::Expression::Access& ast) {
+BlsObject Interpreter::visit(AstNode::Expression::Access& ast) {
     auto& object = ast.getObject();
     auto& member = ast.getMember();
     auto& subscript = ast.getSubscript();
@@ -523,57 +517,57 @@ std::any Interpreter::visit(AstNode::Expression::Access& ast) {
             throw RuntimeError("subscript access only possible on container type objects");
         }
         auto& subscriptable = std::get<std::shared_ptr<HeapDescriptor>>(cs.getLocal(object));
-        auto index = subscript->get()->accept(*this);
-        return std::ref(subscriptable->access(resolve(index)));
+        auto index = resolve(subscript->get()->accept(*this));
+        return std::ref(subscriptable->access(index));
     }
     else {
         return std::ref(cs.getLocal(object));
     }
 }
 
-std::any Interpreter::visit(AstNode::Expression::Literal& ast) {
-    std::any literal;
+BlsObject Interpreter::visit(AstNode::Expression::Literal& ast) {
+    BlsType literal;
     const auto convert = overloads {
-        [&literal](auto value) { literal = BlsType(value); }
+        [&literal](auto& value) { literal = value; }
     };
     std::visit(convert, ast.getLiteral());
     return literal;
 }
 
-std::any Interpreter::visit(AstNode::Expression::List& ast) {
+BlsObject Interpreter::visit(AstNode::Expression::List& ast) {
     auto list = std::make_shared<VectorDescriptor>(TYPE::ANY);
     auto& elements = ast.getElements();
     for (auto&& element : elements) {
-        auto literal = element->accept(*this);
-        list->append(resolve(literal));
+        auto literal = resolve(element->accept(*this));
+        list->append(literal);
     }
     return BlsType(list);
 }
 
-std::any Interpreter::visit(AstNode::Expression::Set& ast) {
+BlsObject Interpreter::visit(AstNode::Expression::Set& ast) {
     throw RuntimeError("no support for sets in phase 0");
 }
 
-std::any Interpreter::visit(AstNode::Expression::Map& ast) {
+BlsObject Interpreter::visit(AstNode::Expression::Map& ast) {
     auto map = std::make_shared<MapDescriptor>(TYPE::ANY);
     auto& elements = ast.getElements();
     for (auto&& element : elements) {
-        auto key = element.first->accept(*this);
-        auto value = element.second->accept(*this);
-        map->emplace(resolve(key), resolve(value));
+        auto key = resolve(element.first->accept(*this));
+        auto value = resolve(element.second->accept(*this));
+        map->emplace(key, value);
     }
     return BlsType(map);
 }
 
-std::any Interpreter::visit(AstNode::Specifier::Type& ast) {
+BlsObject Interpreter::visit(AstNode::Specifier::Type& ast) {
     TYPE primaryType = getTypeFromName(ast.getName());
     const auto& typeArgs = ast.getTypeArgs();
     if (primaryType == TYPE::list_t) {
         if (typeArgs.size() != 1) throw RuntimeError("List may only have a single type argument.");
         auto argType = getTypeFromName(typeArgs.at(0)->getName());
         auto list = std::make_shared<VectorDescriptor>(argType);
-        auto arg = typeArgs.at(0)->accept(*this);
-        list->append(resolve(arg));
+        auto arg = resolve(typeArgs.at(0)->accept(*this));
+        list->append(arg);
         return BlsType(list);
     }
     else if (primaryType == TYPE::map_t) {
@@ -587,9 +581,9 @@ std::any Interpreter::visit(AstNode::Specifier::Type& ast) {
             throw RuntimeError("Invalid value type for map.");
         }
         auto map = std::make_shared<MapDescriptor>(TYPE::map_t, keyType, valType);
-        auto key = typeArgs.at(0)->accept(*this);
-        auto value = typeArgs.at(1)->accept(*this);
-        map->emplace(resolve(key), resolve(value));
+        auto key = resolve(typeArgs.at(0)->accept(*this));
+        auto value = resolve(typeArgs.at(1)->accept(*this));
+        map->emplace(key, value);
         return BlsType(map);
     }
     else if (typeArgs.empty()) {
@@ -640,14 +634,5 @@ std::any Interpreter::visit(AstNode::Specifier::Type& ast) {
     }
     else {
         throw RuntimeError("Primitive or devtype cannot include type arguments.");
-    }
-}
-
-BlsType& Interpreter::resolve(std::any& val) {
-    if (val.type() == typeid(std::reference_wrapper<BlsType>)) {
-        return std::any_cast<std::reference_wrapper<BlsType>>(val);
-    }
-    else {
-        return std::ref(std::any_cast<BlsType&>(val));
     }
 }

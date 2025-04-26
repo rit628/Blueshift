@@ -5,7 +5,6 @@
 #include "analyzer.hpp"
 #include "libtypes/bls_types.hpp"
 #include "call_stack.hpp"
-#include <any>
 #include <functional>
 #include <memory>
 #include <string>
@@ -20,7 +19,7 @@ using namespace BlsLang;
 template<class... Ts>
 struct overloads : Ts... { using Ts::operator()...; };
 
-std::any Analyzer::visit(AstNode::Source& ast) {
+BlsObject Analyzer::visit(AstNode::Source& ast) {
     for (auto&& procedure : ast.getProcedures()) {
         procedure->accept(*this);
     }
@@ -34,16 +33,16 @@ std::any Analyzer::visit(AstNode::Source& ast) {
     return std::monostate();
 }
 
-std::any Analyzer::visit(AstNode::Function::Procedure& ast) {
+BlsObject Analyzer::visit(AstNode::Function::Procedure& ast) {
     auto& procedureName = ast.getName();
-    auto returnType = ast.getReturnType()->get()->accept(*this);
+    auto returnType = resolve(ast.getReturnType()->get()->accept(*this));
     
     std::vector<BlsType> parameterTypes;
     for (auto&& type : ast.getParameterTypes()) {
-        auto typeObject = type->accept(*this);
-        parameterTypes.push_back(resolve(typeObject));
+        auto typeObject = resolve(type->accept(*this));
+        parameterTypes.push_back(typeObject);
     }
-    procedures.emplace(procedureName, FunctionSignature(procedureName, resolve(returnType), parameterTypes));
+    procedures.emplace(procedureName, FunctionSignature(procedureName, returnType, parameterTypes));
 
     cs.pushFrame(CallStack<std::string>::Frame::Context::FUNCTION, procedureName);
     auto params = ast.getParameters();
@@ -58,13 +57,13 @@ std::any Analyzer::visit(AstNode::Function::Procedure& ast) {
     return std::monostate();
 }
 
-std::any Analyzer::visit(AstNode::Function::Oblock& ast) {
+BlsObject Analyzer::visit(AstNode::Function::Oblock& ast) {
     auto& oblockName = ast.getName();
     
     std::vector<BlsType> parameterTypes;
     for (auto&& type : ast.getParameterTypes()) {
-        auto typeObject = type->accept(*this);
-        parameterTypes.push_back(resolve(typeObject));
+        auto typeObject = resolve(type->accept(*this));
+        parameterTypes.push_back(typeObject);
     }
     oblocks.emplace(oblockName, FunctionSignature(oblockName, std::monostate(), parameterTypes));
 
@@ -81,24 +80,23 @@ std::any Analyzer::visit(AstNode::Function::Oblock& ast) {
     return std::monostate();
 }
 
-std::any Analyzer::visit(AstNode::Setup& ast) {
+BlsObject Analyzer::visit(AstNode::Setup& ast) {
     for (auto&& statement : ast.getStatements()) {
         if (auto* deviceBinding = dynamic_cast<AstNode::Statement::Declaration*>(statement.get())) {
             auto& name = deviceBinding->getName();
-            auto devtypeObj = deviceBinding->getType()->accept(*this);
-            auto devtype = static_cast<DEVTYPE>(getType(resolve(devtypeObj)));
+            auto devtypeObj = resolve(deviceBinding->getType()->accept(*this));
+            auto devtype = static_cast<DEVTYPE>(getType(devtypeObj));
 
             auto& value = deviceBinding->getValue();
             if (!value.has_value()) {
                 throw SemanticError("DEVTYPE binding cannot be empty");
             }
 
-            auto binding = value->get()->accept(*this);
-            auto resolvedBinding = resolve(binding);
-            if (!std::holds_alternative<std::string>(resolvedBinding)) {
+            auto binding = resolve(value->get()->accept(*this));
+            if (!std::holds_alternative<std::string>(binding)) {
                 throw SemanticError("DEVTYPE binding must be a string literal");
             }
-            auto& bindStr = std::get<std::string>(resolvedBinding);
+            auto& bindStr = std::get<std::string>(binding);
             auto devDesc = parseDeviceBinding(name, devtype, bindStr);
             deviceDescriptors.emplace(name, devDesc);
         }
@@ -137,7 +135,7 @@ std::any Analyzer::visit(AstNode::Setup& ast) {
     return true;
 }
 
-std::any Analyzer::visit(AstNode::Statement::If& ast) {
+BlsObject Analyzer::visit(AstNode::Statement::If& ast) {
     auto& condition = ast.getCondition();
     auto& statements = ast.getBlock();
     auto& elifStatements = ast.getElseIfStatements();
@@ -151,8 +149,8 @@ std::any Analyzer::visit(AstNode::Statement::If& ast) {
         cs.popFrame();
     };
 
-    auto conditionResult = condition->accept(*this);
-    if (getType(resolve(conditionResult)) != TYPE::bool_t) {
+    auto conditionResult = resolve(condition->accept(*this));
+    if (getType(conditionResult) != TYPE::bool_t) {
         throw SemanticError("Condition must resolve to a boolean value");
     }
     // TODO: add checks for unreachable code
@@ -164,7 +162,7 @@ std::any Analyzer::visit(AstNode::Statement::If& ast) {
     return std::monostate();
 }
 
-std::any Analyzer::visit(AstNode::Statement::For& ast) {
+BlsObject Analyzer::visit(AstNode::Statement::For& ast) {
     auto& initStatement = ast.getInitStatement();
     auto& condition = ast.getCondition();
     auto& incrementExpression = ast.getIncrementExpression();
@@ -175,8 +173,8 @@ std::any Analyzer::visit(AstNode::Statement::For& ast) {
         initStatement->get()->accept(*this);
     }
     if (condition.has_value()) {
-        auto conditionResult = condition->get()->accept(*this);
-        if (getType(resolve(conditionResult)) != TYPE::bool_t) {
+        auto conditionResult = resolve(condition->get()->accept(*this));
+        if (getType(conditionResult) != TYPE::bool_t) {
             throw SemanticError("Condition must resolve to a boolean value");
         }
     }
@@ -191,13 +189,13 @@ std::any Analyzer::visit(AstNode::Statement::For& ast) {
     return std::monostate();
 }
 
-std::any Analyzer::visit(AstNode::Statement::While& ast) {
+BlsObject Analyzer::visit(AstNode::Statement::While& ast) {
     auto& condition = ast.getCondition();
     auto& statements = ast.getBlock();
 
     cs.pushFrame(CallStack<std::string>::Frame::Context::LOOP);
-    auto conditionResult = condition->accept(*this);
-    if (getType(resolve(conditionResult)) != TYPE::bool_t) {
+    auto conditionResult = resolve(condition->accept(*this));
+    if (getType(conditionResult) != TYPE::bool_t) {
         throw SemanticError("Condition must resolve to a boolean value");
     }
     // TODO: add checks for unreachable code
@@ -208,7 +206,7 @@ std::any Analyzer::visit(AstNode::Statement::While& ast) {
     return std::monostate();
 }
 
-std::any Analyzer::visit(AstNode::Statement::Return& ast) {
+BlsObject Analyzer::visit(AstNode::Statement::Return& ast) {
     auto& functionName = cs.getFrameName();
     auto parentSignature = (procedures.contains(functionName)) ? procedures.at(functionName) : oblocks.at(functionName);
     auto expectedReturnType = getType(parentSignature.returnType);
@@ -217,8 +215,8 @@ std::any Analyzer::visit(AstNode::Statement::Return& ast) {
         if (expectedReturnType == TYPE::void_t) {
             throw SemanticError("void function should not return a value");
         }
-        auto visited = value->get()->accept(*this);
-        if (!typeCompatible(parentSignature.returnType, resolve(visited))) {
+        auto returnType = resolve(value->get()->accept(*this));
+        if (!typeCompatible(parentSignature.returnType, returnType)) {
             throw SemanticError("Invalid return type for " + functionName);
         }
     }
@@ -228,47 +226,47 @@ std::any Analyzer::visit(AstNode::Statement::Return& ast) {
     return std::monostate();
 }
 
-std::any Analyzer::visit(AstNode::Statement::Continue& ast) {
+BlsObject Analyzer::visit(AstNode::Statement::Continue& ast) {
     if (!cs.checkContext(CallStack<std::string>::Frame::Context::LOOP)) {
         throw SemanticError("continue statement outside of loop context.");
     }
     return std::monostate();
 }
 
-std::any Analyzer::visit(AstNode::Statement::Break& ast) {
+BlsObject Analyzer::visit(AstNode::Statement::Break& ast) {
     if (!cs.checkContext(CallStack<std::string>::Frame::Context::LOOP)) {
         throw SemanticError("break statement outside of loop context.");
     }
     return std::monostate();
 }
 
-std::any Analyzer::visit(AstNode::Statement::Declaration& ast) {
-    auto typedObj = ast.getType()->accept(*this);
+BlsObject Analyzer::visit(AstNode::Statement::Declaration& ast) {
+    auto typedObj = resolve(ast.getType()->accept(*this));
     auto& name = ast.getName();
     auto& value = ast.getValue();
     if (value.has_value()) {
-        auto literal = value->get()->accept(*this);
-        if (!typeCompatible(resolve(typedObj), resolve(literal))) {
+        auto literal = resolve(value->get()->accept(*this));
+        if (!typeCompatible(typedObj, literal)) {
             throw SemanticError("Invalid initialization for declaration");
         }
-        cs.addLocal(name, resolve(literal));
+        cs.addLocal(name, literal);
     }
     else {
-        cs.addLocal(name, resolve(typedObj));
+        cs.addLocal(name, typedObj);
     }
     ast.getLocalIndex() = cs.getLocalIndex(name);
     return std::monostate();
 }
 
-std::any Analyzer::visit(AstNode::Statement::Expression& ast) {
+BlsObject Analyzer::visit(AstNode::Statement::Expression& ast) {
     return ast.getExpression()->accept(*this);
 }
 
-std::any Analyzer::visit(AstNode::Expression::Binary& ast) {
-    auto lRes = ast.getLeft()->accept(*this);
-    auto rRes = ast.getRight()->accept(*this);
-    auto& lhs = resolve(lRes);
-    auto& rhs = resolve(rRes);
+BlsObject Analyzer::visit(AstNode::Expression::Binary& ast) {
+    auto leftResult = ast.getLeft()->accept(*this);
+    auto& lhs = resolve(leftResult);
+    auto rightResult = ast.getRight()->accept(*this);
+    auto& rhs = resolve(rightResult);
 
     if (!typeCompatible(lhs, rhs)) {
         throw SemanticError("Invalid operands for binary expression");
@@ -278,35 +276,35 @@ std::any Analyzer::visit(AstNode::Expression::Binary& ast) {
     // operator type checking done by overload specialization
     switch (op) {
         case BINARY_OPERATOR::OR:
-            return BlsType(lhs || rhs); // convert back to BlsType from bool conversion
+            return lhs || rhs;
         break;
 
         case BINARY_OPERATOR::AND:
-            return BlsType(lhs && rhs); // convert back to BlsType from bool conversion
+            return lhs && rhs;
         break;
 
         case BINARY_OPERATOR::LT:
-            return BlsType(lhs < rhs); // convert back to BlsType from bool conversion
+            return lhs < rhs;
         break;
         
         case BINARY_OPERATOR::LE:
-            return BlsType(lhs <= rhs); // convert back to BlsType from bool conversion
+            return lhs <= rhs;
         break;
 
         case BINARY_OPERATOR::GT:
-            return BlsType(lhs > rhs); // convert back to BlsType from bool conversion
+            return lhs > rhs;
         break;
 
         case BINARY_OPERATOR::GE:
-            return BlsType(lhs >= rhs); // convert back to BlsType from bool conversion
+            return lhs >= rhs;
         break;
 
         case BINARY_OPERATOR::NE:
-            return BlsType(lhs != rhs); // convert back to BlsType from bool conversion
+            return lhs != rhs;
         break;
 
         case BINARY_OPERATOR::EQ:
-            return BlsType(lhs == rhs); // convert back to BlsType from bool conversion
+            return lhs == rhs;
         break;
 
         case BINARY_OPERATOR::ADD:
@@ -368,7 +366,7 @@ std::any Analyzer::visit(AstNode::Expression::Binary& ast) {
     }
 }
 
-std::any Analyzer::visit(AstNode::Expression::Unary& ast) {
+BlsObject Analyzer::visit(AstNode::Expression::Unary& ast) {
     auto expression = ast.getExpression()->accept(*this);
     auto& object = resolve(expression);
     auto op = getUnOpEnum(ast.getOp());
@@ -377,7 +375,7 @@ std::any Analyzer::visit(AstNode::Expression::Unary& ast) {
     // operator type checking done by overload specialization
     switch (op) {
         case UNARY_OPERATOR::NOT:
-            return BlsType(!object); // convert back to BlsType from bool conversion
+            return !object;
         break;
 
         case UNARY_OPERATOR::NEG:
@@ -414,11 +412,11 @@ std::any Analyzer::visit(AstNode::Expression::Unary& ast) {
     }
 }
 
-std::any Analyzer::visit(AstNode::Expression::Group& ast) {
+BlsObject Analyzer::visit(AstNode::Expression::Group& ast) {
     return ast.getExpression()->accept(*this);
 }
 
-std::any Analyzer::visit(AstNode::Expression::Method& ast) {
+BlsObject Analyzer::visit(AstNode::Expression::Method& ast) {
     auto& objectName = ast.getObject();
     auto& object = cs.getLocal(objectName);
     auto& methodName = ast.getMethodName();
@@ -430,8 +428,8 @@ std::any Analyzer::visit(AstNode::Expression::Method& ast) {
     }
     std::vector<BlsType> resolvedArgs;
     for (auto&& arg : methodArgs) {
-        auto visited = arg->accept(*this);
-        resolvedArgs.push_back(resolve(visited));
+        auto visited = resolve(arg->accept(*this));
+        resolvedArgs.push_back(visited);
     }
     auto& operable = std::get<std::shared_ptr<HeapDescriptor>>(object);
     // temporary solution for method type checking; not scalable with arbitrary number of methods
@@ -450,7 +448,7 @@ std::any Analyzer::visit(AstNode::Expression::Method& ast) {
     return std::monostate();
 }
 
-std::any Analyzer::visit(AstNode::Expression::Function& ast) {
+BlsObject Analyzer::visit(AstNode::Expression::Function& ast) {
     auto& name = ast.getName();
     auto& args = ast.getArguments();
     if (!procedures.contains(name)) {
@@ -468,8 +466,8 @@ std::any Analyzer::visit(AstNode::Expression::Function& ast) {
             throw SemanticError("Invalid number of arguments passed into " + name);
         }
         for (auto&& [argType, arg] : boost::combine(signature.parameterTypes, args)) {
-            auto result = arg->accept(*this);
-            if (!typeCompatible(argType, resolve(result))) {
+            auto result = resolve(arg->accept(*this));
+            if (!typeCompatible(argType, result)) {
                 throw SemanticError("Invalid argument provided to " + name);
             }
         }
@@ -477,7 +475,7 @@ std::any Analyzer::visit(AstNode::Expression::Function& ast) {
     return signature.returnType;
 }
 
-std::any Analyzer::visit(AstNode::Expression::Access& ast) {
+BlsObject Analyzer::visit(AstNode::Expression::Access& ast) {
     auto& objectName = ast.getObject();
     auto& object = cs.getLocal(objectName);
     auto& member = ast.getMember();
@@ -513,47 +511,45 @@ std::any Analyzer::visit(AstNode::Expression::Access& ast) {
             throw SemanticError("Subscript access only possible on container type objects");
         }
         auto& subscriptable = std::get<std::shared_ptr<HeapDescriptor>>(object);
-        auto index = subscript->get()->accept(*this);
-        return std::ref(subscriptable->access(resolve(index)));
+        auto index = resolve(subscript->get()->accept(*this));
+        return std::ref(subscriptable->access(index));
     }
     else {
         return std::ref(object);
     }
 }
 
-std::any Analyzer::visit(AstNode::Expression::Literal& ast) {
-    std::any literal;
+BlsObject Analyzer::visit(AstNode::Expression::Literal& ast) {
+    BlsType literal;
     const auto convert = overloads {
-        [&literal](auto value) { literal = BlsType(value); }
+        [&literal](auto& value) { literal = value; }
     };
     std::visit(convert, ast.getLiteral());
-    auto& resolved = resolve(literal);
-    if (!literalPool.contains(resolved)) {
-        literalPool.emplace(resolve(literal), literalCount++);
+    if (!literalPool.contains(literal)) {
+        literalPool.emplace(literal, literalCount++);
     }
     return literal;
 }
 
-std::any Analyzer::visit(AstNode::Expression::List& ast) {
+BlsObject Analyzer::visit(AstNode::Expression::List& ast) {
     auto list = std::make_shared<VectorDescriptor>(TYPE::ANY);
     auto listLiteral = std::make_shared<VectorDescriptor>(TYPE::ANY);
     auto& elements = ast.getElements();
     BlsType initIdx = 0;
     auto addElement = [&, this](auto& element) {
-        auto literal = element->accept(*this);
-        auto& resolved = resolve(literal);
-        list->append(resolved);
+        auto literal = resolve(element->accept(*this));
+        list->append(literal);
         auto& valExpressionType = typeid(*element);
         if (valExpressionType == typeid(AstNode::Expression::Literal)
             || valExpressionType == typeid(AstNode::Expression::List)
             || valExpressionType == typeid(AstNode::Expression::Map)) { // element can be added at compile time
-                listLiteral->append(resolved);
+                listLiteral->append(literal);
         }
         else {
             BlsType null = std::monostate();
             listLiteral->append(null);
         }
-        return resolved;
+        return literal;
     };
 
     if (elements.size() > 0) {
@@ -574,42 +570,40 @@ std::any Analyzer::visit(AstNode::Expression::List& ast) {
 
     ast.getLiteral() = listLiteral;
 
-    return BlsType(list);
+    return list;
 }
 
-std::any Analyzer::visit(AstNode::Expression::Set& ast) {
+BlsObject Analyzer::visit(AstNode::Expression::Set& ast) {
     throw SemanticError("no support for sets in phase 0");
 }
 
-std::any Analyzer::visit(AstNode::Expression::Map& ast) {
+BlsObject Analyzer::visit(AstNode::Expression::Map& ast) {
     auto map = std::make_shared<MapDescriptor>(TYPE::ANY);
     auto mapLiteral = std::make_shared<MapDescriptor>(TYPE::ANY);
     auto& elements = ast.getElements();
     BlsType initKey, initVal;
     auto addElement = [&, this](auto& element) {
-        auto key = element.first->accept(*this);
-        auto keyType = getType(resolve(key));
+        auto key = resolve(element.first->accept(*this));
+        auto keyType = getType(key);
         if (keyType > TYPE::PRIMITIVE_COUNT) {
             throw SemanticError("Invalid key type for map");
         }
-        auto value = element.second->accept(*this);
-        auto& resolvedKey = resolve(key);
-        auto& resolvedVal = resolve(value);
-        map->emplace(resolvedKey, resolvedVal);
+        auto value = resolve(element.second->accept(*this));
+        map->emplace(key, value);
         auto& keyExpressionType = typeid(*element.first);
         if (keyExpressionType == typeid(AstNode::Expression::Literal)) { // key can be added at compile time
             auto& valExpressionType = typeid(*element.second);
             if (valExpressionType == typeid(AstNode::Expression::Literal)
              || valExpressionType == typeid(AstNode::Expression::List)
              || valExpressionType == typeid(AstNode::Expression::Map)) { // value can be added at compile time
-                mapLiteral->emplace(resolvedKey, resolvedVal);
+                mapLiteral->emplace(key, value);
             }
             else {
                 BlsType null = std::monostate();
-                mapLiteral->emplace(resolvedKey, null);
+                mapLiteral->emplace(key, null);
             }
         }
-        return std::pair(resolvedKey, resolvedVal);
+        return std::pair(key, value);
     };
 
     if (elements.size() > 0) {
@@ -631,20 +625,20 @@ std::any Analyzer::visit(AstNode::Expression::Map& ast) {
 
     ast.getLiteral() = mapLiteral;
 
-    return BlsType(map);
+    return map;
 }
 
-std::any Analyzer::visit(AstNode::Specifier::Type& ast) {
+BlsObject Analyzer::visit(AstNode::Specifier::Type& ast) {
     TYPE primaryType = getTypeFromName(ast.getName());
     const auto& typeArgs = ast.getTypeArgs();
     if (primaryType == TYPE::list_t) {
         if (typeArgs.size() != 1) throw SemanticError("List may only have a single type argument.");
         auto argType = getTypeFromName(typeArgs.at(0)->getName());
         auto list = std::make_shared<VectorDescriptor>(argType);
-        auto arg = typeArgs.at(0)->accept(*this);
-        list->append(resolve(arg));
-        list->getSampleElement() = resolve(arg);
-        return BlsType(list);
+        auto arg = resolve(typeArgs.at(0)->accept(*this));
+        list->append(arg);
+        list->getSampleElement() = arg;
+        return list;
     }
     else if (primaryType == TYPE::map_t) {
         if (typeArgs.size() != 2) throw SemanticError("Map must have two type arguments.");
@@ -657,10 +651,10 @@ std::any Analyzer::visit(AstNode::Specifier::Type& ast) {
             throw SemanticError("Invalid value type for map.");
         }
         auto map = std::make_shared<MapDescriptor>(TYPE::map_t, keyType, valType);
-        auto key = typeArgs.at(0)->accept(*this);
-        auto value = typeArgs.at(1)->accept(*this);
-        map->emplace(resolve(key), resolve(value));
-        map->getSampleElement() = resolve(value);
+        auto key = resolve(typeArgs.at(0)->accept(*this));
+        auto value = resolve(typeArgs.at(1)->accept(*this));
+        map->emplace(key, value);
+        map->getSampleElement() = value;
         return BlsType(map);
     }
     else if (typeArgs.empty()) {
@@ -711,14 +705,5 @@ std::any Analyzer::visit(AstNode::Specifier::Type& ast) {
     }
     else {
         throw SemanticError("Primitive or devtype cannot include type arguments.");
-    }
-}
-
-BlsType& Analyzer::resolve(std::any& val) {
-    if (val.type() == typeid(std::reference_wrapper<BlsType>)) {
-        return std::any_cast<std::reference_wrapper<BlsType>>(val);
-    }
-    else {
-        return std::ref(std::any_cast<BlsType&>(val));
     }
 }

@@ -1,4 +1,5 @@
 #pragma once
+#include "ast.hpp"
 #include "include/Common.hpp"
 #include "libtypes/bls_types.hpp"
 #include "call_stack.hpp"
@@ -20,7 +21,7 @@ namespace BlsLang {
 
             #define AST_NODE_ABSTRACT(...)
             #define AST_NODE(Node) \
-            std::any visit(Node& ast) override;
+            BlsObject visit(Node& ast) override;
             #include "include/NODE_TYPES.LIST"
             #undef AST_NODE_ABSTRACT
             #undef AST_NODE
@@ -29,8 +30,6 @@ namespace BlsLang {
             auto& getOblockDescriptors() { return oblockDescriptors; }
 
         private:
-            BlsType& resolve(std::any& val);
-
             struct FunctionSignature {
                 std::string name;
                 BlsType returnType;
