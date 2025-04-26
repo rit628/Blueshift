@@ -86,4 +86,16 @@ namespace BlsLang {
         EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
     }
 
+    GROUP_TEST_F(AnalyzerTest, LogicTests, InvalidIncrement) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Expression(
+            new AstNode::Expression::Unary(
+                "++",
+                new AstNode::Expression::Literal(
+                    int64_t(1)
+                )
+            )
+        ));
+        EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    }
+
 }

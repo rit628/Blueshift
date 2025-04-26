@@ -334,7 +334,6 @@ BlsObject Analyzer::visit(AstNode::Expression::Binary& ast) {
             return lhs ^ rhs;
         break;
 
-        // TODO: verify that lhs is not a temporary expression (needs dep graph)
         case BINARY_OPERATOR::ASSIGN:
             return lhs = rhs;
         break;
@@ -374,6 +373,10 @@ BlsObject Analyzer::visit(AstNode::Expression::Unary& ast) {
     auto& object = resolve(expression);
     auto op = getUnOpEnum(ast.getOp());
     auto position = ast.getPosition();
+
+    if ((op >= UNARY_OPERATOR::INC) && std::holds_alternative<BlsType>(expression)) {
+        throw SemanticError("Assignments to temporary not permitted");
+    }
     
     // operator type checking done by overload specialization
     switch (op) {
