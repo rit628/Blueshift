@@ -56,4 +56,34 @@ namespace BlsLang {
         EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
     }
 
+    GROUP_TEST_F(AnalyzerTest, LogicTests, InvalidAssignment) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Expression(
+            new AstNode::Expression::Binary(
+                "=",
+                new AstNode::Expression::Literal(
+                    int64_t(1)
+                ),
+                new AstNode::Expression::Literal(
+                    int64_t(2)
+                )
+            )
+        ));
+        EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, LogicTests, InvalidCompoundAssignment) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Expression(
+            new AstNode::Expression::Binary(
+                "*=",
+                new AstNode::Expression::Literal(
+                    int64_t(1)
+                ),
+                new AstNode::Expression::Literal(
+                    int64_t(2)
+                )
+            )
+        ));
+        EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    }
+
 }

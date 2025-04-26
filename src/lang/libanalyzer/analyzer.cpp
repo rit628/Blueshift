@@ -264,8 +264,8 @@ BlsObject Analyzer::visit(AstNode::Statement::Expression& ast) {
 
 BlsObject Analyzer::visit(AstNode::Expression::Binary& ast) {
     auto leftResult = ast.getLeft()->accept(*this);
-    auto& lhs = resolve(leftResult);
     auto rightResult = ast.getRight()->accept(*this);
+    auto& lhs = resolve(leftResult);
     auto& rhs = resolve(rightResult);
 
     if (!typeCompatible(lhs, rhs)) {
@@ -273,6 +273,9 @@ BlsObject Analyzer::visit(AstNode::Expression::Binary& ast) {
     }
 
     auto op = getBinOpEnum(ast.getOp());
+    if ((op >= BINARY_OPERATOR::ASSIGN) && std::holds_alternative<BlsType>(leftResult)) {
+        throw SemanticError("Assignments to temporary not permitted");
+    }
     // operator type checking done by overload specialization
     switch (op) {
         case BINARY_OPERATOR::OR:
