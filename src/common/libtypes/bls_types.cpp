@@ -131,7 +131,7 @@ bool operator!=(const BlsType& lhs, const BlsType& rhs) {
             return a != b;
         }
         else {
-            throw std::runtime_error("Lhs and Rhs are not comparable.");
+            return true; // objects are not the same; thus trivially not equal
         }
     }, lhs, rhs);
 }
@@ -142,7 +142,7 @@ bool operator==(const BlsType& lhs, const BlsType& rhs) {
             return a == b;
         }
         else {
-            throw std::runtime_error("Lhs and Rhs are not comparable.");
+            return false; // objects are not the same; thus trivially not equal
         }
     }, lhs, rhs);
 }
