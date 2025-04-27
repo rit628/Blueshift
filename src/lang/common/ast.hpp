@@ -401,7 +401,7 @@ namespace BlsLang {
                       , localIndex(localIndex) {}
             Declaration(std::string name
                       , AstNode::Specifier::Type* type
-                      , AstNode::Expression* value
+                      , std::optional<AstNode::Expression*> value
                       , uint8_t localIndex = 0)
                       : name(std::move(name))
                       , type(type)

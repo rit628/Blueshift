@@ -337,6 +337,160 @@ namespace BlsLang {
         EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
     }
 
+    GROUP_TEST_F(AnalyzerTest, LogicTests, MethodOnUndeclaredVariable) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Expression(
+            new AstNode::Expression::Method(
+                "x",
+                "size",
+                {}
+            )
+        ));
+        EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, LogicTests, MethodOnInteger) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
+            "f",
+            new AstNode::Specifier::Type(
+                "void",
+                {}
+            ),
+            {},
+            {},
+            {
+                new AstNode::Statement::Declaration(
+                    "x",
+                    new AstNode::Specifier::Type(
+                        "int",
+                        {}
+                    ),
+                    std::nullopt
+                ),
+                new AstNode::Statement::Expression(
+                    new AstNode::Expression::Method(
+                        "x",
+                        "size",
+                        {}
+                    )
+                )
+            }
+        ));
+        EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, LogicTests, MapMethodOnList) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
+            "f",
+            new AstNode::Specifier::Type(
+                "void",
+                {}
+            ),
+            {},
+            {},
+            {
+                new AstNode::Statement::Declaration(
+                    "x",
+                    new AstNode::Specifier::Type(
+                        "list",
+                        {
+                            new AstNode::Specifier::Type(
+                                "int",
+                                {}
+                            )
+                        }
+                    ),
+                    std::nullopt
+                ),
+                new AstNode::Statement::Expression(
+                    new AstNode::Expression::Method(
+                        "x",
+                        "add",
+                        {}
+                    )
+                )
+            }
+        ));
+        EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, LogicTests, ListMethodOnMap) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
+            "f",
+            new AstNode::Specifier::Type(
+                "void",
+                {}
+            ),
+            {},
+            {},
+            {
+                new AstNode::Statement::Declaration(
+                    "x",
+                    new AstNode::Specifier::Type(
+                        "map",
+                        {
+                            new AstNode::Specifier::Type(
+                                "int",
+                                {}
+                            ),
+                            new AstNode::Specifier::Type(
+                                "int",
+                                {}
+                            )
+                        }
+                    ),
+                    std::nullopt
+                ),
+                new AstNode::Statement::Expression(
+                    new AstNode::Expression::Method(
+                        "x",
+                        "append",
+                        {}
+                    )
+                )
+            }
+        ));
+        EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, LogicTests, InvalidMethod) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
+            "f",
+            new AstNode::Specifier::Type(
+                "void",
+                {}
+            ),
+            {},
+            {},
+            {
+                new AstNode::Statement::Declaration(
+                    "x",
+                    new AstNode::Specifier::Type(
+                        "map",
+                        {
+                            new AstNode::Specifier::Type(
+                                "int",
+                                {}
+                            ),
+                            new AstNode::Specifier::Type(
+                                "int",
+                                {}
+                            )
+                        }
+                    ),
+                    std::nullopt
+                ),
+                new AstNode::Statement::Expression(
+                    new AstNode::Expression::Method(
+                        "x",
+                        "INVALID_METHOD",
+                        {}
+                    )
+                )
+            }
+        ));
+        EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    }
+
     GROUP_TEST_F(AnalyzerTest, ContextTests, InvalidContinue) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Continue());
         EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
