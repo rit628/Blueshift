@@ -2,7 +2,6 @@
 #include "error_types.hpp"
 #include "fixtures/analyzer_test.hpp"
 #include "include/reserved_tokens.hpp"
-#include "libtypes/bls_types.hpp"
 #include "test_macros.hpp"
 #include <cstdint>
 #include <gtest/gtest.h>
@@ -155,6 +154,33 @@ namespace BlsLang {
         TEST_ANALYZE(ast, decoratedAst);
     }
 
+    /* NEEDS DEPENDENCY GRAPH */
+    GROUP_TEST_F(AnalyzerTest, TypeTests, VoidNoReturn) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
+            "f",
+            new AstNode::Specifier::Type(
+                "void",
+                {}
+            ),
+            {},
+            {},
+            {}
+        ));
+
+        auto decoratedAst = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
+            "f",
+            new AstNode::Specifier::Type(
+                "void",
+                {}
+            ),
+            {},
+            {},
+            {}
+        ));
+
+        TEST_ANALYZE(ast, decoratedAst);
+    }
+
     GROUP_TEST_F(AnalyzerTest, TypeTests, TypedReturn) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
             "f",
@@ -196,6 +222,22 @@ namespace BlsLang {
         TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
     }
 
+    /* NEEDS DEPENDENCY GRAPH */
+    // GROUP_TEST_F(AnalyzerTest, TypeTests, TypedNoReturn) {
+    //     auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
+    //         "f",
+    //         new AstNode::Specifier::Type(
+    //             "int",
+    //             {}
+    //         ),
+    //         {},
+    //         {},
+    //         {}
+    //     ));
+
+    //     EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    // }
+    
     GROUP_TEST_F(AnalyzerTest, TypeTests, ImplicitReturnConversion) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
             "f",
@@ -293,6 +335,142 @@ namespace BlsLang {
             )
         ));
         EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, ContextTests, InvalidContinue) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Continue());
+        EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, ContextTests, InvalidBreak) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Break());
+        EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, ContextTests, ContinueInIf) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::If(
+            new AstNode::Expression::Literal(
+                bool(true)
+            ),
+            {
+                new AstNode::Statement::Continue()
+            },
+            {},
+            {}
+        ));
+        EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, ContextTests, BreakInIf) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::If(
+            new AstNode::Expression::Literal(
+                bool(true)
+            ),
+            {
+                new AstNode::Statement::Break()
+            },
+            {},
+            {}
+        ));
+        EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, TypeTests, ContinueInWhile) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::While(
+            new AstNode::Expression::Literal(
+                true
+            ),
+            {
+                new AstNode::Statement::Continue()
+            }
+        ));
+
+        auto decoratedAst = std::unique_ptr<AstNode>(new AstNode::Statement::While(
+            new AstNode::Expression::Literal(
+                true
+            ),
+            {
+                new AstNode::Statement::Continue()
+            }
+        ));
+
+        Metadata expectedMetadata;
+        expectedMetadata.literalPool.emplace(true, 2);
+
+        TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, TypeTests, BreakInWhile) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::While(
+            new AstNode::Expression::Literal(
+                true
+            ),
+            {
+                new AstNode::Statement::Break()
+            }
+        ));
+
+        auto decoratedAst = std::unique_ptr<AstNode>(new AstNode::Statement::While(
+            new AstNode::Expression::Literal(
+                true
+            ),
+            {
+                new AstNode::Statement::Break()
+            }
+        ));
+
+        Metadata expectedMetadata;
+        expectedMetadata.literalPool.emplace(true, 2);
+
+        TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, TypeTests, ContinueInFor) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::For(
+            std::nullopt,
+            std::nullopt,
+            std::nullopt,
+            {
+                new AstNode::Statement::Continue()
+            }
+        ));
+
+        auto decoratedAst = std::unique_ptr<AstNode>(new AstNode::Statement::For(
+            std::nullopt,
+            std::nullopt,
+            std::nullopt,
+            {
+                new AstNode::Statement::Continue()
+            }
+        ));
+
+        Metadata expectedMetadata;
+
+        TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, TypeTests, BreakInFor) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::For(
+            std::nullopt,
+            std::nullopt,
+            std::nullopt,
+            {
+                new AstNode::Statement::Break()
+            }
+        ));
+
+        auto decoratedAst = std::unique_ptr<AstNode>(new AstNode::Statement::For(
+            std::nullopt,
+            std::nullopt,
+            std::nullopt,
+            {
+                new AstNode::Statement::Break()
+            }
+        ));
+
+        Metadata expectedMetadata;
+
+        TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
     }
 
 }
