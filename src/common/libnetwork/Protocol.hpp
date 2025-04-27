@@ -47,7 +47,6 @@ enum class Protocol : uint8_t{
 */
 
 struct DeviceConfigMsg{
-
     // Device type
     std::vector<DEVTYPE> type; 
 
@@ -56,6 +55,9 @@ struct DeviceConfigMsg{
 
     // Object
     std::vector<std::unordered_map<std::string, std::string>> srcs; 
+
+    // Determines if the client should send and initial state
+    std::vector<bool> triggers;  
 
 }; 
 

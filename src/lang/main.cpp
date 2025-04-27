@@ -20,7 +20,10 @@ int main() {
     the ops <= >= != == += -= *= /= ^= %= ++ -- && || . () $ yipee!)";
 
     BlsLang::Compiler compiler;
-    compiler.compileFile("test/lang/samples/simple.blu");
+    compiler.compileFile("samples/src/rpi.blu");
+
+
+    /*
     for (auto&& i : compiler.getOblockDescriptors()) {
         std::cout << i.name << std::endl;
         for (auto&& j : i.binded_devices) {
@@ -33,6 +36,7 @@ int main() {
             }
         }
     }
+    */ 
 
     // std::ifstream file;
     // file.open("test/lang/samples/simple.blu");

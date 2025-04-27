@@ -2,6 +2,7 @@
 
 #include "DeviceCore.hpp"
 #include "libDM/DynamicMessage.hpp"
+#include "libtypes/bls_types.hpp"
 #include "libtypes/typedefs.hpp"
 #include <atomic>
 #include <concepts>
@@ -86,35 +87,35 @@ namespace Device {
             bool handleInterrupt(int gpio, int level, uint32_t tick);
     };
 
-    class MOTOR : public AbstractDevice 
-    {
-        private:
-            TypeDef::MOTOR states;
-            void proc_message_impl(DynamicMessage &dmsg) override;
-            int speed;
-            int in1_pin, in2_pin, pwm_pin;
-            unsigned pwm_range;
 
-        public:
-            ~MOTOR();
-            void set_ports(std::unordered_map<std::string, std::string> &src) override;
-            void read_data(DynamicMessage &dmsg) override;
-            void apply_speed(int speed);
-    };
-
-    class READ_FILE_POLL : public AbstractDevice{
+    class READ_FILE : public AbstractDevice{
         private: 
-            TypeDef::READ_FILE_POLL states;
+            TypeDef::READ_FILE states;
             std::string filename;
             std::ifstream file_stream;
 
             void proc_message_impl(DynamicMessage& dmsg) override;
+            bool handleInterrupt(); 
 
         public:
-            ~READ_FILE_POLL();
+            ~READ_FILE();
             void set_ports(std::unordered_map<std::string, std::string> &src) override;
             void read_data(DynamicMessage &dmsg) override;
+            
 
+    }; 
+
+    class FILE_LOG : public AbstractDevice{
+        private: 
+            TypeDef::FILE_LOG states; 
+            std::string filename;
+            std::ofstream outStream; 
+            void proc_message_impl(DynamicMessage &dmsg) override; 
+
+        public: 
+            ~FILE_LOG(); 
+            void set_ports(std::unordered_map<std::string, std::string> &src) override; 
+            void read_data(DynamicMessage &dmsg) override; 
     }; 
 
     #define DEVTYPE_BEGIN(name) \

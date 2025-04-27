@@ -104,7 +104,7 @@ LINE_WRITER::~LINE_WRITER() {
 }
 
 /* LINE_WRITER_POLL */
-void READ_FILE_POLL::set_ports(std::unordered_map<std::string, std::string> &srcs){
+void READ_FILE::set_ports(std::unordered_map<std::string, std::string> &srcs){
     this->filename = "./samples/client/" + srcs["file"]; 
     this->file_stream.open(filename);
     if(this->file_stream.is_open()){
@@ -113,21 +113,20 @@ void READ_FILE_POLL::set_ports(std::unordered_map<std::string, std::string> &src
     else{
         std::cout<<"Could not find file"<<std::endl; 
     }
+    this->addFileIWatch(this->filename); 
 }
 
-void READ_FILE_POLL::proc_message_impl(DynamicMessage &dmsg){
-
-
+void READ_FILE::proc_message_impl(DynamicMessage &dmsg){
+  
 }
 
-
-void READ_FILE_POLL::read_data(DynamicMessage &dmsg){
+void READ_FILE::read_data(DynamicMessage &dmsg){
+    this->file_stream.seekg(0, std::ios::beg);
     std::getline(this->file_stream, states.msg); 
-    this->file_stream.seekg(0, std::ios::beg); 
     dmsg.packStates(states); 
 }
 
-READ_FILE_POLL::~READ_FILE_POLL(){
+READ_FILE::~READ_FILE(){
     this->file_stream.close(); 
 }
 
@@ -213,76 +212,43 @@ BUTTON::~BUTTON()
     gpioTerminate();
 }
 
-void MOTOR::set_ports(std::unordered_map<std::string, std::string> &src)
-{
-    in1_pin  = std::stoi(src.at("IN1"));
-    in2_pin = std::stoi(src.at("IN2"));
-    pwm_pin = std::stoi(src.at("PWM"));
-    pwm_range = std::stoi(src["PWM_RANGE"]);
-    if(gpioInitialise() == PI_INIT_FAILED) 
-    {
-        std::cerr << "GPIO setup failed" << std::endl;
-        return;
+/*
+    FILE LOG
+*/
+
+void FILE_LOG::set_ports(std::unordered_map<std::string, std::string> &srcs){
+    this->filename = "./samples/client/" + srcs["file"]; 
+    this->outStream.open(filename);
+    if(this->outStream.is_open()){
+        std::cout<<"Could find file"<<std::endl; 
+    } 
+    else{
+        std::cout<<"Could not find file"<<std::endl; 
     }
 
-    // Direction pins are outputs
-    gpioSetMode(in1_pin, PI_OUTPUT);
-    gpioSetMode(in2_pin, PI_OUTPUT);
-
-    // PWM pin
-    gpioSetMode(pwm_pin, PI_OUTPUT);
-    gpioSetPWMrange(pwm_pin, pwm_range);
-    // Optional: set a default PWM frequency (Hz)
-    gpioSetPWMfrequency(pwm_pin, 1000);
+    this->addFileIWatch(filename, []{return true;}); 
 }
 
-void MOTOR::proc_message_impl(DynamicMessage &dmsg)
-{
-    dmsg.unpackStates(states);
 
+void FILE_LOG::proc_message_impl(DynamicMessage &dmsg){
+    dmsg.unpackStates(this->states); 
+    std::cout<<"Processing message: "<<states.add_msg<<std::endl; 
+    this->outStream<<this->states.add_msg<<std::endl;; 
 }
 
-void MOTOR::read_data(DynamicMessage &dmsg)
-{
-    dmsg.packStates(states);
-    apply_speed(states.speed);
+void FILE_LOG::read_data(DynamicMessage &dmsg){
+    dmsg.packStates(this->states); 
 }
 
-void MOTOR::apply_speed(int speed)
-{
-    if(speed > 100) speed = 100;
-        if(speed < -100) speed = -100;
-
-        if(speed == 0) 
-        {
-            // brake / both low
-            gpioWrite(in1_pin, PI_OFF);
-            gpioWrite(in2_pin, PI_OFF);
-            gpioPWM(pwm_pin, 0);
-        }
-        else if(speed > 0) 
-        {
-            // forward
-            gpioWrite(in1_pin, PI_ON);
-            gpioWrite(in2_pin, PI_OFF);
-            // scale 0–100 to 0–pwm_range
-            int duty = (speed * pwm_range) / 100;
-            gpioPWM(pwm_pin, duty);
-        }
-        else 
-        {
-            // backward
-            gpioWrite(in1_pin, PI_OFF);
-            gpioWrite(in2_pin, PI_ON);
-            int duty = ((-speed) * pwm_range) / 100;
-            gpioPWM(pwm_pin, duty);
-        }
+FILE_LOG::~FILE_LOG(){
+    this->outStream.close(); 
 }
 
-MOTOR::~MOTOR() 
-{
-    gpioTerminate();
-}
+
+
+/*
+    Get Device Functions:
+*/
 
 std::shared_ptr<AbstractDevice> getDevice(DEVTYPE dtype, std::unordered_map<std::string, std::string> &port_nums, int device_alias) {
     switch(dtype){

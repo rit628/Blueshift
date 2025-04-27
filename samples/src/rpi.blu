@@ -8,6 +8,7 @@ oblock light(LIGHT target, LINE_WRITER remote) {
     }
     else {
         println("INVALID COMMAND");
+        target.state = !target.state; 
     }
 }
 
@@ -19,13 +20,14 @@ oblock button(BUTTON button, LIGHT rpi_light) {
     else {
         println("button depressed!");
         rpi_light.state = false; 
+        rpi_light.state = !rpi_light.state; 
     }
 }
 
 setup() {
     LIGHT rpi_light = "rpi::PIN-16";
-    //LINE_WRITER rpi_light_controller = "remote::file-file1.txt"; 
-    //light(rpi_light, rpi_light_controller);
+    LINE_WRITER rpi_light_controller = "remote::file-file1.txt"; 
+    light(rpi_light, rpi_light_controller);
     
     BUTTON rpi_button = "rpi::PIN-21";
     button(rpi_button, rpi_light);

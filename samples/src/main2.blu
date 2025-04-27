@@ -1,14 +1,26 @@
-oblock printString(LIGHT L, LIGHT K) {
-    int a = 0B101;
-    /*list<int> l;
-    for (int i = 0; i < 999; i++) {
-        l.append(a + i);
-        println(l[i]);
-    }*/
+oblock task(LINE_WRITER lw, READ_FILE rfp, FILE_LOG log){
+    string textMessage = lw.msg; 
+
+    if(rfp.msg == "ROHAN "){
+        string newMessage = textMessage + " from Rohan."; 
+        println(newMessage); 
+        log.add_msg = newMessage; 
+    }
+    else if(rfp.msg == "TOMAS "){
+        string newMessage = textMessage + " from Tomas."; 
+        println(newMessage); 
+        log.add_msg = newMessage; 
+    }
+    else{
+        println("I Dont fucking know"); 
+        log.add_msg = textMessage + "from unknown sender."; 
+    }
 }
 
-setup() {
-    LIGHT L1 = "blueshift-client-1::PWR-0";
-    LIGHT L2 = "blueshift-client-2::PWR-0";
-    printString(L1, L2);
+setup(){   
+    LINE_WRITER rfp = "CTL1::file-file1.txt";
+    READ_FILE mode = "CTL1::file-omar.txt";
+    FILE_LOG log = "CTL1::file-logfile.txt";
+
+    task(rfp, mode, log); 
 }
