@@ -1,32 +1,50 @@
 #include "MM.hpp"
 #include <memory>
+#include <unordered_set>
 
 MasterMailbox::MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMessage> &readNM, 
     TSQ<DynamicMasterMessage> &readEM, TSQ<DynamicMasterMessage> &sendNM, TSQ<vector<DynamicMasterMessage>> &sendEM)
 : readNM(readNM), readEM(readEM), sendNM(sendNM), sendEM(sendEM)
 {
     this->OBlockList = OBlockList;
-    for(int i = 0; i < OBlockList.size(); i++)
+    std::unordered_set<std::string> emplaced_set; 
+
+    // Creating the read line
+    for(auto &oblock : this->OBlockList)
     {
-        oblockReadMap[OBlockList.at(i).name] = make_unique<ReaderBox>(OBlockList.at(i).dropRead, 
-        OBlockList.at(i).dropWrite, OBlockList.at(i).name);
-        for(int j = 0; j < OBlockList.at(i).binded_devices.size(); j++)
+        oblockReadMap[oblock.name] = make_unique<ReaderBox>(oblock.dropRead, oblock.dropWrite, oblock.name);
+
+        for(auto &devDesc : oblock.inDevices)
         {
-            string deviceName = OBlockList.at(i).binded_devices.at(j).device_name;
+            string deviceName = devDesc.device_name;
             auto TSQPtr = make_shared<TSQ<DynamicMasterMessage>>();
-            oblockReadMap[OBlockList.at(i).name]->waitingQs.push_back(TSQPtr);
-            readTSQMap[OBlockList.at(i).name][deviceName] = TSQPtr;
-            writeMap[deviceName] = make_unique<WriterBox>(deviceName);
+            auto& db =oblockReadMap[oblock.name]->waitingQs[deviceName];
+            db.isTrigger = devDesc.isTrigger;
+            db.stateQueues = TSQPtr; 
+            db.devDropRead = devDesc.dropRead; 
+            db.devDropWrite = devDesc.dropWrite; 
+            db.deviceName = deviceName; 
+        }
+
+        // Write the out devics
+        for(auto& devDesc : oblock.outDevices){
+            if(!emplaced_set.contains(devDesc.device_name)){
+                auto wb = std::make_unique<WriterBox>();
+                wb->deviceName = devDesc.device_name; 
+                wb->waitingForCallback = false; 
+                this->deviceWriteMap[devDesc.device_name] = std::move(wb); 
+                emplaced_set.insert(devDesc.device_name); 
+            }
         }
     }
-    for(int i = 0; i < OBlockList.size(); i++)
+
+
+    // populate the device to oblock_set mapping for interrupt devices (as state not copied by Timer system)
+    for(auto &oblock : OBlockList)
     {
-        for(int j = 0; j < OBlockList.at(i).binded_devices.size(); j++)
-        {
-            string deviceName = OBlockList.at(i).binded_devices.at(j).device_name;
-            auto TSQptr = readTSQMap[OBlockList.at(i).name][deviceName];
-            interruptMap[deviceName].push_back(TSQptr);
-            interruptName_map[deviceName].push_back(OBlockList.at(i).name); 
+        for(auto &devDesc : oblock.binded_devices){
+            string deviceName = devDesc.device_name;
+            interruptName_map[deviceName].push_back(oblock.name);   
         }
     }
 }
@@ -50,44 +68,56 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
     {
         case PROTOCOLS::CALLBACKRECIEVED:
         {
-            if(!writeMap.at(DMM.info.device)->waitingQ.isEmpty())
+            DeviceID devName = DMM.info.device; 
+
+            // For now we count callbacks to update the state in the mailbox (CHECK IF CALLBACK DEV IN READ LIST)
+            for(auto &oblockName : this->interruptName_map[devName]){
+                if(this->oblockReadMap[oblockName]->waitingQs.contains(devName)){
+                    this->oblockReadMap[oblockName]->waitingQs[devName].lastMessage.replace(DMM); 
+                    std::cout<<"Wrote Callback into queue"<<std::endl; 
+                    //this->oblockReadMap[oblock]->waitingQs[devName].stateQueues->write(DMM); 
+                }
+            }
+           
+            if(!deviceWriteMap.at(DMM.info.device)->waitingQ.isEmpty())
             {
-                DynamicMasterMessage DMMtoSend = writeMap.at(DMM.info.device)->waitingQ.read();
+                DynamicMasterMessage DMMtoSend = deviceWriteMap.at(DMM.info.device)->waitingQ.read();
                 this->sendNM.write(DMMtoSend);
-                cout << "Callback recieved on an nonempty Q" << endl;
             }
             else
             {
-                writeMap.at(DMM.info.device)->waitingForCallback = false;
-                cout << "Callback recieved on an empty Q" << endl;
+                deviceWriteMap.at(DMM.info.device)->waitingForCallback = false;
             }
-            //this->sendNM.write(DMMtoSend);
-            // Diarreah
-            //writeMap.at(DMM.info.device)->waitingForCallback = false;
             break;
         }
         case PROTOCOLS::SENDSTATES:
         {
-            
+            std::cout<<"Reading interrupt data 1: "<<std::endl; 
             if(DMM.isInterrupt){
-                for(int i = 0; i < interruptMap.at(DMM.info.device).size(); i++)
+                std::cout<<"Reading interrupt data 3 vec size: "<<this->interruptName_map[DMM.info.device].size()<<std::endl; 
+                for(auto &oblockName : this->interruptName_map[DMM.info.device])
                 { 
-                    TSQ<DynamicMasterMessage> &interuptTSQ = *interruptMap.at(DMM.info.device).at(i);
-                    // UPDATE THE OINFO DATA 
-                    
+                    DeviceBox& interruptTSQ = this->oblockReadMap[oblockName]->waitingQs[DMM.info.device]; 
                     // drop read should be true by default
-                    bool dr = OBlockList.at(i).dropRead;
+                    bool dr = interruptTSQ.devDropRead; 
                     
                     if(dr){ 
-                        std::cout<<"INTERRUPT DROP STATES RECEIED"<<std::endl;
-                        DMM.info.oblock = interruptName_map.at(DMM.info.device).at(i);
-                        interuptTSQ.clearQueue(); 
-                        interuptTSQ.write(DMM);
+                        std::cout<<"Reading interrupt data 2: "<<std::endl; 
+                        DMM.info.oblock = oblockName;
+                        interruptTSQ.stateQueues->clearQueue(); 
+                        interruptTSQ.lastMessage.replace(DMM); 
+                        if(interruptTSQ.isTrigger){
+                            interruptTSQ.stateQueues->write(DMM);
+                        }
                         this->oblockReadMap.at(DMM.info.oblock)->handleRequest(sendEM);
                     }
                     else{
-                        DMM.info.oblock = interruptName_map.at(DMM.info.device).at(i);
-                        interuptTSQ.write(DMM);
+                        std::cout<<"Reading interrupt data alt: "<<std::endl; 
+                        DMM.info.oblock = oblockName;
+                        interruptTSQ.lastMessage.replace(DMM); 
+                        if(interruptTSQ.isTrigger){
+                            interruptTSQ.stateQueues->write(DMM);
+                        }
                         this->oblockReadMap.at(DMM.info.oblock)->handleRequest(sendEM);
                     }
                     
@@ -96,17 +126,23 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
             }
             else{
                 ReaderBox &assignedBox = *oblockReadMap.at(DMM.info.oblock);
-                TSQ<DynamicMasterMessage> &assignedTSQ = *readTSQMap[DMM.info.oblock][DMM.info.device];
+                DeviceBox &assignedTSQ = assignedBox.waitingQs[DMM.info.device]; 
+                std::cout<<"Received non-interrupt data"<<std::endl; 
+            
 
-                if(assignedBox.dropRead == true)
+                if(assignedTSQ.devDropRead == true)
                 {
-                    std::cout<<"Dropped read"<<std::endl;
-                    assignedTSQ.clearQueue();
-                    assignedTSQ.write(DMM);
+                    //std::cout<<"Dropped read"<<std::endl;
+                    assignedTSQ.stateQueues->clearQueue();
+                    assignedTSQ.lastMessage.replace(DMM); 
+                    if(assignedTSQ.isTrigger){
+                        assignedTSQ.stateQueues->write(DMM);
+                    }
                     assignedBox.handleRequest(sendEM);
                 }
                 else{
-                    assignedTSQ.write(DMM);
+                    assignedTSQ.stateQueues->write(DMM);
+                    assignedTSQ.lastMessage.replace(DMM); 
                     assignedBox.handleRequest(sendEM);
                 }
             }
@@ -134,13 +170,14 @@ void MasterMailbox::assignEM(DynamicMasterMessage DMM)
         }
         case PROTOCOLS::SENDSTATES:
         {
-            WriterBox &assignedBox = *writeMap.at(DMM.info.device);
+            std::cout<<"Sending states out"<<std::endl; 
+            WriterBox &assignedBox = *deviceWriteMap.at(DMM.info.device);
             bool dropWrite = correspondingReaderBox.dropWrite;
 
             if(dropWrite == true && assignedBox.waitingForCallback == true)
             {
                 cout << "Ignoring write" << endl;
-                //assignedBox.waitingQ.write(DMM);
+                assignedBox.waitingQ.write(DMM);
             }
             else if(dropWrite == false && assignedBox.waitingForCallback == true)
             {
@@ -171,17 +208,17 @@ void MasterMailbox::assignEM(DynamicMasterMessage DMM)
 
 void MasterMailbox::runningNM()
 {
-    while(1)
+    while(true)
     {
         DynamicMasterMessage currentDMM = this->readNM.read();  
-        std::cout<<"absorbed"<<std::endl;
+        //std::cout<<"absorbed"<<std::endl;
         assignNM(currentDMM);
     }
 }
 
 void MasterMailbox::runningEM()
 {
-    while(1){
+    while(true){
         DynamicMasterMessage currentDMM = this->readEM.read();
         assignEM(currentDMM);
     }

@@ -2,6 +2,7 @@
 
 #include "DeviceCore.hpp"
 #include "libDM/DynamicMessage.hpp"
+#include "libtypes/bls_types.hpp"
 #include "libtypes/typedefs.hpp"
 #include <atomic>
 #include <concepts>
@@ -33,6 +34,7 @@ namespace Device {
         public:
             void set_ports(std::unordered_map<std::string, std::string> &srcs) override;
             void read_data(DynamicMessage &dmsg) override;
+        
     };
 
     /*
@@ -44,6 +46,7 @@ namespace Device {
             TypeDef::LINE_WRITER states;
             std::string filename;
             std::fstream file_stream;
+            
 
             void proc_message_impl(DynamicMessage& dmsg) override;
 
@@ -51,8 +54,39 @@ namespace Device {
             bool handleInterrupt();
             void set_ports(std::unordered_map<std::string, std::string> &src) override;
             void read_data(DynamicMessage &dmsg) override;
+            ~LINE_WRITER(); 
     };
-    
+
+    class READ_FILE : public AbstractDevice{
+        private: 
+            TypeDef::READ_FILE states;
+            std::string filename;
+            std::ifstream file_stream;
+
+            void proc_message_impl(DynamicMessage& dmsg) override;
+            bool handleInterrupt(); 
+
+        public:
+            ~READ_FILE();
+            void set_ports(std::unordered_map<std::string, std::string> &src) override;
+            void read_data(DynamicMessage &dmsg) override;
+            
+
+    }; 
+
+    class FILE_LOG : public AbstractDevice{
+        private: 
+            TypeDef::FILE_LOG states; 
+            std::string filename;
+            std::ofstream outStream; 
+            void proc_message_impl(DynamicMessage &dmsg) override; 
+
+        public: 
+            ~FILE_LOG(); 
+            void set_ports(std::unordered_map<std::string, std::string> &src) override; 
+            void read_data(DynamicMessage &dmsg) override; 
+    }; 
+
     #define DEVTYPE_BEGIN(name) \
     static_assert(std::derived_from<name, AbstractDevice>, #name " must inherit from AbstractDevice");
     #define ATTRIBUTE(...)

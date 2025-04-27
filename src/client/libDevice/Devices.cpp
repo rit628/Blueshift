@@ -88,6 +88,75 @@ void LINE_WRITER::read_data(DynamicMessage &dmsg) {
     dmsg.packStates(states);
 }
 
+LINE_WRITER::~LINE_WRITER() {
+    file_stream.close();
+}
+
+/* LINE_WRITER_POLL */
+void READ_FILE::set_ports(std::unordered_map<std::string, std::string> &srcs){
+    this->filename = "./samples/client/" + srcs["file"]; 
+    this->file_stream.open(filename);
+    if(this->file_stream.is_open()){
+        std::cout<<"Could find file"<<std::endl; 
+    } 
+    else{
+        std::cout<<"Could not find file"<<std::endl; 
+    }
+    this->addFileIWatch(this->filename); 
+}
+
+void READ_FILE::proc_message_impl(DynamicMessage &dmsg){
+  
+}
+
+void READ_FILE::read_data(DynamicMessage &dmsg){
+    this->file_stream.seekg(0, std::ios::beg);
+    std::getline(this->file_stream, states.msg); 
+    dmsg.packStates(states); 
+}
+
+READ_FILE::~READ_FILE(){
+    this->file_stream.close(); 
+}
+
+/*
+    FILE LOG
+*/
+
+void FILE_LOG::set_ports(std::unordered_map<std::string, std::string> &srcs){
+    this->filename = "./samples/client/" + srcs["file"]; 
+    this->outStream.open(filename);
+    if(this->outStream.is_open()){
+        std::cout<<"Could find file"<<std::endl; 
+    } 
+    else{
+        std::cout<<"Could not find file"<<std::endl; 
+    }
+
+    this->addFileIWatch(filename, []{return true;}); 
+}
+
+
+void FILE_LOG::proc_message_impl(DynamicMessage &dmsg){
+    dmsg.unpackStates(this->states); 
+    std::cout<<"Processing message: "<<states.add_msg<<std::endl; 
+    this->outStream<<this->states.add_msg<<std::endl;; 
+}
+
+void FILE_LOG::read_data(DynamicMessage &dmsg){
+    dmsg.packStates(this->states); 
+}
+
+FILE_LOG::~FILE_LOG(){
+    this->outStream.close(); 
+}
+
+
+
+/*
+    Get Device Functions:
+*/
+
 std::shared_ptr<AbstractDevice> getDevice(DEVTYPE dtype, std::unordered_map<std::string, std::string> &port_nums, int device_alias) {
     switch(dtype){
         #define DEVTYPE_BEGIN(name) \

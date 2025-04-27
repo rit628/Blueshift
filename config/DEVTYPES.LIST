@@ -6,14 +6,10 @@ DEVTYPE_BEGIN(LINE_WRITER)
     ATTRIBUTE(msg, std::string)
 DEVTYPE_END
 
-// DEVTYPE_BEGIN(LIGHT)
-//     ATTRIBUTE(state, bool)
-// DEVTYPE_END
-// 
-// DEVTYPE_BEGIN(MOTOR)
-//     ATTRIBUTE(rpm, float)
-// DEVTYPE_END
-// 
-// DEVTYPE_BEGIN(SERVO)
-//     ATTRIBUTE(position, float)
-// DEVTYPE_END
+DEVTYPE_BEGIN(READ_FILE)
+    ATTRIBUTE(msg, std::string)
+DEVTYPE_END
+
+DEVTYPE_BEGIN(FILE_LOG)
+    ATTRIBUTE(add_msg, std::string)
+DEVTYPE_END

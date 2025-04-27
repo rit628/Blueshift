@@ -59,6 +59,7 @@ class AbstractDevice{
     public: 
         uint16_t id; 
         bool hasInterrupt = false;
+        bool isTrigger = false; 
 
         std::mutex m;
         std::condition_variable cv;

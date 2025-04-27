@@ -1,4 +1,7 @@
 #include "EM.hpp"
+#include "include/Common.hpp"
+#include "libMM/MM.hpp"
+#include "libtypes/bls_types.hpp"
 #include <memory>
 
 ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<vector<DynamicMasterMessage>> &readMM, 
@@ -7,34 +10,42 @@ ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<vector<Dyn
     : readMM(readMM), sendMM(sendMM)
 {
     this->OblockList = OblockList;
-    for(int i = 0; i < OblockList.size(); i++)
+    for(auto &oblock : OblockList)
     {
-        string OblockName = OblockList.at(i).name;
+        string OblockName = oblock.name;
         vector<string> devices;
         vector<bool> isVtype;
         vector<string> controllers;
-        for(int j = 0; j < OblockList.at(i).binded_devices.size(); j++)
+        for(int j = 0; j < oblock.binded_devices.size(); j++)
         {
-            devices.push_back(OblockList.at(i).binded_devices.at(j).device_name);
-            isVtype.push_back(OblockList.at(i).binded_devices.at(j).isVtype);
-            controllers.push_back(OblockList.at(i).binded_devices.at(j).controller);
+            devices.push_back(oblock.binded_devices.at(j).device_name);
+            isVtype.push_back(oblock.binded_devices.at(j).isVtype);
+            controllers.push_back(oblock.binded_devices.at(j).controller);
         }
+
         auto function = oblocks[OblockName];
         EU_map[OblockName] = std::make_unique<ExecutionUnit>
-        (OblockName, devices, isVtype, controllers, this->vtypeHMMsMap, this->sendMM, function);
+        (oblock, devices, isVtype, controllers, this->vtypeHMMsMap, this->sendMM, function);
     }
 }
 
-ExecutionUnit::ExecutionUnit(string OblockName, vector<string> devices, vector<bool> isVtype, vector<string> controllers,
+ExecutionUnit::ExecutionUnit(OBlockDesc oblock, vector<string> devices, vector<bool> isVtype, vector<string> controllers,
     TSM<string, vector<HeapMasterMessage>> &vtypeHMMsMap, TSQ<DynamicMasterMessage> &sendMM, 
     function<vector<BlsType>(vector<BlsType>)>  transform_function)
 {
-    this->OblockName = OblockName;
+    this->Oblock = oblock;
     this->devices = devices;
     this->isVtype = isVtype;
     this->controllers = controllers;
     this->transform_function = transform_function;
-    this->info.oblock = OblockName;
+    this->info.oblock = oblock.name;
+
+    // Device Position Map:
+    int i = 0;  
+    for(auto& device : devices){
+        this->devicePositionMap[device] = i; 
+        i++; 
+    }
 
     //this->running(vtypeHMMsMap, sendMM);
     this->executionThread = thread(&ExecutionUnit::running, this, ref(vtypeHMMsMap), ref(sendMM));
@@ -63,26 +74,41 @@ DynamicMasterMessage::DynamicMasterMessage(DynamicMessage DM, O_Info info, PROTO
 
 void ExecutionUnit::running(TSM<string, vector<HeapMasterMessage>> &vtypeHMMsMap, TSQ<DynamicMasterMessage> &sendMM)
 {
-    while(1)
+    while(true)
     {
         if(EUcache.isEmpty()) {continue;}
         vector<DynamicMasterMessage> currentDMMs = EUcache.read();
-        vector<HeapMasterMessage> HMMs;
-
-
-        for(int i = 0; i < currentDMMs.size(); i++)
+        std::unordered_map<DeviceID, HeapMasterMessage> HMMs;
+        
+        // Fill in the known data into the stack 
+        for(auto &dmm : currentDMMs)
         {   
-            HeapMasterMessage HMM(currentDMMs.at(i).DM.toTree(), currentDMMs.at(i).info, 
-            currentDMMs.at(i).protocol, currentDMMs.at(i).isInterrupt);
-            HMMs.push_back(HMM);
-        }
+            HeapMasterMessage HMM(dmm.DM.toTree(), dmm.info, 
+            dmm.protocol, dmm.isInterrupt);
 
+            HMMs[HMM.info.device] = HMM; 
+        }
+        
         vector<BlsType> transformableStates;
-        for(int i = 0; i < HMMs.size(); i++)
-        {   
-            transformableStates.push_back(HMMs.at(i).heapTree);
+
+        for(int i = 0; i < this->Oblock.binded_devices.size(); i++){
+            auto& deviceDesc = this->Oblock.binded_devices[i];
+            DeviceID devName = deviceDesc.device_name; 
+            // ADD VTYPE SUPPORT HERE AS WELL
+            if(HMMs.contains(devName)){
+                transformableStates.push_back(HMMs.at(devName).heapTree); 
+            }
+            else{
+                auto defDevice = std::make_shared<MapDescriptor>(static_cast<TYPE>(deviceDesc.devtype), TYPE::string_t, TYPE::ANY); 
+                std::cout<<"devDesc Name: "<<deviceDesc.device_name<<std::endl; 
+                transformableStates.push_back(defDevice); 
+            }
         }
+        
+
+        /*
         auto result = vtypeHMMsMap.get(HMMs.at(0).info.oblock);
+
         if(result.has_value())
         {
             for(int i = 0; i < result->size(); i++)
@@ -90,35 +116,58 @@ void ExecutionUnit::running(TSM<string, vector<HeapMasterMessage>> &vtypeHMMsMap
                 transformableStates.push_back(result->at(i).heapTree);
             }
         }
+        */ 
     
         transformableStates = transform_function(transformableStates);
 
-        for(int i = 0; i < transformableStates.size(); i++)
-        {
-            HMMs.at(i).heapTree = std::get<shared_ptr<HeapDescriptor>>(transformableStates.at(i));
+        std::vector<HeapMasterMessage> outGoingStates;  
+
+        std::cout<<"Outgoing states"<<std::endl;
+
+        // SHIP ALL OUTGOING DEVICES (EVEN ONCE NOT ALTERED)
+        for(auto& devDesc : this->Oblock.outDevices)
+        {   
+            int pos = this->devicePositionMap[devDesc.device_name]; 
+            auto transformedState = std::get<shared_ptr<HeapDescriptor>>(transformableStates.at(pos));
+            HeapMasterMessage newHMM; 
+            newHMM.info.controller = devDesc.controller;
+            newHMM.info.device = devDesc.device_name; 
+            newHMM.info.isVtype = devDesc.isVtype; 
+            newHMM.info.oblock = this->Oblock.name; 
+            newHMM.protocol = PROTOCOLS::SENDSTATES;
+            newHMM.isInterrupt = false; 
+            newHMM.heapTree = transformedState; 
+            
+            outGoingStates.push_back(newHMM); 
         }
 
+        std::cout<<"Print 2"<<std::endl; 
+
         vector<HeapMasterMessage> vtypeHMMs;
-        for(int i = 0; i < HMMs.size(); i++)
+        for(HeapMasterMessage& hmm : outGoingStates)
         {
-            if(HMMs.at(i).info.isVtype == false)
+            if(hmm.info.isVtype == false)
             {
                 DynamicMessage DM; 
-                DM.makeFromRoot(HMMs.at(i).heapTree);        
-                DynamicMasterMessage DMM(DM, HMMs.at(i).info, 
-                HMMs.at(i).protocol, HMMs.at(i).isInterrupt);
+                std::cout<<"Precending"<<std::endl; 
+                DM.makeFromRoot(hmm.heapTree);    
+                DynamicMasterMessage DMM(DM, hmm.info, 
+                hmm.protocol, hmm.isInterrupt);
+                std::cout<<"Incoming"<<std::endl; 
                 sendMM.write(DMM);
             }
-            else if(HMMs.at(i).info.isVtype == true)
+            else if(hmm.info.isVtype == true)
             {
-                vtypeHMMs.push_back(HMMs.at(i));
+                vtypeHMMs.push_back(hmm);
                 //vtypeHMMsMap.insert(HMMs.at(i).info.oblock, HMMs.at(i));
             }
         }
+        /*
         if(!vtypeHMMs.empty())
         {
             vtypeHMMsMap.insert(HMMs.at(0).info.oblock, vtypeHMMs);
         }
+        */ 
     }
 }
 
