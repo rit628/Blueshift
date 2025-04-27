@@ -141,7 +141,7 @@ target_link_libraries(virtual_machine lang_common type bytecode trap ${BOOST_LIB
 file(GLOB_RECURSE LIBCOMPILER_SRC ${LANG_SRC_DIR}/libcompiler/*.cpp)
 add_library(compiler STATIC ${LIBCOMPILER_SRC})
 target_include_directories(compiler PUBLIC ${BLS_CONFIG} ${LANG_COMMON} ${LANG_SRC_DIR})
-target_link_libraries(compiler lang_common lexer parser interpreter analyzer generator ${BOOST_LIB_DEPS})
+target_link_libraries(compiler lang_common lexer parser interpreter analyzer generator depgraph ${BOOST_LIB_DEPS})
 
 add_executable(lang ${LANG_SRC_DIR}/main.cpp)
 target_link_libraries(lang compiler virtual_machine ${BOOST_LIB_DEPS})

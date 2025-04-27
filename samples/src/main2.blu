@@ -1,32 +1,26 @@
+oblock task(LINE_WRITER lw, READ_FILE rfp, FILE_LOG log){
+    string textMessage = lw.msg; 
 
-oblock fun2(LINE_WRITER lw1, LIGHT king)
-: triggerOn(lw1)
-{
-    if(lw1.msg == "right "){
-        print("PROGMESSAGE: from line writer 1"); 
+    if(rfp.msg == "ROHAN "){
+        string newMessage = textMessage + " from Rohan."; 
+        println(newMessage); 
+        log.add_msg = newMessage; 
     }
-
-    king.on = !king.on;
-}
-
-
-oblock fun1(LINE_WRITER lw2, LINE_WRITER lw3, LIGHT king)
-: triggerOn(lw2, [king, lw3])
-{   
-    if(king.on){
-        print("PROGMESSAGE: The light is on"); 
+    else if(rfp.msg == "TOMAS "){
+        string newMessage = textMessage + " from Tomas."; 
+        println(newMessage); 
+        log.add_msg = newMessage; 
     }
     else{
-        print("PROGMESSAGE: This light is off");
+        println("I Dont fucking know"); 
+        log.add_msg = textMessage + "from unknown sender."; 
     }
 }
 
 setup(){   
-    virtual LIGHT king = "MASTER::GPIO-192"; 
-    LINE_WRITER lw1 = "CTL1::file-file1.txt";
-    LINE_WRITER lw2 = "CTL1::file-file2.txt"; 
-    LINE_WRITER lw3 = "CTL1::file-omar.txt"; 
+    LINE_WRITER rfp = "CTL1::file-file1.txt";
+    READ_FILE mode = "CTL1::file-omar.txt";
+    FILE_LOG log = "CTL1::file-logfile.txt";
 
-    fun2(lw1, king);
-    fun1(lw2, lw3, king); 
+    task(rfp, mode, log); 
 }
