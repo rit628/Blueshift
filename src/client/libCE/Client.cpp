@@ -36,7 +36,7 @@ void Client::sendCallback(uint16_t deviceCode){
 
 
 void Client::listener(){
-    while(1){
+    while(true){
 
         auto inMsg = this->in_queue.read().sm; 
         
@@ -59,11 +59,13 @@ void Client::listener(){
             std::vector<uint16_t> device_alias; 
             std::vector<TYPE> device_types; 
             std::vector<std::unordered_map<std::string, std::string>> srcs;  
+            std::vector<bool> triggerList;
             uint8_t controller_alias = inMsg.header.ctl_code; 
 
             dmsg.unpack("__DEV_ALIAS__", device_alias);
             dmsg.unpack("__DEV_TYPES__", device_types); 
             dmsg.unpack("__DEV_PORTS__", srcs); 
+            //dmsg.unpack("__DEV_INIT__", triggerList); 
 
             this->controller_alias = controller_alias; 
 

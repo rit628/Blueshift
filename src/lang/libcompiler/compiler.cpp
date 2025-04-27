@@ -26,6 +26,7 @@ void Compiler::compileSource(const std::string& source) {
     generator.writeBytecode(outputStream);
     ast->accept(masterInterpreter);
     auto& descriptors = analyzer.getOblockDescriptors();
+
     auto& masterOblocks = masterInterpreter.getOblocks();
     euInterpreters.assign(descriptors.size(), masterInterpreter);
     for (auto&& [descPair, interpreter] : boost::combine(descriptors, euInterpreters)) {

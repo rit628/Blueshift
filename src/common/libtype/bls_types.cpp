@@ -400,6 +400,23 @@ MapDescriptor::MapDescriptor(TYPE objType, TYPE keyType, TYPE contType) {
     this->objType = objType;
     this->contType = contType;
     this->map = std::make_shared<std::unordered_map<std::string, BlsType>>(); 
+
+    switch(this->objType){
+        #define DEVTYPE_BEGIN(name) \
+            case(TYPE::name) : { 
+            #define ATTRIBUTE(varName, type) \
+                this->map->emplace(#varName, BlsType(type())); 
+            #define DEVTYPE_END \
+                break; \
+            }
+            #include "DEVTYPES.LIST"
+            #undef DEVTYPE_BEGIN
+            #undef ATTRIBUTE
+            #undef DEVTYPE_END
+            default : {
+                break; 
+            }
+    }
 }
 
 MapDescriptor::MapDescriptor(std::initializer_list<std::pair<std::string, BlsType>> elements) {

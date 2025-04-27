@@ -13,6 +13,8 @@
 */
 #include "include/TIMER_TEST.hpp"
 #include "include/LINE_WRITER.hpp"
+#include "include/READ_FILE.hpp"
+#include "include/FILE_LOG.hpp"
 #include "include/LIGHT.hpp"
 #include "include/BUTTON.hpp"
 #include "include/MOTOR.hpp"

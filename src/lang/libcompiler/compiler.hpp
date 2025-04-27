@@ -6,6 +6,7 @@
 #include "libparser/parser.hpp"
 #include "libinterpreter/interpreter.hpp"
 #include "libanalyzer/analyzer.hpp"
+#include "libdepgraph/depgraph.hpp"
 #include "token.hpp"
 #include <memory>
 #include <vector>

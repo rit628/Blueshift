@@ -42,6 +42,11 @@ struct DeviceDescriptor{
     bool dropWrite = false;
     int polling_period = 1000;
     bool isConst = true;
+    /* 
+        If the device is registered as a trigger then the exeuction of 
+        the oblock is binded to the arrival of the devices state. 
+    */ 
+    bool isTrigger = true; 
 
     /* Driver Configuration Attributes */
     bool isInterrupt = false;
@@ -86,10 +91,6 @@ struct TriggerData {
 
 struct OBlockDesc{
 
-    /*
-        Normal State
-    */
-
     std::string name; 
     std::vector<DeviceDescriptor> binded_devices; 
     int bytecode_offset = 0; 
@@ -110,7 +111,7 @@ struct OBlockDesc{
     /*
         Synchronize State: Block until all states of refreshed (true for now)
     */
-    bool synchronize_states = true;
+    bool synchronize_states = false;
 
     template<typename Archive>
     void serialize(Archive& ar, const unsigned int version) {

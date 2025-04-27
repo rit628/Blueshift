@@ -27,6 +27,14 @@ class DeviceCore {
     protected:
         std::vector<Interrupt_Desc> Idesc_list;
         bool hasInterrupt = false;
+        bool isTrigger = false;
+
+        std::mutex m;
+        std::condition_variable cv;
+        bool processing = false;
+        bool watchersPaused = false;
+
+
         // Interrupt watch
         void addFileIWatch(std::string &fileName, std::function<bool()> handler = sendState);
         void addGPIOIWatch(int gpio_port, std::function<bool(int, int, uint32_t)> interruptHandle);
