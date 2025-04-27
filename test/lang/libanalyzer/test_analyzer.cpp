@@ -491,6 +491,29 @@ namespace BlsLang {
         EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
     }
 
+    /* TODO: Add tests checking proper argument adherence once new method system is established */
+    
+    GROUP_TEST_F(AnalyzerTest, LogicTests, UndefinedProcedureCall) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
+            "f",
+            new AstNode::Specifier::Type(
+                "void",
+                {}
+            ),
+            {},
+            {},
+            {
+                new AstNode::Statement::Expression(
+                    new AstNode::Expression::Function(
+                        "g",
+                        {}
+                    )
+                )
+            }
+        ));
+        EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    }
+
     GROUP_TEST_F(AnalyzerTest, ContextTests, InvalidContinue) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Continue());
         EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
