@@ -11,7 +11,7 @@ void Client::start(){
     this->broadcastListen(); 
 }
 
-void Client::sendCallback(uint16_t deviceCode){
+void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt){
     // Write code for a callback
     SentMessage sm; 
     DynamicMessage dmsg; 
@@ -24,11 +24,12 @@ void Client::sendCallback(uint16_t deviceCode){
     sm.body = dmsg.Serialize(); 
 
     sm.header.ctl_code = this->controller_alias;
-    sm.header.prot = Protocol::CALLBACK; 
+    sm.header.prot = type; 
     sm.header.device_code = deviceCode; 
     sm.header.timer_id = -1; 
     sm.header.volatility = -1; 
     sm.header.body_size = sm.body.size(); 
+    sm.header.fromInterrupt = fromInt; 
 
     this->client_connection->send(sm); 
 }
@@ -59,13 +60,13 @@ void Client::listener(){
             std::vector<uint16_t> device_alias; 
             std::vector<TYPE> device_types; 
             std::vector<std::unordered_map<std::string, std::string>> srcs;  
-            std::vector<bool> triggerList;
+            std::vector<uint16_t> triggerList;
             uint8_t controller_alias = inMsg.header.ctl_code; 
 
             dmsg.unpack("__DEV_ALIAS__", device_alias);
             dmsg.unpack("__DEV_TYPES__", device_types); 
             dmsg.unpack("__DEV_PORTS__", srcs); 
-            //dmsg.unpack("__DEV_INIT__", triggerList); 
+            dmsg.unpack("__DEV_INIT__", triggerList); 
 
             this->controller_alias = controller_alias; 
 
@@ -73,13 +74,16 @@ void Client::listener(){
             int size = device_alias.size(); 
             bool b = device_types.size() == size; 
             bool c = srcs.size() == size; 
+            bool d = triggerList.size() == size; 
+            
 
-            if(!(b && c)){
+            if(!(b && c  && d)){
                 throw std::invalid_argument("Config vectors of different sizes what!"); 
             }
 
             for(int i = 0; i < size; i++){
-                deviceList.try_emplace(device_alias[i], device_types[i], srcs[i]);
+                std::cout<<"Device a: "<<device_alias[i]<<" trigger value: "<<triggerList[i]<<std::endl; 
+                deviceList.try_emplace(device_alias[i], device_types[i], srcs[i], triggerList[i]);
             } 
 
             // Check item: 
@@ -103,7 +107,7 @@ void Client::listener(){
                     // std::cout << "processStates begin" << std::endl;
                     this->deviceList.at(dev_index).processStates(dmsg);
                     //Translation of the callback happens at the network manage
-                    this->sendCallback(dev_index); 
+                    this->sendMessage(dev_index, Protocol::CALLBACK, false); 
                 }
                 catch(std::exception(e)){
                     std::cout<<e.what()<<std::endl; 
@@ -160,8 +164,10 @@ void Client::listener(){
                 if(!device.hasInterrupt()){
                     std::cout<<"build timer with period: "<<timer.period<<std::endl;
                     this->client_ticker.try_emplace(timer.id, this->client_ctx, device, this->client_connection, this->controller_alias, timer.device_num, timer.id);
-                    // Initiate the timer
                     this->client_ticker.at(timer.id).setPeriod(timer.period);
+                    if(!device.isTrigger()){
+                        sendMessage(timer.device_num, Protocol::SEND_STATE, false); 
+                    }
                 }
             }
 
@@ -173,8 +179,13 @@ void Client::listener(){
              
                 if(dev.hasInterrupt()){
                     // Organizes the device interrupts
+                    std::cout<<"Interrupt created!"<<std::endl; 
                     auto& omar = this->interruptors.emplace_back(dev, this->client_connection, this->global_interrupts, this->controller_alias, dev_id);
                     omar.setupThreads();
+                    if(!dev.isTrigger()){
+                        std::cout<<"Sending Initial State"<<std::endl; 
+                        sendMessage(dev_id, Protocol::SEND_STATE, true); 
+                    }
                 }   
             }
 

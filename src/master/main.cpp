@@ -29,6 +29,7 @@ void filterDevice(DeviceDescriptor &devDesc){
         }
         case(DEVTYPE::READ_FILE) : {   
             std::cout<<"Set READ FILE"<<std::endl; 
+
             devDesc.isTrigger = false; 
             devDesc.dropRead = false; 
             break;
@@ -47,6 +48,9 @@ void alterBindedDevices(std::vector<OBlockDesc> &descriptors){
             filterDevice(devices); 
         } 
         for(auto& devices : oblock.outDevices){
+            filterDevice(devices); 
+        }
+        for(auto& devices: oblock.binded_devices){
             filterDevice(devices); 
         }
     }

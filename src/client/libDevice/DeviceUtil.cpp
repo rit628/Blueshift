@@ -7,12 +7,13 @@
 template<class... Ts>
 struct overloads : Ts... { using Ts::operator()...; };
 
-AbstractDevice::AbstractDevice(TYPE dtype, std::unordered_map<std::string, std::string> &port_nums) {
+AbstractDevice::AbstractDevice(TYPE dtype, std::unordered_map<std::string, std::string> &config, uint16_t sendInterrupt) {
     switch(dtype){
         #define DEVTYPE_BEGIN(name) \
         case TYPE::name: { \
             this->device.emplace<Device<TypeDef::name>>(); \
-            this->init(port_nums); \
+            this->init(config); \
+            this->device.isTrigger = sendInterrupt; \
             break; \
         }
         #define ATTRIBUTE(...)
@@ -87,6 +88,13 @@ bool AbstractDevice::hasInterrupt() {
     return std::visit(overloads {
         [](std::monostate&) { return false; },
         [](auto& dev) { return dev.hasInterrupt; }
+    }, device);
+}
+
+bool AbstractDevice::isTrigger() {
+    return std::visit(overloads {
+        [](std::monostate&) { return false; },
+        [](auto& dev) { return dev.isTrigger; }
     }, device);
 }
 

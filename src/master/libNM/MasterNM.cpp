@@ -71,7 +71,8 @@ void MasterNM::writeConfig(std::vector<OBlockDesc> &desc_list){
             this->ctl_configs[dev.controller].device_alias.push_back(this->device_alias_map[dev.device_name]); 
             this->ctl_configs[dev.controller].type.push_back(dev.type); 
             this->ctl_configs[dev.controller].srcs.push_back(dev.port_maps); 
-            //this->ctl_configs[dev.controller].triggers.push_back(dev.isTrigger); 
+            std::cout<<"MASTER - Is Trigger: "<<dev.isTrigger<<std::endl; 
+            this->ctl_configs[dev.controller].triggers.push_back(dev.isTrigger); 
             
             dev_list.insert(dev.device_name); 
             c_list.insert(dev.controller);
@@ -303,6 +304,7 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
         }
         case(Protocol::SEND_STATE) : {
             if(this->remConnections == 0){
+                std::cout<<"SEND STATE DEVICE RECEIVED"<<std::endl; 
 
                 // Get the timer id: 
                 TimerID id = in_msg.sm.header.timer_id; 
@@ -323,6 +325,7 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
                         this->tickerTable.updateVolH(device_name, vol_map); 
                     }
 
+                    std::cout<<"Not Interrupt?"<<std::endl; 
                     for(auto &o_name : oblock_list){
                         DMM new_msg; 
                         new_msg.info.controller = this->controller_list[in_msg.sm.header.ctl_code]; 
@@ -331,6 +334,7 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
                         new_msg.DM = dmsg; 
                         new_msg.isInterrupt = false; 
                         new_msg.protocol = PROTOCOLS::SENDSTATES; 
+                        std::cout<<"Write to queue"<<std::endl; 
                         
                         this->EMM_out_queue.write(new_msg); 
                     }
@@ -344,6 +348,7 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
                     new_msg.DM = dmsg; 
                     new_msg.isInterrupt = true;
                     new_msg.protocol = PROTOCOLS::SENDSTATES;
+                    std::cout<<"Write to queue"<<std::endl; 
 
                     this->EMM_out_queue.write(new_msg); 
                 }
@@ -390,7 +395,7 @@ bool MasterNM::confirmClient(std::shared_ptr<Connection> &con_obj){
     dmsg.createField("__DEV_ALIAS__" ,this->ctl_configs[c_name].device_alias); 
     dmsg.createField("__DEV_TYPES__" ,this->ctl_configs[c_name].type);
     dmsg.createField("__DEV_PORTS__" ,this->ctl_configs[c_name].srcs);  
-    //dmsg.createField("__DEV_INIT__", this->ctl_configs[c_name].triggers);
+    dmsg.createField("__DEV_INIT__", this->ctl_configs[c_name].triggers);
 
     dev_sm.body = dmsg.Serialize(); 
     dev_sm.header.body_size = dev_sm.body.size(); 

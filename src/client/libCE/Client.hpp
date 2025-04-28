@@ -65,7 +65,7 @@ class Client{
         // use to keep track of the state 
         ClientState curr_state; 
         // sends a callback for a device
-        void sendCallback(uint16_t device);  
+        void sendMessage(uint16_t device, Protocol prot, bool );  
         // Send a message
         void send(SentMessage &msg); 
         // Updates the ticker table
