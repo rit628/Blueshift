@@ -157,13 +157,14 @@ FILE_LOG::~FILE_LOG(){
     Get Device Functions:
 */
 
-std::shared_ptr<AbstractDevice> getDevice(DEVTYPE dtype, std::unordered_map<std::string, std::string> &port_nums, int device_alias) {
+std::shared_ptr<AbstractDevice> getDevice(DEVTYPE dtype, std::unordered_map<std::string, std::string> &port_nums, int device_alias, uint16_t sendInterrupt) {
     switch(dtype){
         #define DEVTYPE_BEGIN(name) \
         case DEVTYPE::name: { \
             auto devPtr = std::make_shared<name>(); \
             devPtr->set_ports(port_nums); \
-            return devPtr; \
+            devPtr->isTrigger = sendInterrupt; \
+            return devPtr; \ 
             break; \
         }
         #define ATTRIBUTE(...)

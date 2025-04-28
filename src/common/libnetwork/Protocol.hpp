@@ -57,7 +57,7 @@ struct DeviceConfigMsg{
     std::vector<std::unordered_map<std::string, std::string>> srcs; 
 
     // Determines if the client should send and initial state
-    std::vector<bool> triggers;  
+    std::vector<uint16_t> triggers;  
 
 }; 
 

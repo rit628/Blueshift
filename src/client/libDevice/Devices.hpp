@@ -98,4 +98,4 @@ namespace Device {
 }
 
 // Device reciever object returns and sets up an object 
-std::shared_ptr<AbstractDevice> getDevice(DEVTYPE dtype, std::unordered_map<std::string, std::string> &port_nums, int device_alias);
+std::shared_ptr<AbstractDevice> getDevice(DEVTYPE dtype, std::unordered_map<std::string, std::string> &port_nums, int device_alias, uint16_t interrupt);
