@@ -17,12 +17,10 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt){
     DynamicMessage dmsg; 
 
     // Get the latest state from the dmsg
- 
     this->deviceList[deviceCode]->read_data(dmsg); 
 
     // make message
     sm.body = dmsg.Serialize(); 
-
     sm.header.ctl_code = this->controller_alias;
     sm.header.prot = type; 
     sm.header.device_code = deviceCode; 
@@ -30,7 +28,7 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt){
     sm.header.volatility = -1; 
     sm.header.body_size = sm.body.size(); 
     sm.header.fromInterrupt = fromInt; 
-
+    
     this->client_connection->send(sm); 
 }
 
@@ -82,7 +80,6 @@ void Client::listener(){
             }
 
             for(int i = 0; i < size; i++){
-                std::cout<<"Device a: "<<device_alias[i]<<" trigger value: "<<triggerList[i]<<std::endl; 
                 deviceList[device_alias[i]] = getDevice(device_types[i], srcs[i], device_alias[i], triggerList[i]);
             } 
 
@@ -104,7 +101,6 @@ void Client::listener(){
     
                 auto state_change = std::thread([dev_index, dmsg = std::move(dmsg), this](){
                 try{
-                    // std::cout << "proc_message begin" << std::endl;
                     this->deviceList[dev_index]->proc_message(dmsg);
                     //Translation of the callback happens at the network manage
                     this->sendMessage(dev_index, Protocol::CALLBACK, false); 
@@ -154,8 +150,6 @@ void Client::listener(){
 
             std::cout<<"CLIENT: Beginning sending process"<<std::endl; 
             this->curr_state = ClientState::IN_OPERATION; 
-
-            std::cout<<"Size: "<<this->start_timers.size()<<std::endl; 
 
             // Begin the timers only when the call is made
             for(Timer &timer : this->start_timers){

@@ -77,21 +77,21 @@ struct ReaderBox
                 if(devBox.isTrigger){
                     hasTrigger = true; 
                     if((devBox.stateQueues->getSize() < smallestTSQ)){
-                        std::cout<<"Corresponding to device: "<<devBox.deviceName<<std::endl; 
-                        std::cout<<"Has state queue: "<<devBox.stateQueues->getSize()<<std::endl; 
+                        //std::cout<<"Corresponding to device: "<<devBox.deviceName<<std::endl; 
+                        //std::cout<<"Has state queue: "<<devBox.stateQueues->getSize()<<std::endl; 
                         smallestTSQ = devBox.stateQueues->getSize();
                     }
                 }
                 else{
                     if(!devBox.lastMessage.isInit()){
                         lastStateWait = true; 
-                        std::cout<<"Waiting for a last message from a persistent state device"<<std::endl; 
+                        //std::cout<<"Waiting for a last message from a persistent state device"<<std::endl; 
                         return; 
                     }
                 }
             }
 
-            std::cout<<"Writing states to with trigger size: "<<smallestTSQ<<std::endl;  
+            //std::cout<<"Writing states to with trigger size: "<<smallestTSQ<<std::endl;  
 
             if((smallestTSQ > 0) && hasTrigger){
                 for(int i = 0; i < smallestTSQ; i++){

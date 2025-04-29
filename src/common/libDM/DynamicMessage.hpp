@@ -458,9 +458,16 @@ class DynamicMessage{
     // Unpacking functions for recievers: 
     template <typename T> 
     void unpack(std::string key, T& recv){
-        int descAlias = this->attributeMap[key]; 
-        int trav;
-        this->deserialize(descAlias, recv, trav); 
+        if(this->attributeMap.contains(key)){
+            int descAlias = this->attributeMap[key]; 
+            int trav;
+            this->deserialize(descAlias, recv, trav); 
+        }
+        else{
+            throw std::invalid_argument("Dynamic Message does not contain key with name: " + key);
+        }
+
+        
     }
 
     template <typename T>

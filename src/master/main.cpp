@@ -30,6 +30,7 @@ void filterDevice(DeviceDescriptor &devDesc){
             break; 
         }
         case(DEVTYPE::FILE_LOG): {
+            devDesc.isTrigger = false; 
             break; 
         }
         case(DEVTYPE::READ_FILE) : {   
