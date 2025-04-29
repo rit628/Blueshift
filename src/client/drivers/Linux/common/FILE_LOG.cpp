@@ -23,6 +23,7 @@ void Device<TypeDef::FILE_LOG>::init(std::unordered_map<std::string, std::string
 }
 
 void Device<TypeDef::FILE_LOG>::transmitStates(DynamicMessage &dmsg) {
+    std::cout<<"State add_msg value: "<<this->states.add_msg<<std::endl;
     dmsg.packStates(this->states);
 }
 

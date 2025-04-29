@@ -1,19 +1,37 @@
 oblock task(LINE_WRITER lw, READ_FILE rfp, FILE_LOG log){
     string textMessage = lw.msg; 
+    list<string> availNames = ["ROHAN ", "COLIN ", "TOMAS ", "THOMAS "]; 
+    int k = 0; 
 
-    if(rfp.msg == "ROHAN "){
-        string newMessage = textMessage + " from Rohan."; 
-        println(newMessage); 
-        log.add_msg = newMessage; 
+    for(int i = 0 ; i < 4; i++){
+        string omar = rfp.msg; 
+        if(omar == availNames[i]){
+            k = 1;  
+
+            if(k == 1){
+                println("Please print"); 
+            }
+
+            println("FOUND NAME"); 
+            log.add_msg = textMessage + "from: " + availNames[i]; 
+        }
     }
-    else if(rfp.msg == "TOMAS "){
-        string newMessage = textMessage + " from Tomas."; 
-        println(newMessage); 
-        log.add_msg = newMessage; 
+    k = 1; 
+
+    if(k == 0){
+        println("UNC"); 
+    }   
+}
+
+oblock task2(LINE_WRITER notif){
+    if(notif.msg == "ON "){
+        println("ON RECIEVED!"); 
+    }
+    else if(notif.msg == "OFF "){
+        println("OFF RECEIVED!"); 
     }
     else{
-        println("I Dont fucking know"); 
-        log.add_msg = textMessage + "from unknown sender."; 
+        println("NOTHING"); 
     }
 }
 
@@ -21,6 +39,7 @@ setup(){
     LINE_WRITER rfp = "CTL1::file-file1.txt";
     READ_FILE mode = "CTL1::file-omar.txt";
     FILE_LOG log = "CTL1::file-logfile.txt";
-
+    LINE_WRITER drop = "CTL1::file-file2.txt"; 
     task(rfp, mode, log); 
+    task2(drop); 
 }

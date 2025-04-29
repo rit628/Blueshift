@@ -22,7 +22,6 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt){
 
     // make message
     sm.body = dmsg.Serialize(); 
-
     sm.header.ctl_code = this->controller_alias;
     sm.header.prot = type; 
     sm.header.device_code = deviceCode; 
@@ -30,7 +29,7 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt){
     sm.header.volatility = -1; 
     sm.header.body_size = sm.body.size(); 
     sm.header.fromInterrupt = fromInt; 
-
+    
     this->client_connection->send(sm); 
 }
 
@@ -154,8 +153,6 @@ void Client::listener(){
 
             std::cout<<"CLIENT: Beginning sending process"<<std::endl; 
             this->curr_state = ClientState::IN_OPERATION; 
-
-            std::cout<<"Size: "<<this->start_timers.size()<<std::endl; 
 
             // Begin the timers only when the call is made
             for(Timer &timer : this->start_timers){
