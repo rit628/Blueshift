@@ -182,8 +182,10 @@ BlsObject DepGraph::visit(AstNode::Expression::Function& ast) {
         this->globalCtx.oblockConnections[oblock] = oblockDesc; 
     }
     else{
-
-
+        auto& argList = ast.getArguments(); 
+        for(auto& statement : argList){
+            statement->accept(*this); 
+        }
     }
 
     return true; 
@@ -303,7 +305,6 @@ BlsObject DepGraph::visit(AstNode::Expression::Unary& ast){
     }
     return true; 
 }
-
 
 /*
 

@@ -1,4 +1,5 @@
 #include "MasterNM.hpp"
+#include "libDM/DynamicMessage.hpp"
 #include <algorithm>
 
 
@@ -304,7 +305,7 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
         }
         case(Protocol::SEND_STATE) : {
             if(this->remConnections == 0){
-                std::cout<<"SEND STATE DEVICE RECEIVED"<<std::endl; 
+                //std::cout<<"SEND STATE DEVICE RECEIVED"<<std::endl; 
 
                 // Get the timer id: 
                 TimerID id = in_msg.sm.header.timer_id; 
@@ -325,7 +326,7 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
                         this->tickerTable.updateVolH(device_name, vol_map); 
                     }
 
-                    std::cout<<"Not Interrupt?"<<std::endl; 
+                    //std::cout<<"Not Interrupt?"<<std::endl; 
                     for(auto &o_name : oblock_list){
                         DMM new_msg; 
                         new_msg.info.controller = this->controller_list[in_msg.sm.header.ctl_code]; 
@@ -334,7 +335,7 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
                         new_msg.DM = dmsg; 
                         new_msg.isInterrupt = false; 
                         new_msg.protocol = PROTOCOLS::SENDSTATES; 
-                        std::cout<<"Write to queue"<<std::endl; 
+                        //std::cout<<"Write to queue"<<std::endl; 
                         
                         this->EMM_out_queue.write(new_msg); 
                     }
@@ -348,7 +349,7 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
                     new_msg.DM = dmsg; 
                     new_msg.isInterrupt = true;
                     new_msg.protocol = PROTOCOLS::SENDSTATES;
-                    std::cout<<"Write to queue"<<std::endl; 
+                    //std::cout<<"Write to queue"<<std::endl; 
 
                     this->EMM_out_queue.write(new_msg); 
                 }
@@ -364,10 +365,12 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
             std::string device_name = this->device_list[in_msg.sm.header.device_code];
 
             DMM new_msg; 
+
             new_msg.info.controller = this->controller_list[in_msg.sm.header.ctl_code]; 
             new_msg.info.device = device_name;         
             new_msg.protocol = PROTOCOLS::CALLBACKRECIEVED; 
-
+            new_msg.DM = dmsg; 
+            new_msg.isInterrupt = in_msg.sm.header.fromInterrupt;
             this->EMM_out_queue.write(new_msg);
 
             break; 

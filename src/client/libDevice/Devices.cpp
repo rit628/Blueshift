@@ -144,6 +144,7 @@ void FILE_LOG::proc_message_impl(DynamicMessage &dmsg){
 }
 
 void FILE_LOG::read_data(DynamicMessage &dmsg){
+    std::cout<<"State add_msg value: "<<this->states.add_msg<<std::endl; 
     dmsg.packStates(this->states); 
 }
 

@@ -1,4 +1,5 @@
 #include "MM.hpp"
+#include <exception>
 #include <memory>
 #include <unordered_set>
 
@@ -74,7 +75,7 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
             for(auto &oblockName : this->interruptName_map[devName]){
                 if(this->oblockReadMap[oblockName]->waitingQs.contains(devName)){
                     this->oblockReadMap[oblockName]->waitingQs[devName].lastMessage.replace(DMM); 
-                    std::cout<<"Wrote Callback into queue"<<std::endl; 
+                    //std::cout<<"Wrote Callback into queue"<<std::endl; 
                     //this->oblockReadMap[oblock]->waitingQs[devName].stateQueues->write(DMM); 
                 }
             }
@@ -92,17 +93,19 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
         }
         case PROTOCOLS::SENDSTATES:
         {
-            std::cout<<"Reading interrupt data 1: "<<std::endl; 
             if(DMM.isInterrupt){
-                std::cout<<"Reading interrupt data 3 vec size: "<<this->interruptName_map[DMM.info.device].size()<<std::endl; 
                 for(auto &oblockName : this->interruptName_map[DMM.info.device])
                 { 
+                    
+                    if(!this->oblockReadMap[oblockName]->waitingQs.contains(DMM.info.device)){
+                        break; 
+                    }
+
                     DeviceBox& interruptTSQ = this->oblockReadMap[oblockName]->waitingQs[DMM.info.device]; 
                     // drop read should be true by default
                     bool dr = interruptTSQ.devDropRead; 
                     
                     if(dr){ 
-                        std::cout<<"Reading interrupt data 2: "<<std::endl; 
                         DMM.info.oblock = oblockName;
                         interruptTSQ.stateQueues->clearQueue(); 
                         interruptTSQ.lastMessage.replace(DMM); 
@@ -112,7 +115,6 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
                         this->oblockReadMap.at(DMM.info.oblock)->handleRequest(sendEM);
                     }
                     else{
-                        std::cout<<"Reading interrupt data alt: "<<std::endl; 
                         DMM.info.oblock = oblockName;
                         interruptTSQ.lastMessage.replace(DMM); 
                         if(interruptTSQ.isTrigger){
@@ -127,8 +129,6 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
             else{
                 ReaderBox &assignedBox = *oblockReadMap.at(DMM.info.oblock);
                 DeviceBox &assignedTSQ = assignedBox.waitingQs[DMM.info.device]; 
-                std::cout<<"Received non-interrupt data"<<std::endl; 
-            
 
                 if(assignedTSQ.devDropRead == true)
                 {
@@ -170,29 +170,24 @@ void MasterMailbox::assignEM(DynamicMasterMessage DMM)
         }
         case PROTOCOLS::SENDSTATES:
         {
-            std::cout<<"Sending states out"<<std::endl; 
             WriterBox &assignedBox = *deviceWriteMap.at(DMM.info.device);
             bool dropWrite = correspondingReaderBox.dropWrite;
 
             if(dropWrite == true && assignedBox.waitingForCallback == true)
             {
-                cout << "Ignoring write" << endl;
                 assignedBox.waitingQ.write(DMM);
             }
             else if(dropWrite == false && assignedBox.waitingForCallback == true)
             {
-                cout << "Storing message in Q until callback is recieved" << endl;
                 assignedBox.waitingQ.write(DMM);
             }
             else if(dropWrite == false && assignedBox.waitingForCallback == false)
             {
-                cout << "Send direct as callback was already recieved" << endl;
                 this->sendNM.write(DMM);
                 assignedBox.waitingForCallback = true;
             }
             else if(dropWrite == true && assignedBox.waitingForCallback == false)
             {
-                cout << "Send direct as even though drop write is true it is not waiting for callback" << endl;
                 this->sendNM.write(DMM);
                 assignedBox.waitingForCallback = true;
             }

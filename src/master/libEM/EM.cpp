@@ -100,7 +100,6 @@ void ExecutionUnit::running(TSM<string, vector<HeapMasterMessage>> &vtypeHMMsMap
             }
             else{
                 auto defDevice = std::make_shared<MapDescriptor>(static_cast<TYPE>(deviceDesc.devtype), TYPE::string_t, TYPE::ANY); 
-                std::cout<<"devDesc Name: "<<deviceDesc.device_name<<std::endl; 
                 transformableStates.push_back(defDevice); 
             }
         }
@@ -122,8 +121,6 @@ void ExecutionUnit::running(TSM<string, vector<HeapMasterMessage>> &vtypeHMMsMap
 
         std::vector<HeapMasterMessage> outGoingStates;  
 
-        std::cout<<"Outgoing states"<<std::endl;
-
         // SHIP ALL OUTGOING DEVICES (EVEN ONCE NOT ALTERED)
         for(auto& devDesc : this->Oblock.outDevices)
         {   
@@ -141,19 +138,15 @@ void ExecutionUnit::running(TSM<string, vector<HeapMasterMessage>> &vtypeHMMsMap
             outGoingStates.push_back(newHMM); 
         }
 
-        std::cout<<"Print 2"<<std::endl; 
-
         vector<HeapMasterMessage> vtypeHMMs;
         for(HeapMasterMessage& hmm : outGoingStates)
         {
             if(hmm.info.isVtype == false)
             {
                 DynamicMessage DM; 
-                std::cout<<"Precending"<<std::endl; 
                 DM.makeFromRoot(hmm.heapTree);    
                 DynamicMasterMessage DMM(DM, hmm.info, 
                 hmm.protocol, hmm.isInterrupt);
-                std::cout<<"Incoming"<<std::endl; 
                 sendMM.write(DMM);
             }
             else if(hmm.info.isVtype == true)
