@@ -1,7 +1,9 @@
 #pragma once
 #include "ast.hpp"
 #include "include/reserved_tokens.hpp"
-#include <any>
+#include "libtypes/bls_types.hpp"
+#include <functional>
+#include <variant>
 
 namespace BlsLang {
 
@@ -9,7 +11,7 @@ namespace BlsLang {
         public:
             #define AST_NODE_ABSTRACT(...)
             #define AST_NODE(Node) \
-            virtual std::any visit(Node& ast) = 0;
+            virtual BlsObject visit(Node& ast) = 0;
             #include "include/NODE_TYPES.LIST"
             #undef AST_NODE_ABSTRACT
             #undef AST_NODE
@@ -82,6 +84,27 @@ namespace BlsLang {
                 if (op == UNARY_DECREMENT) return UNARY_OPERATOR::DEC;
                 return UNARY_OPERATOR::COUNT;
             }
+
+            BlsType resolve(BlsObject&& obj);
+            BlsType& resolve(BlsObject& obj);
     };
+
+    inline BlsType Visitor::resolve(BlsObject&& obj) {
+        if (std::holds_alternative<BlsType>(obj)) {
+            return std::get<BlsType>(obj);
+        }
+        else {
+            return std::get<std::reference_wrapper<BlsType>>(obj);
+        }
+    }
+
+    inline BlsType& Visitor::resolve(BlsObject& obj) {
+        if (std::holds_alternative<BlsType>(obj)) {
+            return std::ref(std::get<BlsType>(obj));
+        }
+        else {
+            return std::get<std::reference_wrapper<BlsType>>(obj);
+        }
+    }
 
 }

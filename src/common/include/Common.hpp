@@ -46,6 +46,8 @@ struct DeviceDescriptor{
         ar & isConst;
         ar & polling_period;
     }
+
+    bool operator==(const DeviceDescriptor&) const = default;
 }; 
 
 struct OBlockDesc{
@@ -84,6 +86,8 @@ struct OBlockDesc{
         ar & dropWrite;
         ar & synchronize_states;
     }
+
+    bool operator==(const OBlockDesc&) const = default;
 }; 
 
 struct O_Info

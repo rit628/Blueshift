@@ -18,6 +18,20 @@ namespace BlsLang {
             std::string message;
     };
 
+    class SemanticError : public std::exception {
+        public:
+            explicit SemanticError(const std::string& message) {
+                std::ostringstream os;
+                os << message;
+                this->message = os.str();
+            }
+        
+            const char* what() const noexcept override { return message.c_str(); }
+
+        private:
+            std::string message;
+    };
+
     class RuntimeError : public std::exception {
         public:
             explicit RuntimeError(const std::string& message) {

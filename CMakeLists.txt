@@ -65,7 +65,7 @@ add_library(TSQ STATIC ${LIBTSQ_SRC})
 
 file(GLOB_RECURSE LIBTYPES_SRC ${COMMON_SRC_DIR}/libtypes/*.cpp)
 add_library(types STATIC ${LIBTYPES_SRC})
-target_include_directories(types PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${BOOST_LIB_DEPS})
+target_include_directories(types PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
 target_link_libraries(types ${BOOST_LIB_DEPS})
 
 file(GLOB_RECURSE LIBDM_SRC ${COMMON_SRC_DIR}/libDM/*.cpp)
@@ -104,6 +104,11 @@ add_library(interpreter STATIC ${LIBINTERPRETER_SRC})
 target_include_directories(interpreter PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
 target_link_libraries(interpreter lang_common types ${BOOST_LIB_DEPS})
 
+file(GLOB_RECURSE LIBANALYZER_SRC ${LANG_SRC_DIR}/libanalyzer/*.cpp)
+add_library(analyzer STATIC ${LIBANALYZER_SRC})
+target_include_directories(analyzer PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
+target_link_libraries(analyzer lang_common types ${BOOST_LIB_DEPS})
+
 file(GLOB_RECURSE LIBVIRTUALMACHINE_SRC ${LANG_SRC_DIR}/libvirtual_machine/*.cpp)
 add_library(virtual_machine STATIC ${LIBVIRTUALMACHINE_SRC})
 target_include_directories(virtual_machine PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
@@ -112,7 +117,7 @@ target_link_libraries(virtual_machine lang_common types bytecode ${BOOST_LIB_DEP
 file(GLOB_RECURSE LIBCOMPILER_SRC ${LANG_SRC_DIR}/libcompiler/*.cpp)
 add_library(compiler STATIC ${LIBCOMPILER_SRC})
 target_include_directories(compiler PUBLIC ${BLS_CONFIG} ${LANG_COMMON} ${LANG_SRC_DIR})
-target_link_libraries(compiler lang_common lexer parser interpreter ${BOOST_LIB_DEPS})
+target_link_libraries(compiler lang_common lexer parser interpreter analyzer ${BOOST_LIB_DEPS})
 
 add_executable(lang ${LANG_SRC_DIR}/main.cpp)
 target_link_libraries(lang compiler virtual_machine ${BOOST_LIB_DEPS})
@@ -195,8 +200,13 @@ target_link_libraries(test_liblexer lexer lang_common GTest::gtest_main)
 
 file(GLOB_RECURSE LIBPARSER_TESTS ${LANG_TEST_DIR}/libparser/*.cpp)
 add_executable(test_libparser ${LIBPARSER_TESTS})
-target_include_directories(test_libparser PUBLIC ${TEST_DEPS} ${LANG_COMMON} ${LANG_SRC_DIR}/libparser)
+target_include_directories(test_libparser PUBLIC ${TEST_DEPS} ${LANG_COMMON} ${LANG_SRC_DIR}/libparser ${LANG_TEST_DIR}/include)
 target_link_libraries(test_libparser parser lang_common GTest::gtest_main)
+
+file(GLOB_RECURSE LIBANALYZER_TESTS ${LANG_TEST_DIR}/libanalyzer/*.cpp)
+add_executable(test_libanalyzer ${LIBANALYZER_TESTS})
+target_include_directories(test_libanalyzer PUBLIC ${TEST_DEPS} ${LANG_COMMON} ${LANG_SRC_DIR}/libanalyzer ${LANG_TEST_DIR}/include)
+target_link_libraries(test_libanalyzer analyzer lang_common GTest::gtest_main)
 
 file(GLOB_RECURSE LANG_E2E_TESTS ${LANG_TEST_DIR}/e2e/*.cpp)
 add_executable(test_lang ${LANG_E2E_TESTS})
@@ -222,6 +232,7 @@ target_link_libraries(test_libMM MM GTest::gtest_main)
 include(GoogleTest)
 gtest_discover_tests(test_liblexer)
 gtest_discover_tests(test_libparser)
+gtest_discover_tests(test_libanalyzer)
 gtest_discover_tests(
     test_lang
     WORKING_DIRECTORY ${LANG_TEST_DIR}/e2e/samples

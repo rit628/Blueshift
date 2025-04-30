@@ -21,9 +21,10 @@ void Compiler::compileFile(const std::string& source) {
 void Compiler::compileSource(const std::string& source) {
     tokens = lexer.lex(source);
     ast = parser.parse(tokens);
+    ast->accept(analyzer);
     ast->accept(masterInterpreter);
+    auto& descriptors = analyzer.getOblockDescriptors();
     auto& masterOblocks = masterInterpreter.getOblocks();
-    auto& descriptors = masterInterpreter.getOblockDescriptors();
     euInterpreters.assign(descriptors.size(), masterInterpreter);
     for (auto&& [descriptor, interpreter] : boost::combine(descriptors, euInterpreters)) {
         if (!masterOblocks.contains(descriptor.name)) { continue; }

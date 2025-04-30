@@ -9,7 +9,7 @@ using namespace BlsLang;
 
 #define AST_NODE_ABSTRACT(...)
 #define AST_NODE(Node) \
-std::any Node::accept(Visitor& v) { return v.visit(*this); }
+BlsObject Node::accept(Visitor& v) { return v.visit(*this); }
 #include "include/NODE_TYPES.LIST"
 #undef AST_NODE
 #undef AST_NODE_ABSTRACT
