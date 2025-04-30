@@ -7,8 +7,8 @@ import socket
 import re
 import atexit
 import time
-from dotenv import load_dotenv
 import multiprocessing as mp
+from dotenv import load_dotenv
 from pathlib import Path
 from threading import Thread
 from shutil import rmtree
@@ -46,11 +46,14 @@ def run_as_src_user(f):
     def wrapper(*args, **kwargs):
         uid, gid = os.getuid(), os.getgid()
         src_perms = os.stat(Path("src"))
-        os.setegid(src_perms.st_gid)
-        os.seteuid(src_perms.st_uid)
-        f(*args, **kwargs)
-        os.setegid(gid)
-        os.seteuid(uid)
+        if uid == 0 and gid == 0:
+            os.setegid(src_perms.st_gid)
+            os.seteuid(src_perms.st_uid)
+            f(*args, **kwargs)
+            os.setegid(gid)
+            os.seteuid(uid)
+        else:
+            f(*args, **kwargs)
     return wrapper
 
 @run_as_src_user
@@ -169,6 +172,7 @@ def debug(args):
         wait_for_lldb_server(DEBUG_SERVER_PORT)
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            time.sleep(.25) # externally extend gdb-remote connection timeout
             if allow_visual and s.connect_ex(CODELLDB_ADDRESS) == 0: # debug remotely with codelldb
                 s.sendall(f"""
                 {{
@@ -183,7 +187,6 @@ def debug(args):
                 }}
                 """.encode())
             elif args.debugger == "lldb": # debug remotely with lldb tui
-                time.sleep(.25) # externally extend gdb-remote connection timeout
                 run_cmd(["lldb", "-o", f"settings set target.source-map {CONTAINER_MOUNT_DIRECTORY} {cwd}",
                                 "-o", f"gdb-remote localhost:{DEBUG_SERVER_PORT}", "--", remote_binary, *args.binary_args])
             else: # debug remotely with gdb tui
