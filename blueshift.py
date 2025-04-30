@@ -293,6 +293,7 @@ def test(args):
 
 def reset(args):
     rmtree(BUILD_OUTPUT_DIRECTORY, ignore_errors=True)
+    rmtree(".venv", ignore_errors=True)
     
     if args.preserve_images: return
     
