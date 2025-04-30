@@ -9,6 +9,7 @@ import atexit
 import time
 import multiprocessing as mp
 from dotenv import load_dotenv
+from scapy.all import sniff, UDP
 from pathlib import Path
 from threading import Thread
 from shutil import rmtree
@@ -25,6 +26,8 @@ REMOTE_OUTPUT_DIRECTORY = os.getenv("REMOTE_OUTPUT_DIRECTORY")
 TARGET_OUTPUT_DIRECTORY = os.getenv("TARGET_OUTPUT_DIRECTORY")
 DEBUG_SERVER_PORT_MIN = os.getenv("DEBUG_SERVER_PORT_MIN")
 DEBUG_SERVER_PORT_MAX = os.getenv("DEBUG_SERVER_PORT_MAX")
+MASTER_PORT = os.getenv("MASTER_PORT")
+BROADCAST_PORT = os.getenv("BROADCAST_PORT")
 NUM_CORES = mp.cpu_count()
 CODELLDB_ADDRESS = ("127.0.0.1", 7349)
 
@@ -69,6 +72,30 @@ def initialize_host():
     else:
         os.environ["CONTAINER_UID"] = str(os.geteuid())
         os.environ["CONTAINER_GID"] = str(os.getegid())
+
+def forward_broadcasts_via_socket_listener():
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as listener, \
+         socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as forwarder:
+        listener.bind(("127.0.0.1", int(BROADCAST_PORT)))
+        forwarder.bind(("", 0))
+        forwarder.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        while True:
+            data, _ = listener.recvfrom(1024)
+            forwarder.sendto(data, ("255.255.255.255", int(BROADCAST_PORT)))
+
+def forward_broadcast(forward_socket : socket.socket):
+    def fwd(packet):
+        data = bytes(packet[UDP].payload)
+        forward_socket.sendto(data, ("255.255.255.255", int(BROADCAST_PORT)))
+    return fwd
+
+def broadcast_sniffer():
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as forwarder:
+        forwarder.bind(("", 0))
+        forwarder.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        fwd_port = forwarder.getsockname()[1]
+        sniff(filter=f"udp and dst port {BROADCAST_PORT} and not src port {fwd_port}",
+              prn=forward_broadcast(forwarder), store=False)
 
 def wait_for_lldb_server(port):
     pattern = re.compile(f"{port}/tcp")
@@ -125,6 +152,16 @@ def run(args):
         executable = Path(".", TARGET_OUTPUT_DIRECTORY, RUNTIME_OUTPUT_DIRECTORY, args.binary)
         run_cmd([executable, *args.binary_args])
     else:
+        if args.packet_forward:
+            context = subprocess.check_output(["docker", "context", "show"], text=True).strip()
+            if context == "rootless":
+                raise PermissionError("Packet forwarding only possible in rootful context. Try running again with elevated privileges or perform a manual context switch before running.")
+            os.environ["NETWORK_MODE"] = "host"
+            os.environ["PRIVILEGED_RUNTIME"] = "true"
+            if args.udp_broadcast_forward:
+                # packet sniffer implementation temporarily disabled until OSX issue is resolved
+                # Thread(target=broadcast_sniffer, daemon=True).start()
+                Thread(target=forward_broadcasts_via_socket_listener, daemon=True).start()
         initialize_host()
         run_cmd(["docker", "compose", "run", "--rm", "builder", "run", "-l", args.binary, *args.binary_args])
 
@@ -332,6 +369,13 @@ run_parser.add_argument("binary_args",
                         default=None)
 run_parser.add_argument("-l", "--local",
                         help="run selected binary on local host instead of in containerized environment",
+                        action="store_true")
+run_parser.add_argument("-p", "--packet-forward",
+                        help="forward all network packets from container LAN to host LAN",
+                        action="store_true")
+run_parser.add_argument("-u", "--udp-broadcast-forward",
+                        help="""start a listener that received udp broadcasts on 127.0.0.1 and forwards them to host LAN
+                                (necessary if running with -p on OSX)""",
                         action="store_true")
 run_parser.set_defaults(fn=run)
 
