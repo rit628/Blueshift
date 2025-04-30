@@ -56,6 +56,129 @@ namespace BlsLang {
         EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
     }
 
+    GROUP_TEST_F(AnalyzerTest, TypeTests, InvalidTypename) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Declaration(
+            "x",
+            new AstNode::Specifier::Type(
+                "faketype",
+                {}
+            )
+            ,
+            new AstNode::Expression::Literal(
+                "string"
+            )
+        ));
+        EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, TypeTests, ContainerWithNoArgs) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Declaration(
+            "x",
+            new AstNode::Specifier::Type(
+                "list",
+                {}
+            )
+            ,
+            new AstNode::Expression::Literal(
+                "string"
+            )
+        ));
+        EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, TypeTests, PrimitiveWithArgs) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Declaration(
+            "x",
+            new AstNode::Specifier::Type(
+                "int",
+                {
+                    new AstNode::Specifier::Type(
+                        "int",
+                        {}
+                    )
+                }
+            )
+            ,
+            new AstNode::Expression::Literal(
+                "string"
+            )
+        ));
+        EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, TypeTests, ListWithTwoArgs) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Declaration(
+            "x",
+            new AstNode::Specifier::Type(
+                "list",
+                {
+                    new AstNode::Specifier::Type(
+                        "int",
+                        {}
+                    ),
+                    new AstNode::Specifier::Type(
+                        "int",
+                        {}
+                    )
+                }
+            )
+            ,
+            new AstNode::Expression::Literal(
+                "string"
+            )
+        ));
+        EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, TypeTests, MapWithOneArg) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Declaration(
+            "x",
+            new AstNode::Specifier::Type(
+                "map",
+                {
+                    new AstNode::Specifier::Type(
+                        "int",
+                        {}
+                    )
+                }
+            )
+            ,
+            new AstNode::Expression::Literal(
+                "string"
+            )
+        ));
+        EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, TypeTests, InvalidKeyType) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Declaration(
+            "x",
+            new AstNode::Specifier::Type(
+                "map",
+                {
+                    new AstNode::Specifier::Type(
+                        "list",
+                        {
+                            new AstNode::Specifier::Type(
+                                "int",
+                                {}
+                            )
+                        }
+                    ),
+                    new AstNode::Specifier::Type(
+                        "int",
+                        {}
+                    )
+                }
+            )
+            ,
+            new AstNode::Expression::Literal(
+                "string"
+            )
+        ));
+        EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    }
+
     GROUP_TEST_F(AnalyzerTest, TypeTests, InvalidIfCondition) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::If(
             new AstNode::Expression::Literal(
@@ -277,6 +400,159 @@ namespace BlsLang {
         expectedMetadata.literalPool.emplace(10.23, 2);
 
         TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, TypeTests, InvalidProcedureArgument) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Source(
+            {
+                new AstNode::Function::Procedure(
+                    "g",
+                    new AstNode::Specifier::Type(
+                        "void",
+                        {}
+                    ),
+                    {
+                        new AstNode::Specifier::Type(
+                            "int",
+                            {}
+                        ),
+                        new AstNode::Specifier::Type(
+                            "string",
+                            {}
+                        )
+                    },
+                    {
+                        "arg1",
+                        "arg2"
+                    },
+                    {}
+                ),
+                new AstNode::Function::Procedure(
+                    "f",
+                    new AstNode::Specifier::Type(
+                        "void",
+                        {}
+                    ),
+                    {},
+                    {},
+                    {
+                        new AstNode::Statement::Expression(
+                            new AstNode::Expression::Function(
+                                "g",
+                                {
+                                    new AstNode::Expression::Literal(
+                                        std::string("not an int")
+                                    ),
+                                    new AstNode::Expression::Literal(
+                                        int64_t(7)
+                                    )
+                                }
+                            )
+                        )
+                    }
+                )
+            },
+            {},
+            {}
+        ));
+        EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, TypeTests, HeterogenousListLiteral) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
+            "f",
+            new AstNode::Specifier::Type(
+                "void",
+                {}
+            ),
+            {},
+            {},
+            {
+                new AstNode::Statement::Expression(
+                    new AstNode::Expression::List(
+                        {
+                            new AstNode::Expression::Literal(
+                                int64_t(4)
+                            ),
+                            new AstNode::Expression::Literal(
+                                std::string("not an int")
+                            )
+                        }
+                    )
+                )
+            }
+        ));
+        EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, TypeTests, HeterogenousMapLiteral) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
+            "f",
+            new AstNode::Specifier::Type(
+                "void",
+                {}
+            ),
+            {},
+            {},
+            {
+                new AstNode::Statement::Expression(
+                    new AstNode::Expression::Map(
+                        {
+                            {
+                                new AstNode::Expression::Literal(
+                                    std::string("key1")
+                                ),
+                                new AstNode::Expression::Literal(
+                                    int64_t(20)
+                                )
+                            },
+                            {
+                                new AstNode::Expression::Literal(
+                                    std::string("key2")
+                                ),
+                                new AstNode::Expression::Literal(
+                                    bool(false)
+                                )
+                            }
+                        }
+                    )
+                )
+            }
+        ));
+        EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, TypeTests, InvalidMapKey) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
+            "f",
+            new AstNode::Specifier::Type(
+                "void",
+                {}
+            ),
+            {},
+            {},
+            {
+                new AstNode::Statement::Expression(
+                    new AstNode::Expression::Map(
+                        {
+                            {
+                                new AstNode::Expression::List(
+                                    {
+                                        new AstNode::Expression::Literal(
+                                            int64_t(10)
+                                        )
+                                    }
+                                ),
+                                new AstNode::Expression::Literal(
+                                    int64_t(20)
+                                )
+                            }
+                        }
+                    )
+                )
+            }
+        ));
+        EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
     }
 
     GROUP_TEST_F(AnalyzerTest, TypeTests, InvalidWhileCondition) {
@@ -514,6 +790,59 @@ namespace BlsLang {
         EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
     }
 
+    GROUP_TEST_F(AnalyzerTest, LogicTests, InvalidArgumentCount) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Source(
+            {
+                new AstNode::Function::Procedure(
+                    "g",
+                    new AstNode::Specifier::Type(
+                        "void",
+                        {}
+                    ),
+                    {
+                        new AstNode::Specifier::Type(
+                            "int",
+                            {}
+                        ),
+                        new AstNode::Specifier::Type(
+                            "string",
+                            {}
+                        )
+                    },
+                    {
+                        "arg1",
+                        "arg2"
+                    },
+                    {}
+                ),
+                new AstNode::Function::Procedure(
+                    "f",
+                    new AstNode::Specifier::Type(
+                        "void",
+                        {}
+                    ),
+                    {},
+                    {},
+                    {
+                        new AstNode::Statement::Expression(
+                            new AstNode::Expression::Function(
+                                "g",
+                                {
+                                    new AstNode::Expression::Literal(
+                                        int64_t(2)
+                                    )
+                                }
+                            )
+                        )
+                    }
+                )
+            },
+            {},
+            {}
+        ));
+        EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    }
+
     GROUP_TEST_F(AnalyzerTest, ContextTests, InvalidContinue) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Continue());
         EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
@@ -552,7 +881,7 @@ namespace BlsLang {
         EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
     }
 
-    GROUP_TEST_F(AnalyzerTest, TypeTests, ContinueInWhile) {
+    GROUP_TEST_F(AnalyzerTest, ContextTests, ContinueInWhile) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::While(
             new AstNode::Expression::Literal(
                 true
@@ -577,7 +906,7 @@ namespace BlsLang {
         TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
     }
 
-    GROUP_TEST_F(AnalyzerTest, TypeTests, BreakInWhile) {
+    GROUP_TEST_F(AnalyzerTest, ContextTests, BreakInWhile) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::While(
             new AstNode::Expression::Literal(
                 true
@@ -602,7 +931,7 @@ namespace BlsLang {
         TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
     }
 
-    GROUP_TEST_F(AnalyzerTest, TypeTests, ContinueInFor) {
+    GROUP_TEST_F(AnalyzerTest, ContextTests, ContinueInFor) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::For(
             std::nullopt,
             std::nullopt,
@@ -626,7 +955,7 @@ namespace BlsLang {
         TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
     }
 
-    GROUP_TEST_F(AnalyzerTest, TypeTests, BreakInFor) {
+    GROUP_TEST_F(AnalyzerTest, ContextTests, BreakInFor) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::For(
             std::nullopt,
             std::nullopt,

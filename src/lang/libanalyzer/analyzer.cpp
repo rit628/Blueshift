@@ -704,6 +704,12 @@ BlsObject Analyzer::visit(AstNode::Specifier::Type& ast) {
             #undef ATTRIBUTE
             #undef DEVTYPE_END
 
+            case TYPE::ANY:
+            case TYPE::NONE:
+            case TYPE::COUNT:
+                throw SemanticError("Invalid type: " + ast.getName());
+            break;
+
             default:
                 throw SemanticError("Container type must include element type arguments.");
             break;
