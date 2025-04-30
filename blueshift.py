@@ -125,6 +125,7 @@ def run(args):
         executable = Path(".", TARGET_OUTPUT_DIRECTORY, RUNTIME_OUTPUT_DIRECTORY, args.binary)
         run_cmd([executable, *args.binary_args])
     else:
+        initialize_host()
         run_cmd(["docker", "compose", "run", "--rm", "builder", "run", "-l", args.binary, *args.binary_args])
 
 def debug(args):
@@ -159,7 +160,8 @@ def debug(args):
             else: # debug locally in terminal
                 args_command = "--" if args.debugger == "lldb" else "--args"
                 run_cmd([args.debugger, args_command, executable, *args.binary_args])
-    else:
+    else: # debug on container gdbserver
+        initialize_host()
         DEBUG_SERVER_PORT = get_free_port()
         remote_binary = Path(REMOTE_OUTPUT_DIRECTORY, debug_target_path, RUNTIME_OUTPUT_DIRECTORY, args.binary)
         cwd = os.getcwd()
