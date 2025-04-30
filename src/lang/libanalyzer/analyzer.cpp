@@ -126,13 +126,12 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
                 }
             }
             oblockDescriptors.push_back(desc);
-            return std::monostate();
         }
         else {
             throw SemanticError("Statement within setup() must be an oblock binding expression or device binding declaration");
         }
     }
-    return true;
+    return std::monostate();
 }
 
 BlsObject Analyzer::visit(AstNode::Statement::If& ast) {

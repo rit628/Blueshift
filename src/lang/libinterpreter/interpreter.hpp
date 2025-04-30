@@ -30,8 +30,6 @@ namespace BlsLang {
             #undef AST_NODE
 
             auto& getOblocks() { return oblocks; }
-            auto& getDeviceDescriptors() { return deviceDescriptors; }
-            auto& getOblockDescriptors() { return oblockDescriptors; }
 
         private:
             CallStack<std::string> cs;
@@ -55,8 +53,6 @@ namespace BlsLang {
             };
 
         std::unordered_map<std::string, std::function<std::vector<BlsType>(Interpreter&, std::vector<BlsType>)>> oblocks;
-        std::unordered_map<std::string, DeviceDescriptor> deviceDescriptors;
-        std::vector<OBlockDesc> oblockDescriptors;
 
     };
 

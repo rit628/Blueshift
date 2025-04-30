@@ -23,8 +23,8 @@ void Compiler::compileSource(const std::string& source) {
     ast = parser.parse(tokens);
     ast->accept(analyzer);
     ast->accept(masterInterpreter);
+    auto& descriptors = analyzer.getOblockDescriptors();
     auto& masterOblocks = masterInterpreter.getOblocks();
-    auto& descriptors = masterInterpreter.getOblockDescriptors();
     euInterpreters.assign(descriptors.size(), masterInterpreter);
     for (auto&& [descriptor, interpreter] : boost::combine(descriptors, euInterpreters)) {
         if (!masterOblocks.contains(descriptor.name)) { continue; }

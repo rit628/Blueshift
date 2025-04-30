@@ -15,8 +15,8 @@ namespace BlsLang {
             void compileFile(const std::string& source);
             void compileSource(const std::string& source);
             auto& getOblocks() { return oblocks; }
-            auto& getDeviceDescriptors() { return masterInterpreter.getDeviceDescriptors(); }
-            auto& getOblockDescriptors() { return masterInterpreter.getOblockDescriptors(); }
+            auto& getDeviceDescriptors() { return analyzer.getDeviceDescriptors(); }
+            auto& getOblockDescriptors() { return analyzer.getOblockDescriptors(); }
         
         private:
             std::vector<Token> tokens;

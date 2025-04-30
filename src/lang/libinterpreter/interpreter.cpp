@@ -28,8 +28,6 @@ BlsObject Interpreter::visit(AstNode::Source& ast) {
         oblock->accept(*this);
     }
 
-    ast.getSetup()->accept(*this);
-
     return std::monostate();
 }
 
@@ -94,20 +92,12 @@ BlsObject Interpreter::visit(AstNode::Function::Oblock& ast) {
 }
 
 BlsObject Interpreter::visit(AstNode::Setup& ast) {
-    cs.pushFrame(CallStack<std::string>::Frame::Context::SETUP);
-    for (auto&& statement : ast.getStatements()) {
-        statement->accept(*this);
-    }
-    cs.popFrame();
-    return true;
+    return std::monostate(); // setup does not need to be visited in interpreter
 }
 
 BlsObject Interpreter::visit(AstNode::Statement::If& ast) {
     auto checkCondition = [this](AstNode& expr) {
         auto conditionResult = resolve(expr.accept(*this));
-        if (!std::holds_alternative<bool>(conditionResult)) {
-            throw RuntimeError("Condition must resolve to a boolean value");
-        }
         return std::get<bool>(conditionResult);
     };
 
@@ -153,9 +143,6 @@ BlsObject Interpreter::visit(AstNode::Statement::For& ast) {
     if (condition.has_value()) {
         conditionExec = [&condition, this]() {
             auto conditionResult = resolve(condition->get()->accept(*this));
-            if (!std::holds_alternative<bool>(conditionResult)) {
-                throw RuntimeError("Condition must resolve to a boolean value");
-            }
             return std::get<bool>(conditionResult);
         };
     }
@@ -203,9 +190,6 @@ BlsObject Interpreter::visit(AstNode::Statement::While& ast) {
 
     auto conditionExec = [&condition, this]() {
         auto conditionResult = resolve(condition->accept(*this));
-        if (!std::holds_alternative<bool>(conditionResult)) {
-            throw RuntimeError("Condition must resolve to a boolean value");
-        }
         return std::get<bool>(conditionResult);
     };
     while (conditionExec()) {
@@ -236,16 +220,10 @@ BlsObject Interpreter::visit(AstNode::Statement::Return& ast) {
 }
 
 BlsObject Interpreter::visit(AstNode::Statement::Continue& ast) {
-    if (!cs.checkContext(CallStack<std::string>::Frame::Context::LOOP)) {
-        throw RuntimeError("continue statement outside of loop context.");
-    }
     throw ast;
 }
 
 BlsObject Interpreter::visit(AstNode::Statement::Break& ast) {
-    if (!cs.checkContext(CallStack<std::string>::Frame::Context::LOOP)) {
-        throw RuntimeError("break statement outside of loop context.");
-    }
     throw ast;
 }
 
@@ -253,18 +231,7 @@ BlsObject Interpreter::visit(AstNode::Statement::Declaration& ast) {
     auto typedObj = resolve(ast.getType()->accept(*this));
     auto& name = ast.getName();
     auto& value = ast.getValue();
-    if (cs.checkContext(CallStack<std::string>::Frame::Context::SETUP)) {
-        auto devtypeObj = resolve(ast.getType()->accept(*this));
-        auto devtype = static_cast<DEVTYPE>(getType(devtypeObj));
-        auto binding = resolve(value->get()->accept(*this));
-        if (!std::holds_alternative<std::string>(binding)) {
-            throw RuntimeError("binding for devtype must be a string literal");
-        }
-        auto& bindStr = std::get<std::string>(binding);
-        auto devDesc = parseDeviceBinding(name, devtype, bindStr);
-        deviceDescriptors.emplace(name, devDesc);
-    }
-    else if (value.has_value()) {
+    if (value.has_value()) {
         auto literal = resolve(value->get()->accept(*this));
         cs.addLocal(name, literal);
     }
@@ -371,7 +338,7 @@ BlsObject Interpreter::visit(AstNode::Expression::Binary& ast) {
         break;
 
         default:
-            throw RuntimeError("Invalid operator supplied.");
+            return std::monostate(); // just for completeness, never reached at runtime
         break;
     }
 }
@@ -416,7 +383,7 @@ BlsObject Interpreter::visit(AstNode::Expression::Unary& ast) {
         break;
 
         default:
-            throw RuntimeError("Invalid operator supplied.");
+            return std::monostate(); // just for completeness, never reached at runtime
         break;
     }
 }
@@ -434,31 +401,15 @@ BlsObject Interpreter::visit(AstNode::Expression::Method& ast) {
         resolvedArgs.push_back(visited);
     }
     auto& methodName = ast.getMethodName();
-    if (!std::holds_alternative<std::shared_ptr<HeapDescriptor>>(cs.getLocal(object))) {
-        throw RuntimeError("methods may only be applied on container type objects");
-    }
     auto& operable = std::get<std::shared_ptr<HeapDescriptor>>(cs.getLocal(object));
     if (methodName == "append") {
-        try {
-            dynamic_cast<VectorDescriptor&>(*operable).append(resolvedArgs.at(0));
-        }
-        catch (std::bad_cast) {
-            throw RuntimeError("append may only be used on list type objects");
-        }
+        dynamic_cast<VectorDescriptor&>(*operable).append(resolvedArgs.at(0));
     }
     else if (methodName == "add") {
-        try {
-            dynamic_cast<MapDescriptor&>(*operable).emplace(resolvedArgs.at(0), resolvedArgs.at(1));
-        }
-        catch (std::bad_cast) {
-            throw RuntimeError("add may only be used on map type objects");
-        }
+        dynamic_cast<MapDescriptor&>(*operable).emplace(resolvedArgs.at(0), resolvedArgs.at(1));
     }
     else if (methodName == "size") {
         return BlsType(operable->getSize());
-    }
-    else {
-        throw RuntimeError("invalid method");
     }
     return std::monostate();
 }
@@ -466,35 +417,10 @@ BlsObject Interpreter::visit(AstNode::Expression::Method& ast) {
 BlsObject Interpreter::visit(AstNode::Expression::Function& ast) {
     auto& name = ast.getName();
     auto& args = ast.getArguments();
-    if (cs.checkContext(CallStack<std::string>::Frame::Context::SETUP)) {
-        OBlockDesc desc;
-        desc.name = name;
-        if (!oblocks.contains(name)) {
-            throw RuntimeError(name + " does not refer to an oblock");
-        }
-        auto& devices = desc.binded_devices;
-        for (auto&& arg : args) {
-            auto* expr = dynamic_cast<AstNode::Expression::Access*>(arg.get());
-            if (expr == nullptr || expr->getMember().has_value() || expr->getSubscript().has_value()) {
-                throw RuntimeError("Invalid oblock binding in setup()");
-            }
-            try {
-                devices.push_back(deviceDescriptors.at(expr->getObject()));
-            }
-            catch (std::out_of_range) {
-                throw RuntimeError(expr->getObject() + " does not refer to a device binding");
-            }
-        }
-        oblockDescriptors.push_back(desc);
-        return std::monostate();
-    }
     std::vector<BlsType> argObjects;
     for (auto&& arg : args) {
         auto result = resolve(arg->accept(*this));
         argObjects.push_back(result);
-    }
-    if (!procedures.contains(name)) {
-        throw RuntimeError("No procedure named: " + name);
     }
     auto& f = procedures.at(name);
     return f(*this, argObjects);
@@ -505,17 +431,11 @@ BlsObject Interpreter::visit(AstNode::Expression::Access& ast) {
     auto& member = ast.getMember();
     auto& subscript = ast.getSubscript();
     if (member.has_value()) {
-        if (!std::holds_alternative<std::shared_ptr<HeapDescriptor>>(cs.getLocal(object))) {
-            throw RuntimeError("member access only possible on container type objects and devtypes");
-        }
         auto& accessible = std::get<std::shared_ptr<HeapDescriptor>>(cs.getLocal(object));
         auto memberName = BlsType(member.value());
         return std::ref(accessible->access(memberName));
     }
     else if (subscript.has_value()) {
-        if (!std::holds_alternative<std::shared_ptr<HeapDescriptor>>(cs.getLocal(object))) {
-            throw RuntimeError("subscript access only possible on container type objects");
-        }
         auto& subscriptable = std::get<std::shared_ptr<HeapDescriptor>>(cs.getLocal(object));
         auto index = resolve(subscript->get()->accept(*this));
         return std::ref(subscriptable->access(index));
@@ -545,7 +465,7 @@ BlsObject Interpreter::visit(AstNode::Expression::List& ast) {
 }
 
 BlsObject Interpreter::visit(AstNode::Expression::Set& ast) {
-    throw RuntimeError("no support for sets in phase 0");
+    return std::monostate(); // no support for sets in phase 0
 }
 
 BlsObject Interpreter::visit(AstNode::Expression::Map& ast) {
@@ -560,79 +480,57 @@ BlsObject Interpreter::visit(AstNode::Expression::Map& ast) {
 }
 
 BlsObject Interpreter::visit(AstNode::Specifier::Type& ast) {
+    // type declarations visited for default construction
     TYPE primaryType = getTypeFromName(ast.getName());
-    const auto& typeArgs = ast.getTypeArgs();
-    if (primaryType == TYPE::list_t) {
-        if (typeArgs.size() != 1) throw RuntimeError("List may only have a single type argument.");
-        auto argType = getTypeFromName(typeArgs.at(0)->getName());
-        auto list = std::make_shared<VectorDescriptor>(argType);
-        auto arg = resolve(typeArgs.at(0)->accept(*this));
-        list->append(arg);
-        return BlsType(list);
-    }
-    else if (primaryType == TYPE::map_t) {
-        if (typeArgs.size() != 2) throw RuntimeError("Map must have two type arguments.");
-        auto keyType = getTypeFromName(typeArgs.at(0)->getName());
-        if (keyType > TYPE::PRIMITIVE_COUNT || keyType == TYPE::void_t) {
-            throw RuntimeError("Invalid key type for map.");
+    switch (primaryType) {
+        case TYPE::void_t:
+            return BlsType(std::monostate());
+        break;
+
+        case TYPE::bool_t:
+            return BlsType(bool(false));
+        break;
+
+        case TYPE::int_t:
+            return BlsType(int64_t(0));
+        break;
+
+        case TYPE::float_t:
+            return BlsType(double(0.0));
+        break;
+
+        case TYPE::string_t:
+            return BlsType(std::string(""));
+        break;
+
+        case TYPE::list_t:
+            return std::make_shared<VectorDescriptor>(TYPE::ANY);
+        break;
+
+        case TYPE::map_t:
+            return std::make_shared<MapDescriptor>(TYPE::ANY);
+        break;
+
+        #define DEVTYPE_BEGIN(name) \
+        case TYPE::name: { \
+            using namespace TypeDef; \
+            auto devtype = std::make_shared<MapDescriptor>(TYPE::name, TYPE::string_t, TYPE::ANY); \
+            BlsType attr, attrVal;
+        #define ATTRIBUTE(name, type) \
+            attr = BlsType(#name); \
+            attrVal = BlsType(type()); \
+            devtype->emplace(attr, attrVal);
+        #define DEVTYPE_END \
+            return BlsType(devtype); \
+        break; \
         }
-        auto valType = getTypeFromName(typeArgs.at(1)->getName());
-        if (valType == TYPE::void_t) {
-            throw RuntimeError("Invalid value type for map.");
-        }
-        auto map = std::make_shared<MapDescriptor>(TYPE::map_t, keyType, valType);
-        auto key = resolve(typeArgs.at(0)->accept(*this));
-        auto value = resolve(typeArgs.at(1)->accept(*this));
-        map->emplace(key, value);
-        return BlsType(map);
-    }
-    else if (typeArgs.empty()) {
-        switch (primaryType) {
-            // explicit default constructors for declaration
-            case TYPE::void_t:
-                return BlsType(std::monostate());
-            break;
+        #include "DEVTYPES.LIST"
+        #undef DEVTYPE_BEGIN
+        #undef ATTRIBUTE
+        #undef DEVTYPE_END
 
-            case TYPE::bool_t:
-                return BlsType(bool(false));
-            break;
-
-            case TYPE::int_t:
-                return BlsType(int64_t(0));
-            break;
-
-            case TYPE::float_t:
-                return BlsType(double(0.0));
-            break;
-
-            case TYPE::string_t:
-                return BlsType(std::string(""));
-            break;
-
-            #define DEVTYPE_BEGIN(name) \
-            case TYPE::name: { \
-                using namespace TypeDef; \
-                auto devtype = std::make_shared<MapDescriptor>(TYPE::name, TYPE::string_t, TYPE::ANY); \
-                BlsType attr, attrVal;
-            #define ATTRIBUTE(name, type) \
-                attr = BlsType(#name); \
-                attrVal = BlsType(type()); \
-                devtype->emplace(attr, attrVal);
-            #define DEVTYPE_END \
-                return BlsType(devtype); \
-            break; \
-            }
-            #include "DEVTYPES.LIST"
-            #undef DEVTYPE_BEGIN
-            #undef ATTRIBUTE
-            #undef DEVTYPE_END
-
-            default:
-                throw RuntimeError("Container type must include element type arguments.");
-            break;
-        }
-    }
-    else {
-        throw RuntimeError("Primitive or devtype cannot include type arguments.");
+        default:
+            return std::monostate(); // just for completeness, never reached at runtime
+        break;
     }
 }
