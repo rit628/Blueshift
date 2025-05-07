@@ -9,7 +9,7 @@ import atexit
 import time
 import multiprocessing as mp
 from dotenv import load_dotenv
-from scapy.all import sniff, UDP
+from scapy.all import sniff, conf, sendp
 from pathlib import Path
 from threading import Thread
 from shutil import rmtree
@@ -83,19 +83,23 @@ def forward_broadcasts_via_socket_listener():
             data, _ = listener.recvfrom(1024)
             forwarder.sendto(data, ("255.255.255.255", int(BROADCAST_PORT)))
 
-def forward_broadcast(forward_socket : socket.socket):
-    def fwd(packet):
-        data = bytes(packet[UDP].payload)
-        forward_socket.sendto(data, ("255.255.255.255", int(BROADCAST_PORT)))
-    return fwd
-
 def broadcast_sniffer():
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as forwarder:
-        forwarder.bind(("", 0))
-        forwarder.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        fwd_port = forwarder.getsockname()[1]
-        sniff(filter=f"udp and dst port {BROADCAST_PORT} and not src port {fwd_port}",
-              prn=forward_broadcast(forwarder), store=False)
+    listen_ifaces = list(conf.ifaces.keys())
+    send_ifaces = set(conf.ifaces.keys())
+    source_iface = None
+    
+    def forward_broadcast(packet):
+        nonlocal source_iface
+        if not source_iface:
+            source_iface = packet.sniffed_on
+            send_ifaces.remove(source_iface)
+        
+        if packet.sniffed_on == source_iface: # only rebroadcast packets coming from the source
+            for iface in send_ifaces:
+                sendp(packet, iface, verbose=False)
+        
+    sniff(filter=f"udp and dst port {BROADCAST_PORT}",
+            prn=forward_broadcast, store=False, iface=listen_ifaces)
 
 def wait_for_lldb_server(port):
     pattern = re.compile(f"{port}/tcp")
@@ -159,9 +163,9 @@ def run(args):
             os.environ["NETWORK_MODE"] = "host"
             os.environ["PRIVILEGED_RUNTIME"] = "true"
             if args.udp_broadcast_forward:
-                # packet sniffer implementation temporarily disabled until OSX issue is resolved
-                # Thread(target=broadcast_sniffer, daemon=True).start()
-                Thread(target=forward_broadcasts_via_socket_listener, daemon=True).start()
+                Thread(target=broadcast_sniffer, daemon=True).start()
+                time.sleep(.25) # wait before running initialize_host() to ensure sniffing privilege is retained
+                # Thread(target=forward_broadcasts_via_socket_listener, daemon=True).start()
         initialize_host()
         run_cmd(["docker", "compose", "run", "--rm", "builder", "run", "-l", args.binary, *args.binary_args])
 
