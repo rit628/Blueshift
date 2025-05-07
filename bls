@@ -38,11 +38,14 @@ def run_as_src_user(f):
     def wrapper(*args, **kwargs):
         uid, gid = os.getuid(), os.getgid()
         src_perms = os.stat(Path("src"))
-        os.setegid(src_perms.st_gid)
-        os.seteuid(src_perms.st_uid)
-        f(*args, **kwargs)
-        os.setegid(gid)
-        os.seteuid(uid)
+        if uid == 0 and gid == 0:
+            os.setegid(src_perms.st_gid)
+            os.seteuid(src_perms.st_uid)
+            f(*args, **kwargs)
+            os.setegid(gid)
+            os.seteuid(uid)
+        else:
+            f(*args, **kwargs)
     return wrapper
 
 @run_as_src_user
