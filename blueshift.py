@@ -73,33 +73,20 @@ def initialize_host():
         os.environ["CONTAINER_UID"] = str(os.geteuid())
         os.environ["CONTAINER_GID"] = str(os.getegid())
 
-def forward_broadcasts_via_socket_listener():
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as listener, \
-         socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as forwarder:
-        listener.bind(("127.0.0.1", int(BROADCAST_PORT)))
-        forwarder.bind(("", 0))
-        forwarder.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        while True:
-            data, _ = listener.recvfrom(1024)
-            forwarder.sendto(data, ("255.255.255.255", int(BROADCAST_PORT)))
-
 def broadcast_sniffer():
-    listen_ifaces = list(conf.ifaces.keys())
-    send_ifaces = set(conf.ifaces.keys())
-    source_iface = None
-    
+    ifaces = list(conf.ifaces.keys())
+    send_ifaces = set(ifaces)
+    broadcast_filter = f"udp and dst port {BROADCAST_PORT}"
+    # listen on all interfaces for broadcast traffic and choose first sucessful interface as source
+    source_iface = sniff(filter=broadcast_filter, iface=ifaces, count=1)[0].sniffed_on
+    send_ifaces.remove(source_iface) # forward to all other interfaces
+
     def forward_broadcast(packet):
-        nonlocal source_iface
-        if not source_iface:
-            source_iface = packet.sniffed_on
-            send_ifaces.remove(source_iface)
-        
-        if packet.sniffed_on == source_iface: # only rebroadcast packets coming from the source
-            for iface in send_ifaces:
-                sendp(packet, iface, verbose=False)
-        
-    sniff(filter=f"udp and dst port {BROADCAST_PORT}",
-            prn=forward_broadcast, store=False, iface=listen_ifaces)
+        for iface in send_ifaces:
+            sendp(packet, iface, verbose=False)
+    
+    sniff(filter=broadcast_filter, prn=forward_broadcast,
+          store=False, iface=source_iface)
 
 def wait_for_lldb_server(port):
     pattern = re.compile(f"{port}/tcp")
@@ -165,7 +152,6 @@ def run(args):
             if args.udp_broadcast_forward:
                 Thread(target=broadcast_sniffer, daemon=True).start()
                 time.sleep(.25) # wait before running initialize_host() to ensure sniffing privilege is retained
-                # Thread(target=forward_broadcasts_via_socket_listener, daemon=True).start()
         initialize_host()
         run_cmd(["docker", "compose", "run", "--rm", "builder", "run", "-l", args.binary, *args.binary_args])
 
