@@ -3,7 +3,6 @@
 #include "libbytecode/bytecode_processor.hpp"
 #include "libbytecode/include/opcodes.hpp"
 #include "libtypes/bls_types.hpp"
-#include <any>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -209,7 +208,7 @@ BlsObject Generator::visit(AstNode::Statement::Break& ast) {
 }
 
 BlsObject Generator::visit(AstNode::Statement::Declaration& ast) {
-    auto type = getTypeEnum(ast.getType()->getName());
+    auto type = getTypeFromName(ast.getType()->getName());
     auto index = ast.getLocalIndex();
     instructions.push_back(createMKTYPE(index, static_cast<uint8_t>(type)));
     auto& value = ast.getValue();
