@@ -14,7 +14,7 @@ namespace BlsLang {
             struct Metadata {
                 Metadata() { };
                 std::unordered_map<std::string, DeviceDescriptor> deviceDescriptors;
-                std::vector<OBlockDesc> oblockDescriptors;
+                std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
                 std::unordered_map<BlsType, uint8_t> literalPool = {
                     {std::monostate(), 0},  // for void return values
                     {1, 1}  // for increment & decrement expressions

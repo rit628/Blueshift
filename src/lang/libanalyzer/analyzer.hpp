@@ -26,8 +26,8 @@ namespace BlsLang {
             #undef AST_NODE_ABSTRACT
             #undef AST_NODE
             
-            auto& getDeviceDescriptors() { return deviceDescriptors; }
             auto& getOblockDescriptors() { return oblockDescriptors; }
+            auto& getLiteralPool() { return literalPool; }
 
         private:
             struct FunctionSignature {
@@ -44,7 +44,7 @@ namespace BlsLang {
             };
             std::unordered_map<std::string, FunctionSignature> oblocks;
             std::unordered_map<std::string, DeviceDescriptor> deviceDescriptors;
-            std::vector<OBlockDesc> oblockDescriptors;
+            std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
             std::unordered_map<BlsType, uint8_t> literalPool = {
                 {std::monostate(), 0},  // for void return values
                 {1, 1}  // for increment & decrement expressions
