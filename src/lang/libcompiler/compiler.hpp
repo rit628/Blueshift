@@ -1,5 +1,6 @@
 #pragma once
 #include "ast.hpp"
+#include "include/Common.hpp"
 #include "liblexer/lexer.hpp"
 #include "libparser/parser.hpp"
 #include "libinterpreter/interpreter.hpp"
@@ -16,7 +17,7 @@ namespace BlsLang {
             void compileSource(const std::string& source);
             auto& getOblocks() { return oblocks; }
             auto& getDeviceDescriptors() { return analyzer.getDeviceDescriptors(); }
-            auto& getOblockDescriptors() { return analyzer.getOblockDescriptors(); }
+            auto& getOblockDescriptors() { return oblockDescriptors; }
         
         private:
             std::vector<Token> tokens;
@@ -27,6 +28,7 @@ namespace BlsLang {
             Interpreter masterInterpreter;
             std::vector<Interpreter> euInterpreters;
             std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks;
+            std::vector<OBlockDesc> oblockDescriptors;
     };
 
 }
