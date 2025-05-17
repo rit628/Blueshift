@@ -3,6 +3,7 @@
 #include "libbytecode/bytecode_processor.hpp"
 #include "libbytecode/include/opcodes.hpp"
 #include "libtypes/bls_types.hpp"
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -12,6 +13,8 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <utility>
 #include <variant>
+#include <boost/range/adaptor/map.hpp>
+#include <vector>
 
 using namespace BlsLang;
 
@@ -53,18 +56,22 @@ BlsObject Generator::visit(AstNode::Function::Oblock& ast) {
 
 BlsObject Generator::visit(AstNode::Setup& ast) {
     boost::archive::binary_oarchive oa(outputStream, boost::archive::archive_flags::no_header);
+    std::vector<BlsType> orderedLiterals(boost::adaptors::keys(literalPool).begin(), boost::adaptors::keys(literalPool).end());
+    std::sort(orderedLiterals.begin(), orderedLiterals.end(), [this](const auto& a, const auto& b) {
+        return literalPool.at(a) < literalPool.at(b);
+    });
     
     // write header
-    uint16_t descSize = oblockDescriptors.size();
-    outputStream.write(reinterpret_cast<const char *>(&descSize), sizeof(descSize));
-    for (auto&& desc : oblockDescriptors) {
+    uint16_t descriptorCount = oblockDescriptors.size();
+    outputStream.write(reinterpret_cast<const char *>(&descriptorCount), sizeof(descriptorCount));
+    for (auto&& desc : boost::adaptors::values(oblockDescriptors)) {
         oa << desc;
     }
 
     // write literal pool
     uint16_t poolSize = literalPool.size();
     outputStream.write(reinterpret_cast<const char *>(&poolSize), sizeof(poolSize));
-    for (auto&& literal : literalPool) {
+    for (auto&& literal : orderedLiterals) {
         oa << literal;
     }
 
