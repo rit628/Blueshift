@@ -213,6 +213,8 @@ void MasterNM::masterRead(){
 
         auto new_state = this->EMM_in_queue.read(); 
 
+        std::cout<<"MASTER NM MESSAGE RECEIVED"<<std::endl; 
+
         SentMessage sm_main;
 
         std::string cont = new_state.info.controller; 
@@ -250,8 +252,11 @@ void MasterNM::masterRead(){
 
 void MasterNM::update(){
     while(1){
-        auto omar = this->in_queue.read(); 
-        this->handleMessage(omar); 
+        while(!this->in_queue.isEmpty()){
+            auto omar = this->in_queue.read();
+            std::cout<<"Recieved the message"<<std::endl; 
+            this->handleMessage(omar);
+        }
     }
 }
 
@@ -282,8 +287,6 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
             break; 
         }
         case(Protocol::CONFIG_OK) : {
-
-
             this->remConnections--; 
             // Send the initital Ticker Entry: 
             std::cout<<this->controller_list[in_msg.sm.header.ctl_code]<<" has successfully connected!"<<std::endl; 
