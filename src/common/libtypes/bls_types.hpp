@@ -1,5 +1,7 @@
 #pragma once
 #include <cmath>
+#include <cstddef>
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -69,12 +71,12 @@ struct BlsType : std::variant<std::monostate, bool, int64_t, double, std::string
   using std::variant<std::monostate, bool, int64_t, double, std::string, std::shared_ptr<HeapDescriptor>>::variant;
   explicit operator bool() const;
   friend BlsType operator-(const BlsType& operand);
-  friend BlsType operator<(const BlsType& lhs, const BlsType& rhs);
-  friend BlsType operator<=(const BlsType& lhs, const BlsType& rhs);
-  friend BlsType operator>(const BlsType& lhs, const BlsType& rhs);
-  friend BlsType operator>=(const BlsType& lhs, const BlsType& rhs);
-  friend BlsType operator!=(const BlsType& lhs, const BlsType& rhs);
-  friend BlsType operator==(const BlsType& lhs, const BlsType& rhs);
+  friend bool operator<(const BlsType& lhs, const BlsType& rhs);
+  friend bool operator<=(const BlsType& lhs, const BlsType& rhs);
+  friend bool operator>(const BlsType& lhs, const BlsType& rhs);
+  friend bool operator>=(const BlsType& lhs, const BlsType& rhs);
+  friend bool operator!=(const BlsType& lhs, const BlsType& rhs);
+  friend bool operator==(const BlsType& lhs, const BlsType& rhs);
   friend BlsType operator+(const BlsType& lhs, const BlsType& rhs);
   friend BlsType operator-(const BlsType& lhs, const BlsType& rhs);
   friend BlsType operator*(const BlsType& lhs, const BlsType& rhs);
@@ -82,22 +84,33 @@ struct BlsType : std::variant<std::monostate, bool, int64_t, double, std::string
   friend BlsType operator%(const BlsType& lhs, const BlsType& rhs);
   friend BlsType operator^(const BlsType& lhs, const BlsType& rhs);
   friend bool typeCompatible(const BlsType& lhs, const BlsType& rhs);
+  friend std::ostream& operator<<(std::ostream& os, const BlsType& obj);
   template<typename Archive>
   void serialize(Archive& ar, const unsigned int version);
 };
 
+template<>
+struct std::hash<BlsType> {
+    size_t operator()(const BlsType& obj) const;
+};
+
 class HeapDescriptor {
   protected: 
-    TYPE objType = TYPE::ANY; 
+    TYPE objType = TYPE::ANY;
     TYPE keyType = TYPE::ANY;
-    TYPE contType = TYPE::ANY; 
+    TYPE contType = TYPE::ANY;
+    BlsType sampleElement = std::monostate();
 
   public:
-    HeapDescriptor() = default; 
-    virtual ~HeapDescriptor() = default; 
+    HeapDescriptor() = default;
+    virtual ~HeapDescriptor() = default;
+    void setKey(TYPE keyType) { this->keyType = keyType; }
+    void setCont(TYPE contType) { this->contType = contType; }
+    void setType(TYPE objType) { this->objType = objType; }
     TYPE getKey() { return this->keyType; }
     TYPE getCont() { return this->contType; }
     TYPE getType() { return this->objType; }
+    BlsType& getSampleElement() { return this->sampleElement; }
     virtual BlsType& access(BlsType &obj) = 0;
     BlsType& access(BlsType &&obj) { return access(obj); };
     virtual int getSize() { return 1; }
@@ -113,7 +126,6 @@ class MapDescriptor : public HeapDescriptor{
 
   public:
     friend class DynamicMessage; 
-    friend class VM; 
 
     MapDescriptor(TYPE contType);
     MapDescriptor(TYPE objType, TYPE keyType, TYPE contType);
@@ -137,7 +149,6 @@ class VectorDescriptor : public HeapDescriptor, std::enable_shared_from_this<Vec
 
   public: 
     friend class DynamicMessage; 
-    friend class VM; 
 
     VectorDescriptor(std::string cont_code);
     VectorDescriptor(TYPE contType);
@@ -155,7 +166,7 @@ class VectorDescriptor : public HeapDescriptor, std::enable_shared_from_this<Vec
     void serialize(Archive& ar, const unsigned int version);
 };
 
-constexpr TYPE getTypeEnum(const std::string& type) {
+constexpr TYPE getTypeFromName(const std::string& type) {
   if (type == "void") return TYPE::void_t;
   if (type == "bool") return TYPE::bool_t;
   if (type == "int") return TYPE::int_t;
@@ -180,12 +191,12 @@ constexpr TYPE getTypeEnum(const std::string& type) {
   if (type == "ANY") return TYPE::ANY;
   return TYPE::COUNT;
 }
-TYPE getTypeEnum(const BlsType& obj);
+TYPE getType(const BlsType& obj);
 std::string stringify(const BlsType& value);
 
 template<typename Archive>
 inline void BlsType::serialize(Archive& ar, const unsigned int version) {
-  auto type = getTypeEnum(*this);
+  auto type = getType(*this);
   ar & type;
   switch (type) {
     case TYPE::void_t:
