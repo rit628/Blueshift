@@ -118,6 +118,11 @@ add_library(analyzer STATIC ${LIBANALYZER_SRC})
 target_include_directories(analyzer PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
 target_link_libraries(analyzer lang_common types ${BOOST_LIB_DEPS})
 
+file(GLOB_RECURSE LIBGENERATOR_SRC ${LANG_SRC_DIR}/libgenerator/*.cpp)
+add_library(generator STATIC ${LIBGENERATOR_SRC})
+target_include_directories(generator PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
+target_link_libraries(generator lang_common types ${BOOST_LIB_DEPS})
+
 file(GLOB_RECURSE LIBVIRTUALMACHINE_SRC ${LANG_SRC_DIR}/libvirtual_machine/*.cpp)
 add_library(virtual_machine STATIC ${LIBVIRTUALMACHINE_SRC})
 target_include_directories(virtual_machine PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
