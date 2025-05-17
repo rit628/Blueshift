@@ -10,32 +10,31 @@ void Client::start(){
     this->broadcastListen(); 
 }
 
-void Client::sendCallback(uint16_t deviceCode){
+void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt){
     // Write code for a callback
     SentMessage sm; 
     DynamicMessage dmsg; 
 
     // Get the latest state from the dmsg
- 
     this->deviceList[deviceCode]->read_data(dmsg); 
 
     // make message
     sm.body = dmsg.Serialize(); 
-
     sm.header.ctl_code = this->controller_alias;
-    sm.header.prot = Protocol::CALLBACK; 
+    sm.header.prot = type; 
     sm.header.device_code = deviceCode; 
     sm.header.timer_id = -1; 
     sm.header.volatility = -1; 
     sm.header.body_size = sm.body.size(); 
-
+    sm.header.fromInterrupt = fromInt; 
+    
     this->client_connection->send(sm); 
 }
 
 
 
 void Client::listener(){
-    while(1){
+    while(true){
 
         auto inMsg = this->in_queue.read().sm; 
         
@@ -58,11 +57,13 @@ void Client::listener(){
             std::vector<uint16_t> device_alias; 
             std::vector<DEVTYPE> device_types; 
             std::vector<std::unordered_map<std::string, std::string>> srcs;  
+            std::vector<uint16_t> triggerList;
             uint8_t controller_alias = inMsg.header.ctl_code; 
 
             dmsg.unpack("__DEV_ALIAS__", device_alias);
             dmsg.unpack("__DEV_TYPES__", device_types); 
             dmsg.unpack("__DEV_PORTS__", srcs); 
+            dmsg.unpack("__DEV_INIT__", triggerList); 
 
             this->controller_alias = controller_alias; 
 
@@ -70,13 +71,15 @@ void Client::listener(){
             int size = device_alias.size(); 
             bool b = device_types.size() == size; 
             bool c = srcs.size() == size; 
+            bool d = triggerList.size() == size; 
+            
 
-            if(!(b && c)){
+            if(!(b && c  && d)){
                 throw std::invalid_argument("Config vectors of different sizes what!"); 
             }
 
             for(int i = 0; i < size; i++){
-                deviceList[device_alias[i]] = getDevice(device_types[i], srcs[i], device_alias[i]);
+                deviceList[device_alias[i]] = getDevice(device_types[i], srcs[i], device_alias[i], triggerList[i]);
             } 
 
             // Check item: 
@@ -100,7 +103,7 @@ void Client::listener(){
                     std::cout << "proc_message begin" << std::endl;
                     this->deviceList[dev_index]->proc_message(dmsg);
                     //Translation of the callback happens at the network manage
-                    this->sendCallback(dev_index); 
+                    this->sendMessage(dev_index, Protocol::CALLBACK, false); 
                 }
                 catch(std::exception(e)){
                     std::cout<<e.what()<<std::endl; 
@@ -148,8 +151,6 @@ void Client::listener(){
             std::cout<<"CLIENT: Beginning sending process"<<std::endl; 
             this->curr_state = ClientState::IN_OPERATION; 
 
-            std::cout<<"Size: "<<this->start_timers.size()<<std::endl; 
-
             // Begin the timers only when the call is made
             for(Timer &timer : this->start_timers){
                 auto device = this->deviceList[timer.device_num]; 
@@ -157,8 +158,10 @@ void Client::listener(){
                 if(!device->hasInterrupt){
                     std::cout<<"build timer with period: "<<timer.period<<std::endl;
                     this->client_ticker[timer.id] = std::make_unique<DeviceTimer>(this->client_ctx, device, this->client_connection, this->controller_alias, timer.device_num, timer.id); 
-                    // Initiate the timer
                     this->client_ticker[timer.id]->setPeriod(timer.period); 
+                    if(!device->isTrigger){
+                        sendMessage(timer.device_num, Protocol::SEND_STATE, false); 
+                    }
                 }
             }
 
@@ -167,12 +170,18 @@ void Client::listener(){
                 
                 auto dev = pair.second;
                 auto dev_id = pair.first;  
-             
+                
+
                 if(dev->hasInterrupt){
                     // Organizes the device interrupts
+                    std::cout<<"Interrupt created!"<<std::endl; 
                     auto omar = std::make_unique<DeviceInterruptor>(dev, this->client_connection, this->global_interrupts, this->controller_alias, dev_id); 
                     omar->setupThreads(); 
                     this->interruptors.push_back(std::move(omar));
+                    if(!dev->isTrigger){
+                        std::cout<<"Sending Initial State"<<std::endl; 
+                        sendMessage(dev_id, Protocol::SEND_STATE, true); 
+                    }
                 }   
             }
 

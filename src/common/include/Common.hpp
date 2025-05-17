@@ -2,6 +2,7 @@
 #include "libDM/DynamicMessage.hpp"
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/unordered_map.hpp>
+#include <unordered_set>
 
 enum class PROTOCOLS
 {
@@ -30,10 +31,25 @@ struct DeviceDescriptor{
     std::string controller; 
     std::unordered_map<std::string, std::string> port_maps; 
 
+    /*
+        dropRead :if true -> only read all recieving states once Oblock execution is finished, drop all others
+        dropWrite: if true -> Only write to mailbox with the callback is open: 
+    */
+
+    bool dropRead = true; 
+    bool dropWrite = true; 
     bool isInterrupt = false; 
     bool isVtype = false; 
     bool isConst = true; 
+    
+    /* 
+        If the device is registered as a trigger then the exeuction of 
+        the oblock is binded to the arrival of the devices state. 
+    */ 
+    bool isTrigger = true; 
+
     int polling_period = 1000;
+    
 
     template<typename Archive>
     void serialize(Archive& ar, const unsigned int version) {
@@ -52,39 +68,23 @@ struct DeviceDescriptor{
 
 struct OBlockDesc{
 
-    /*
-        Normal State
-    */
-
     std::string name; 
     std::vector<DeviceDescriptor> binded_devices; 
     int bytecode_offset; 
+    std::vector<DeviceDescriptor> inDevices; 
+    std::vector<DeviceDescriptor> outDevices; 
+    
+    // Keeping this for the compiler but it should be removed: 
+    bool dropRead = false; 
+    bool dropWrite = false; 
+    bool synchronize_states = false; 
 
-    // Reading Config
-
-    /*
-        dropRead :if true -> only read all recieving states once Oblock execution is finished, drop all others
-        dropWrite: if true -> Only write to mailbox with the callback is open: 
-    */
-
-    bool dropRead = true; 
-    bool dropWrite = true; 
-
-    // Configuration (all time in milliseconds)
-
-    /*
-        Synchronize State: Block until all states of refreshed (true for now)
-    */
-    bool synchronize_states = true;
 
     template<typename Archive>
     void serialize(Archive& ar, const unsigned int version) {
         ar & name;
         ar & binded_devices;
         ar & bytecode_offset;
-        ar & dropRead;
-        ar & dropWrite;
-        ar & synchronize_states;
     }
 
     bool operator==(const OBlockDesc&) const = default;
