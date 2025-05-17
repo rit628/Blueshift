@@ -79,7 +79,8 @@ BlsObject Generator::visit(AstNode::Setup& ast) {
         switch (instruction->opcode) {
             #define OPCODE_BEGIN(code) \
             case OPCODE::code: { \
-                auto& resolvedInstruction = reinterpret_cast<INSTRUCTION::code&>(*instruction);
+                auto& resolvedInstruction = reinterpret_cast<INSTRUCTION::code&>(*instruction); \
+                outputStream.write(reinterpret_cast<const char *>(&instruction->opcode), sizeof(OPCODE));
             #define ARGUMENT(arg, type) \
                 type& arg = resolvedInstruction.arg; \
                 outputStream.write(reinterpret_cast<const char *>(&arg), sizeof(type));
