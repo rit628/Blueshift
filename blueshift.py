@@ -7,8 +7,9 @@ import socket
 import re
 import atexit
 import time
-from dotenv import load_dotenv
 import multiprocessing as mp
+from dotenv import load_dotenv
+from scapy.all import sniff, conf, sendp
 from pathlib import Path
 from threading import Thread
 from shutil import rmtree
@@ -25,6 +26,8 @@ REMOTE_OUTPUT_DIRECTORY = os.getenv("REMOTE_OUTPUT_DIRECTORY")
 TARGET_OUTPUT_DIRECTORY = os.getenv("TARGET_OUTPUT_DIRECTORY")
 DEBUG_SERVER_PORT_MIN = os.getenv("DEBUG_SERVER_PORT_MIN")
 DEBUG_SERVER_PORT_MAX = os.getenv("DEBUG_SERVER_PORT_MAX")
+MASTER_PORT = os.getenv("MASTER_PORT")
+BROADCAST_PORT = os.getenv("BROADCAST_PORT")
 NUM_CORES = mp.cpu_count()
 CODELLDB_ADDRESS = ("127.0.0.1", 7349)
 
@@ -46,11 +49,14 @@ def run_as_src_user(f):
     def wrapper(*args, **kwargs):
         uid, gid = os.getuid(), os.getgid()
         src_perms = os.stat(Path("src"))
-        os.setegid(src_perms.st_gid)
-        os.seteuid(src_perms.st_uid)
-        f(*args, **kwargs)
-        os.setegid(gid)
-        os.seteuid(uid)
+        if uid == 0 and gid == 0:
+            os.setegid(src_perms.st_gid)
+            os.seteuid(src_perms.st_uid)
+            f(*args, **kwargs)
+            os.setegid(gid)
+            os.seteuid(uid)
+        else:
+            f(*args, **kwargs)
     return wrapper
 
 @run_as_src_user
@@ -66,6 +72,21 @@ def initialize_host():
     else:
         os.environ["CONTAINER_UID"] = str(os.geteuid())
         os.environ["CONTAINER_GID"] = str(os.getegid())
+
+def broadcast_sniffer():
+    ifaces = list(conf.ifaces.keys())
+    send_ifaces = set(ifaces)
+    broadcast_filter = f"udp and dst port {BROADCAST_PORT}"
+    # listen on all interfaces for broadcast traffic and choose first sucessful interface as source
+    source_iface = sniff(filter=broadcast_filter, iface=ifaces, count=1)[0].sniffed_on
+    send_ifaces.remove(source_iface) # forward to all other interfaces
+
+    def forward_broadcast(packet):
+        for iface in send_ifaces:
+            sendp(packet, iface, verbose=False)
+    
+    sniff(filter=broadcast_filter, prn=forward_broadcast,
+          store=False, iface=source_iface)
 
 def wait_for_lldb_server(port):
     pattern = re.compile(f"{port}/tcp")
@@ -122,6 +143,16 @@ def run(args):
         executable = Path(".", TARGET_OUTPUT_DIRECTORY, RUNTIME_OUTPUT_DIRECTORY, args.binary)
         run_cmd([executable, *args.binary_args])
     else:
+        if args.packet_forward:
+            context = subprocess.check_output(["docker", "context", "show"], text=True).strip()
+            if context == "rootless":
+                raise PermissionError("Packet forwarding only possible in rootful context. Try running again with elevated privileges or perform a manual context switch before running.")
+            os.environ["NETWORK_MODE"] = "host"
+            os.environ["PRIVILEGED_RUNTIME"] = "true"
+            if args.udp_broadcast_forward:
+                Thread(target=broadcast_sniffer, daemon=True).start()
+                time.sleep(.25) # wait before running initialize_host() to ensure sniffing privilege is retained
+        initialize_host()
         run_cmd(["docker", "compose", "run", "--rm", "builder", "run", "-l", args.binary, *args.binary_args])
 
 def debug(args):
@@ -156,7 +187,8 @@ def debug(args):
             else: # debug locally in terminal
                 args_command = "--" if args.debugger == "lldb" else "--args"
                 run_cmd([args.debugger, args_command, executable, *args.binary_args])
-    else:
+    else: # debug on container gdbserver
+        initialize_host()
         DEBUG_SERVER_PORT = get_free_port()
         remote_binary = Path(REMOTE_OUTPUT_DIRECTORY, debug_target_path, RUNTIME_OUTPUT_DIRECTORY, args.binary)
         cwd = os.getcwd()
@@ -169,6 +201,7 @@ def debug(args):
         wait_for_lldb_server(DEBUG_SERVER_PORT)
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            time.sleep(.25) # externally extend gdb-remote connection timeout
             if allow_visual and s.connect_ex(CODELLDB_ADDRESS) == 0: # debug remotely with codelldb
                 s.sendall(f"""
                 {{
@@ -183,7 +216,6 @@ def debug(args):
                 }}
                 """.encode())
             elif args.debugger == "lldb": # debug remotely with lldb tui
-                time.sleep(.25) # externally extend gdb-remote connection timeout
                 run_cmd(["lldb", "-o", f"settings set target.source-map {CONTAINER_MOUNT_DIRECTORY} {cwd}",
                                 "-o", f"gdb-remote localhost:{DEBUG_SERVER_PORT}", "--", remote_binary, *args.binary_args])
             else: # debug remotely with gdb tui
@@ -290,6 +322,7 @@ def test(args):
 
 def reset(args):
     rmtree(BUILD_OUTPUT_DIRECTORY, ignore_errors=True)
+    rmtree(".venv", ignore_errors=True)
     
     if args.preserve_images: return
     
@@ -326,6 +359,13 @@ run_parser.add_argument("binary_args",
                         default=None)
 run_parser.add_argument("-l", "--local",
                         help="run selected binary on local host instead of in containerized environment",
+                        action="store_true")
+run_parser.add_argument("-p", "--packet-forward",
+                        help="forward all network packets from container LAN to host LAN",
+                        action="store_true")
+run_parser.add_argument("-u", "--udp-broadcast-forward",
+                        help="""start a listener that received udp broadcasts on 127.0.0.1 and forwards them to host LAN
+                                (necessary if running with -p on OSX)""",
                         action="store_true")
 run_parser.set_defaults(fn=run)
 
