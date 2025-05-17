@@ -1,6 +1,7 @@
 #include "ast.hpp"
 #include "binding_parser.hpp"
 #include "error_types.hpp"
+#include "include/Common.hpp"
 #include "libtypes/typedefs.hpp"
 #include "analyzer.hpp"
 #include "libtypes/bls_types.hpp"
@@ -66,6 +67,7 @@ BlsObject Analyzer::visit(AstNode::Function::Oblock& ast) {
         parameterTypes.push_back(typeObject);
     }
     oblocks.emplace(oblockName, FunctionSignature(oblockName, std::monostate(), parameterTypes));
+    oblockDescriptors.emplace(oblockName, OBlockDesc()); // create empty descriptor here to ensure all oblocks are accounted for even if some are not bound
 
     cs.pushFrame(CallStack<std::string>::Frame::Context::FUNCTION, oblockName);
     auto params = ast.getParameters();
@@ -125,7 +127,7 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
                     throw RuntimeError(expr->getObject() + " does not refer to a device binding");
                 }
             }
-            oblockDescriptors.emplace(name, desc);
+            oblockDescriptors.at(name) = std::move(desc);
         }
         else {
             throw SemanticError("Statement within setup() must be an oblock binding expression or device binding declaration");
