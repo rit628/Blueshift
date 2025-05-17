@@ -38,7 +38,7 @@ class BytecodeProcessor {
         #undef OPCODE_END
 
         std::ifstream bytecode;
-        size_t instruction;
+        size_t instruction = 0;
         std::vector<OBlockDesc> oblockDescs;
         std::vector<BlsType> literalPool;
         std::vector<std::unique_ptr<INSTRUCTION>> instructions;
