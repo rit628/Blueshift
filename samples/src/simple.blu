@@ -1,5 +1,9 @@
-int main() {
-    return {1 : ["2"], 2 : []};
+void main() {
+    return;
+}
+
+oblock test() {
+    print(20);
 }
 
 setup() {
