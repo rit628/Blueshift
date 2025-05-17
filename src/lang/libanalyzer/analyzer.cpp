@@ -163,7 +163,7 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
                     throw RuntimeError(expr->getObject() + " does not refer to a device binding");
                 }
             }
-            oblockDescriptors.at(name) = std::move(desc);
+            oblockDescriptors.emplace(name, desc);
         }
         else {
             throw SemanticError("Statement within setup() must be an oblock binding expression or device binding declaration");
