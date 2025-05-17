@@ -1,5 +1,7 @@
 #pragma once
 #include "ast.hpp"
+#include "include/Common.hpp"
+#include "libgenerator/generator.hpp"
 #include "liblexer/lexer.hpp"
 #include "libparser/parser.hpp"
 #include "libinterpreter/interpreter.hpp"
@@ -12,11 +14,15 @@ namespace BlsLang {
 
     class Compiler {
         public:
+            Compiler(std::ostream& stream = std::cout)
+                   : generator(stream
+                             , analyzer.getOblockDescriptors()
+                             , analyzer.getLiteralPool()) {}
+            
             void compileFile(const std::string& source);
             void compileSource(const std::string& source);
             auto& getOblocks() { return oblocks; }
-            auto& getDeviceDescriptors() { return analyzer.getDeviceDescriptors(); }
-            auto& getOblockDescriptors() { return analyzer.getOblockDescriptors(); }
+            auto& getOblockDescriptors() { return oblockDescriptors; }
         
         private:
             std::vector<Token> tokens;
@@ -24,9 +30,11 @@ namespace BlsLang {
             Lexer lexer;
             Parser parser;
             Analyzer analyzer;
+            Generator generator;
             Interpreter masterInterpreter;
             std::vector<Interpreter> euInterpreters;
             std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks;
+            std::vector<OBlockDesc> oblockDescriptors;
     };
 
 }

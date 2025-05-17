@@ -26,31 +26,29 @@ int main(int argc, char *argv[]){
     printf("past compilation\n");
 
     //auto oblocks = interpreter.getOblockDescriptors();
-    std::vector<OBlockDesc> oblocks = compiler.getOblockDescriptors(); 
-    auto functions = compiler.getOblocks();  
+    std::vector<OBlockDesc> oblockDescriptors = compiler.getOblockDescriptors(); 
+    auto oblocks = compiler.getOblocks();  
 
     // EM and MM
     TSQ<DMM> EM_MM_queue; 
     TSQ<std::vector<DMM>> MM_EM_queue; 
 
     DMM light_dmm;
-    DeviceDescriptor dd = compiler.getDeviceDescriptors()["L1"];
     
     // NM and MM
     TSQ<DMM> NM_MM_queue; 
     TSQ<DMM> MM_NM_queue; 
-    bool connections_made; 
 
     // Make network (runs at start)
-    MasterNM NM(oblocks, MM_NM_queue, NM_MM_queue);
+    MasterNM NM(oblockDescriptors, MM_NM_queue, NM_MM_queue);
     NM.start(); 
 
 
-    ExecutionManager EM(oblocks, MM_EM_queue, EM_MM_queue, functions); 
+    ExecutionManager EM(oblockDescriptors, MM_EM_queue, EM_MM_queue, oblocks); 
     std::thread t3([&](){EM.running();});
     
     // Make Mailbox (runs with EM and NM)
-    MasterMailbox MM(oblocks, NM_MM_queue, EM_MM_queue, MM_NM_queue, MM_EM_queue); 
+    MasterMailbox MM(oblockDescriptors, NM_MM_queue, EM_MM_queue, MM_NM_queue, MM_EM_queue); 
     std::thread t1([&](){MM.runningEM();}); 
     std::thread t2([&](){MM.runningNM();});   
     
