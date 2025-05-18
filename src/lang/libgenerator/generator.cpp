@@ -232,13 +232,13 @@ BlsObject Generator::visit(AstNode::Statement::Expression& ast) {
 
 BlsObject Generator::visit(AstNode::Expression::Binary& ast) {
     auto op = getBinOpEnum(ast.getOp());
-    static auto createBinaryOperation = [&ast, this](std::unique_ptr<INSTRUCTION>&& instruction) {
+    auto createBinaryOperation = [&ast, this](std::unique_ptr<INSTRUCTION>&& instruction) {
         ast.getLeft()->accept(*this);
         ast.getRight()->accept(*this);
         instructions.push_back(std::move(instruction));
     };
 
-    static auto createCompoundAssignment = [&ast, this](std::unique_ptr<INSTRUCTION>&& instruction) {
+    auto createCompoundAssignment = [&ast, &createBinaryOperation, this](std::unique_ptr<INSTRUCTION>&& instruction) {
         // visit lhs as write target
         accessContext = ACCESS_CONTEXT::WRITE;
         ast.getLeft()->accept(*this);

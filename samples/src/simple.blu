@@ -3,7 +3,7 @@ void main() {
 }
 
 oblock test() {
-    print(20);
+    print(20 + (30 - 10));
 }
 
 setup() {
