@@ -146,6 +146,9 @@ void BytecodeWriter::writeBody(std::ostream& stream) {
         #undef OPCODE_BEGIN
         #undef ARGUMENT
         #undef OPCODE_END
+        else if (buf.ends_with(':')) { // oblock/procedure labels
+            continue;
+        }
         else {
             throw std::runtime_error("INVALID OPCODE: " + buf);
         }

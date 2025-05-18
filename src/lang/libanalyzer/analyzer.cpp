@@ -67,7 +67,7 @@ BlsObject Analyzer::visit(AstNode::Function::Oblock& ast) {
         parameterTypes.push_back(typeObject);
     }
     oblocks.emplace(oblockName, FunctionSignature(oblockName, std::monostate(), parameterTypes));
-    oblockDescriptors.emplace(oblockName, OBlockDesc()); // create empty descriptor here to ensure all oblocks are accounted for even if some are not bound
+    oblockDescriptors.emplace(oblockName, OBlockDesc(oblockName)); // create empty descriptor here to ensure all oblocks are accounted for even if some are not bound
 
     cs.pushFrame(CallStack<std::string>::Frame::Context::FUNCTION, oblockName);
     auto params = ast.getParameters();

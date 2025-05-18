@@ -2,6 +2,8 @@
 #include "libbytecode/bytecode_processor.hpp"
 #include <cstdint>
 #include <iostream>
+#include <string>
+#include <unordered_map>
 
 class BytecodePrinter : public BytecodeProcessor {
     public:
@@ -26,4 +28,5 @@ class BytecodePrinter : public BytecodeProcessor {
         void printArgs(Args... args);
 
         std::ostream* outputStream;
+        std::unordered_map<uint16_t, std::string> oblockLabels;
 };
