@@ -1,6 +1,7 @@
 #include "bytecode_printer.hpp"
 #include "include/Common.hpp"
 #include "libtypes/bls_types.hpp"
+#include <algorithm>
 #include <cstdint>
 #include <iostream>
 #include <boost/json.hpp>
@@ -220,6 +221,9 @@ void BytecodePrinter::setOutputStream(std::ostream& stream) {
 }
 
 void BytecodePrinter::printHeader() {
+    std::for_each(oblockDescs.begin(), oblockDescs.end(), [this](const auto& desc){
+       oblockLabels.emplace(desc.bytecode_offset, desc.name);
+    });
     auto json = value_from(oblockDescs);
     prettyPrintHeader(*outputStream, json);
     *outputStream << "LITERALS_BEGIN" << std::endl;
@@ -242,6 +246,9 @@ void BytecodePrinter::code(
     type arg,
 #define OPCODE_END(code, args...) \
     int) { \
+    if (oblockLabels.contains(instruction - 1)) { \
+        *outputStream << '_' << oblockLabels.at(instruction - 1) << ":\n"; \
+    } \
     *outputStream << #code; \
     printArgs(args);\
     *outputStream << std::endl; \
