@@ -3,16 +3,14 @@ void main() {
 }
 
 oblock test() {
-    if (20 < 10) {
-        print(999);
-    }
-    else if (true == false) {
-        print(0.23);
-    }
-    else {
-        print("string");
-    }
-    //print(20 + (30 - 10));
+    //!true;
+
+    //int i;
+    //i = 2 + 3 - 10;
+    //float j = 3.33;
+    //j += 1;
+    int k;
+    ++k;
 }
 
 setup() {
