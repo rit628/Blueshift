@@ -359,7 +359,7 @@ BlsObject Generator::visit(AstNode::Expression::Unary& ast) {
     auto op = getUnOpEnum(ast.getOp());
     auto position = ast.getPosition();
 
-    static auto createCompoundAssignment = [&, this](std::unique_ptr<INSTRUCTION>&& instruction) {
+    auto createCompoundAssignment = [&, this](std::unique_ptr<INSTRUCTION>&& instruction) {
         if (position == AstNode::Expression::Unary::OPERATOR_POSITION::POSTFIX) {
             ast.getExpression()->accept(*this); // read before operation
         }
