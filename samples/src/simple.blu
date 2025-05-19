@@ -3,7 +3,16 @@ void main() {
 }
 
 oblock test() {
-    print(20 + (30 - 10));
+    if (20 < 10) {
+        print(999);
+    }
+    else if (true == false) {
+        print(0.23);
+    }
+    else {
+        print("string");
+    }
+    //print(20 + (30 - 10));
 }
 
 setup() {

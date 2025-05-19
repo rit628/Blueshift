@@ -343,6 +343,9 @@ size_t std::hash<BlsType>::operator()(const BlsType& obj) const {
         [](const std::string& x) -> size_t {
             return std::hash<std::string>{}(x);
         },
+        [](bool x) -> size_t {
+            return ((x) ? 7741 : 7753);
+        },
         [](auto x) -> size_t {
             return std::hash<decltype(x)>{}(x);
         }
