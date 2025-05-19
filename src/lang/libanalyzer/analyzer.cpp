@@ -440,11 +440,15 @@ BlsObject Analyzer::visit(AstNode::Expression::Method& ast) {
     }
     auto& operable = std::get<std::shared_ptr<HeapDescriptor>>(object);
     // temporary solution for method type checking; not scalable with arbitrary number of methods
-    if (methodName == "append" && operable->getType() != TYPE::list_t) {
-        throw SemanticError("append may only be used on list type objects");
+    if (methodName == "append") {
+        if (operable->getType() != TYPE::list_t) {
+            throw SemanticError("append may only be used on list type objects");
+        }
     }
-    else if (methodName == "add" && operable->getType() != TYPE::map_t) {
-        throw SemanticError("add may only be used on map type objects");
+    else if (methodName == "add") {
+        if (operable->getType() != TYPE::map_t) {
+            throw SemanticError("add may only be used on map type objects");
+        }
     }
     else if (methodName == "size") {
         return BlsType(operable->getSize());
