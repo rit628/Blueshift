@@ -547,7 +547,7 @@ BlsObject Analyzer::visit(AstNode::Expression::List& ast) {
     auto listLiteral = std::make_shared<VectorDescriptor>(TYPE::ANY);
     auto& elements = ast.getElements();
     BlsType initIdx = 0;
-    auto addElement = [&, this](auto& element) {
+    auto addElement = [&, this](size_t index, auto& element) {
         auto literal = resolve(element->accept(*this));
         list->append(literal);
         auto& valExpressionType = typeid(*element);
@@ -558,17 +558,18 @@ BlsObject Analyzer::visit(AstNode::Expression::List& ast) {
         }
         else {
             BlsType null = std::monostate();
+            literalPool.emplace(int64_t(index), literalCount++);
             listLiteral->append(null);
         }
         return literal;
     };
 
     if (elements.size() > 0) {
-        addElement(elements.at(0));
+        addElement(0, elements.at(0));
         list->setCont(getType(list->access(initIdx)));
         list->getSampleElement() = list->access(initIdx);
-        for (auto&& element : boost::make_iterator_range(elements.begin() + 1, elements.end())) {
-            auto value = addElement(element);
+        for (size_t i = 1; i < elements.size(); i++) {
+            auto value = addElement(i, elements.at(i));
             if (!typeCompatible(list->access(initIdx), value)) {
                 throw SemanticError("List literal declaration must be of homogeneous type.");
             }
