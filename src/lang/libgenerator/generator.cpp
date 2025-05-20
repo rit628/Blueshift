@@ -503,8 +503,10 @@ BlsObject Generator::visit(AstNode::Expression::List& ast) {
     for (size_t i = 0; i < list.size(); i++) {
         if (std::holds_alternative<std::monostate>(list.at(i))) { // sub expression needs to be evaluated at runtime
             instructions.push_back(createPUSH(literalPool.at(literal)));
-            instructions.push_back(createPUSH(i));
+            literalPool.emplace(int64_t(i), literalPool.size()); // add index to literal pool
+            instructions.push_back(createPUSH(literalPool.at(int64_t(i))));
             expressions.at(i)->accept(*this);
+            instructions.push_back(createASTORE());
         }
     }
     instructions.push_back(createPUSH(literalPool.at(literal)));
