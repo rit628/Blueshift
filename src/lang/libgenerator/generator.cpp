@@ -222,6 +222,7 @@ BlsObject Generator::visit(AstNode::Statement::Declaration& ast) {
     auto& value = ast.getValue();
     if (value.has_value()) {
         value->get()->accept(*this);
+        instructions.push_back(createSTORE(index));
     }
     return 0;
 }
@@ -456,25 +457,22 @@ BlsObject Generator::visit(AstNode::Expression::Access& ast) {
     auto& member = ast.getMember();
     auto& subscript = ast.getSubscript();
     if (member.has_value()) {
+        instructions.push_back(createLOAD(localIndex));
+        instructions.push_back(createPUSH(literalPool.at(member.value())));
         if (accessContext == ACCESS_CONTEXT::READ) {
-            instructions.push_back(createLOAD(localIndex));
-            instructions.push_back(createPUSH(literalPool.at(member.value())));
             instructions.push_back(createALOAD());
         }
         else {
-            instructions.push_back(createLOAD(localIndex));
-            instructions.push_back(createPUSH(literalPool.at(member.value())));
             instructions.push_back(createASTORE());
         }
     }
     else if (subscript.has_value()) {
+        instructions.push_back(createLOAD(localIndex));
         if (accessContext == ACCESS_CONTEXT::READ) {
-            instructions.push_back(createLOAD(localIndex));
             subscript->get()->accept(*this);
             instructions.push_back(createALOAD());
         }
         else {
-            instructions.push_back(createLOAD(localIndex));
             accessContext = ACCESS_CONTEXT::READ; // set accessContext to read for sub expression
             subscript->get()->accept(*this);
             instructions.push_back(createASTORE());
