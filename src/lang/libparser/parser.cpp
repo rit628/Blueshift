@@ -247,7 +247,7 @@ std::unique_ptr<AstNode::Expression> Parser::parseExpression() {
 
 std::unique_ptr<AstNode::Expression> Parser::parseAssignmentExpression() {
     auto lhs = parseLogicalExpression();
-    while (ts.match(ASSIGNMENT)
+    if (ts.match(ASSIGNMENT)
         || ts.match(ASSIGNMENT_ADDITION)
         || ts.match(ASSIGNMENT_SUBTRACTION)
         || ts.match(ASSIGNMENT_MULTIPLICATION)
@@ -256,7 +256,7 @@ std::unique_ptr<AstNode::Expression> Parser::parseAssignmentExpression() {
         || ts.match(ASSIGNMENT_EXPONENTIATION)) {
             
         auto& op = ts.at(-1).getLiteral();
-        auto rhs = parseLogicalExpression();
+        auto rhs = parseExpression(); // right associative, build rhs completely first, then combine with lhs
 
         auto compoundExpression = std::make_unique<AstNode::Expression::Binary>(std::move(op), std::move(lhs), std::move(rhs));
         lhs = std::move(compoundExpression);
