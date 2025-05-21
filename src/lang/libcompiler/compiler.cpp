@@ -23,6 +23,7 @@ void Compiler::compileSource(const std::string& source) {
     ast = parser.parse(tokens);
     ast->accept(analyzer);
     ast->accept(generator);
+    generator.writeBytecode(outputStream);
     ast->accept(masterInterpreter);
     auto& descriptors = analyzer.getOblockDescriptors();
     auto& masterOblocks = masterInterpreter.getOblocks();

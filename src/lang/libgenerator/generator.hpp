@@ -3,7 +3,6 @@
 #include "libbytecode/include/opcodes.hpp"
 #include "libtypes/bls_types.hpp"
 #include "visitor.hpp"
-#include <cstddef>
 #include <cstdint>
 #include <ostream>
 #include <stack>
@@ -15,11 +14,10 @@ namespace BlsLang {
 
     class Generator : public Visitor {
         public:
-            Generator(std::ostream& outputStream
-                    , std::unordered_map<std::string, OBlockDesc>& oblockDescriptors
+            friend class GeneratorTest;
+            Generator(std::unordered_map<std::string, OBlockDesc>& oblockDescriptors
                     , std::unordered_map<BlsType, uint8_t>& literalPool)
-                    : outputStream(outputStream)
-                    , oblockDescriptors(oblockDescriptors)
+                    : oblockDescriptors(oblockDescriptors)
                     , literalPool(literalPool) {}
 
             #define AST_NODE_ABSTRACT(...)
@@ -28,6 +26,8 @@ namespace BlsLang {
             #include "include/NODE_TYPES.LIST"
             #undef AST_NODE_ABSTRACT
             #undef AST_NODE
+
+            void writeBytecode(std::ostream& outputStream);
         
         private:
             enum class ACCESS_CONTEXT : uint8_t {
@@ -36,7 +36,7 @@ namespace BlsLang {
             };
 
             #define OPCODE_BEGIN(code) \
-            std::unique_ptr<INSTRUCTION::code> create##code(
+            static std::unique_ptr<INSTRUCTION::code> create##code(
             #define ARGUMENT(arg, type) \
             type arg,
             #define OPCODE_END(code, args...) \
@@ -46,7 +46,6 @@ namespace BlsLang {
             #undef ARGUMENT
             #undef OPCODE_END
 
-            std::ostream& outputStream;
             std::unordered_map<std::string, OBlockDesc>& oblockDescriptors;
             std::unordered_map<BlsType, uint8_t>& literalPool;
             std::unordered_map<std::string, uint16_t> procedureAddresses;

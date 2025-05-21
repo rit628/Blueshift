@@ -14,9 +14,9 @@ namespace BlsLang {
 
     class Compiler {
         public:
-            Compiler(std::ostream& stream = std::cout)
-                   : generator(stream
-                             , analyzer.getOblockDescriptors()
+            Compiler(std::ostream& outputStream = std::cout)
+                   : outputStream(outputStream)
+                   , generator(analyzer.getOblockDescriptors()
                              , analyzer.getLiteralPool()) {}
             
             void compileFile(const std::string& source);
@@ -25,6 +25,7 @@ namespace BlsLang {
             auto& getOblockDescriptors() { return oblockDescriptors; }
         
         private:
+            std::ostream& outputStream;
             std::vector<Token> tokens;
             std::unique_ptr<AstNode> ast;
             Lexer lexer;

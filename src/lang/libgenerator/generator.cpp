@@ -21,6 +21,51 @@ using namespace BlsLang;
 template<class... Ts>
 struct overloads : Ts... { using Ts::operator()...; };
 
+void Generator::writeBytecode(std::ostream& outputStream) {
+    boost::archive::binary_oarchive oa(outputStream, boost::archive::archive_flags::no_header);
+    std::vector<BlsType> orderedLiterals(boost::adaptors::keys(literalPool).begin(), boost::adaptors::keys(literalPool).end());
+    std::sort(orderedLiterals.begin(), orderedLiterals.end(), [this](const auto& a, const auto& b) {
+        return literalPool.at(a) < literalPool.at(b);
+    });
+    
+    // write header
+    uint16_t descriptorCount = oblockDescriptors.size();
+    outputStream.write(reinterpret_cast<const char *>(&descriptorCount), sizeof(descriptorCount));
+    for (auto&& desc : boost::adaptors::values(oblockDescriptors)) {
+        oa << desc;
+    }
+
+    // write literal pool
+    uint16_t poolSize = literalPool.size();
+    outputStream.write(reinterpret_cast<const char *>(&poolSize), sizeof(poolSize));
+    for (auto&& literal : orderedLiterals) {
+        oa << literal;
+    }
+
+    // write instructions
+    for (auto&& instruction : instructions) {
+        switch (instruction->opcode) {
+            #define OPCODE_BEGIN(code) \
+            case OPCODE::code: { \
+                auto& resolvedInstruction = reinterpret_cast<INSTRUCTION::code&>(*instruction); \
+                outputStream.write(reinterpret_cast<const char *>(&instruction->opcode), sizeof(OPCODE));
+            #define ARGUMENT(arg, type) \
+                type& arg = resolvedInstruction.arg; \
+                outputStream.write(reinterpret_cast<const char *>(&arg), sizeof(type));
+            #define OPCODE_END(code, args...) \
+                break; \
+            } 
+            #include "libbytecode/include/OPCODES.LIST"
+            #undef OPCODE_BEGIN
+            #undef ARGUMENT
+            #undef OPCODE_END
+            default:
+            break;
+        }
+    }
+}
+
+
 BlsObject Generator::visit(AstNode::Source& ast) {
     for (auto&& procedure : ast.getProcedures()) {
         procedure->accept(*this);
@@ -55,48 +100,7 @@ BlsObject Generator::visit(AstNode::Function::Oblock& ast) {
 }
 
 BlsObject Generator::visit(AstNode::Setup& ast) {
-    boost::archive::binary_oarchive oa(outputStream, boost::archive::archive_flags::no_header);
-    std::vector<BlsType> orderedLiterals(boost::adaptors::keys(literalPool).begin(), boost::adaptors::keys(literalPool).end());
-    std::sort(orderedLiterals.begin(), orderedLiterals.end(), [this](const auto& a, const auto& b) {
-        return literalPool.at(a) < literalPool.at(b);
-    });
-    
-    // write header
-    uint16_t descriptorCount = oblockDescriptors.size();
-    outputStream.write(reinterpret_cast<const char *>(&descriptorCount), sizeof(descriptorCount));
-    for (auto&& desc : boost::adaptors::values(oblockDescriptors)) {
-        oa << desc;
-    }
-
-    // write literal pool
-    uint16_t poolSize = literalPool.size();
-    outputStream.write(reinterpret_cast<const char *>(&poolSize), sizeof(poolSize));
-    for (auto&& literal : orderedLiterals) {
-        oa << literal;
-    }
-
-    for (auto&& instruction : instructions) {
-        switch (instruction->opcode) {
-            #define OPCODE_BEGIN(code) \
-            case OPCODE::code: { \
-                auto& resolvedInstruction = reinterpret_cast<INSTRUCTION::code&>(*instruction); \
-                outputStream.write(reinterpret_cast<const char *>(&instruction->opcode), sizeof(OPCODE));
-            #define ARGUMENT(arg, type) \
-                type& arg = resolvedInstruction.arg; \
-                outputStream.write(reinterpret_cast<const char *>(&arg), sizeof(type));
-            #define OPCODE_END(code, args...) \
-                break; \
-            } 
-            #include "libbytecode/include/OPCODES.LIST"
-            #undef OPCODE_BEGIN
-            #undef ARGUMENT
-            #undef OPCODE_END
-            default:
-            break;
-        }
-    }
-
-    return 0;
+    return 0; // setup() does not need to be visited in generator
 }
 
 BlsObject Generator::visit(AstNode::Statement::If& ast) {
