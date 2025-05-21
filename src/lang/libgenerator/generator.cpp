@@ -86,6 +86,44 @@ BlsObject Generator::visit(AstNode::Function::Procedure& ast) {
     for (auto&& statement : ast.getStatements()) {
         statement->accept(*this);
     }
+    
+    // add default return statement at end of function to account for non-returning control paths
+    // will only be necessary for void once control path checking is implemented
+    switch (getTypeFromName(ast.getReturnType()->get()->getName())) {
+        case TYPE::void_t:
+            instructions.push_back(createPUSH(literalPool.at(std::monostate())));
+        break;
+
+        case TYPE::bool_t:
+            instructions.push_back(createPUSH(literalPool.at(false)));
+        break;
+
+        case TYPE::int_t:
+            instructions.push_back(createPUSH(literalPool.at(0)));
+        break;
+
+        case TYPE::float_t:
+            instructions.push_back(createPUSH(literalPool.at(0.0)));
+        break;
+
+        case TYPE::string_t:
+            instructions.push_back(createPUSH(literalPool.at("")));
+        break;
+
+        case TYPE::list_t:
+            instructions.push_back(createPUSH(literalPool.at(std::make_shared<VectorDescriptor>(TYPE::ANY))));
+        break;
+
+        case TYPE::map_t:
+            instructions.push_back(createPUSH(literalPool.at(std::make_shared<MapDescriptor>(TYPE::ANY))));
+        break;
+
+        default:
+        break;
+    }
+
+    instructions.push_back(createRETURN());
+    
     return 0;
 }
 
@@ -127,7 +165,7 @@ BlsObject Generator::visit(AstNode::Statement::If& ast) {
     for (auto&& statement : ast.getElseBlock()) {
         statement->accept(*this);
     }
-    
+
     if (endOfBodyJump) {
         endOfBodyJump->address = instructions.size();
     }
