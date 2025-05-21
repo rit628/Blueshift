@@ -6,6 +6,7 @@
 #include "analyzer.hpp"
 #include "libtypes/bls_types.hpp"
 #include "call_stack.hpp"
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <string>
@@ -37,6 +38,9 @@ BlsObject Analyzer::visit(AstNode::Source& ast) {
 BlsObject Analyzer::visit(AstNode::Function::Procedure& ast) {
     auto& procedureName = ast.getName();
     auto returnType = resolve(ast.getReturnType()->get()->accept(*this));
+    if (std::holds_alternative<std::monostate>(returnType)) {
+        addToPool(std::monostate()); // to push void return values onto operand stack
+    }
     
     std::vector<BlsType> parameterTypes;
     for (auto&& type : ast.getParameterTypes()) {
@@ -375,8 +379,11 @@ BlsObject Analyzer::visit(AstNode::Expression::Unary& ast) {
     auto op = getUnOpEnum(ast.getOp());
     auto position = ast.getPosition();
 
-    if ((op >= UNARY_OPERATOR::INC) && std::holds_alternative<BlsType>(expression)) {
-        throw SemanticError("Assignments to temporary not permitted");
+    if (op >= UNARY_OPERATOR::INC) {
+        addToPool(1); // literal 1 needs to be pushed for increment/decrement
+        if (std::holds_alternative<BlsType>(expression)) {
+            throw SemanticError("Assignments to temporary not permitted");
+        }
     }
     
     // operator type checking done by overload specialization
@@ -536,9 +543,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Literal& ast) {
         [&literal](auto& value) { literal = value; }
     };
     std::visit(convert, ast.getLiteral());
-    if (!literalPool.contains(literal)) {
-        literalPool.emplace(literal, literalCount++);
-    }
+    addToPool(literal);
     return literal;
 }
 
@@ -558,7 +563,7 @@ BlsObject Analyzer::visit(AstNode::Expression::List& ast) {
         }
         else {
             BlsType null = std::monostate();
-            literalPool.emplace(int64_t(index), literalCount++);
+            addToPool(int64_t(index));
             listLiteral->append(null);
         }
         return literal;
@@ -576,12 +581,8 @@ BlsObject Analyzer::visit(AstNode::Expression::List& ast) {
         }
     }
 
-    if (!literalPool.contains(listLiteral)) {
-        literalPool.emplace(listLiteral, literalCount++);
-    }
-
+    addToPool(listLiteral);
     ast.getLiteral() = listLiteral;
-
     return list;
 }
 
@@ -631,10 +632,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Map& ast) {
         }
     }
 
-    if (!literalPool.contains(mapLiteral)) {
-        literalPool.emplace(mapLiteral, literalCount++);
-    }
-
+    addToPool(mapLiteral);
     ast.getLiteral() = mapLiteral;
 
     return map;
