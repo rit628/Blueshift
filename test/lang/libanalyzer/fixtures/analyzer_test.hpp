@@ -23,7 +23,7 @@ namespace BlsLang {
                 ast->accept(analyzer);
                 EXPECT_EQ(analyzer.deviceDescriptors, metadata.deviceDescriptors);
                 EXPECT_EQ(analyzer.oblockDescriptors, metadata.oblockDescriptors);
-                ASSERT_EQ(analyzer.literalCount, metadata.literalPool.size());
+                ASSERT_EQ(analyzer.literalPool.size(), metadata.literalPool.size());
                 EXPECT_EQ(analyzer.literalPool, metadata.literalPool);
                 if (decoratedAst != defaultAst) {
                     ASSERT_NE(ast, nullptr);
