@@ -30,6 +30,8 @@ namespace BlsLang {
             auto& getLiteralPool() { return literalPool; }
 
         private:
+            void addToPool(BlsType literal) { if (!literalPool.contains(literal)) literalPool.emplace(literal, literalCount++); }
+
             struct FunctionSignature {
                 std::string name;
                 BlsType returnType;
@@ -45,11 +47,8 @@ namespace BlsLang {
             std::unordered_map<std::string, FunctionSignature> oblocks;
             std::unordered_map<std::string, DeviceDescriptor> deviceDescriptors;
             std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
-            std::unordered_map<BlsType, uint8_t> literalPool = {
-                {std::monostate(), 0},  // for void return values
-                {1, 1}  // for increment & decrement expressions
-            };
-            uint8_t literalCount = literalPool.size();
+            std::unordered_map<BlsType, uint8_t> literalPool;
+            uint8_t literalCount = 0;
     };
 
 }
