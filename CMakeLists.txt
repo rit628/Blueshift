@@ -228,6 +228,11 @@ if(NOT CMAKE_CROSSCOMPILING)
     target_include_directories(test_libanalyzer PUBLIC ${TEST_DEPS} ${LANG_COMMON} ${LANG_SRC_DIR}/libanalyzer ${LANG_TEST_DIR}/include)
     target_link_libraries(test_libanalyzer analyzer lang_common GTest::gtest_main)
 
+    file(GLOB_RECURSE LIBGENERATOR_TESTS ${LANG_TEST_DIR}/libgenerator/*.cpp)
+    add_executable(test_libgenerator ${LIBGENERATOR_TESTS})
+    target_include_directories(test_libgenerator PUBLIC ${TEST_DEPS} ${LANG_COMMON} ${LANG_SRC_DIR}/libgenerator ${LANG_TEST_DIR}/include)
+    target_link_libraries(test_libgenerator generator lang_common GTest::gtest_main)
+
     file(GLOB_RECURSE LANG_E2E_TESTS ${LANG_TEST_DIR}/e2e/*.cpp)
     add_executable(test_lang ${LANG_E2E_TESTS})
     target_include_directories(test_lang PUBLIC ${TEST_DEPS} ${LANG_COMMON} ${LANG_SRC_DIR})
@@ -253,6 +258,7 @@ if(NOT CMAKE_CROSSCOMPILING)
     gtest_discover_tests(test_liblexer)
     gtest_discover_tests(test_libparser)
     gtest_discover_tests(test_libanalyzer)
+    gtest_discover_tests(test_libgenerator)
     gtest_discover_tests(
         test_lang
         WORKING_DIRECTORY ${LANG_TEST_DIR}/e2e/samples
