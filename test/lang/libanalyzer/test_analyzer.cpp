@@ -37,7 +37,9 @@ namespace BlsLang {
         ));
 
         Metadata expectedMetadata;
-        expectedMetadata.literalPool.emplace(2, 0);
+        expectedMetadata.literalPool = {
+            {2, 0}
+        };
 
         TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
     }
@@ -276,7 +278,9 @@ namespace BlsLang {
         ));
 
         Metadata expectedMetadata;
-        expectedMetadata.literalPool.emplace(std::monostate(), 0);
+        expectedMetadata.literalPool = {
+            {std::monostate(), 0}
+        };
 
         TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
     }
@@ -306,7 +310,9 @@ namespace BlsLang {
         ));
 
         Metadata expectedMetadata;
-        expectedMetadata.literalPool.emplace(std::monostate(), 0);
+        expectedMetadata.literalPool = {
+            {std::monostate(), 0}
+        };
 
         TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
     }
@@ -347,7 +353,10 @@ namespace BlsLang {
         ));
 
         Metadata expectedMetadata;
-        expectedMetadata.literalPool.emplace(10, 0);
+        expectedMetadata.literalPool = {
+            {0, 0},
+            {10, 1}
+        };
 
         TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
     }
@@ -404,7 +413,10 @@ namespace BlsLang {
         ));
 
         Metadata expectedMetadata;
-        expectedMetadata.literalPool.emplace(10.23, 0);
+        expectedMetadata.literalPool = {
+            {0, 0},
+            {10.23, 1}
+        };
 
         TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
     }
@@ -908,7 +920,9 @@ namespace BlsLang {
         ));
 
         Metadata expectedMetadata;
-        expectedMetadata.literalPool.emplace(true, 0);
+        expectedMetadata.literalPool = {
+            {true, 0}
+        };
 
         TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
     }
@@ -933,7 +947,9 @@ namespace BlsLang {
         ));
 
         Metadata expectedMetadata;
-        expectedMetadata.literalPool.emplace(true, 0);
+        expectedMetadata.literalPool = {
+            {true, 0}
+        };
 
         TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
     }

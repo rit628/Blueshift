@@ -38,8 +38,40 @@ BlsObject Analyzer::visit(AstNode::Source& ast) {
 BlsObject Analyzer::visit(AstNode::Function::Procedure& ast) {
     auto& procedureName = ast.getName();
     auto returnType = resolve(ast.getReturnType()->get()->accept(*this));
-    if (std::holds_alternative<std::monostate>(returnType)) {
-        addToPool(std::monostate()); // to push void return values onto operand stack
+    
+    // add default constructed literal to pool for non-returning control paths
+    // will only be necessary for void once control path checking is implemented
+    switch (getType(returnType)) {
+        case TYPE::void_t:
+            addToPool(std::monostate());
+        break;
+
+        case TYPE::bool_t:
+            addToPool(false);
+        break;
+
+        case TYPE::int_t:
+            addToPool(0);
+        break;
+
+        case TYPE::float_t:
+            addToPool(0.0);
+        break;
+
+        case TYPE::string_t:
+            addToPool("");
+        break;
+
+        case TYPE::list_t:
+            addToPool(std::make_shared<VectorDescriptor>(TYPE::ANY));
+        break;
+
+        case TYPE::map_t:
+            addToPool(std::make_shared<MapDescriptor>(TYPE::ANY));
+        break;
+
+        default:
+        break;
     }
     
     std::vector<BlsType> parameterTypes;

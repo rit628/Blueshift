@@ -30,7 +30,7 @@ namespace BlsLang {
             auto& getLiteralPool() { return literalPool; }
 
         private:
-            void addToPool(BlsType literal) { if (!literalPool.contains(literal)) literalPool.emplace(literal, literalCount++); }
+            void addToPool(BlsType literal) { if (!literalPool.contains(literal)) literalPool.emplace(literal, literalPool.size()); }
 
             struct FunctionSignature {
                 std::string name;
@@ -48,7 +48,6 @@ namespace BlsLang {
             std::unordered_map<std::string, DeviceDescriptor> deviceDescriptors;
             std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
             std::unordered_map<BlsType, uint8_t> literalPool;
-            uint8_t literalCount = 0;
     };
 
 }
