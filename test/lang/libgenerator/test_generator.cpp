@@ -895,6 +895,80 @@ namespace BlsLang {
         TEST_GENERATE(ast, expectedInstructions);
     }
 
+    GROUP_TEST_F(GeneratorTest, StatementTests, WhileTrueWithBreak) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::While(
+            new AstNode::Expression::Literal(
+                true
+            ),
+            {
+                new AstNode::Statement::Break(),
+                new AstNode::Statement::Declaration(
+                    "x",
+                    new AstNode::Specifier::Type(
+                        PRIMITIVE_INT,
+                        {}
+                    ),
+                    std::nullopt,
+                    0
+                )
+            }
+        ));
+
+        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<BlsType, uint8_t> literalPool = {
+            {true, 0}
+        };
+        
+        INIT(oblockDescriptors, literalPool);
+
+        std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
+            createPUSH(0),
+            createBRANCH(5),
+            createJMP(5),
+            createMKTYPE(0, static_cast<uint8_t>(TYPE::int_t)),
+            createJMP(0)
+        );
+
+        TEST_GENERATE(ast, expectedInstructions);
+    }
+
+    GROUP_TEST_F(GeneratorTest, StatementTests, WhileTrueWithContinue) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::While(
+            new AstNode::Expression::Literal(
+                true
+            ),
+            {
+                new AstNode::Statement::Continue(),
+                new AstNode::Statement::Declaration(
+                    "x",
+                    new AstNode::Specifier::Type(
+                        PRIMITIVE_INT,
+                        {}
+                    ),
+                    std::nullopt,
+                    0
+                )
+            }
+        ));
+
+        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<BlsType, uint8_t> literalPool = {
+            {true, 0}
+        };
+        
+        INIT(oblockDescriptors, literalPool);
+
+        std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
+            createPUSH(0),
+            createBRANCH(5),
+            createJMP(0),
+            createMKTYPE(0, static_cast<uint8_t>(TYPE::int_t)),
+            createJMP(0)
+        );
+
+        TEST_GENERATE(ast, expectedInstructions);
+    }
+
     GROUP_TEST_F(GeneratorTest, StatementTests, EmptyFor) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::For(
             std::nullopt,
