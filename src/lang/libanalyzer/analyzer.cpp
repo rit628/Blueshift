@@ -553,6 +553,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Access& ast) {
         }
         auto& accessible = std::get<std::shared_ptr<HeapDescriptor>>(object);
         auto memberName = BlsType(member.value());
+        addToPool(memberName); // member accesses need string literal representation of member at runtime
         return std::ref(accessible->access(memberName));
     }
     else if (subscript.has_value()) {
@@ -595,7 +596,7 @@ BlsObject Analyzer::visit(AstNode::Expression::List& ast) {
         }
         else {
             BlsType null = std::monostate();
-            addToPool(int64_t(index));
+            addToPool(int64_t(index)); // literal integer representing index needs to be available at runtime for population
             listLiteral->append(null);
         }
         return literal;
