@@ -12,7 +12,7 @@ using namespace BlsLang;
 
 void VirtualMachine::transform(size_t oblockOffset, std::vector<BlsType>& deviceStates) {
     instruction = oblockOffset;
-    signal = SIGNAL::SIGSTART;
+    signal = SIGNAL::START;
     cs.pushFrame(instruction, deviceStates);
     dispatch();
     cs.popFrame();

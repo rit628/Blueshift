@@ -11,8 +11,8 @@
 class BytecodeProcessor {
     public:
         enum class SIGNAL : uint8_t {
-            SIGSTART,
-            SIGSTOP,
+            START,
+            STOP,
             COUNT
         };
 
@@ -42,5 +42,5 @@ class BytecodeProcessor {
         std::vector<OBlockDesc> oblockDescs;
         std::vector<BlsType> literalPool;
         std::vector<std::unique_ptr<INSTRUCTION>> instructions;
-        SIGNAL signal = SIGNAL::SIGSTART;
+        SIGNAL signal = SIGNAL::START;
 };
