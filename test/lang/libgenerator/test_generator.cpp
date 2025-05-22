@@ -2,6 +2,7 @@
 #include "fixtures/generator_test.hpp"
 #include "include/Common.hpp"
 #include "include/reserved_tokens.hpp"
+#include "libbytecode/bytecode_processor.hpp"
 #include "libbytecode/include/opcodes.hpp"
 #include "libtypes/bls_types.hpp"
 #include "test_macros.hpp"
@@ -920,6 +921,306 @@ namespace BlsLang {
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createMKTYPE(0, static_cast<uint8_t>(TYPE::int_t)),
             createJMP(0)
+        );
+
+        TEST_GENERATE(ast, expectedInstructions);
+    }
+
+    GROUP_TEST_F(GeneratorTest, FunctionTests, RecursiveProcedureCall) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
+            "f",
+            new AstNode::Specifier::Type(
+                "void",
+                {}
+            ),
+            {},
+            {},
+            {
+                new AstNode::Statement::Expression(
+                    new AstNode::Expression::Function(
+                        "f",
+                        {}
+                    )
+                )
+            }
+        ));
+
+        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<BlsType, uint8_t> literalPool = {
+            {std::monostate(), 0}
+        };
+        
+        INIT(oblockDescriptors, literalPool);
+
+        std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
+            createCALL(0, 0),
+            createPUSH(0),
+            createRETURN()
+        );
+
+        TEST_GENERATE(ast, expectedInstructions);
+    }
+
+    GROUP_TEST_F(GeneratorTest, FunctionTests, RecursiveProcedureCallWithArgs) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
+            "f",
+            new AstNode::Specifier::Type(
+                "void",
+                {}
+            ),
+            {
+                new AstNode::Specifier::Type(
+                    "int",
+                    {}
+                ),
+                new AstNode::Specifier::Type(
+                    "string",
+                    {}
+                )
+            },
+            {
+                "arg1",
+                "arg2"
+            },
+            {
+                new AstNode::Statement::Expression(
+                    new AstNode::Expression::Function(
+                        "f",
+                        {
+                            new AstNode::Expression::Literal(
+                                int64_t(1)
+                            ),
+                            new AstNode::Expression::Literal(
+                                std::string("arg2")
+                            )
+                        }
+                    )
+                )
+            }
+        ));
+
+        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<BlsType, uint8_t> literalPool = {
+            {1, 0},
+            {"arg2", 1},
+            {std::monostate(), 2}
+        };
+        
+        INIT(oblockDescriptors, literalPool);
+
+        std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
+            createPUSH(0),
+            createPUSH(1),
+            createCALL(0, 2),
+            createPUSH(2),
+            createRETURN()
+        );
+
+        TEST_GENERATE(ast, expectedInstructions);
+    }
+
+    GROUP_TEST_F(GeneratorTest, FunctionTests, SeperateProcedureCall) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Source(
+            {
+                new AstNode::Function::Procedure(
+                    "f",
+                    new AstNode::Specifier::Type(
+                        "void",
+                        {}
+                    ),
+                    {},
+                    {},
+                    {}
+                ),
+                new AstNode::Function::Procedure(
+                    "g",
+                    new AstNode::Specifier::Type(
+                        "void",
+                        {}
+                    ),
+                    {},
+                    {},
+                    {}
+                ),
+                new AstNode::Function::Procedure(
+                    "h",
+                    new AstNode::Specifier::Type(
+                        "void",
+                        {}
+                    ),
+                    {},
+                    {},
+                    {
+                        new AstNode::Statement::Expression(
+                            new AstNode::Expression::Function(
+                                "g",
+                                {}
+                            )
+                        )
+                    }
+                )
+            },
+            {},
+            new AstNode::Setup(
+                {}
+            )
+        ));
+
+        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<BlsType, uint8_t> literalPool = {
+            {std::monostate(), 0}
+        };
+        
+        INIT(oblockDescriptors, literalPool);
+
+        std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
+            createPUSH(0),
+            createRETURN(), // end of f()
+            createPUSH(0),
+            createRETURN(), // end of g()
+            createCALL(2, 0),
+            createPUSH(0),
+            createRETURN() // end of h()
+        );
+
+        TEST_GENERATE(ast, expectedInstructions);
+    }
+
+    GROUP_TEST_F(GeneratorTest, FunctionTests, OblockCallingProcedure) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Source(
+            {
+                new AstNode::Function::Procedure(
+                    "f",
+                    new AstNode::Specifier::Type(
+                        "void",
+                        {}
+                    ),
+                    {},
+                    {},
+                    {}
+                ),
+                new AstNode::Function::Procedure(
+                    "g",
+                    new AstNode::Specifier::Type(
+                        "void",
+                        {}
+                    ),
+                    {},
+                    {},
+                    {}
+                )
+            },
+            {
+                new AstNode::Function::Oblock(
+                    "h",
+                    {
+                        new AstNode::Specifier::Type(
+                            "LIGHT",
+                            {}
+                        )
+                    },
+                    {
+                        "l1"
+                    },
+                    {
+                        new AstNode::Statement::Expression(
+                            new AstNode::Expression::Function(
+                                "g",
+                                {}
+                            )
+                        )
+                    }
+                )
+            },
+            new AstNode::Setup(
+                {}
+            )
+        ));
+
+        std::unordered_map<std::string, OBlockDesc> oblockDescriptors = {
+            {"h", OBlockDesc("h")}
+        };
+        std::unordered_map<BlsType, uint8_t> literalPool = {
+            {std::monostate(), 0}
+        };
+        
+        INIT(oblockDescriptors, literalPool);
+
+        std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
+            createPUSH(0),
+            createRETURN(), // end of f()
+            createPUSH(0),
+            createRETURN(), // end of g()
+            createCALL(2, 0),
+            createEMIT(static_cast<uint8_t>(BytecodeProcessor::SIGNAL::STOP)) // end of h()
+        );
+
+        TEST_GENERATE(ast, expectedInstructions);
+    }
+
+    GROUP_TEST_F(GeneratorTest, FunctionTests, VariadicTrapCall) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Expression::Function(
+            "print",
+            {
+                new AstNode::Expression::Literal(
+                    std::string("arg1")
+                ),
+                new AstNode::Expression::Literal(
+                    int64_t(100)
+                ),
+                new AstNode::Expression::Access(
+                    "x",
+                    uint8_t(0)
+                )
+            }
+        ));
+
+        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<BlsType, uint8_t> literalPool = {
+            {"arg1", 0},
+            {100, 1}
+        };
+        
+        INIT(oblockDescriptors, literalPool);
+
+        std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
+            createPUSH(0),
+            createPUSH(1),
+            createLOAD(0),
+            createPRINT(3)
+        );
+
+        TEST_GENERATE(ast, expectedInstructions);
+    }
+
+    GROUP_TEST_F(GeneratorTest, FunctionTests, MethodCall) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Expression::Method(
+            "a",
+            "emplace",
+            {
+                new AstNode::Expression::Literal(
+                    std::string("key")
+                ),
+                new AstNode::Expression::Access(
+                    "x",
+                    uint8_t(1)
+                )
+            },
+            uint8_t(0)
+        ));
+
+        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<BlsType, uint8_t> literalPool = {
+            {"key", 0}
+        };
+        
+        INIT(oblockDescriptors, literalPool);
+
+        std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
+            createLOAD(0),
+            createPUSH(0),
+            createLOAD(1),
+            createEMPLACE()
         );
 
         TEST_GENERATE(ast, expectedInstructions);
