@@ -142,6 +142,7 @@ BlsObject Generator::visit(AstNode::Setup& ast) {
 }
 
 BlsObject Generator::visit(AstNode::Statement::If& ast) {
+
     ast.getCondition()->accept(*this);
     auto conditionBranch = createBRANCH(0);
     auto* branchInstruction = conditionBranch.get();
@@ -150,25 +151,27 @@ BlsObject Generator::visit(AstNode::Statement::If& ast) {
         statement->accept(*this);   
     }
 
-    INSTRUCTION::JMP* endOfBodyJump = nullptr;
-    if (!ast.getElseIfStatements().empty() || !ast.getElseBlock().empty()) {
-        // create a JMP to return to default execution sequence
-        auto jmp = createJMP(instructions.size());
-        endOfBodyJump = jmp.get();
-        instructions.push_back(std::move(jmp));
-    }
+    // create a JMP to return to default execution sequence
+    // TODO: remove extraneous JMP produced by lone if or elif with no else
+    std::vector<INSTRUCTION::JMP*> jmpInstructions;
+    auto endOfBodyJmp = createJMP(instructions.size());
+    jmpInstructions.push_back(endOfBodyJmp.get());
+    instructions.push_back(std::move(endOfBodyJmp));
     branchInstruction->address = instructions.size();
 
     for (auto&& elif : ast.getElseIfStatements()) {
         elif->accept(*this);
+        // final instruction is guaranteed to be JMP, add it to jmp list
+        jmpInstructions.push_back(static_cast<INSTRUCTION::JMP*>(instructions.back().get()));
     }
     for (auto&& statement : ast.getElseBlock()) {
         statement->accept(*this);
     }
 
-    if (endOfBodyJump) {
-        endOfBodyJump->address = instructions.size();
+    for (auto&& jmpInstruction : jmpInstructions) {
+        jmpInstruction->address = instructions.size();
     }
+
     return 0;
 }
 
@@ -181,12 +184,13 @@ BlsObject Generator::visit(AstNode::Statement::For& ast) {
     loopIndices.push(loopStart); // for use in continue JMP instructions
 
     auto& condition = ast.getCondition();
+    INSTRUCTION::BRANCH* loopBranchInstruction = nullptr; // no branch needed if no condition provided
     if (condition.has_value()) {
         condition->get()->accept(*this);
+        auto loopBranch = createBRANCH(0);
+        loopBranchInstruction = loopBranch.get();
+        instructions.push_back(std::move(loopBranch));
     }
-    auto loopBranch = createBRANCH(0);
-    auto* loopBranchInstruction = loopBranch.get();
-    instructions.push_back(std::move(loopBranch));
 
     auto& incrementExpression = ast.getIncrementExpression();
     if (incrementExpression.has_value()) {
@@ -199,7 +203,9 @@ BlsObject Generator::visit(AstNode::Statement::For& ast) {
     }
     instructions.push_back(createJMP(loopStart));
     uint16_t endAddress = instructions.size();
-    loopBranchInstruction->address = endAddress;
+    if (loopBranchInstruction) {
+        loopBranchInstruction->address = endAddress;
+    }
 
     loopIndices.pop(); // in scope continue JMP instructions emitted, index no longer necessary
     for (size_t i = 0; i < breakIndices.size(); i++) {  // set break JMP indices
