@@ -245,6 +245,114 @@ namespace BlsLang {
         TEST_GENERATE(ast, expectedInstructions);
     }
 
+    GROUP_TEST_F(GeneratorTest, ExpressionTests, BinaryDoubleCompoundAssignment) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Expression::Binary(
+            "+=",
+            new AstNode::Expression::Access(
+                "x",
+                uint8_t(0)
+            ),
+            new AstNode::Expression::Binary(
+                "+=",
+                new AstNode::Expression::Access(
+                    "y",
+                    uint8_t(1)
+                ),
+                new AstNode::Expression::Literal(
+                    int64_t(30)
+                )
+            )
+        ));
+
+        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<BlsType, uint8_t> literalPool = {
+            {30, 0}
+        };
+        
+        INIT(oblockDescriptors, literalPool);
+
+        std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
+            createLOAD(0), // load x as read target
+            createLOAD(1), // load y as read target
+            createPUSH(0), // push 30
+            createADD(), // y = y + 30
+            createSTORE(1), // assign to y
+            createLOAD(1), // push value of y
+            createADD(), // x = x + y
+            createSTORE(0), // assign to x
+            createLOAD(0) // push value of x
+        );
+
+        TEST_GENERATE(ast, expectedInstructions);
+    }
+
+    GROUP_TEST_F(GeneratorTest, ExpressionTests, BinaryDoubleCompoundArrayAssignment) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Expression::Binary(
+            "+=",
+            new AstNode::Expression::Access(
+                "x",
+                new AstNode::Expression::Literal(
+                    int64_t(0)
+                ),
+                uint8_t(0)
+            ),
+            new AstNode::Expression::Binary(
+                "+=",
+                new AstNode::Expression::Access(
+                    "y",
+                    new AstNode::Expression::Literal(
+                        int64_t(0)
+                    ),
+                    uint8_t(1)
+                ),
+                new AstNode::Expression::Literal(
+                    int64_t(30)
+                )
+            )
+        ));
+
+        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<BlsType, uint8_t> literalPool = {
+            {0, 0},
+            {30, 1},
+        };
+        
+        INIT(oblockDescriptors, literalPool);
+
+        std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
+            createLOAD(0), // load x[0] as write target
+            createPUSH(0),
+            
+            createLOAD(0), // load x[0] as read target
+            createPUSH(0),
+            createALOAD(),
+
+            createLOAD(1), // load y[0] as write target
+            createPUSH(0),
+
+            createLOAD(1), // load y[0] as read target
+            createPUSH(0),
+            createALOAD(),
+
+            createPUSH(1), // add y[0] to 30 and store result in y[0]
+            createADD(),
+            createASTORE(),
+
+            createLOAD(1), // load y[0] as op result
+            createPUSH(0),
+            createALOAD(),
+
+            createADD(),
+            createASTORE(), // add x[0] to y[0] and store result in x[0]
+
+            createLOAD(0), // load x[0] as op result
+            createPUSH(0),
+            createALOAD()
+        );
+
+        TEST_GENERATE(ast, expectedInstructions);
+    }
+
     GROUP_TEST_F(GeneratorTest, ExpressionTests, UnaryNot) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Expression::Unary(
             "!",
