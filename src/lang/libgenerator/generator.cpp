@@ -65,7 +65,6 @@ void Generator::writeBytecode(std::ostream& outputStream) {
     }
 }
 
-
 BlsObject Generator::visit(AstNode::Source& ast) {
     for (auto&& procedure : ast.getProcedures()) {
         procedure->accept(*this);
@@ -133,7 +132,7 @@ BlsObject Generator::visit(AstNode::Function::Oblock& ast) {
     for (auto&& statement : ast.getStatements()) {
         statement->accept(*this);
     }
-    instructions.push_back(createEMIT(static_cast<uint8_t>(BytecodeProcessor::SIGNAL::SIGSTOP)));
+    instructions.push_back(createEMIT(static_cast<uint8_t>(BytecodeProcessor::SIGNAL::STOP)));
     return 0;
 }
 

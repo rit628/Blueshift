@@ -47,9 +47,9 @@ void BytecodeProcessor::dispatch() {
             break;
         }
         switch (signal) {
-            case SIGNAL::SIGSTART:
+            case SIGNAL::START:
             break;
-            case SIGNAL::SIGSTOP:
+            case SIGNAL::STOP:
                 goto exit;
             break;
             default:
