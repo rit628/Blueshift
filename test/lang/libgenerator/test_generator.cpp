@@ -244,6 +244,111 @@ namespace BlsLang {
         TEST_GENERATE(ast, expectedInstructions);
     }
 
+    GROUP_TEST_F(GeneratorTest, ExpressionTests, UnaryNot) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Expression::Unary(
+            "!",
+            new AstNode::Expression::Literal(
+                false
+            )
+        ));
+
+        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<BlsType, uint8_t> literalPool = {
+            {false, 0}
+        };
+        
+        INIT(oblockDescriptors, literalPool);
+
+        std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
+            createPUSH(0),
+            createNOT()
+        );
+
+        TEST_GENERATE(ast, expectedInstructions);
+    }
+
+    GROUP_TEST_F(GeneratorTest, ExpressionTests, UnaryDoubleNot) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Expression::Unary(
+            "!",
+            new AstNode::Expression::Unary(
+                "!",
+                new AstNode::Expression::Literal(
+                    false
+                )
+            )
+        ));
+
+        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<BlsType, uint8_t> literalPool = {
+            {false, 0}
+        };
+        
+        INIT(oblockDescriptors, literalPool);
+
+        std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
+            createPUSH(0),
+            createNOT(),
+            createNOT()
+        );
+
+        TEST_GENERATE(ast, expectedInstructions);
+    }
+
+    GROUP_TEST_F(GeneratorTest, ExpressionTests, UnaryPreIncrement) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Expression::Unary(
+            "++",
+            new AstNode::Expression::Access(
+                "x",
+                uint8_t(0)
+            )
+        ));
+
+        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<BlsType, uint8_t> literalPool = {
+            {1, 0}
+        };
+        
+        INIT(oblockDescriptors, literalPool);
+
+        std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
+            createLOAD(0),
+            createPUSH(0),
+            createADD(),
+            createSTORE(0),
+            createLOAD(0)
+        );
+
+        TEST_GENERATE(ast, expectedInstructions);
+    }
+
+    GROUP_TEST_F(GeneratorTest, ExpressionTests, UnaryPostIncrement) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Expression::Unary(
+            "++",
+            new AstNode::Expression::Access(
+                "x",
+                uint8_t(0)
+            ),
+            AstNode::Expression::Unary::OPERATOR_POSITION::POSTFIX
+        ));
+
+        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<BlsType, uint8_t> literalPool = {
+            {1, 0}
+        };
+        
+        INIT(oblockDescriptors, literalPool);
+
+        std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
+            createLOAD(0),
+            createLOAD(0),
+            createPUSH(0),
+            createADD(),
+            createSTORE(0)
+        );
+
+        TEST_GENERATE(ast, expectedInstructions);
+    }
+
     GROUP_TEST_F(GeneratorTest, LiteralTests, String) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Expression::Literal(
             std::string("string")
