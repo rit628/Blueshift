@@ -2,12 +2,14 @@
 #include <cmath>
 #include <cstddef>
 #include <functional>
+#include <initializer_list>
 #include <iostream>
 #include <memory>
 #include <mutex>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <variant>
 #include <cstdint>
 #include <vector>
@@ -129,6 +131,7 @@ class MapDescriptor : public HeapDescriptor{
 
     MapDescriptor(TYPE contType);
     MapDescriptor(TYPE objType, TYPE keyType, TYPE contType);
+    MapDescriptor(std::initializer_list<std::pair<std::string, BlsType>> elements);
     // Add non-string handling later:
     BlsType& access(BlsType &obj) override;
     // WE assume for now that all objects are of type string 
@@ -152,6 +155,7 @@ class VectorDescriptor : public HeapDescriptor, std::enable_shared_from_this<Vec
 
     VectorDescriptor(std::string cont_code);
     VectorDescriptor(TYPE contType);
+    VectorDescriptor(std::initializer_list<BlsType> elements);
     static std::shared_ptr<VectorDescriptor> create(std::string cont_code) {
       return std::shared_ptr<VectorDescriptor>(new VectorDescriptor(cont_code));
     }
