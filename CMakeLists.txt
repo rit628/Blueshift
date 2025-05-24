@@ -66,6 +66,10 @@ set(CLIENT_TEST_DIR ${TEST_DIR}/client)
 
 set(LANG_COMMON ${LANG_SRC_DIR}/common)
 
+# MACRO DEFINITIONS
+add_compile_definitions(BROADCAST_PORT=$ENV{BROADCAST_PORT})
+add_compile_definitions(MASTER_PORT=$ENV{MASTER_PORT})
+
 # COMMON LIBS
 file(GLOB_RECURSE LIBTSQ_SRC ${COMMON_SRC_DIR}/libTSQ/*.cpp)
 add_library(TSQ STATIC ${LIBTSQ_SRC})

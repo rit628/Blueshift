@@ -4,9 +4,7 @@
 #include <vector> 
 #include "include/Common.hpp"
 
-#define BROADCAST_PORT 2988
 #define MAX_NAME_LEN 128
-#define MASTER_PORT 60000
 
 using TimerID = uint16_t;
 
