@@ -10,7 +10,7 @@ services:
     network_mode: ${NETWORK_MODE}
     container_name: ${BUILD_CONTAINER_NAME}
     user: ${CONTAINER_UID}:${CONTAINER_GID}
-    command: ["build", "-l", "-t", "${BUILD_TYPE}"]
+    command: ["build", "-l", "-b", "${BUILD_TYPE}"]
     group_add:
       - root
       - kmem
