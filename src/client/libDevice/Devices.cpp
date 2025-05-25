@@ -41,9 +41,7 @@ __attribute__ ((weak)) void Device<TypeDef::name>::read_data(DynamicMessage &dms
 #undef DEVTYPE_END
 
 #define DEVTYPE_BEGIN(name) \
-__attribute__ ((weak)) Device<TypeDef::name>::~Device() { \
-    throw std::runtime_error("DEVTYPE NOT SUPPORTED ON THIS CONTROLLER"); \
-}
+__attribute__ ((weak)) Device<TypeDef::name>::~Device() { }
 #define ATTRIBUTE(...)
 #define DEVTYPE_END
 #include "DEVTYPES.LIST"
