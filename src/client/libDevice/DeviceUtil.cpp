@@ -10,6 +10,7 @@ AbstractDevice::AbstractDevice(DEVTYPE dtype, std::unordered_map<std::string, st
         case DEVTYPE::name: { \
             this->device.emplace<Device<TypeDef::name>>(); \
             this->set_ports(port_nums); \
+            break; \
         }
         #define ATTRIBUTE(...)
         #define DEVTYPE_END
@@ -88,7 +89,7 @@ bool AbstractDevice::hasInterrupt() {
 
 std::vector<Interrupt_Desc>& AbstractDevice::getIdescList() {
     return std::visit(overloads {
-        [](std::monostate&) -> std::vector<Interrupt_Desc>& { },
+        [](std::monostate&) -> std::vector<Interrupt_Desc>& { /* never called */ },
         [](auto& dev) -> std::vector<Interrupt_Desc>& { return dev.Idesc_list; }
     }, device);
 }

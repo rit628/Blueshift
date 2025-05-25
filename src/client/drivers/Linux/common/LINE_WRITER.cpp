@@ -1,6 +1,6 @@
 #ifdef __linux__
 
-#include "../../include/LINE_WRITER.hpp"
+#include "include/LINE_WRITER.hpp"
 
 void Device<TypeDef::LINE_WRITER>::proc_message(DynamicMessage& dmsg) {
     dmsg.unpackStates(states);

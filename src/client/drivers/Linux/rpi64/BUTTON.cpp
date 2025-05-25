@@ -1,6 +1,6 @@
 #ifdef __RPI64__
 
-#include "../../include/BUTTON.hpp"
+#include "include/BUTTON.hpp"
 #include <pigpio.h>
 
 bool Device<TypeDef::BUTTON>::handleInterrupt(int gpio, int level, uint32_t tick) {

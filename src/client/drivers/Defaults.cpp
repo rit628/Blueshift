@@ -1,15 +1,11 @@
 #include "Devices.hpp"
-#include <string>
-#include <unordered_map>
 #include <stdexcept>
-
-// using namespace Device;
 
 /* define default implementations for driver functions if devtype not supported on controller */
 
 #define DEVTYPE_BEGIN(name) \
 __attribute__ ((weak)) void Device<TypeDef::name>::set_ports(std::unordered_map<std::string, std::string> &srcs) { \
-    throw std::runtime_error("DEVTYPE NOT SUPPORTED ON THIS CONTROLLER"); \
+    throw std::runtime_error("DEVTYPE " #name " NOT SUPPORTED ON " CONTROLLER_TARGET " CONTROLLERS"); \
 }
 #define ATTRIBUTE(...)
 #define DEVTYPE_END
@@ -20,7 +16,7 @@ __attribute__ ((weak)) void Device<TypeDef::name>::set_ports(std::unordered_map<
 
 #define DEVTYPE_BEGIN(name) \
 __attribute__ ((weak)) void Device<TypeDef::name>::proc_message(DynamicMessage &dmsg) { \
-    throw std::runtime_error("DEVTYPE NOT SUPPORTED ON THIS CONTROLLER"); \
+    throw std::runtime_error("DEVTYPE " #name " NOT SUPPORTED ON " CONTROLLER_TARGET " CONTROLLERS"); \
 }
 #define ATTRIBUTE(...)
 #define DEVTYPE_END
@@ -31,7 +27,7 @@ __attribute__ ((weak)) void Device<TypeDef::name>::proc_message(DynamicMessage &
 
 #define DEVTYPE_BEGIN(name) \
 __attribute__ ((weak)) void Device<TypeDef::name>::read_data(DynamicMessage &dmsg) { \
-    throw std::runtime_error("DEVTYPE NOT SUPPORTED ON THIS CONTROLLER"); \
+    throw std::runtime_error("DEVTYPE " #name " NOT SUPPORTED ON " CONTROLLER_TARGET " CONTROLLERS"); \
 }
 #define ATTRIBUTE(...)
 #define DEVTYPE_END

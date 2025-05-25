@@ -1,6 +1,6 @@
 #ifdef __linux__
 
-#include "../../include/TIMER_TEST.hpp"
+#include "include/TIMER_TEST.hpp"
 
 void Device<TypeDef::TIMER_TEST>::proc_message(DynamicMessage& dmsg) {
     dmsg.unpackStates(states);

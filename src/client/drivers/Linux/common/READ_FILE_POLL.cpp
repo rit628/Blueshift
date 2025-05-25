@@ -1,6 +1,6 @@
 #ifdef __linux__
 
-#include "../../include/READ_FILE_POLL.hpp"
+#include "include/READ_FILE_POLL.hpp"
 
 void Device<TypeDef::READ_FILE_POLL>::set_ports(std::unordered_map<std::string, std::string> &srcs) {
     this->filename = "./samples/client/" + srcs["file"];

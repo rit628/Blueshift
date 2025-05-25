@@ -1,6 +1,6 @@
 #ifdef __RPI64__
 
-#include "../../include/LIGHT.hpp"
+#include "include/LIGHT.hpp"
 #include <pigpio.h>
 
 void Device<TypeDef::LIGHT>::proc_message(DynamicMessage &dmsg) {

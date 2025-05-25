@@ -1,6 +1,6 @@
 #ifdef __RPI64__
 
-#include "../../include/MOTOR.hpp"
+#include "include/MOTOR.hpp"
 #include <pigpio.h>
 
 void Device<TypeDef::MOTOR>::set_ports(std::unordered_map<std::string, std::string> &src)

@@ -67,6 +67,10 @@ set(CLIENT_TEST_DIR ${TEST_DIR}/client)
 set(LANG_COMMON ${LANG_SRC_DIR}/common)
 
 # MACRO DEFINITIONS
+if(NOT CMAKE_CROSSCOMPILING)
+    string(TOUPPER ${CMAKE_SYSTEM_NAME} CONTROLLER_TARGET)
+    add_compile_definitions(CONTROLLER_TARGET="${CONTROLLER_TARGET}")
+endif()
 add_compile_definitions(BROADCAST_PORT=$ENV{BROADCAST_PORT})
 add_compile_definitions(MASTER_PORT=$ENV{MASTER_PORT})
 
@@ -162,8 +166,13 @@ target_include_directories(master PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_
 target_link_libraries(master TSQ EM MM NM compiler ${BOOST_LIB_DEPS})
 
 # CLIENT LIBS AND EXECUTABLE
+file(GLOB_RECURSE DRIVER_SRC ${CLIENT_SRC_DIR}/drivers/*.cpp)
+add_library(drivers OBJECT ${DRIVER_SRC}) # must be an object library to ensure strong symbols for controller dependent drivers are utilized
+target_include_directories(drivers PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${pigpio_SOURCE_DIR} ${CLIENT_SRC_DIR}/libDevice)
+target_link_libraries(drivers dynamic_message pigpio ${BOOST_LIB_DEPS})
+
 file(GLOB_RECURSE LIBDEVICE_SRC ${CLIENT_SRC_DIR}/libDevice/*.cpp)
-add_library(device STATIC ${LIBDEVICE_SRC})
+add_library(device STATIC ${LIBDEVICE_SRC} $<TARGET_OBJECTS:drivers>)
 target_include_directories(device PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${pigpio_SOURCE_DIR})
 target_link_libraries(device network dynamic_message pigpio ${BOOST_LIB_DEPS})
 
@@ -174,7 +183,7 @@ target_link_libraries(client_engine network device ${BOOST_LIB_DEPS})
 
 add_executable(client ${CLIENT_SRC_DIR}/main.cpp)
 target_include_directories(client PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_SRC_DIR})
-target_link_libraries(client device client_engine ${BOOST_LIB_DEPS})
+target_link_libraries(client "$<LINK_LIBRARY:WHOLE_ARCHIVE,device>" client_engine ${BOOST_LIB_DEPS}) # whole library archive is linked to check for strong symbols
 
 # UTILITY EXECUTABLES
 add_executable(echo ${UTIL_SRC_DIR}/echo/main.cpp)

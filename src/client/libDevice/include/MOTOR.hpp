@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../DeviceCore.hpp"
+#include "../DeviceCore.hpp"
 #include "libtypes/typedefs.hpp"
 
 template<>

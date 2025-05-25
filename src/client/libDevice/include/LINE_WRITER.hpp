@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../DeviceCore.hpp"
+#include "../DeviceCore.hpp"
 #include "libtypes/typedefs.hpp"
 #include <fstream>
 
@@ -18,7 +18,7 @@ class Device<TypeDef::LINE_WRITER> : public DeviceCore {
     public:
         ~Device();
         void proc_message(DynamicMessage& dmsg);
-        bool handleInterrupt();
         void set_ports(std::unordered_map<std::string, std::string> &src);
         void read_data(DynamicMessage &dmsg);
+        bool handleInterrupt();
 };
