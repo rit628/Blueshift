@@ -56,28 +56,19 @@ class AbstractDevice {
     
     public:
         uint16_t id; 
-        bool& hasInterrupt;
-        std::vector<Interrupt_Desc>& Idesc_list;
 
         std::mutex m;
         std::condition_variable cv;
         bool processing = false;
         bool watchersPaused = false;
 
-        template<Driveable T>
-        AbstractDevice(Device<T>&& device);
+        AbstractDevice(DEVTYPE dtype, std::unordered_map<std::string, std::string> &port_nums);
         void proc_message(DynamicMessage input);
         void set_ports(std::unordered_map<std::string, std::string> &src);
         void read_data(DynamicMessage &newMsg);
+        bool hasInterrupt();
+        std::vector<Interrupt_Desc>& getIdescList();
 };
-
-template<Driveable T>
-AbstractDevice::AbstractDevice(Device<T>&& device) : hasInterrupt(device.hasInterrupt), Idesc_list(device.Idesc_list) {
-    this->device.emplace<Device<T>>();
-    auto& resolved = std::get<Device<T>>(this->device);
-    resolved.hasInterrupt = std::move(device.hasInterrupt);
-    resolved.Idesc_list = std::move(device.Idesc_list);
-}
 
 // Device reciever object returns and sets up an object 
 std::shared_ptr<AbstractDevice> getDevice(DEVTYPE dtype, std::unordered_map<std::string, std::string> &port_nums, int device_alias);

@@ -155,7 +155,7 @@ void Client::listener(){
             for(Timer &timer : this->start_timers){
                 auto device = this->deviceList[timer.device_num]; 
 
-                if(!device->hasInterrupt){
+                if(!device->hasInterrupt()){
                     std::cout<<"build timer with period: "<<timer.period<<std::endl;
                     this->client_ticker[timer.id] = std::make_unique<DeviceTimer>(this->client_ctx, device, this->client_connection, this->controller_alias, timer.device_num, timer.id); 
                     // Initiate the timer
@@ -169,7 +169,7 @@ void Client::listener(){
                 auto dev = pair.second;
                 auto dev_id = pair.first;  
              
-                if(dev->hasInterrupt){
+                if(dev->hasInterrupt()){
                     // Organizes the device interrupts
                     auto omar = std::make_unique<DeviceInterruptor>(dev, this->client_connection, this->global_interrupts, this->controller_alias, dev_id); 
                     omar->setupThreads(); 

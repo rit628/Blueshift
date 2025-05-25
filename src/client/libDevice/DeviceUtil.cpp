@@ -1,7 +1,27 @@
 #include "DeviceUtil.hpp"
+#include <stdexcept>
 
 template<class... Ts>
 struct overloads : Ts... { using Ts::operator()...; };
+
+AbstractDevice::AbstractDevice(DEVTYPE dtype, std::unordered_map<std::string, std::string> &port_nums) {
+    switch(dtype){
+        #define DEVTYPE_BEGIN(name) \
+        case DEVTYPE::name: { \
+            this->device.emplace<Device<TypeDef::name>>(); \
+            this->set_ports(port_nums); \
+        }
+        #define ATTRIBUTE(...)
+        #define DEVTYPE_END
+        #include "DEVTYPES.LIST"
+        #undef DEVTYPE_BEGIN
+        #undef ATTRIBUTE
+        #undef DEVTYPE_END
+        default : {
+            throw std::invalid_argument("Unknown dtype accessed!"); 
+        }
+    }
+}
 
 void AbstractDevice::proc_message_impl(DynamicMessage& input) {
     std::visit(overloads {
@@ -11,7 +31,7 @@ void AbstractDevice::proc_message_impl(DynamicMessage& input) {
 }
 
 void AbstractDevice::proc_message(DynamicMessage input) {
-    if (!hasInterrupt) {
+    if (!hasInterrupt()) {
         proc_message_impl(input);
         return;
     }
@@ -59,13 +79,25 @@ void AbstractDevice::read_data(DynamicMessage &newMsg) {
     }, device);
 }
 
+bool AbstractDevice::hasInterrupt() {
+    return std::visit(overloads {
+        [](std::monostate&) { return false; },
+        [](auto& dev) { return dev.hasInterrupt; }
+    }, device);
+}
+
+std::vector<Interrupt_Desc>& AbstractDevice::getIdescList() {
+    return std::visit(overloads {
+        [](std::monostate&) -> std::vector<Interrupt_Desc>& { },
+        [](auto& dev) -> std::vector<Interrupt_Desc>& { return dev.Idesc_list; }
+    }, device);
+}
+
 std::shared_ptr<AbstractDevice> getDevice(DEVTYPE dtype, std::unordered_map<std::string, std::string> &port_nums, int device_alias) {
     switch(dtype){
         #define DEVTYPE_BEGIN(name) \
         case DEVTYPE::name: { \
-            auto device = Device<TypeDef::name>(); \
-            device.set_ports(port_nums); \
-            return std::make_shared<AbstractDevice>(std::move(device)); \
+            return std::make_shared<AbstractDevice>(dtype, port_nums); \
         }
         #define ATTRIBUTE(...)
         #define DEVTYPE_END
@@ -76,7 +108,7 @@ std::shared_ptr<AbstractDevice> getDevice(DEVTYPE dtype, std::unordered_map<std:
         default : {
             throw std::invalid_argument("Unknown dtype accessed!"); 
         }
-    }; 
+    }
 }; 
 
 std::chrono::milliseconds DeviceTimer::getRemainingTime() {
@@ -315,7 +347,7 @@ void DeviceInterruptor::IGpioWatcher(int portNum, std::function<bool(int, int , 
 
 void DeviceInterruptor::setupThreads() {
     // Create the threads
-    for(auto& idesc : this->abs_device->Idesc_list){
+    for(auto& idesc : this->abs_device->getIdescList()){
         switch(idesc.src_type){
             case(SrcType::UNIX_FILE) : {
                 this->globalWatcherThreads.emplace_back([idesc, this](){
