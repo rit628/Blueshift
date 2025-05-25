@@ -1,6 +1,6 @@
 #pragma once
 
-#include "libDevice/Devices.hpp"
+#include "libDevice/DeviceUtil.hpp"
 #include <thread>
 #include <shared_mutex>
 #include <unordered_map>

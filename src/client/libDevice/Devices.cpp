@@ -1,306 +1,52 @@
 #include "Devices.hpp"
-#include "libDM/DynamicMessage.hpp"
-#include <pigpio.h>
-#include <chrono>
-#include <iostream>
-#include <functional> 
 #include <string>
 #include <unordered_map>
+#include <stdexcept>
 
-using namespace Device;
+// using namespace Device;
 
-/* TIMER_TEST */
+/* define default implementations for driver functions if devtype not supported on controller */
 
-void TIMER_TEST::proc_message_impl(DynamicMessage& dmsg) {
-    dmsg.unpackStates(states);
-    write_file << std::to_string(this->states.test_val) << ",";  
-    write_file.flush(); 
+#define DEVTYPE_BEGIN(name) \
+__attribute__ ((weak)) void Device<TypeDef::name>::set_ports(std::unordered_map<std::string, std::string> &srcs) { \
+    throw std::runtime_error("DEVTYPE NOT SUPPORTED ON THIS CONTROLLER"); \
 }
+#define ATTRIBUTE(...)
+#define DEVTYPE_END
+#include "DEVTYPES.LIST"
+#undef DEVTYPE_BEGIN
+#undef ATTRIBUTE
+#undef DEVTYPE_END
 
-void TIMER_TEST::set_ports(std::unordered_map<std::string, std::string> &srcs) {
-    filename = "./samples/client/" + srcs["file"]; 
-    write_file.open(filename);
-    if(write_file.is_open()){
-        std::cout<<"Could find file"<<std::endl; 
-    } 
-    else{
-        std::cout<<"Could not find file"<<std::endl; 
-    }
+#define DEVTYPE_BEGIN(name) \
+__attribute__ ((weak)) void Device<TypeDef::name>::proc_message(DynamicMessage &dmsg) { \
+    throw std::runtime_error("DEVTYPE NOT SUPPORTED ON THIS CONTROLLER"); \
 }
+#define ATTRIBUTE(...)
+#define DEVTYPE_END
+#include "DEVTYPES.LIST"
+#undef DEVTYPE_BEGIN
+#undef ATTRIBUTE
+#undef DEVTYPE_END
 
-void TIMER_TEST::read_data(DynamicMessage &dmsg) {
-    dmsg.packStates(states);
+#define DEVTYPE_BEGIN(name) \
+__attribute__ ((weak)) void Device<TypeDef::name>::read_data(DynamicMessage &dmsg) { \
+    throw std::runtime_error("DEVTYPE NOT SUPPORTED ON THIS CONTROLLER"); \
 }
+#define ATTRIBUTE(...)
+#define DEVTYPE_END
+#include "DEVTYPES.LIST"
+#undef DEVTYPE_BEGIN
+#undef ATTRIBUTE
+#undef DEVTYPE_END
 
-TIMER_TEST::~TIMER_TEST() {
-    write_file.close();
+#define DEVTYPE_BEGIN(name) \
+__attribute__ ((weak)) Device<TypeDef::name>::~Device() { \
+    throw std::runtime_error("DEVTYPE NOT SUPPORTED ON THIS CONTROLLER"); \
 }
-
-/* LINE_WRITER */
-
-void LINE_WRITER::proc_message_impl(DynamicMessage& dmsg) {
-    dmsg.unpackStates(states);
-
-    if (this->file_stream.is_open()) {
-        this->file_stream.close();  // Close the file before reopening
-    }
-    
-    this->file_stream.open(this->filename, std::ios::out | std::ios::trunc);  // Open in truncate mode
-    
-    if (this->file_stream.is_open()) {
-        std::cout<<"Writing data"<<std::endl; 
-        this->file_stream << states.msg; 
-        this->file_stream.flush();  // Ensure data is written immediately
-        this->file_stream.close();
-    }
-    else {
-        std::cout << "file didnt open" << std::endl;
-    }
-}
-
-// can add better keybinding libraries in the future
-bool LINE_WRITER::handleInterrupt(){
-
-    this->file_stream.open(this->filename, std::ios::in);
-    this->file_stream.clear(); 
-    this->file_stream.seekg(0, std::ios::beg); 
-
-    std::string line; 
-
-    auto getL = bool(std::getline(this->file_stream, line));
-
-    if(getL){
-        this->states.msg = line;
-        return true; 
-    }
-    else {
-        std::cout << "unc status" << std::endl;
-    }
-    
-    return false; 
-}
-
-void LINE_WRITER::set_ports(std::unordered_map<std::string, std::string> &src) {
-    this->filename = "./samples/client/" + src["file"]; 
-    
-    this->file_stream.open(filename, std::ios::in | std::ios::out); 
-    if(file_stream.is_open()){
-        std::cout<<"Could find file"<<std::endl; 
-    }
-    else{
-        std::cout<<"Could not find file"<<std::endl; 
-    }
-
-    // Add the interrupt and handler
-    this->addFileIWatch(this->filename, [this](){return this->handleInterrupt();}); 
-}
-
-void LINE_WRITER::read_data(DynamicMessage &dmsg) {
-    dmsg.packStates(states);
-}
-
-LINE_WRITER::~LINE_WRITER() {
-    file_stream.close();
-}
-
-/* LINE_WRITER_POLL */
-void READ_FILE_POLL::set_ports(std::unordered_map<std::string, std::string> &srcs){
-    this->filename = "./samples/client/" + srcs["file"]; 
-    this->file_stream.open(filename);
-    if(this->file_stream.is_open()){
-        std::cout<<"Could find file"<<std::endl; 
-    } 
-    else{
-        std::cout<<"Could not find file"<<std::endl; 
-    }
-}
-
-void READ_FILE_POLL::proc_message_impl(DynamicMessage &dmsg){
-
-
-}
-
-
-void READ_FILE_POLL::read_data(DynamicMessage &dmsg){
-    std::getline(this->file_stream, states.msg); 
-    this->file_stream.seekg(0, std::ios::beg); 
-    dmsg.packStates(states); 
-}
-
-READ_FILE_POLL::~READ_FILE_POLL(){
-    this->file_stream.close(); 
-}
-
-/* LIGHT */
-
-void LIGHT::proc_message_impl(DynamicMessage &dmsg) {
-    dmsg.unpackStates(states);
-    if (states.on) {
-        gpioWrite(this->PIN, PI_ON);
-    }
-    else {
-        gpioWrite(this->PIN, PI_OFF);
-    }
-}
-
-void LIGHT::set_ports(std::unordered_map<std::string, std::string> &src) {
-    this->PIN = std::stoi(src["PIN"]);
-    if (gpioInitialise() == PI_INIT_FAILED) {
-            std::cerr << "GPIO setup failed" << std::endl;
-            return;
-    }
-    gpioSetMode(this->PIN, PI_OUTPUT);
-}
-
-void LIGHT::read_data(DynamicMessage &dmsg) {
-    dmsg.packStates(states);
-}
-
-LIGHT::~LIGHT() {
-    gpioTerminate();
-}
-
-/* BUTTON */
-bool BUTTON::handleInterrupt(int gpio, int level, uint32_t tick) {
-    // static auto DEBOUNCE_TIME = std::chrono::microseconds(10);
-    if (level == RISING_EDGE) {
-        states.pressed = true;
-    }
-    else if (level == FALLING_EDGE) {
-        states.pressed = false;
-    }
-    else {
-        return false;
-    }
-    // auto currPress = std::chrono::high_resolution_clock::now();
-    // bool ret = (currPress - lastPress) > DEBOUNCE_TIME;
-    // lastPress = currPress;
-    // return ret;
-    return true;
-
-}
-
-void BUTTON::set_ports(std::unordered_map<std::string, std::string> &src)
-{
-    this->PIN = std::stoi(src.at("PIN"));
-    this->lastPress = std::chrono::high_resolution_clock::now();
-    if (gpioInitialise() == PI_INIT_FAILED) 
-    {
-        std::cerr << "GPIO setup failed" << std::endl;
-        return;
-    }
-    gpioSetMode(this->PIN, PI_INPUT);
-    gpioSetPullUpDown(this->PIN, PI_PUD_UP);
-
-    auto bound = std::bind(&BUTTON::handleInterrupt, std::ref(*this), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3); 
-
-    addGPIOIWatch(this->PIN, bound);
-}
-
-void BUTTON::proc_message_impl(DynamicMessage &dmsg)
-{
-    // should do nothing
-    dmsg.unpackStates(states);
-}
-
-void BUTTON::read_data(DynamicMessage &dmsg)
-{
-    dmsg.packStates(states);
-}
-
-BUTTON::~BUTTON() 
-{
-    gpioTerminate();
-}
-
-void MOTOR::set_ports(std::unordered_map<std::string, std::string> &src)
-{
-    in1_pin  = std::stoi(src.at("IN1"));
-    in2_pin = std::stoi(src.at("IN2"));
-    pwm_pin = std::stoi(src.at("PWM"));
-    pwm_range = std::stoi(src["PWM_RANGE"]);
-    if(gpioInitialise() == PI_INIT_FAILED) 
-    {
-        std::cerr << "GPIO setup failed" << std::endl;
-        return;
-    }
-
-    // Direction pins are outputs
-    gpioSetMode(in1_pin, PI_OUTPUT);
-    gpioSetMode(in2_pin, PI_OUTPUT);
-
-    // PWM pin
-    gpioSetMode(pwm_pin, PI_OUTPUT);
-    gpioSetPWMrange(pwm_pin, pwm_range);
-    // Optional: set a default PWM frequency (Hz)
-    gpioSetPWMfrequency(pwm_pin, 1000);
-}
-
-void MOTOR::proc_message_impl(DynamicMessage &dmsg)
-{
-    dmsg.unpackStates(states);
-
-}
-
-void MOTOR::read_data(DynamicMessage &dmsg)
-{
-    dmsg.packStates(states);
-    apply_speed(states.speed);
-}
-
-void MOTOR::apply_speed(int speed)
-{
-    if(speed > 100) speed = 100;
-        if(speed < -100) speed = -100;
-
-        if(speed == 0) 
-        {
-            // brake / both low
-            gpioWrite(in1_pin, PI_OFF);
-            gpioWrite(in2_pin, PI_OFF);
-            gpioPWM(pwm_pin, 0);
-        }
-        else if(speed > 0) 
-        {
-            // forward
-            gpioWrite(in1_pin, PI_ON);
-            gpioWrite(in2_pin, PI_OFF);
-            // scale 0–100 to 0–pwm_range
-            int duty = (speed * pwm_range) / 100;
-            gpioPWM(pwm_pin, duty);
-        }
-        else 
-        {
-            // backward
-            gpioWrite(in1_pin, PI_OFF);
-            gpioWrite(in2_pin, PI_ON);
-            int duty = ((-speed) * pwm_range) / 100;
-            gpioPWM(pwm_pin, duty);
-        }
-}
-
-MOTOR::~MOTOR() 
-{
-    gpioTerminate();
-}
-
-std::shared_ptr<AbstractDevice> getDevice(DEVTYPE dtype, std::unordered_map<std::string, std::string> &port_nums, int device_alias) {
-    switch(dtype){
-        #define DEVTYPE_BEGIN(name) \
-        case DEVTYPE::name: { \
-            auto devPtr = std::make_shared<name>(); \
-            devPtr->set_ports(port_nums); \
-            return devPtr; \
-            break; \
-        }
-        #define ATTRIBUTE(...)
-        #define DEVTYPE_END
-        #include "DEVTYPES.LIST"
-        #undef DEVTYPE_BEGIN
-        #undef ATTRIBUTE
-        #undef DEVTYPE_END
-        default : {
-            throw std::invalid_argument("Unknown dtype accessed!"); 
-        }
-    }; 
-}; 
+#define ATTRIBUTE(...)
+#define DEVTYPE_END
+#include "DEVTYPES.LIST"
+#undef DEVTYPE_BEGIN
+#undef ATTRIBUTE
+#undef DEVTYPE_END
