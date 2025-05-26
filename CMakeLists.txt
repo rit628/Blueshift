@@ -168,13 +168,23 @@ target_link_libraries(master TSQ EM MM NM compiler ${BOOST_LIB_DEPS})
 # CLIENT LIBS AND EXECUTABLE
 file(GLOB_RECURSE DRIVER_SRC ${CLIENT_SRC_DIR}/drivers/*.cpp)
 add_library(drivers OBJECT ${DRIVER_SRC}) # must be an object library to ensure strong symbols for controller dependent drivers are utilized
-target_include_directories(drivers PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${pigpio_SOURCE_DIR} ${CLIENT_SRC_DIR}/libDevice)
-target_link_libraries(drivers dynamic_message pigpio ${BOOST_LIB_DEPS})
+target_include_directories(drivers PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${CLIENT_SRC_DIR}/libDevice)
+target_link_libraries(drivers dynamic_message ${BOOST_LIB_DEPS})
+# add rpi64 specific gpio libraries
+if ("${TARGET_NAME}" MATCHES "rpi64")
+    target_include_directories(drivers PUBLIC ${pigpio_SOURCE_DIR})
+    target_link_libraries(drivers pigpio)
+endif()
 
 file(GLOB_RECURSE LIBDEVICE_SRC ${CLIENT_SRC_DIR}/libDevice/*.cpp)
 add_library(device STATIC ${LIBDEVICE_SRC} $<TARGET_OBJECTS:drivers>)
-target_include_directories(device PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${pigpio_SOURCE_DIR})
-target_link_libraries(device network dynamic_message pigpio ${BOOST_LIB_DEPS})
+target_include_directories(device PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
+target_link_libraries(device network dynamic_message ${BOOST_LIB_DEPS})
+# add rpi64 specific gpio libraries
+if ("${TARGET_NAME}" MATCHES "rpi64")
+    target_include_directories(device PUBLIC ${pigpio_SOURCE_DIR})
+    target_link_libraries(device pigpio)
+endif()
 
 file(GLOB_RECURSE LIBCE_SRC ${CLIENT_SRC_DIR}/libCE/*.cpp)
 add_library(client_engine STATIC ${LIBCE_SRC})

@@ -16,7 +16,6 @@
 #include <unistd.h> 
 #include <variant>
 #include <vector>
-#include <pigpio.h>
 #include <thread>
 
 #define VOLATILITY_LIST_SIZE 10

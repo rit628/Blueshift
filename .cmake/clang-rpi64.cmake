@@ -1,6 +1,7 @@
 # TODO: fix redundant rebuilds when using this toolchain 
 
 # TARGET CONFIG
+set(TARGET_NAME rpi64)
 set(CMAKE_SYSTEM_NAME Linux)
 set(CMAKE_SYSTEM_PROCESSOR arm64)
 

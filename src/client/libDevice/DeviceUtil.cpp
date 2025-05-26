@@ -1,5 +1,8 @@
 #include "DeviceUtil.hpp"
 #include <stdexcept>
+#ifdef __RPI64__
+#include <pigpio.h>
+#endif
 
 template<class... Ts>
 struct overloads : Ts... { using Ts::operator()...; };
@@ -331,7 +334,9 @@ void DeviceInterruptor::IGpioWatcher(int portNum, std::function<bool(int, int , 
         signaler = true; 
     }; 
 
-    gpioSetAlertFuncEx(portNum, popArgs, &data);
+    #ifdef __RPI64__
+        gpioSetAlertFuncEx(portNum, popArgs, &data);
+    #endif
 
     while (true) {
         auto& [signaler, args] = data;
