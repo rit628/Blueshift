@@ -1,20 +1,9 @@
 #pragma once
-#include "binding_parser.hpp"
-#include "libtypes/bls_types.hpp"
-#include "call_stack.hpp"
 #include "ast.hpp"
-#include "error_types.hpp"
-#include "include/Common.hpp"
 #include "print_visitor.hpp"
-#include "visitor.hpp"
-#include <cstdint>
-#include <functional>
 #include <memory>
-#include <stdexcept>
 #include <string>
-#include <typeinfo>
 #include <unordered_map>
-#include <variant>
 #include <vector>
 #include <unordered_set>
 
@@ -73,6 +62,9 @@ namespace BlsLang{
             SetupContext setupCtx; 
             GlobalContext globalCtx; 
 
+            // Oblock List: 
+            std::vector<OblockContext> oblockCtxList;
+
             //utility functions: 
             void clearOblockCtx(); 
             bool isDevice(const SymbolID &candidate); 
@@ -90,6 +82,7 @@ namespace BlsLang{
             */ 
 
             GlobalContext& getGlobalContext();
+            OblockContext& getOblockContext(){return this->oblockCtx;}
             // Debug Helpers: 
             void printGlobalContext(); 
 

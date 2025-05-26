@@ -1,5 +1,4 @@
 #include "depgraph.hpp"
-#include "print_visitor.hpp"
 
 #include <stdexcept>
 
