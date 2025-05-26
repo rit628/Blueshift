@@ -309,14 +309,14 @@ def build(args):
             linker += "BFD"
         cmake_args = [c_compiler, cpp_compiler, linker, build_type, toolchain_file, "-Wno-dev"]
         run_cmd(["cmake", *cmake_args, "-S", ".", "-B", ARTIFACT_DIR])
-        if not TARGET_PLATFORM: # only update compile commands if built for current machine's arch
-            symlink(COMPILE_DB_PATH, Path(".", ARTIFACT_TYPE, "compile_commands.json"))
+        symlink(COMPILE_DB_PATH, Path(".", TARGET_PLATFORM, ARTIFACT_TYPE, "compile_commands.json"))
 
         # 1 <= j <= n-1 (keep 1 core free for background tasks)
         core_count = str(max(1, min(args.parallel, NUM_CORES - 1)))
         run_cmd(["cmake", "--build", ".", "-j", core_count, "-t", *args.make],
                        cwd=f"./{ARTIFACT_DIR}")
-        if not TARGET_PLATFORM: # only update binary targets if built for current machine's arch
+        if not TARGET_PLATFORM:
+            # only update binary targets if built for current machine's arch
             symlink(TARGET_OUTPUT_DIRECTORY, Path(".", ARTIFACT_TYPE), True)
     else: # build binaries in remote container
         initialize_host()
@@ -324,18 +324,27 @@ def build(args):
                         "build", "-l", *build_args, *args.make])
         @run_as_src_user
         def link_compile_commands():
-            symlink(TARGET_OUTPUT_DIRECTORY, Path(".", "remote", ARTIFACT_TYPE))
-            curr_db_path = Path(REMOTE_OUTPUT_DIRECTORY, ARTIFACT_TYPE, "compile_commands.json")
+            remote_target_path = Path(".", "remote", TARGET_PLATFORM, ARTIFACT_TYPE)
+            if not TARGET_PLATFORM:
+                # only update binary targets if built for current machine's arch
+                symlink(TARGET_OUTPUT_DIRECTORY, remote_target_path)
+                build_location = TARGET_OUTPUT_DIRECTORY
+            else:
+                cross_target_path = Path(BUILD_OUTPUT_DIRECTORY, TARGET_PLATFORM)
+                symlink(cross_target_path, remote_target_path)
+                symlink(Path(BUILD_OUTPUT_DIRECTORY, "sysroot"), Path(".", "remote", "sysroot"))
+                build_location = cross_target_path
+
+            curr_db_path = Path(REMOTE_OUTPUT_DIRECTORY, TARGET_PLATFORM, ARTIFACT_TYPE, "compile_commands.json")
             with (curr_db_path.open("r") as db, COMPILE_DB_PATH.open("w") as out):
                 cwd = os.getcwd()
                 build_dir = str(Path(CONTAINER_MOUNT_DIRECTORY, ARTIFACT_DIR))
-                replacement_dir = str(Path(cwd, TARGET_OUTPUT_DIRECTORY))
+                replacement_dir = str(Path(cwd, build_location))
                 for line in db:
                     line = line.replace(build_dir, replacement_dir)  # replace build dir
                     line = line.replace(CONTAINER_MOUNT_DIRECTORY, cwd)  # replace source dir
                     out.write(line)
-        if not TARGET_PLATFORM: # only update compile commands if built for current machine's arch
-            link_compile_commands()
+        link_compile_commands()
 
 def test(args):
     os.environ["GTEST_COLOR"] = "1"
