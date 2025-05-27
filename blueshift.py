@@ -149,8 +149,8 @@ def make_sysroot(target, local):
         platform = os.getenv(f"{target.upper()}_PLATFORM")
         archive_path = Path("build", f"{target}-rootfs.tar")
         atexit.register(run_cmd, ["docker", "rm", f"{target}-sysroot"], exit_on_failure=False, stderr=subprocess.DEVNULL)
-        run_cmd(["docker", "build", "--platform", platform, "-t", f"{target}-sysroot-generator", Path(".docker", "sysroot", target)])
-        run_cmd(["docker", "create", "-q", "--platform", platform, "--name", f"{target}-sysroot", f"{target}-sysroot-generator"])
+        run_cmd(["docker", "build", "--platform", platform, "-t", f"{PROJECT_PREFIX}-{target}-sysroot-generator", Path(".docker", "sysroot", target)])
+        run_cmd(["docker", "create", "-q", "--platform", platform, "--name", f"{target}-sysroot", f"{PROJECT_PREFIX}-{target}-sysroot-generator"])
         run_cmd(["docker", "export", f"{target}-sysroot", "-o", archive_path])
         with tarfile.open(archive_path, "r") as tar:
             tar.extractall(sysroot_path, filter="fully_trusted")
@@ -370,12 +370,15 @@ def reset(args):
     image_ids = get_output(f"docker image ls | grep {PROJECT_PREFIX} | awk '{{ print $3 }}'", shell=True)
     volumes = get_output(f"docker volume ls | grep {PROJECT_NAME} | awk '{{ print $2 }}'", shell=True)
         
-    if any((network_id, container_ids, image_ids, volumes)):
+    if network_id:
         run_cmd(["docker", "network", "rm", network_id])
-        run_cmd(["docker", "container", "stop"] + container_ids.split('\n'))
+    if container_ids:
+        run_cmd(["docker", "container", "stop"] + container_ids.split('\n'), exit_on_failure=False)
         run_cmd(["docker", "container", "rm", "-f"] + container_ids.split('\n'))
+    if image_ids:
         run_cmd(["docker", "image", "prune", "-f"])
         run_cmd(["docker", "image", "rm", "-f"] + image_ids.split('\n'))
+    if volumes:
         run_cmd(["docker", "volume", "rm", "-f"] + volumes.split('\n'))
 
     if args.system_prune:
