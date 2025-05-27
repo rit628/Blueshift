@@ -55,7 +55,7 @@ class Client{
        // Ticker Mutex; 
         std::shared_mutex ticker_mutex; 
         // Contains the list of known devices
-        std::unordered_map<int, std::shared_ptr<AbstractDevice>> deviceList;     
+        std::unordered_map<int, AbstractDevice> deviceList;     
         // client name used to identify controller
         std::string client_name; 
         // Listens for incoming message and places it into the spot

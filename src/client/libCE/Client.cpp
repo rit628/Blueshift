@@ -1,7 +1,7 @@
 #include "Client.hpp"
 #include "libnetwork/Protocol.hpp"
 
-Client::Client(std::string c_name): client_socket(client_ctx), bc_socket(client_ctx, udp::endpoint(udp::v4(), BROADCAST_PORT)){
+Client::Client(std::string c_name): bc_socket(client_ctx, udp::endpoint(udp::v4(), BROADCAST_PORT)), client_socket(client_ctx){
     this->client_name = c_name; 
     std::cout<<"Client Created: " << c_name <<std::endl; 
 }
@@ -18,7 +18,7 @@ void Client::sendCallback(uint16_t deviceCode){
 
     // Get the latest state from the dmsg
  
-    this->deviceList[deviceCode]->read_data(dmsg); 
+    this->deviceList.at(deviceCode).read_data(dmsg); 
 
     // make message
     sm.body = dmsg.Serialize(); 
@@ -77,7 +77,7 @@ void Client::listener(){
             }
 
             for(int i = 0; i < size; i++){
-                deviceList[device_alias[i]] = getDevice(device_types[i], srcs[i], device_alias[i]);
+                deviceList.try_emplace(device_alias[i], device_types[i], srcs[i]);
             } 
 
             // Check item: 
@@ -99,7 +99,7 @@ void Client::listener(){
                 auto state_change = std::thread([dev_index, dmsg = std::move(dmsg), this](){
                 try{
                     // std::cout << "proc_message begin" << std::endl;
-                    this->deviceList[dev_index]->proc_message(dmsg);
+                    this->deviceList.at(dev_index).proc_message(dmsg);
                     //Translation of the callback happens at the network manage
                     this->sendCallback(dev_index); 
                 }
@@ -153,9 +153,9 @@ void Client::listener(){
 
             // Begin the timers only when the call is made
             for(Timer &timer : this->start_timers){
-                auto device = this->deviceList[timer.device_num]; 
+                auto& device = this->deviceList.at(timer.device_num); 
 
-                if(!device->hasInterrupt()){
+                if(!device.hasInterrupt()){
                     std::cout<<"build timer with period: "<<timer.period<<std::endl;
                     this->client_ticker[timer.id] = std::make_unique<DeviceTimer>(this->client_ctx, device, this->client_connection, this->controller_alias, timer.device_num, timer.id); 
                     // Initiate the timer
@@ -166,10 +166,10 @@ void Client::listener(){
              // populate the Device interruptors; 
              for(auto& pair : this->deviceList){
                 
-                auto dev = pair.second;
+                auto& dev = pair.second;
                 auto dev_id = pair.first;  
              
-                if(dev->hasInterrupt()){
+                if(dev.hasInterrupt()){
                     // Organizes the device interrupts
                     auto omar = std::make_unique<DeviceInterruptor>(dev, this->client_connection, this->global_interrupts, this->controller_alias, dev_id); 
                     omar->setupThreads(); 

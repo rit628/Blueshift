@@ -69,13 +69,10 @@ class AbstractDevice {
         std::vector<Interrupt_Desc>& getIdescList();
 };
 
-// Device reciever object returns and sets up an object 
-std::shared_ptr<AbstractDevice> getDevice(DEVTYPE dtype, std::unordered_map<std::string, std::string> &port_nums, int device_alias);
-
 // Device Timer used for configuring polling rates dynamically; 
 class DeviceTimer{
     private: 
-        std::shared_ptr<AbstractDevice> device; 
+        AbstractDevice& device; 
         std::unordered_map<std::string, std::deque<float>> attr_history;  
         std::unordered_map<std::string, float> vol_map; 
         int ctl_code; 
@@ -98,7 +95,7 @@ class DeviceTimer{
         std::chrono::milliseconds getRemainingTime();
 
     public: 
-        DeviceTimer(boost::asio::io_context &in_ctx, std::shared_ptr<AbstractDevice> abs, std::shared_ptr<Connection> cc, int ctl, int dev, int id)
+        DeviceTimer(boost::asio::io_context &in_ctx, AbstractDevice& abs, std::shared_ptr<Connection> cc, int ctl, int dev, int id)
         : device(abs), ctl_code(ctl), device_code(dev), timer_id(id), conex(cc), ctx(in_ctx), timer(ctx) {}
 
         void timerCallback();
@@ -114,7 +111,7 @@ class DeviceTimer{
 */
 class DeviceInterruptor{
     private: 
-        std::shared_ptr<AbstractDevice> abs_device; 
+        AbstractDevice& abs_device; 
         std::shared_ptr<Connection> client_connection; 
         std::thread watcherManagerThread;
         std::vector<std::thread> &globalWatcherThreads; 
@@ -133,7 +130,7 @@ class DeviceInterruptor{
         
     public: 
         // Device Interruptor
-        DeviceInterruptor(std::shared_ptr<AbstractDevice> targDev,  std::shared_ptr<Connection> conex, std::vector<std::thread> &gWT, int ctl, int dd)
+        DeviceInterruptor(AbstractDevice& targDev,  std::shared_ptr<Connection> conex, std::vector<std::thread> &gWT, int ctl, int dd)
         : abs_device(targDev), client_connection(conex), globalWatcherThreads(gWT), ctl_code(ctl), device_code(dd) {}
         // Setup Watcher Thread
         void setupThreads();

@@ -97,24 +97,6 @@ std::vector<Interrupt_Desc>& AbstractDevice::getIdescList() {
     }, device);
 }
 
-std::shared_ptr<AbstractDevice> getDevice(DEVTYPE dtype, std::unordered_map<std::string, std::string> &port_nums, int device_alias) {
-    switch(dtype){
-        #define DEVTYPE_BEGIN(name) \
-        case DEVTYPE::name: { \
-            return std::make_shared<AbstractDevice>(dtype, port_nums); \
-        }
-        #define ATTRIBUTE(...)
-        #define DEVTYPE_END
-        #include "DEVTYPES.LIST"
-        #undef DEVTYPE_BEGIN
-        #undef ATTRIBUTE
-        #undef DEVTYPE_END
-        default : {
-            throw std::invalid_argument("Unknown dtype accessed!"); 
-        }
-    }
-}; 
-
 std::chrono::milliseconds DeviceTimer::getRemainingTime() {
     auto now_time = std::chrono::steady_clock::now(); 
     auto timer_exp = timer.expires_at(); 
@@ -190,7 +172,7 @@ void DeviceTimer::sendData() {
     SentMessage smsg; 
 
     DynamicMessage dmsg; 
-    this->device->read_data(dmsg); 
+    this->device.read_data(dmsg); 
 
     // Extract numerical data about the fields and add to the src: 
     dmsg.getFieldVolatility(this->attr_history, VOLATILITY_LIST_SIZE); 
@@ -228,7 +210,7 @@ void DeviceInterruptor::sendMessage() {
     sm.header.volatility = 0; 
 
     DynamicMessage dmsg; 
-    this->abs_device->read_data(dmsg); 
+    this->abs_device.read_data(dmsg); 
     sm.body = dmsg.Serialize(); 
 
     sm.header.body_size = sm.body.size() ; 
@@ -254,10 +236,10 @@ void DeviceInterruptor::enableWatchers() {
 
 void DeviceInterruptor::manageWatchers() {
     while (true) {
-        auto& m = this->abs_device->m;
-        auto& cv = this->abs_device->cv;
-        auto& processing = this->abs_device->processing;
-        auto& watchersPaused = this->abs_device->watchersPaused;
+        auto& m = this->abs_device.m;
+        auto& cv = this->abs_device.cv;
+        auto& processing = this->abs_device.processing;
+        auto& watchersPaused = this->abs_device.watchersPaused;
         {
             std::unique_lock lk(m);
             cv.wait(lk, [&processing] { return processing; });
@@ -318,7 +300,7 @@ void DeviceInterruptor::IFileWatcher(std::string fname, std::function<bool()> ha
         }
 
         bool ret_val = handler(); 
-        if(ret_val && !this->abs_device->processing){
+        if(ret_val && !this->abs_device.processing){
             std::cerr<<"Sending message"<<std::endl;
             this->sendMessage();  
         }
@@ -353,7 +335,7 @@ void DeviceInterruptor::IGpioWatcher(int portNum, std::function<bool(int, int , 
 
 void DeviceInterruptor::setupThreads() {
     // Create the threads
-    for(auto& idesc : this->abs_device->getIdescList()){
+    for(auto& idesc : this->abs_device.getIdescList()){
         switch(idesc.src_type){
             case(SrcType::UNIX_FILE) : {
                 this->globalWatcherThreads.emplace_back([idesc, this](){
