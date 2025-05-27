@@ -1,3 +1,3 @@
-FROM debian:12-slim
+FROM dtcooper/raspberrypi-os:bookworm
 
-RUN apt-get update && apt-get install -y build-essential
+RUN apt-get update && apt-get install -y build-essential pigpio

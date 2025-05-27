@@ -1,7 +1,6 @@
 # TODO: fix redundant rebuilds when using this toolchain 
 
 # TARGET CONFIG
-set(TARGET_NAME rpi64)
 set(CMAKE_SYSTEM_NAME Linux)
 set(CMAKE_SYSTEM_PROCESSOR arm64)
 
@@ -31,3 +30,6 @@ set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 # CONDITIONAL COMPILATION VARIABLES
 add_compile_definitions(CONTROLLER_TARGET="RPI64")
 add_compile_definitions(__RPI64__)
+
+# REQUIRED LIBS
+set(SYSTEM_LINK_LIBRARIES pigpio)
