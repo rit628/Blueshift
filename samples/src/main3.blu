@@ -1,0 +1,19 @@
+oblock reciever(LINE_WRITER tomas_lw, FILE_LOG log_item){
+    log_item.add_msg = tomas_lw.msg; 
+}
+
+oblock sender(LINE_WRITER rohan_lw, FILE_LOG tomas_sys){
+    tomas_sys.
+}
+
+
+
+
+setup(){
+    vibe code
+
+
+
+    LINE_WRITER lw = "TOMAS::file-outMsg.txt";
+    FILE_LOG fl = "ROHANS::file-inMsg.txt"; 
+}

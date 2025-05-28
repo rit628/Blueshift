@@ -90,6 +90,7 @@ bool MasterNM::start(){
         // Start the context thread
         listenForConnections(); 
         this->ctx_thread = std::thread([this](){this->master_ctx.run();}); 
+        // This is bad (its wasting a lot of CPU cycles)
         this->updateThread = std::thread([this](){this->update();});
      
         if(this->bcast_thread.joinable()){
@@ -97,8 +98,6 @@ bool MasterNM::start(){
         }
     
         this->readerThread = std::thread([this](){this->masterRead();}); 
-
-       
 
         return true; 
 
@@ -210,7 +209,7 @@ void MasterNM::messageAllClients(const SentMessage &sm){
 // Reads a state and write it to the queue
 void MasterNM::masterRead(){
 
-    while(1){
+    while(true){
 
         // Send the normal message:
 
@@ -254,12 +253,10 @@ void MasterNM::masterRead(){
 }
 
 void MasterNM::update(){
-    while(1){
-        while(!this->in_queue.isEmpty()){
-            auto omar = this->in_queue.read();
-            std::cout<<"Recieved the message"<<std::endl; 
-            this->handleMessage(omar);
-        }
+    while(true){
+        auto omar = this->in_queue.read();
+        std::cout<<"Recieved the message"<<std::endl; 
+        this->handleMessage(omar);
     }
 }
 
