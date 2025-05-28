@@ -76,7 +76,7 @@ void ExecutionUnit::running(TSM<string, vector<HeapMasterMessage>> &vtypeHMMsMap
 {
     while(true)
     {
-        if(EUcache.isEmpty()) {continue;}
+        //if(EUcache.isEmpty()) {continue;}
         vector<DynamicMasterMessage> currentDMMs = EUcache.read();
         std::unordered_map<DeviceID, HeapMasterMessage> HMMs;
         
