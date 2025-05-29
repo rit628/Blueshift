@@ -3,7 +3,7 @@
 #include "include/LIGHT.hpp"
 #include <pigpio.h>
 
-void Device<TypeDef::LIGHT>::proc_message(DynamicMessage &dmsg) {
+void Device<TypeDef::LIGHT>::processStates(DynamicMessage &dmsg) {
     dmsg.unpackStates(states);
     if (states.on) {
         gpioWrite(this->PIN, PI_ON);
@@ -13,8 +13,8 @@ void Device<TypeDef::LIGHT>::proc_message(DynamicMessage &dmsg) {
     }
 }
 
-void Device<TypeDef::LIGHT>::set_ports(std::unordered_map<std::string, std::string> &src) {
-    this->PIN = std::stoi(src["PIN"]);
+void Device<TypeDef::LIGHT>::init(std::unordered_map<std::string, std::string> &config) {
+    this->PIN = std::stoi(config["PIN"]);
     if (gpioInitialise() == PI_INIT_FAILED) {
             std::cerr << "GPIO setup failed" << std::endl;
             return;
@@ -22,7 +22,7 @@ void Device<TypeDef::LIGHT>::set_ports(std::unordered_map<std::string, std::stri
     gpioSetMode(this->PIN, PI_OUTPUT);
 }
 
-void Device<TypeDef::LIGHT>::read_data(DynamicMessage &dmsg) {
+void Device<TypeDef::LIGHT>::transmitStates(DynamicMessage &dmsg) {
     dmsg.packStates(states);
 }
 

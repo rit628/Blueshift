@@ -51,9 +51,9 @@ concept Driveable = OneOf<T
 template <Driveable T>
 class Device : public DeviceCore {
     public: 
-        void proc_message(DynamicMessage& dmsg);
-        void set_ports(std::unordered_map<std::string, std::string> &src);
-        void read_data(DynamicMessage &newMsg);
+        void processStates(DynamicMessage& dmsg);
+        void init(std::unordered_map<std::string, std::string> &config);
+        void transmitStates(DynamicMessage& dmsg);
 
         friend class AbstractDevice;
 };

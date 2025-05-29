@@ -3,12 +3,12 @@
 #include "include/MOTOR.hpp"
 #include <pigpio.h>
 
-void Device<TypeDef::MOTOR>::set_ports(std::unordered_map<std::string, std::string> &src)
+void Device<TypeDef::MOTOR>::init(std::unordered_map<std::string, std::string> &config)
 {
-    in1_pin  = std::stoi(src.at("IN1"));
-    in2_pin = std::stoi(src.at("IN2"));
-    pwm_pin = std::stoi(src.at("PWM"));
-    pwm_range = std::stoi(src["PWM_RANGE"]);
+    in1_pin  = std::stoi(config.at("IN1"));
+    in2_pin = std::stoi(config.at("IN2"));
+    pwm_pin = std::stoi(config.at("PWM"));
+    pwm_range = std::stoi(config["PWM_RANGE"]);
     if(gpioInitialise() == PI_INIT_FAILED) 
     {
         std::cerr << "GPIO setup failed" << std::endl;
@@ -26,13 +26,13 @@ void Device<TypeDef::MOTOR>::set_ports(std::unordered_map<std::string, std::stri
     gpioSetPWMfrequency(pwm_pin, 1000);
 }
 
-void Device<TypeDef::MOTOR>::proc_message(DynamicMessage &dmsg)
+void Device<TypeDef::MOTOR>::processStates(DynamicMessage &dmsg)
 {
     dmsg.unpackStates(states);
 
 }
 
-void Device<TypeDef::MOTOR>::read_data(DynamicMessage &dmsg)
+void Device<TypeDef::MOTOR>::transmitStates(DynamicMessage &dmsg)
 {
     dmsg.packStates(states);
     apply_speed(states.speed);

@@ -18,7 +18,7 @@ void Client::sendCallback(uint16_t deviceCode){
 
     // Get the latest state from the dmsg
  
-    this->deviceList.at(deviceCode).read_data(dmsg); 
+    this->deviceList.at(deviceCode).transmitStates(dmsg); 
 
     // make message
     sm.body = dmsg.Serialize(); 
@@ -98,8 +98,8 @@ void Client::listener(){
     
                 auto state_change = std::thread([dev_index, dmsg = std::move(dmsg), this](){
                 try{
-                    // std::cout << "proc_message begin" << std::endl;
-                    this->deviceList.at(dev_index).proc_message(dmsg);
+                    // std::cout << "processStates begin" << std::endl;
+                    this->deviceList.at(dev_index).processStates(dmsg);
                     //Translation of the callback happens at the network manage
                     this->sendCallback(dev_index); 
                 }

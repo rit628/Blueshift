@@ -13,8 +13,8 @@ class Device<TypeDef::MOTOR> : public DeviceCore {
         
     public:
         ~Device();
-        void proc_message(DynamicMessage &dmsg);
-        void set_ports(std::unordered_map<std::string, std::string> &src);
-        void read_data(DynamicMessage &dmsg);
+        void processStates(DynamicMessage &dmsg);
+        void init(std::unordered_map<std::string, std::string> &config);
+        void transmitStates(DynamicMessage &dmsg);
         void apply_speed(int speed);
 };

@@ -12,7 +12,7 @@ AbstractDevice::AbstractDevice(DEVTYPE dtype, std::unordered_map<std::string, st
         #define DEVTYPE_BEGIN(name) \
         case DEVTYPE::name: { \
             this->device.emplace<Device<TypeDef::name>>(); \
-            this->set_ports(port_nums); \
+            this->init(port_nums); \
             break; \
         }
         #define ATTRIBUTE(...)
@@ -27,16 +27,16 @@ AbstractDevice::AbstractDevice(DEVTYPE dtype, std::unordered_map<std::string, st
     }
 }
 
-void AbstractDevice::proc_message_impl(DynamicMessage& input) {
+void AbstractDevice::processStatesImpl(DynamicMessage& input) {
     std::visit(overloads {
         [](std::monostate&) {},
-        [&input](auto& dev) { dev.proc_message(input); }
+        [&input](auto& dev) { dev.processStates(input); }
     }, device);
 }
 
-void AbstractDevice::proc_message(DynamicMessage input) {
+void AbstractDevice::processStates(DynamicMessage dmsg) {
     if (!hasInterrupt()) {
-        proc_message_impl(input);
+        processStatesImpl(dmsg);
         return;
     }
     // wait for interruptors to stop
@@ -62,24 +62,24 @@ void AbstractDevice::proc_message(DynamicMessage input) {
     // tell interruptors to start again
     {
         std::lock_guard lk(m);
-        proc_message_impl(input);
+        processStatesImpl(dmsg);
         processing = false;
     }
     // std::cout << "step 6: processing to false, notify manageWatcher" << std::endl;
     cv.notify_one();
 }
 
-void AbstractDevice::set_ports(std::unordered_map<std::string, std::string> &src) {
+void AbstractDevice::init(std::unordered_map<std::string, std::string> &config) {
     std::visit(overloads {
         [](std::monostate&) {},
-        [&src](auto& dev) { dev.set_ports(src); }
+        [&config](auto& dev) { dev.init(config); }
     }, device);
 }
 
-void AbstractDevice::read_data(DynamicMessage &newMsg) {
+void AbstractDevice::transmitStates(DynamicMessage &dmsg) {
     std::visit(overloads {
         [](std::monostate&) {},
-        [&newMsg](auto& dev) { dev.read_data(newMsg); }
+        [&dmsg](auto& dev) { dev.transmitStates(dmsg); }
     }, device);
 }
 
@@ -172,7 +172,7 @@ void DeviceTimer::sendData() {
     SentMessage smsg; 
 
     DynamicMessage dmsg; 
-    this->device.read_data(dmsg); 
+    this->device.transmitStates(dmsg); 
 
     // Extract numerical data about the fields and add to the src: 
     dmsg.getFieldVolatility(this->attr_history, VOLATILITY_LIST_SIZE); 
@@ -210,7 +210,7 @@ void DeviceInterruptor::sendMessage() {
     sm.header.volatility = 0; 
 
     DynamicMessage dmsg; 
-    this->abs_device.read_data(dmsg); 
+    this->abs_device.transmitStates(dmsg); 
     sm.body = dmsg.Serialize(); 
 
     sm.header.body_size = sm.body.size() ; 
@@ -244,28 +244,28 @@ void DeviceInterruptor::manageWatchers() {
             std::unique_lock lk(m);
             cv.wait(lk, [&processing] { return processing; });
         }
-        // std::cout << "step 3: aquired lock from proc_message after init" << std::endl;
+        // std::cout << "step 3: aquired lock from processStates after init" << std::endl;
 
         {
             std::lock_guard lk(m);
             disableWatchers();
             watchersPaused = true;
         }
-        // std::cout << "step 4: watchersPaused to true, notify proc_message" << std::endl;
+        // std::cout << "step 4: watchersPaused to true, notify processStates" << std::endl;
         cv.notify_one();
 
         {
             std::unique_lock lk(m);
             cv.wait(lk, [&processing] { return !processing; });
         }
-        // std::cout << "step 7: aquired lock from proc_message after processing" << std::endl;
+        // std::cout << "step 7: aquired lock from processStates after processing" << std::endl;
 
         {
             std::lock_guard lk(m);
             enableWatchers();
             watchersPaused = false;
         }
-        // std::cout << "step 8: watchersPaused to false, notify proc_message" << std::endl;
+        // std::cout << "step 8: watchersPaused to false, notify processStates" << std::endl;
         cv.notify_one();
     }
 }

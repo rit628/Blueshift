@@ -51,7 +51,7 @@ class AbstractDevice {
 
         device_t device;
 
-        void proc_message_impl(DynamicMessage& input);
+        void processStatesImpl(DynamicMessage& input);
     
     public:
         uint16_t id; 
@@ -62,9 +62,9 @@ class AbstractDevice {
         bool watchersPaused = false;
 
         AbstractDevice(DEVTYPE dtype, std::unordered_map<std::string, std::string> &port_nums);
-        void proc_message(DynamicMessage input);
-        void set_ports(std::unordered_map<std::string, std::string> &src);
-        void read_data(DynamicMessage &newMsg);
+        void processStates(DynamicMessage input);
+        void init(std::unordered_map<std::string, std::string> &config);
+        void transmitStates(DynamicMessage &dmsg);
         bool hasInterrupt();
         std::vector<Interrupt_Desc>& getIdescList();
 };

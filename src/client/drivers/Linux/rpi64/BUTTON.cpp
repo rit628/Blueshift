@@ -22,8 +22,8 @@ bool Device<TypeDef::BUTTON>::handleInterrupt(int gpio, int level, uint32_t tick
 
 }
 
-void Device<TypeDef::BUTTON>::set_ports(std::unordered_map<std::string, std::string> &src) {
-    this->PIN = std::stoi(src.at("PIN"));
+void Device<TypeDef::BUTTON>::init(std::unordered_map<std::string, std::string> &config) {
+    this->PIN = std::stoi(config.at("PIN"));
     this->lastPress = std::chrono::high_resolution_clock::now();
     if (gpioInitialise() == PI_INIT_FAILED) 
     {
@@ -38,12 +38,12 @@ void Device<TypeDef::BUTTON>::set_ports(std::unordered_map<std::string, std::str
     addGPIOIWatch(this->PIN, bound);
 }
 
-void Device<TypeDef::BUTTON>::proc_message(DynamicMessage &dmsg) {
+void Device<TypeDef::BUTTON>::processStates(DynamicMessage &dmsg) {
     // should do nothing
     dmsg.unpackStates(states);
 }
 
-void Device<TypeDef::BUTTON>::read_data(DynamicMessage &dmsg) {
+void Device<TypeDef::BUTTON>::transmitStates(DynamicMessage &dmsg) {
     dmsg.packStates(states);
 }
 
