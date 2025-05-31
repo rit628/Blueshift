@@ -67,8 +67,8 @@ namespace BlsLang {
             expectedVisits.pop();
         }
 
-        expectedVisits.push(std::move(*expectedProcedure.getReturnType()));
-        ast.getReturnType()->get()->accept(*this);
+        expectedVisits.push(std::move(expectedProcedure.getReturnType()));
+        ast.getReturnType()->accept(*this);
         expectedVisits.pop();
 
         auto& expectedStatements = expectedProcedure.getStatements();

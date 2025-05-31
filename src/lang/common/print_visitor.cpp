@@ -229,12 +229,7 @@ BlsObject Printer::visit(AstNode::Statement::If& ast) {
 BlsObject Printer::visit(AstNode::Function::Procedure& ast) {
     os << "AstNode::Function::Procedure {\n  name = " << ast.getName();
     os << "\n  returnType = ";
-    if (ast.getReturnType().has_value()) {
-        ast.getReturnType()->get()->accept(*this);
-    }
-    else {
-        os << "void";
-    }
+    ast.getReturnType()->accept(*this);
     os << "\n  parameterTypes = [";
     for (auto&& type : ast.getParameterTypes()) {
         type->accept(*this);

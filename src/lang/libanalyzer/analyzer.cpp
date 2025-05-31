@@ -35,7 +35,7 @@ BlsObject Analyzer::visit(AstNode::Source& ast) {
 
 BlsObject Analyzer::visit(AstNode::Function::Procedure& ast) {
     auto& procedureName = ast.getName();
-    auto returnType = resolve(ast.getReturnType()->get()->accept(*this));
+    auto returnType = resolve(ast.getReturnType()->accept(*this));
     
     std::vector<BlsType> parameterTypes;
     for (auto&& type : ast.getParameterTypes()) {
