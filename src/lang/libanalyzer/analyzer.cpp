@@ -37,7 +37,7 @@ BlsObject Analyzer::visit(AstNode::Source& ast) {
 
 BlsObject Analyzer::visit(AstNode::Function::Procedure& ast) {
     auto& procedureName = ast.getName();
-    auto returnType = resolve(ast.getReturnType()->get()->accept(*this));
+    auto returnType = resolve(ast.getReturnType()->accept(*this));
     
     // add default constructed literal to pool for non-returning control paths
     // will only be necessary for void once control path checking is implemented

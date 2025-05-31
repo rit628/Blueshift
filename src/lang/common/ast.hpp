@@ -577,22 +577,18 @@ namespace BlsLang {
 
             Function() = default;
             Function(std::string name
-                   , std::optional<std::unique_ptr<AstNode::Specifier::Type>> returnType
                    , std::vector<std::unique_ptr<AstNode::Specifier::Type>> parameterTypes
                    , std::vector<std::string> parameters
                    , std::vector<std::unique_ptr<AstNode::Statement>> statements)
                    : name(std::move(name))
-                   , returnType(std::move(returnType))
                    , parameterTypes(std::move(parameterTypes))
                    , parameters(std::move(parameters))
                    , statements(std::move(statements)) {}
             Function(std::string name
-                   , std::optional<AstNode::Specifier::Type*> returnType
                    , std::initializer_list<AstNode::Specifier::Type*> parameterTypes
                    , std::vector<std::string> parameters
                    , std::initializer_list<AstNode::Statement*> statements)
                    : name(std::move(name))
-                   , returnType(std::move(returnType))
                    , parameterTypes()
                    , parameters(std::move(parameters))
                    , statements()
@@ -607,14 +603,12 @@ namespace BlsLang {
             virtual ~Function() = default;
 
             auto& getName() { return name; }
-            auto& getReturnType() { return returnType; }
             auto& getParameterTypes() { return parameterTypes; }
             auto& getParameters() { return parameters; }
             auto& getStatements() { return statements; }
         
         private:
             std::string name;
-            std::optional<std::unique_ptr<AstNode::Specifier::Type>> returnType;
             std::vector<std::unique_ptr<AstNode::Specifier::Type>> parameterTypes;
             std::vector<std::string> parameters;
             std::vector<std::unique_ptr<AstNode::Statement>> statements;
@@ -624,29 +618,35 @@ namespace BlsLang {
         public:
             Procedure() = default;
             Procedure(std::string name
-                    , std::optional<std::unique_ptr<AstNode::Specifier::Type>> returnType
+                    , std::unique_ptr<AstNode::Specifier::Type> returnType
                     , std::vector<std::unique_ptr<AstNode::Specifier::Type>> parameterTypes
                     , std::vector<std::string> parameters
                     , std::vector<std::unique_ptr<AstNode::Statement>> statements)
             :
             Function(std::move(name)
-                   , std::move(returnType)
                    , std::move(parameterTypes)
                    , std::move(parameters)
-                   , std::move(statements)) {}
+                   , std::move(statements))
+                   , returnType(std::move(returnType)) {}
             Procedure(std::string name
                     , AstNode::Specifier::Type* returnType
                     , std::initializer_list<AstNode::Specifier::Type*> parameterTypes
                     , std::vector<std::string> parameters
                     , std::initializer_list<AstNode::Statement*> statements)
-            : 
+            :
             Function(std::move(name)
-                   , std::move(returnType)
                    , std::move(parameterTypes)
                    , std::move(parameters)
-                   , std::move(statements)) {}
+                   , std::move(statements))
+                   , returnType(returnType) {}
             
+            auto& getReturnType() { return returnType; }
+
             BlsObject accept(Visitor& v) override;
+        
+        private:
+            std::unique_ptr<AstNode::Specifier::Type> returnType;
+
     };
 
     class AstNode::Function::Oblock : public AstNode::Function {
@@ -658,7 +658,6 @@ namespace BlsLang {
                  , std::vector<std::unique_ptr<AstNode::Statement>> statements)
             : 
             Function(std::move(name)
-                   , std::move(std::nullopt)
                    , std::move(parameterTypes)
                    , std::move(parameters)
                    , std::move(statements)) {}
@@ -668,7 +667,6 @@ namespace BlsLang {
                  , std::initializer_list<AstNode::Statement*> statements)
             : 
             Function(std::move(name)
-                   , std::move(std::nullopt)
                    , std::move(parameterTypes)
                    , std::move(parameters)
                    , std::move(statements)) {}
