@@ -59,7 +59,7 @@ class Client{
         // client name used to identify controller
         std::string client_name; 
         // Listens for incoming message and places it into the spot
-        std::thread listenerThread; 
+        std::jthread listenerThread; 
         // use to keep track of the state 
         ClientState curr_state; 
         // sends a callback for a device
@@ -70,17 +70,6 @@ class Client{
         void updateTicker(); 
         // Temp timers 
         std::vector<Timer> start_timers; 
-        // Signal Connection signal Await Thread
-        std::thread signaThread; 
-
-        /*
-            Signal Management: 
-        */
-        bool isListening = true; 
-
-        /*
-            State management information
-        */
                 
         // Ticker table
         std::unordered_map<uint16_t, DeviceTimer> client_ticker;
@@ -95,7 +84,7 @@ class Client{
         void start(); 
 
         // Dispatches messages to jobs when recieved 
-        void listener();
+        void listener(std::stop_token token);
 
         // shutdown
         void shutdown();
