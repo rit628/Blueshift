@@ -1,5 +1,6 @@
 #include "Client.hpp"
 #include "libnetwork/Protocol.hpp"
+#include <functional>
 
 Client::Client(std::string c_name): client_socket(client_ctx), bc_socket(client_ctx, udp::endpoint(udp::v4(), 2988)){
     this->client_name = c_name; 
@@ -36,8 +37,8 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt){
 
 
 
-void Client::listener(){
-    while(this->isListening){
+void Client::listener(std::stop_token token){
+    while(!token.stop_requested()){
 
         auto inMsg = this->in_queue.read().sm; 
         
@@ -223,9 +224,8 @@ bool Client::attemptConnection(boost::asio::ip::address master_address){
         
 
         this->client_connection->connectToMaster(master_endpoint, this->client_name);
-        this->isListening = true; 
 
-        this->listenerThread = std::thread([this](){this->listener();});
+        this->listenerThread = std::jthread(std::bind(&Client::listener, std::ref(*this), std::placeholders::_1));
         this->ctxThread = std::thread([this](){this->client_ctx.run();});   
 
         if(this->listenerThread.joinable()){
@@ -265,23 +265,24 @@ bool Client::disconnect(){
     std::cout<<"Socket Closed"<<std::endl; 
 
     // Kills the device interruptor and timer threads
-    for(auto& interruptPtr : this->interruptors){
-        interruptPtr->killInterrupt(); 
-    }
+    interruptors.clear();
 
     std::cout<<"Interrupt threads killed"<<std::endl; 
 
-    for(auto &pairPtr : this->client_ticker){
-        pairPtr.second->killTimer(); 
-    }
+    client_ticker.clear();
 
     std::cout<<"Timers listeners killed"<<std::endl; 
 
     // Stop the client and listener threads
     this->client_ctx.stop(); 
-    this->isListening = false; 
+    this->listenerThread.request_stop();
 
     std::cout<<"Context and client listener killed"<<std::endl;
+
+    this->deviceList.clear();
+    this->start_timers.clear();
+    
+    std::cout << "Client device data reset" << std::endl;
 
     return true; 
 }

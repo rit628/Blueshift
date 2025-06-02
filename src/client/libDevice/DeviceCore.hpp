@@ -12,6 +12,7 @@
 #include "libnetwork/Connection.hpp"
 #include <mutex>
 #include <sys/inotify.h>
+#include <thread>
 #include <unistd.h> 
 #include <vector>
 
@@ -271,8 +272,8 @@ class DeviceTimer{
             Send(smsg); 
         }
 
-        void killTimer(){
-            this->timer.cancel(); 
+        ~DeviceTimer() {
+            this->timer.cancel();
         }
 
 }; 
@@ -287,10 +288,9 @@ class DeviceInterruptor{
     private: 
         std::shared_ptr<AbstractDevice> abs_device; 
         std::shared_ptr<Connection> client_connection; 
-        std::thread watcherManagerThread;
-        std::vector<std::thread> globalWatcherThreads; 
+        std::jthread watcherManagerThread;
+        std::vector<std::jthread> globalWatcherThreads; 
         std::vector<std::tuple<int, int, std::string>> watchDescriptors;
-        bool isRunning = true; 
         int ctl_code; 
         int device_code; 
 
@@ -334,51 +334,47 @@ class DeviceInterruptor{
             }
         }
 
-        void manageWatchers() {
-            while (this->isRunning) {
-                auto& m = this->abs_device->m;
-                auto& cv = this->abs_device->cv;
-                auto& processing = this->abs_device->processing;
-                auto& watchersPaused = this->abs_device->watchersPaused;
+        void manageWatchers(std::stop_token token) {
+            auto& m = this->abs_device->m;
+            auto& cv = this->abs_device->cv;
+            auto& processing = this->abs_device->processing;
+            auto& watchersPaused = this->abs_device->watchersPaused;
+            while (!token.stop_requested()) {
+                // wait for device to receive a new message to process or for device reset
                 {
                     std::unique_lock lk(m);
-                    cv.wait(lk, [&processing, this] { return (processing || !this->isRunning); });
+                    cv.wait(lk, [&processing, &token] { return (processing || token.stop_requested()); });
                 }
 
-                if(!this->isRunning){
-                    disableWatchers(); 
-                    std::cout<<"Ending manageWatchers thread as isRunning is set to false for  "<<this->device_code<<std::endl; 
-                    break; 
-                }
+                if (token.stop_requested()) break; // break early to avoid unnecessary lock aquisition overhead
 
-                std::cout << "step 3: aquired lock from proc_message after init" << std::endl;
-
+                // disable watchers before message processing
                 {
                     std::lock_guard lk(m);
                     disableWatchers();
                     watchersPaused = true;
                 }
-                std::cout << "step 4: watchersPaused to true, notify proc_message" << std::endl;
                 cv.notify_one();
 
+                // wait for message to process
                 {
                     std::unique_lock lk(m);
                     cv.wait(lk, [&processing] { return !processing; });
                 }
-                std::cout << "step 7: aquired lock from proc_message after processing" << std::endl;
 
+                // re-enable watchers
                 {
                     std::lock_guard lk(m);
                     enableWatchers();
                     watchersPaused = false;
                 }
-                std::cout << "step 8: watchersPaused to false, notify proc_message" << std::endl;
                 cv.notify_one();
             }
+            disableWatchers();
         }
 
         // Add Inotify thread blocking code heres
-        void IFileWatcher(std::string fname, std::function<bool()> handler ){
+        void IFileWatcher(std::stop_token token, std::string fname, std::function<bool()> handler ){
             // Check if the file exists relative to the deviceCore; 
             
             int fd = inotify_init(); 
@@ -398,7 +394,7 @@ class DeviceInterruptor{
 
             // For now we can bypass the metadata and store data for the filesize and stuff;
             char event_buffer[sizeof(inotify_event) + 256]; 
-            while(!this->isRunning){
+            while(!token.stop_requested()){
                 std::cout<<"Waiting for event"<<std::endl;
                 int read_length = read(fd, event_buffer, sizeof(event_buffer)); 
                 std::cout<<"File Written to"<<fname<<std::endl; 
@@ -417,7 +413,7 @@ class DeviceInterruptor{
             }
         }
 
-        void IGpioWatcher(int portNum, std::function<bool()> handler){
+        void IGpioWatcher(std::stop_token token, int portNum, std::function<bool()> handler){
                 std::cerr<<"GPIO Interrupts not yet supported!"<<std::endl; 
         }
         
@@ -435,19 +431,18 @@ class DeviceInterruptor{
         // Setup Watcher Thread
         void setupThreads(){
             // Create the threads
+            auto iFileWatcher = std::bind(&DeviceInterruptor::IFileWatcher, std::ref(*this), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+            auto iGpioWatcher = std::bind(&DeviceInterruptor::IGpioWatcher, std::ref(*this), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+            auto manageWatchers = std::bind(&DeviceInterruptor::manageWatchers, std::ref(*this), std::placeholders::_1);
             for(auto& idesc : this->abs_device->Idesc_list){
                 switch(idesc.src_type){
                     case(SrcType::UNIX_FILE) : {
-                        this->globalWatcherThreads.emplace_back([idesc, this](){
-                            this->IFileWatcher(idesc.file_src, idesc.handler); 
-                        }); 
+                        this->globalWatcherThreads.emplace_back(iFileWatcher, idesc.file_src, idesc.handler); 
                         break; 
                     }
 
                     case(SrcType::GPIO): {
-                        this->globalWatcherThreads.emplace_back([&, this](){
-                            this->IGpioWatcher(idesc.port_num, idesc.handler);         
-                        });
+                        this->globalWatcherThreads.emplace_back(iGpioWatcher, idesc.port_num, idesc.handler);
                         break; 
                     }
 
@@ -456,44 +451,16 @@ class DeviceInterruptor{
                     }
                 }
             }
-            watcherManagerThread = std::thread([this] { this->manageWatchers(); });
+            watcherManagerThread = std::jthread(manageWatchers);
         }
 
-        void killInterrupt(){
-            this->isRunning = false; 
-            this->abs_device->cv.notify_one(); 
-            std::cout<<"Manage watcher thread notified."<<std::endl; 
-            if(this->watcherManagerThread.joinable()){
-                this->watcherManagerThread.join();
+        ~DeviceInterruptor() {
+            for (auto&& watcher : globalWatcherThreads) {
+                watcher.request_stop();
             }
-
-            /*
-                To kill the interrupts from the globalWatcherThreads, 
-                we can loop through the idesc list: 
-            */
-
-            int size = this->abs_device->Idesc_list.size(); 
-            for(int i = 0; i < size ; i++){
-                Interrupt_Desc& idesc = this->abs_device->Idesc_list[i]; 
-                std::thread& watcherThread = this->globalWatcherThreads[i]; 
-                switch(idesc.src_type){
-                    case(SrcType::UNIX_FILE) : {
-                        if(watcherThread.joinable()){
-                            watcherThread.join(); 
-                        }
-                        break; 
-                    }
-                    case(SrcType::GPIO) : {
-                        std::cout<<"GPIO thread joiner to be implemented"<<std::endl; 
-                        break; 
-                    }
-                    default: {
-                        std::cout<<"Unknown default"<<std::endl; 
-                    }
-                }
-            }
+            watcherManagerThread.request_stop();
+            abs_device->cv.notify_one(); // force watcher manager to stop
         }
-
 }; 
 
 
