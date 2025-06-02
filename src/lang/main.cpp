@@ -1,9 +1,17 @@
+#include "include/Common.hpp"
 #include "libcompiler/compiler.hpp"
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <bitset>
+
+// Use a bitmap to quickly evaluate trigger rules. 
+// Assuming hte 
 
 int main() {
+
+
     // sample engine
     BlsLang::Lexer lexer;
     std::string test = \
@@ -18,6 +26,7 @@ int main() {
     too 1.2 .1 -1.2 -.3 -0.5 hooray now time for 
     the ops <= >= != == += -= *= /= ^= %= ++ -- && || . () $ yipee!)";
 
+    /*
     BlsLang::Compiler compiler;
     compiler.compileFile("samples/src/rpi.blu");
 
@@ -66,5 +75,60 @@ int main() {
     //         }
     //     }
     // }
+    /*
+    DeviceDescriptor d1; 
+    DeviceDescriptor d2; 
+    DeviceDescriptor d3; 
+
+    d1.device_name = "dev1"; 
+    d2.device_name = "dev2"; 
+    d3.device_name = "dev3"; 
+
+    OBlockDesc testDesc; 
+    testDesc.customTriggers = true;
+    testDesc.inDevices = {d1, d2, d3}; 
+    testDesc.triggerRules = {{"dev1"}}; 
+    
+    TriggerManager obj(testDesc); 
+    obj.debugPrintRules(); 
+
+    bool dev1Placement = obj.processDevice(d1.device_name); 
+    bool dev2Placement = obj.processDevice(d2.device_name); 
+    std::cout<<"dev1: "<<dev1Placement<<std::endl; 
+    std::cout<<"dev2: "<<dev2Placement<<std::endl; 
+
+    bool dev1p2 = obj.processDevice(d1.device_name); 
+    std::cout<<"dev1p2: "<<dev1p2<<std::endl; 
+    bool dev3 = obj.processDevice(d3.device_name); 
+    std::cout<<"dev3: "<<dev3<<std::endl; 
+
+    bool omar2 = obj.processDevice(d2.device_name); 
+    bool omar1 = obj.processDevice(d1.device_name); 
+
+    std::cout<<"omar2: "<<omar2<<std::endl; 
+    std::cout<<"omar1: "<<omar1<<std::endl; 
+    */ 
+
+
+    
+
+
+
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
     return 0;
+
+    
 }

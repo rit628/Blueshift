@@ -4,16 +4,22 @@
 #include "libTSQ/TSQ.hpp"
 #include "libDM/DynamicMessage.hpp"
 #include "libEM/EM.hpp"
+#include <bitset>
 #include <mutex>
 #include <unordered_map>
 #include <map>
 #include <memory>
 #include <string>
 #include <vector>
+
+
+
 using namespace std;
 
 using OblockID = std::string;
 using DeviceID = std::string; 
+
+# define MAX_EM_QUEUE_FILL 10 
  
 /*
     Contains a single dmsg (without needing the )
@@ -41,6 +47,78 @@ struct AtomicDMMContainer{
         }
 }; 
 
+#define BITSET_SZ 32
+
+
+class TriggerManager{
+    private:   
+        std::bitset<BITSET_SZ> currentBitmap;  
+        std::unordered_map<std::string, int> stringMap; 
+        std::unordered_set<std::bitset<BITSET_SZ>> ruleset; 
+
+    public: 
+        // Device Constructor (created rules)
+        TriggerManager(OBlockDesc& OBlockDesc){
+            int i = 0; 
+            if(OBlockDesc.customTriggers){
+                for(DeviceDescriptor& devDesc : OBlockDesc.inDevices){
+                    if(!devDesc.isVtype){
+                        stringMap[devDesc.device_name] = i; 
+                        i++; 
+                    }
+                }
+
+                // Add the default universal bitset (all 1s): 
+                std::bitset<BITSET_SZ> defaultOption;
+                defaultOption = (1 << (i)) - 1; 
+                this->ruleset.insert(defaultOption); 
+
+                // Loop through rules; 
+                for(auto& rule : OBlockDesc.triggerRules){
+                    std::bitset<BITSET_SZ> king; 
+                    for(auto& devName : rule){
+                        king.set(this->stringMap[devName]); 
+                    }       
+                    ruleset.insert(king); 
+                }
+            }
+            else{
+                
+            }
+        }
+
+        private: 
+            // Tests bit against ruleset: 
+            bool testBit(){
+                return std::ranges::any_of(this->ruleset.begin(), this->ruleset.end(), 
+                    [this](const auto& val){
+                        return (this->currentBitmap & val) == val;
+                    }
+                );
+            }
+
+        public: 
+            // Returns true if the new device corresponds to a trigger 
+            bool processDevice(std::string &object){
+                this->currentBitmap.set(this->stringMap[object]);         
+                bool found = this->testBit(); 
+                if(found){
+                    this->currentBitmap.reset(); 
+                    return true; 
+                }
+                return false; 
+            }
+
+            void debugPrintRules(){
+                for(auto& rule : this->ruleset){
+                    std::cout<<rule<<std::endl; 
+                }
+            }
+
+            void debugCurrentString(){
+                std::cout<<this->currentBitmap<<std::endl; 
+            }
+}; 
 
 
 struct DeviceBox{
@@ -56,67 +134,69 @@ struct DeviceBox{
 struct ReaderBox
 {
     public:
-    std::unordered_map<DeviceID, DeviceBox> waitingQs;
-    bool callbackRecived;
-    bool dropRead;
-    bool dropWrite;
-    bool statesRequested = false;
-    string OblockName;
-    bool pending_requests; 
+        std::unordered_map<DeviceID, DeviceBox> waitingQs;
+        /* 
+            Consists of the ordered list of all triggered events 
+            to be queued up and sent to the execution manager
+        */ 
+        std::vector<std::vector<DynamicMasterMessage>> triggerCache; 
+        TriggerManager triggerMan; 
 
-    void handleRequest(TSQ<vector<DynamicMasterMessage>>& sendEM){
-        // write for loop to handle requests
-        if(pending_requests){
-            int smallestTSQ = 10;
-            bool hasTrigger = false; 
-            bool lastStateWait = false; 
+        bool callbackRecived;
+        bool dropRead = false;
+        bool dropWrite = true;
+        bool statesRequested = false;
+        string OblockName;
+        bool pending_requests; 
+        // Determines if the device state has been initalized (if false dont trigger)
+        bool initComplete = false; 
 
-            std::vector<DynamicMasterMessage> statesToSend; 
-            for(auto& pair : waitingQs){
-                auto& devBox = pair.second; 
-                if(devBox.isTrigger){
-                    hasTrigger = true; 
-                    if((devBox.stateQueues->getSize() < smallestTSQ)){
-                        //std::cout<<"Corresponding to device: "<<devBox.deviceName<<std::endl; 
-                        //std::cout<<"Has state queue: "<<devBox.stateQueues->getSize()<<std::endl; 
-                        smallestTSQ = devBox.stateQueues->getSize();
-                    }
-                }
-                else{
-                    if(!devBox.lastMessage.isInit()){
-                        lastStateWait = true; 
-                        //std::cout<<"Waiting for a last message from a persistent state device"<<std::endl; 
-                        return; 
-                    }
-                }
+
+        // Inserts the state into the object: 
+        // the bool initEvent determines if the event is an initial event or not
+        void insertState(DynamicMasterMessage newDMM){
+            DeviceBox& targDev = this->waitingQs[newDMM.info.device];
+            if(targDev.devDropRead){
+                targDev.stateQueues->clearQueue(); 
             }
+            targDev.stateQueues->write(newDMM); 
+            targDev.lastMessage.replace(newDMM); 
 
-            //std::cout<<"Writing states to with trigger size: "<<smallestTSQ<<std::endl;  
-
-            if((smallestTSQ > 0) && hasTrigger){
-                for(int i = 0; i < smallestTSQ; i++){
-                    std::vector<DynamicMasterMessage> statesToSend; 
-                    for(auto& pair : waitingQs){
-                        auto& devBox = pair.second; 
-                        if(devBox.isTrigger){
-                            auto dmm = devBox.stateQueues->read(); 
-                            statesToSend.push_back(dmm); 
+            if(initComplete){
+                // Begin Trigger Analysis: 
+                bool writeTrig = this->triggerMan.processDevice(newDMM.info.device); 
+                if(writeTrig){
+                    std::vector<DynamicMasterMessage> trigEvent; 
+                    for(auto& [name, devBox] : this->waitingQs){
+                        if(devBox.stateQueues->isEmpty()){
+                            trigEvent.push_back(devBox.stateQueues->read()); 
                         }
                         else{
-                            statesToSend.push_back(devBox.lastMessage.get()); 
+                            trigEvent.push_back(devBox.lastMessage.get());
                         }
                     }
-                    sendEM.write(statesToSend); 
-                }                
+                    this->triggerCache.push_back(trigEvent); 
+                }
             }
             else{
-                std::cout<<"Waiting on a trigger device"<<std::endl; 
+                initComplete = true; 
             }
-        }   
-    }   
+        }
 
-    ReaderBox(bool dropRead, bool dropWrite, string name);
-    ReaderBox() = default;
+        void handleRequest(TSQ<vector<DynamicMasterMessage>>& sendEM){
+            // write for loop to handle requests
+            if(pending_requests){
+                int maxQueueSz = this->triggerCache.size() < MAX_EM_QUEUE_FILL?  triggerCache.size() : MAX_EM_QUEUE_FILL;     
+                for(int i = 0; i < maxQueueSz; i++){
+                    auto dmm = this->triggerCache.back(); 
+                    this->triggerCache.pop_back(); 
+                    sendEM.write(dmm); 
+                }
+            }   
+        }   
+
+        ReaderBox(bool dropRead, bool dropWrite, string name,  OBlockDesc& odesc);
+        ReaderBox() = default;
     
 };
 

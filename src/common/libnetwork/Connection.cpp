@@ -119,7 +119,18 @@ void Connection::readHeader(){
         }
         else{
             std::cerr<<"READ HEADER ERROR: "<<ec.message()<<std::endl; 
-            this->socket.close(); 
+            if(this->own == Owner::CLIENT){
+                std::cout<<"Client Connection detected, reverting to search mode!"<<std::endl; 
+                
+
+            }
+            else{
+                std::cout<<"Master system disconnect, reverting to search mode!"<<std::endl; 
+            }
+
+
+
+            //this->socket.close(); 
         }
     }); 
 }

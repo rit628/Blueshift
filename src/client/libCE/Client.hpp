@@ -72,6 +72,13 @@ class Client{
         void updateTicker(); 
         // Temp timers 
         std::vector<Timer> start_timers; 
+        // Signal Connection signal Await Thread
+        //std::thread signalAwaitThread; 
+
+        /*
+            Signal Management: 
+        */
+        
 
 
         /*
