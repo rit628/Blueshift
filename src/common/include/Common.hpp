@@ -73,12 +73,18 @@ struct OBlockDesc{
     int bytecode_offset; 
     std::vector<DeviceDescriptor> inDevices; 
     std::vector<DeviceDescriptor> outDevices; 
+    std::vector<std::vector<std::string>> triggerRules; 
     
     // Keeping this for the compiler but it should be removed: 
     bool dropRead = false; 
     bool dropWrite = false; 
     bool synchronize_states = false; 
+    /* 
+    If custom descriptor is false then all incoming device states are 
+    triggers
+    */ 
 
+    bool customTriggers = false; 
 
     template<typename Archive>
     void serialize(Archive& ar, const unsigned int version) {

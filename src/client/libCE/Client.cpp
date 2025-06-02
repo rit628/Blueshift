@@ -10,6 +10,8 @@ void Client::start(){
     this->broadcastListen(); 
 }
 
+
+
 void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt){
     // Write code for a callback
     SentMessage sm; 
@@ -159,9 +161,9 @@ void Client::listener(){
                     std::cout<<"build timer with period: "<<timer.period<<std::endl;
                     this->client_ticker[timer.id] = std::make_unique<DeviceTimer>(this->client_ctx, device, this->client_connection, this->controller_alias, timer.device_num, timer.id); 
                     this->client_ticker[timer.id]->setPeriod(timer.period); 
-                    if(!device->isTrigger){
-                        sendMessage(timer.device_num, Protocol::SEND_STATE, false); 
-                    }
+                
+                    sendMessage(timer.device_num, Protocol::SEND_STATE_INIT, false); 
+                    
                 }
             }
 
@@ -172,17 +174,16 @@ void Client::listener(){
                 auto dev_id = pair.first;  
                 
 
+                // Sends the 
                 if(dev->hasInterrupt){
                     // Organizes the device interrupts
                     std::cout<<"Interrupt created!"<<std::endl; 
                     auto omar = std::make_unique<DeviceInterruptor>(dev, this->client_connection, this->global_interrupts, this->controller_alias, dev_id); 
                     omar->setupThreads(); 
                     this->interruptors.push_back(std::move(omar));
-                    if(!dev->isTrigger){
-                        std::cout<<"Sending Initial State"<<std::endl; 
-                        sendMessage(dev_id, Protocol::SEND_STATE, true); 
-                    }
-                }   
+                    std::cout<<"Sending Initial State"<<std::endl; 
+                    sendMessage(dev_id, Protocol::SEND_STATE_INIT, true); 
+                }               
             }
 
         }
