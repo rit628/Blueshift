@@ -242,6 +242,7 @@ bool Client::attemptConnection(boost::asio::ip::address master_address){
         
 
         this->client_connection->connectToMaster(master_endpoint, this->client_name);
+        this->isListening = true; 
 
         this->listenerThread = std::jthread(std::bind(&Client::listener, std::ref(*this), std::placeholders::_1));
         this->ctxThread = std::jthread([this](){this->client_ctx.run();});   
