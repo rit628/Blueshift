@@ -38,7 +38,7 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt){
 
 
 void Client::listener(){
-    while(true){
+    while(this->isListening){
 
         auto inMsg = this->in_queue.read().sm; 
         
@@ -116,8 +116,6 @@ void Client::listener(){
                 });
 
                 state_change.detach(); 
-
-
             }
             else{
                 std::cout<<"Cannot process state change until configuration is complete"<<std::endl; 
@@ -181,13 +179,14 @@ void Client::listener(){
                     std::cout<<"Interrupt created!"<<std::endl; 
                     auto& omar = this->interruptors.emplace_back(dev, this->client_connection, this->global_interrupts, this->controller_alias, dev_id);
                     omar.setupThreads();
-                    if(!dev.isTrigger()){
-                        std::cout<<"Sending Initial State"<<std::endl; 
-                        sendMessage(dev_id, Protocol::SEND_STATE_INIT, true); 
-                    }
+                    std::cout<<"Sending Initial State"<<std::endl; 
+                    sendMessage(dev_id, Protocol::SEND_STATE_INIT, true); 
                 }   
             }
-
+        }
+        else if(ptype == Protocol::CONNECTION_LOST){
+            std::cout<<"Connection lost detected by Client"<<std::endl; 
+            this->disconnect(); 
         }
         else{
             std::cout<<"Unknown protocol message!"<<std::endl; 
@@ -197,7 +196,7 @@ void Client::listener(){
 }
 
 void Client::broadcastListen(){
-    while(1){
+    while(true){
         std::cout<<"CLIENT: waiting for client connection"<<std::endl; 
         std::vector<char> buffer(MAX_NAME_LEN); 
         udp::endpoint master_endpoint; 
@@ -220,8 +219,10 @@ void Client::broadcastListen(){
 bool Client::attemptConnection(boost::asio::ip::address master_address){
     try{
         tcp::endpoint master_endpoint(master_address, MASTER_PORT); 
+        
 
         this->client_connection->connectToMaster(master_endpoint, this->client_name);
+        this->isListening = true; 
 
         this->listenerThread = std::thread([this](){this->listener();});
         this->ctxThread = std::thread([this](){this->client_ctx.run();});   
@@ -235,6 +236,9 @@ bool Client::attemptConnection(boost::asio::ip::address master_address){
             this->ctxThread.join(); 
         }
 
+        //this->start(); 
+
+    
         std::cout<<this->client_name + " Connection successful!"<<std::endl; 
 
         return true; 
@@ -247,47 +251,38 @@ bool Client::attemptConnection(boost::asio::ip::address master_address){
 }
 
 
-// TO BE COMPLETED BY PHASE 3
-bool Client::connectTo(const std::string &endpt, const uint16_t port){
-    try{
-        
-        boost::asio::ip::tcp::resolver resolver(this->client_ctx); 
-        auto results = resolver.resolve(endpt, std::to_string(port)); 
-        std::string omar = results.begin()->endpoint().address().to_string(); 
-
-        this->client_connection = std::make_shared<Connection>(
-            this->client_ctx, tcp::socket(this->client_ctx) ,Owner::CLIENT, this->in_queue, omar
-        ); 
-
-        this->client_connection->connectToServer(results); 
-
-        return true; 
-
-    }
-    catch(std::exception e){
-        std::cout<<"ERROR: "<<e.what()<<std::endl; 
-        return false; 
-    }
-}
-
-
 bool Client::isConnected(){
     return this->client_connection->isConnected(); 
 }
 
 bool Client::disconnect(){
+    // Closes the socket
     if(this->client_connection->isConnected()){
         this->client_connection->disconnect(); 
+    }   
+
+    std::cout<<"Socket Closed"<<std::endl; 
+
+    // Kills the device interruptor and timer threads
+    for(auto& interruptPtr : this->interruptors){
+        interruptPtr->killInterrupt(); 
     }
 
+    std::cout<<"Interrupt threads killed"<<std::endl; 
+
+    for(auto &pairPtr : this->client_ticker){
+        pairPtr.second->killTimer(); 
+    }
+
+    std::cout<<"Timers listeners killed"<<std::endl; 
+
+    // Stop the client and listener threads
     this->client_ctx.stop(); 
+    this->isListening = false; 
 
-    if(this->ctxThread.joinable()){
-        this->ctxThread.join(); 
-    }
+    std::cout<<"Context and client listener killed"<<std::endl;
 
     return true; 
-
 }
 
 
