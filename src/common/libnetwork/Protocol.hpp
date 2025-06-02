@@ -32,12 +32,15 @@ enum class Protocol : uint8_t{
     SHUTDOWN, 
     TICKER_INITIAL, 
 
-    // (Client -> Master
+    // (Client -> Master)
     CONFIG_NAME, 
     SEND_STATE_INIT, 
     SEND_STATE, 
     CONFIG_ERROR,
     CALLBACK, 
+
+    // Client Loop back
+    CONNECTION_LOST
 
  
 }; 

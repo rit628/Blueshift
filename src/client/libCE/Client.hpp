@@ -60,8 +60,6 @@ class Client{
         std::string client_name; 
         // Listens for incoming message and places it into the spot
         std::thread listenerThread; 
-        // Runs the reader thread and the
-        std::thread readerThread; 
         // use to keep track of the state 
         ClientState curr_state; 
         // sends a callback for a device
@@ -73,13 +71,12 @@ class Client{
         // Temp timers 
         std::vector<Timer> start_timers; 
         // Signal Connection signal Await Thread
-        //std::thread signalAwaitThread; 
+        std::thread signaThread; 
 
         /*
             Signal Management: 
         */
-        
-
+        bool isListening = true; 
 
         /*
             State management information

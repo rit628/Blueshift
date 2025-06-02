@@ -47,7 +47,7 @@ struct AtomicDMMContainer{
         }
 }; 
 
-#define BITSET_SZ 32
+#define BITSET_SZ sizeof(uint8_t)
 
 
 class TriggerManager{
