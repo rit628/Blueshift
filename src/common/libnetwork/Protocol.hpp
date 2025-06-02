@@ -31,7 +31,7 @@ enum class Protocol : uint8_t{
     TICKER_INITIAL, 
     MASTER_ERROR, 
 
-    // (Client -> Master)
+    // (Client -> Master
     CONFIG_NAME, 
     SEND_STATE_INIT, 
     SEND_STATE, 
