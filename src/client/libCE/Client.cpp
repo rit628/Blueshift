@@ -11,6 +11,8 @@ void Client::start(){
     this->broadcastListen(); 
 }
 
+
+
 void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt){
     // Write code for a callback
     SentMessage sm; 
@@ -181,7 +183,7 @@ void Client::listener(){
                     omar.setupThreads();
                     if(!dev.isTrigger()){
                         std::cout<<"Sending Initial State"<<std::endl; 
-                        sendMessage(dev_id, Protocol::SEND_STATE, true); 
+                        sendMessage(dev_id, Protocol::SEND_STATE_INIT, true); 
                     }
                 }   
             }

@@ -29,13 +29,9 @@ class ExecutionUnit
     bool stop = false;
     std::unordered_map<std::string, int> devicePositionMap; 
 
-
-    ExecutionUnit(OBlockDesc OblockData, vector<string> devices, vector<bool> isVtype, vector<string> controllers, 
-        TSM<string, vector<HeapMasterMessage>> &vtypeHMMsMap, TSQ<DynamicMasterMessage> &sendMM, 
-        function<vector<BlsType>(vector<BlsType>)>  transform_function);
-    void running( TSM<string, vector<HeapMasterMessage>> &vtypeHMMsMap, TSQ<DynamicMasterMessage> &sendMM);
+    ExecutionUnit(OBlockDesc OblockData, vector<string> devices, vector<bool> isVtype, vector<string> controllers, TSQ<DynamicMasterMessage> &sendMM, function<vector<BlsType>(vector<BlsType>)>  transform_function);
+    void running( TSQ<DynamicMasterMessage> &sendMM);
    
-    //vector<shared_ptr<HeapDescriptor>> transformState(vector<shared_ptr<HeapDescriptor>> HMM_List);
     function<vector<BlsType>(vector<BlsType>)>  transform_function;
     ~ExecutionUnit();
 };
@@ -47,13 +43,14 @@ class ExecutionManager
     ExecutionManager(vector<OBlockDesc> OblockList, TSQ<vector<DynamicMasterMessage>> &readMM, 
         TSQ<DynamicMasterMessage> &sendMM, 
         std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks);
+
     ExecutionUnit &assign(DynamicMasterMessage DMM);
+
     void running();
+
     TSQ<vector<DynamicMasterMessage>> &readMM;
     TSQ<DynamicMasterMessage> &sendMM;
     unordered_map<string, unique_ptr<ExecutionUnit>> EU_map;
     vector<OBlockDesc> OblockList;
-    //vector<HeapMasterMessage> vtypeHMMs;
-    TSM<string, vector<HeapMasterMessage>> vtypeHMMsMap;
 };
 

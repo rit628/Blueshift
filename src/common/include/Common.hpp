@@ -112,6 +112,11 @@ struct OBlockDesc{
         Synchronize State: Block until all states of refreshed (true for now)
     */
     bool synchronize_states = false;
+    /* 
+    If custom descriptor is false then all incoming device states are 
+    triggers
+    */ 
+    bool customTriggers = false; 
 
     template<typename Archive>
     void serialize(Archive& ar, const unsigned int version) {

@@ -255,7 +255,7 @@ void MasterNM::masterRead(){
 void MasterNM::update(){
     while(true){
         auto omar = this->in_queue.read();
-        std::cout<<"Recieved the message"<<std::endl; 
+        std::cout<<"Recieved the message MASTER Network Manager"<<std::endl; 
         this->handleMessage(omar);
     }
 }
@@ -300,6 +300,7 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
 
             break; 
         }
+        case(Protocol::SEND_STATE_INIT) :
         case(Protocol::SEND_STATE) : {
             if(this->remConnections == 0){
                 //std::cout<<"SEND STATE DEVICE RECEIVED"<<std::endl; 
