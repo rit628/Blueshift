@@ -186,7 +186,7 @@ void Client::listener(std::stop_token stoken){
             }
 
              // populate the Device interruptors; 
-            for(auto&& [dev_id, dev] : this->deviceList){
+            for(auto&& [dev_id, dev] : this->deviceList) {
                 
                 if(dev.hasInterrupt()){
                     // Organizes the device interrupts
