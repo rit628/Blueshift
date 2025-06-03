@@ -27,10 +27,10 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt){
         this->deviceList.at(deviceCode).transmitStates(dmsg); 
     }
     catch(BlsExceptionClass& bec){
-        this->genBlsException(bec.what(), bec.type());
-        if(bec.isFatal()){
-            throw bec; 
-        }
+        this->genBlsException->SendGenericException(bec.what(), bec.type());
+        //if(bec.isFatal()){
+          //  throw bec; 
+        //}
     }
 
     // make message
@@ -100,9 +100,11 @@ void Client::listener(std::stop_token stoken){
                 }
                 catch(BlsExceptionClass& bec){
                     this->genBlsException->SendGenericException(bec.what(), bec.type()); 
+                    /*
                     if(bec.isFatal()){
                         throw bec;  
                     }
+                    */ 
                 }
             } 
 
@@ -233,6 +235,7 @@ void Client::broadcastListen(){
             this->client_connection = std::make_shared<Connection>(
                 this->client_ctx, tcp::socket(this->client_ctx), Owner::CLIENT, this->in_queue, master_address
             ); 
+            this->client_connection->setName(this->client_name); 
             this->genBlsException = std::make_unique<GenericBlsException>(
                 this->client_connection, Owner::CLIENT
             ); 
