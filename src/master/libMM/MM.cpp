@@ -98,15 +98,16 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
             if(DMM.isInterrupt){
                 std::vector<OblockID> oList = this->interruptName_map[DMM.info.device];
                 for(auto& oid : oList){
-                    if(this->oblockReadMap.contains(oid)){break;}
+                    if(!this->oblockReadMap.contains(oid)){break;}
                     auto& targReadBox = this->oblockReadMap[oid]; 
+                    DMM.info.oblock = oid; 
                     targReadBox->insertState(DMM); 
                     targReadBox->handleRequest(sendEM); 
                 } 
             }
             else{
                 OblockID targId = DMM.info.oblock; 
-                if(this->oblockReadMap.contains(targId)){break;}
+                if(!this->oblockReadMap.contains(targId)){break;}
                 auto& rBox = this->oblockReadMap.at(targId); 
                 rBox->insertState(DMM);
                 rBox->handleRequest(sendEM); 

@@ -11,53 +11,6 @@
 using DMM = DynamicMasterMessage;
 
 
-/*
-Dummy temp function to fill in the arguments 
-into the device descriptors depending on the 
-devtype (THIS SHOULD BE REMOVED WHEN THE DEVICE BINDING 
-METADATA IS PARSED IN THE LANGUAGE)
-*/ 
-
-void filterDevice(DeviceDescriptor &devDesc){
-    switch(devDesc.devtype){
-        case(DEVTYPE::TIMER_TEST) : {
-            devDesc.polling_period = 2000; 
-            break; 
-        }
-        case(DEVTYPE::FILE_LOG): {
-            devDesc.isTrigger = false; 
-            break; 
-        }
-        case(DEVTYPE::READ_FILE) : {   
-            std::cout<<"Set READ FILE"<<std::endl; 
-
-            devDesc.isTrigger = false; 
-            devDesc.dropRead = false; 
-            break;
-        }
-        case(DEVTYPE::LINE_WRITER) : {
-            devDesc.isTrigger = true; 
-            break; 
-        }
-    }
-}
-
-
-void alterBindedDevices(std::vector<OBlockDesc> &descriptors){
-    for(auto& oblock : descriptors){
-        for(auto& devices : oblock.inDevices){
-            filterDevice(devices); 
-        } 
-        for(auto& devices : oblock.outDevices){
-            filterDevice(devices); 
-        }
-        for(auto& devices: oblock.binded_devices){
-            filterDevice(devices); 
-        }
-    }
-
-}
-
 
 /*
     Modifies the Oblock Descriptor with the data derived from the 
@@ -84,6 +37,14 @@ void modifyOblockDesc(std::vector<OBlockDesc> &oDescs,  GlobalContext &gcx){
         for(auto& devId : outMap){
             oblock.outDevices.push_back(devMap[devId]); 
         }   
+
+        // Remove the artifical oblock adder
+        if(oblock.name == "task"){
+            std::cout<<"Establishing trigger rules"<<std::endl; 
+            oblock.customTriggers = true; 
+            oblock.triggerRules = {{"lw", "rfp"}, {"lw"}}; 
+        }
+
     }
 }
 
@@ -111,8 +72,7 @@ int main(int argc, char *argv[]){
 
     // Alter the oblock contexts in the main (REMEMBER TO REMOVE WHEN LANGUAGE IS MADE)
     modifyOblockDesc(oblocks, depGraph); 
-    alterBindedDevices(oblocks); 
-
+    
     // EM and MM
     TSQ<DMM> EM_MM_queue; 
     TSQ<std::vector<DMM>> MM_EM_queue; 
