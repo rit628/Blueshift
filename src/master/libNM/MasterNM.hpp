@@ -59,7 +59,7 @@ class MasterNM{
         // Reader thread (writer thread not necessary as its done by boost asio)
         std::thread readerThread; 
         std::thread updateThread; 
-        bool in_operation; 
+        bool in_operation = false; 
 
         void writeConfig(std::vector<OBlockDesc> &descs); 
 

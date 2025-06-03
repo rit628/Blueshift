@@ -397,7 +397,6 @@ class DeviceInterruptor{
             while(!stoken.stop_requested()){
                 std::cout<<"Waiting for event"<<std::endl;
                 int read_length = read(fd, event_buffer, sizeof(event_buffer)); 
-                std::cout<<"File Written to"<<fname<<std::endl; 
 
                 struct inotify_event* event = (struct inotify_event*)event_buffer; 
                 if (event->mask == IN_IGNORED) {

@@ -47,44 +47,43 @@ struct AtomicDMMContainer{
         }
 }; 
 
-#define BITSET_SZ sizeof(uint8_t)
+#define BITSET_SZ 32
 
 
 class TriggerManager{
     private:   
         std::bitset<BITSET_SZ> currentBitmap;  
+        std::bitset<BITSET_SZ> initBitmap; 
         std::unordered_map<std::string, int> stringMap; 
         std::unordered_set<std::bitset<BITSET_SZ>> ruleset; 
+        
+
 
     public: 
         // Device Constructor (created rules)
         TriggerManager(OBlockDesc& OBlockDesc){
             int i = 0; 
-            if(OBlockDesc.customTriggers){
-                for(DeviceDescriptor& devDesc : OBlockDesc.inDevices){
-                    if(!devDesc.isVtype){
-                        stringMap[devDesc.device_name] = i; 
-                        i++; 
-                    }
-                }
-
-                // Add the default universal bitset (all 1s): 
-                std::bitset<BITSET_SZ> defaultOption;
-                defaultOption = (1 << (i)) - 1; 
-                this->ruleset.insert(defaultOption); 
-
-                // Loop through rules; 
-                for(auto& rule : OBlockDesc.triggerRules){
-                    std::bitset<BITSET_SZ> king; 
-                    for(auto& devName : rule){
-                        king.set(this->stringMap[devName]); 
-                    }       
-                    ruleset.insert(king); 
+            for(DeviceDescriptor& devDesc : OBlockDesc.inDevices){
+                if(!devDesc.isVtype){
+                    stringMap[devDesc.device_name] = i; 
+                    i++; 
                 }
             }
-            else{
-                
+
+            // Add the default universal bitset (all 1s): 
+            std::bitset<BITSET_SZ> defaultOption;
+            defaultOption = (1 << (i)) - 1; 
+            this->ruleset.insert(defaultOption); 
+
+            // Loop through rules; 
+            for(auto& rule : OBlockDesc.triggerRules){
+                std::bitset<BITSET_SZ> king; 
+                for(auto& devName : rule){
+                    king.set(this->stringMap[devName]); 
+                }       
+                ruleset.insert(king); 
             }
+            
         }
 
         private: 
@@ -96,14 +95,25 @@ class TriggerManager{
                     }
                 );
             }
-
         public: 
             // Returns true if the new device corresponds to a trigger 
             bool processDevice(std::string &object){
+                // Pretty much check if the bitmap is filled
+                std::cout<<"What the hell boy"<<std::endl; 
+                int filledMap = pow(2, stringMap.size()) - 1; 
+                std::cout<<"map value: "<<filledMap<<std::endl; 
+                if(this->initBitmap.to_ulong() != filledMap){
+                    this->initBitmap.set(this->stringMap[object]); 
+                    std::cout<<"init bitmap: "<<this->initBitmap<<std::endl; 
+                    return false; 
+                }
+
                 this->currentBitmap.set(this->stringMap[object]);         
                 bool found = this->testBit(); 
+                std::cout<<"KING KING KING"<<std::endl; 
                 if(found){
                     this->currentBitmap.reset(); 
+                    std::cout<<"I LOVE KIIIIIIDS"<<std::endl; 
                     return true; 
                 }
                 return false; 
@@ -148,13 +158,15 @@ struct ReaderBox
         bool statesRequested = false;
         string OblockName;
         bool pending_requests; 
-        // Determines if the device state has been initalized (if false dont trigger)
-        bool initComplete = false; 
 
 
+    
         // Inserts the state into the object: 
         // the bool initEvent determines if the event is an initial event or not
         void insertState(DynamicMasterMessage newDMM){
+            if(!this->waitingQs.contains(newDMM.info.device)){
+                return; 
+            }
             DeviceBox& targDev = this->waitingQs[newDMM.info.device];
             if(targDev.devDropRead){
                 targDev.stateQueues->clearQueue(); 
@@ -162,24 +174,20 @@ struct ReaderBox
             targDev.stateQueues->write(newDMM); 
             targDev.lastMessage.replace(newDMM); 
 
-            if(initComplete){
-                // Begin Trigger Analysis: 
-                bool writeTrig = this->triggerMan.processDevice(newDMM.info.device); 
-                if(writeTrig){
-                    std::vector<DynamicMasterMessage> trigEvent; 
-                    for(auto& [name, devBox] : this->waitingQs){
-                        if(devBox.stateQueues->isEmpty()){
-                            trigEvent.push_back(devBox.stateQueues->read()); 
-                        }
-                        else{
-                            trigEvent.push_back(devBox.lastMessage.get());
-                        }
+
+            // Begin Trigger Analysis: 
+            bool writeTrig = this->triggerMan.processDevice(newDMM.info.device); 
+            if(writeTrig){
+                std::vector<DynamicMasterMessage> trigEvent; 
+                for(auto& [name, devBox] : this->waitingQs){
+                    if(devBox.stateQueues->isEmpty()){
+                        trigEvent.push_back(devBox.stateQueues->read()); 
                     }
-                    this->triggerCache.push_back(trigEvent); 
+                    else{
+                        trigEvent.push_back(devBox.lastMessage.get());
+                    }
                 }
-            }
-            else{
-                initComplete = true; 
+                this->triggerCache.push_back(trigEvent); 
             }
         }
 
