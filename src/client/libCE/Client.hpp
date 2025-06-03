@@ -1,6 +1,8 @@
 #pragma once
 
+#include "include/Common.hpp"
 #include "libDevice/Devices.hpp"
+#include <memory>
 #include <thread>
 #include <shared_mutex>
 #include <unordered_map>
@@ -10,9 +12,7 @@
 using boost::asio::ip::tcp; 
 using boost::asio::ip::udp; 
 
-
 using TimePoint = std::chrono::time_point<std::chrono::high_resolution_clock>; 
-
 
 enum class ClientState{
     // Waiting for broadcast message from the master
@@ -23,8 +23,7 @@ enum class ClientState{
     IN_OPERATION, 
     // The client is in shutdown mode, so its going to sleep
     SHUTDOWN, 
-}; 
-
+};
 
 class Client{
     private: 
@@ -70,6 +69,19 @@ class Client{
         void updateTicker(); 
         // Temp timers 
         std::vector<Timer> start_timers; 
+        // Signal Connection signal Await Thread
+        std::thread signaThread; 
+        // Error Sender: 
+        std::unique_ptr<GenericBlsException> genBlsException; 
+
+        /*
+            Signal Management: 
+        */
+        bool isListening = true; 
+
+        /*
+            State management information
+        */
                 
         // Ticker table
         std::unordered_map<uint16_t, std::unique_ptr<DeviceTimer>> client_ticker;

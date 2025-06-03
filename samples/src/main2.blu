@@ -39,7 +39,7 @@ setup(){
     LINE_WRITER rfp = "CTL1::file-file1.txt";
     READ_FILE mode = "CTL1::file-omar.txt";
     FILE_LOG log = "CTL1::file-logfile.txt";
-    LINE_WRITER drop = "CTL1::file-file2.txt"; 
+    LINE_WRITER drop = "CTL1::file-king.txt"; 
     task(rfp, mode, log); 
     task2(drop); 
 }

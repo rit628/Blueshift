@@ -2,6 +2,8 @@
 #include "libDM/DynamicMessage.hpp"
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/unordered_map.hpp>
+#include <exception>
+#include <stdexcept>
 #include <unordered_set>
 
 enum class PROTOCOLS
@@ -23,6 +25,7 @@ enum class PORTTYPE{
     UART, 
     SPI
 }; 
+
 
 struct DeviceDescriptor{
     std::string device_name; 
@@ -129,3 +132,12 @@ struct HeapMasterMessage
     HeapMasterMessage(std::shared_ptr<HeapDescriptor> heapTree, O_Info info, PROTOCOLS protocol, bool isInterrupt);
     ~HeapMasterMessage() = default;
 };
+
+/*
+    The GenericException class automatically disables 
+    
+*/ 
+
+
+
+

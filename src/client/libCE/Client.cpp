@@ -1,6 +1,10 @@
 #include "Client.hpp"
+#include "include/Common.hpp"
+#include "libnetwork/Connection.hpp"
 #include "libnetwork/Protocol.hpp"
 #include <functional>
+#include <exception>
+#include <stdexcept>
 
 Client::Client(std::string c_name): client_socket(client_ctx), bc_socket(client_ctx, udp::endpoint(udp::v4(), 2988)){
     this->client_name = c_name; 
@@ -13,14 +17,21 @@ void Client::start(){
 }
 
 
-
 void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt){
     // Write code for a callback
     SentMessage sm; 
     DynamicMessage dmsg; 
 
     // Get the latest state from the dmsg
-    this->deviceList[deviceCode]->read_data(dmsg); 
+    try{
+        this->deviceList[deviceCode]->read_data(dmsg); 
+    }
+    catch(BlsExceptionClass& bec){
+        this->genBlsException(bec.what(), bec.type());
+        if(bec.isFatal()){
+            throw bec; 
+        }
+    }
 
     // make message
     sm.body = dmsg.Serialize(); 
@@ -83,10 +94,18 @@ void Client::listener(std::stop_token stoken){
             }
 
             for(int i = 0; i < size; i++){
-                deviceList[device_alias[i]] = getDevice(device_types[i], srcs[i], device_alias[i], triggerList[i]);
+                try{
+                    deviceList[device_alias[i]] = getDevice(device_types[i], srcs[i], device_alias[i], triggerList[i]);
+                }
+                catch(BlsExceptionClass& bec){
+                    this->genBlsException->SendGenericException(bec.what(), bec.type()); 
+                    if(bec.isFatal()){
+                        throw bec;  
+                    }
+                }
             } 
 
-            // Check item: 
+            // Check item:      
             SentMessage sm; 
             sm.header.body_size = 0;
             sm.header.prot = Protocol::CONFIG_OK; 
@@ -150,6 +169,11 @@ void Client::listener(std::stop_token stoken){
         }
         else if(ptype == Protocol::BEGIN){
 
+            if(this->curr_state == ClientState::SHUTDOWN){
+
+            }
+
+
             std::cout<<"CLIENT: Beginning sending process"<<std::endl; 
             this->curr_state = ClientState::IN_OPERATION; 
 
@@ -210,6 +234,9 @@ void Client::broadcastListen(){
             auto master_address = master_endpoint.address().to_string(); 
             this->client_connection = std::make_shared<Connection>(
                 this->client_ctx, tcp::socket(this->client_ctx), Owner::CLIENT, this->in_queue, master_address
+            ); 
+            this->genBlsException = std::make_unique<GenericBlsException>(
+                this->client_connection, Owner::CLIENT
             ); 
 
             this->attemptConnection(master_endpoint.address()); 
