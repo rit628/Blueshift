@@ -2,6 +2,7 @@
 #include "ast.hpp"
 #include "include/Common.hpp"
 #include "libgenerator/generator.hpp"
+#include "dependency_graph.hpp"
 #include "liblexer/lexer.hpp"
 #include "libparser/parser.hpp"
 #include "libinterpreter/interpreter.hpp"
