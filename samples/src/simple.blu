@@ -1,7 +1,8 @@
-int main() {
-    return {1 : ["2"], 2 : []};
+oblock main(LINE_WRITER a) {
+    string x = a.msg;
 }
 
 setup() {
-
+    LINE_WRITER manat = "mamal::file-file1.txt";
+    main(manat);
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include "ast.hpp"
+#include "dependency_graph.hpp"
 #include "liblexer/lexer.hpp"
 #include "libparser/parser.hpp"
 #include "libinterpreter/interpreter.hpp"
@@ -24,6 +25,7 @@ namespace BlsLang {
             Lexer lexer;
             Parser parser;
             Analyzer analyzer;
+            DependencyGraph dependencyGraph;
             Interpreter masterInterpreter;
             std::vector<Interpreter> euInterpreters;
             std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks;
