@@ -64,7 +64,7 @@ class AbstractDevice{
         bool isTrigger = false; 
 
         std::mutex m;
-        std::condition_variable cv;
+        std::condition_variable_any cv;
         bool processing = false;
         bool watchersPaused = false;
 
@@ -334,19 +334,19 @@ class DeviceInterruptor{
             }
         }
 
-        void manageWatchers(std::stop_token token) {
+        void manageWatchers(std::stop_token stoken) {
             auto& m = this->abs_device->m;
             auto& cv = this->abs_device->cv;
             auto& processing = this->abs_device->processing;
             auto& watchersPaused = this->abs_device->watchersPaused;
-            while (!token.stop_requested()) {
+            while (!stoken.stop_requested()) {
                 // wait for device to receive a new message to process or for device reset
                 {
                     std::unique_lock lk(m);
-                    cv.wait(lk, [&processing, &token] { return (processing || token.stop_requested()); });
+                    if (!cv.wait(lk, stoken, [&processing] { return processing; })) {
+                        break; // break early to avoid unnecessary lock aquisition overhead
+                    }
                 }
-
-                if (token.stop_requested()) break; // break early to avoid unnecessary lock aquisition overhead
 
                 // disable watchers before message processing
                 {
@@ -374,7 +374,7 @@ class DeviceInterruptor{
         }
 
         // Add Inotify thread blocking code heres
-        void IFileWatcher(std::stop_token token, std::string fname, std::function<bool()> handler ){
+        void IFileWatcher(std::stop_token stoken, std::string fname, std::function<bool()> handler ){
             // Check if the file exists relative to the deviceCore; 
             
             int fd = inotify_init(); 
@@ -394,7 +394,7 @@ class DeviceInterruptor{
 
             // For now we can bypass the metadata and store data for the filesize and stuff;
             char event_buffer[sizeof(inotify_event) + 256]; 
-            while(!token.stop_requested()){
+            while(!stoken.stop_requested()){
                 std::cout<<"Waiting for event"<<std::endl;
                 int read_length = read(fd, event_buffer, sizeof(event_buffer)); 
                 std::cout<<"File Written to"<<fname<<std::endl; 
@@ -413,7 +413,7 @@ class DeviceInterruptor{
             }
         }
 
-        void IGpioWatcher(std::stop_token token, int portNum, std::function<bool()> handler){
+        void IGpioWatcher(std::stop_token stoken, int portNum, std::function<bool()> handler){
                 std::cerr<<"GPIO Interrupts not yet supported!"<<std::endl; 
         }
         
@@ -459,7 +459,6 @@ class DeviceInterruptor{
                 watcher.request_stop();
             }
             watcherManagerThread.request_stop();
-            abs_device->cv.notify_one(); // force watcher manager to stop
         }
 }; 
 
