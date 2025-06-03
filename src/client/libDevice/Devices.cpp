@@ -1,4 +1,5 @@
 #include "Devices.hpp"
+#include "include/Common.hpp"
 
 using namespace Device;
 
@@ -18,7 +19,9 @@ void TIMER_TEST::set_ports(std::unordered_map<std::string, std::string> &srcs) {
     } 
     else{
         std::cout<<"Could not find file"<<std::endl; 
+        throw BlsExceptionClass("You fucking suck!", ERROR_T::BAD_DEV_CONFIG); 
     }
+
 }
 
 void TIMER_TEST::read_data(DynamicMessage &dmsg) {
@@ -78,6 +81,7 @@ void LINE_WRITER::set_ports(std::unordered_map<std::string, std::string> &src) {
     }
     else{
         std::cout<<"Could not find file"<<std::endl; 
+        throw BlsExceptionClass("LINE WRITER " + this->filename, ERROR_T::BAD_DEV_CONFIG); 
     }
 
     // Add the interrupt and handler
@@ -101,6 +105,7 @@ void READ_FILE::set_ports(std::unordered_map<std::string, std::string> &srcs){
     } 
     else{
         std::cout<<"Could not find file"<<std::endl; 
+        throw BlsExceptionClass("I remember you: " + this->filename, ERROR_T::BAD_DEV_CONFIG); 
     }
     this->addFileIWatch(this->filename); 
 }
@@ -131,6 +136,7 @@ void FILE_LOG::set_ports(std::unordered_map<std::string, std::string> &srcs){
     } 
     else{
         std::cout<<"Could not find file"<<std::endl; 
+        throw BlsExceptionClass("FILE_LOG: " + this->filename, ERROR_T::BAD_DEV_CONFIG); 
     }
 
     this->addFileIWatch(filename, []{return true;}); 
@@ -141,6 +147,7 @@ void FILE_LOG::proc_message_impl(DynamicMessage &dmsg){
     dmsg.unpackStates(this->states); 
     std::cout<<"Processing message: "<<states.add_msg<<std::endl; 
     this->outStream<<this->states.add_msg<<std::endl;; 
+    
 }
 
 void FILE_LOG::read_data(DynamicMessage &dmsg){
