@@ -297,12 +297,11 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
         }
         case(Protocol::CLIENT_ERROR): {
             // For now throw tht g
+            
             std::string error_msg; 
             dmsg.unpack("message", error_msg); 
             std::cout<<error_msg<<std::endl;  
-            if(in_msg.sm.header.ec <= ERROR_T::FATAL_ERROR){
-                throw BlsExceptionClass("unhandled exception " + error_msg, in_msg.sm.header.ec);
-            }
+           
             
             break; 
         }

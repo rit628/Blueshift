@@ -23,23 +23,9 @@ oblock task(LINE_WRITER lw, READ_FILE rfp, FILE_LOG log){
     }   
 }
 
-oblock task2(LINE_WRITER notif){
-    if(notif.msg == "ON "){
-        println("ON RECIEVED!"); 
-    }
-    else if(notif.msg == "OFF "){
-        println("OFF RECEIVED!"); 
-    }
-    else{
-        println("NOTHING"); 
-    }
-}
-
 setup(){   
-    LINE_WRITER rfp = "CTL1::file-file1.txt";
-    READ_FILE mode = "CTL1::file-omar.txt";
+    LINE_WRITER lw = "CTL1::file-file1.txt";
+    READ_FILE rfp = "CTL1::file-omar.txt";
     FILE_LOG log = "CTL1::file-logfile.txt";
-    LINE_WRITER drop = "CTL1::file-king.txt"; 
-    task(rfp, mode, log); 
-    task2(drop); 
+    task(lw, rfp, log); 
 }
