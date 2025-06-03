@@ -1,6 +1,7 @@
 #ifdef __linux__
 
 #include "include/TIMER_TEST.hpp"
+#include "include/Common.hpp"
 
 void Device<TypeDef::TIMER_TEST>::processStates(DynamicMessage& dmsg) {
     dmsg.unpackStates(states);
@@ -15,7 +16,8 @@ void Device<TypeDef::TIMER_TEST>::init(std::unordered_map<std::string, std::stri
         std::cout<<"Could find file"<<std::endl; 
     } 
     else{
-        std::cout<<"Could not find file"<<std::endl; 
+        std::cout<<"Could not find file"<<std::endl;
+        throw BlsExceptionClass("You suck!", ERROR_T::BAD_DEV_CONFIG); 
     }
 }
 

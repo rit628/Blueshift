@@ -34,7 +34,7 @@ class DeviceCore {
         std::mutex m;
         std::condition_variable_any cv;
         bool processing = false;
-        bool watchersPaused = false;
+        bool watchersPaused = false;  
 
 
         // Interrupt watch

@@ -2,6 +2,7 @@
 #ifdef __linux__
 
 #include "include/FILE_LOG.hpp"
+#include "include/Common.hpp"
 
 void Device<TypeDef::FILE_LOG>::processStates(DynamicMessage& dmsg) {
     dmsg.unpackStates(this->states);
@@ -17,6 +18,7 @@ void Device<TypeDef::FILE_LOG>::init(std::unordered_map<std::string, std::string
     } 
     else{
         std::cout<<"Could not find file"<<std::endl; 
+        throw BlsExceptionClass("FILE_LOG: " + this->filename, ERROR_T::BAD_DEV_CONFIG); 
     }
 
     this->addFileIWatch(filename, []{return true;}); 

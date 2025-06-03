@@ -45,7 +45,6 @@ class MasterNM{
         tcp::acceptor master_acceptor; 
         std::thread bcast_thread; 
         TSQ<OwnedSentMessage> in_queue; 
-        
 
         // Ticker 
         MTicker tickerTable; 

@@ -1,6 +1,8 @@
 #include "MasterNM.hpp"
+#include "include/Common.hpp"
 #include "libDM/DynamicMessage.hpp"
 #include <algorithm>
+#include <exception>
 
 
 MasterNM::MasterNM(std::vector<OBlockDesc> &desc_list, TSQ<DMM> &in_msg, TSQ<DMM> &out_q)
@@ -293,11 +295,15 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
 
             break; 
         }
-        case(Protocol::CONFIG_ERROR): {
+        case(Protocol::CLIENT_ERROR): {
+            // For now throw tht g
             std::string error_msg; 
-            dmsg.unpack("__ERROR_MSG__", error_msg); 
-            throw std::runtime_error(error_msg); 
-
+            dmsg.unpack("message", error_msg); 
+            std::cout<<error_msg<<std::endl;  
+            if(in_msg.sm.header.ec <= ERROR_T::FATAL_ERROR){
+                throw BlsExceptionClass("unhandled exception " + error_msg, in_msg.sm.header.ec);
+            }
+            
             break; 
         }
         case(Protocol::SEND_STATE_INIT) :

@@ -2,6 +2,7 @@
 #ifdef __linux__
 
 #include "include/READ_FILE.hpp"
+#include "include/Common.hpp"
 
 void Device<TypeDef::READ_FILE>::processStates(DynamicMessage& dmsg) {
 
@@ -15,6 +16,7 @@ void Device<TypeDef::READ_FILE>::init(std::unordered_map<std::string, std::strin
     }
     else{
         std::cout<<"Could not find file"<<std::endl;
+        throw BlsExceptionClass("I remember you: " + this->filename, ERROR_T::BAD_DEV_CONFIG); 
     }
     this->addFileIWatch(this->filename);
 }

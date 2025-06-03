@@ -86,7 +86,7 @@ std::string& Connection::getIP(){
     return this->ip; 
 }
 
-void Connection::send(const SentMessage &sm){
+void Connection::send(SentMessage sm){
     boost::asio::post(this->ctx, [this, sm](){
         boost::asio::async_write(this->socket, std::array{
             boost::asio::buffer(&sm.header, sizeof(SentHeader)),
@@ -161,4 +161,7 @@ void Connection::addToQueue(int val){
     this->in_tickets.push_front(val); 
     this->readHeader(); 
 }
+
+
+
 

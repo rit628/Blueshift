@@ -29,19 +29,29 @@ enum class Protocol : uint8_t{
     BEGIN, 
     SHUTDOWN, 
     TICKER_INITIAL, 
+    MASTER_ERROR, 
 
     // (Client -> Master)
     CONFIG_NAME, 
     SEND_STATE_INIT, 
     SEND_STATE, 
-    CONFIG_ERROR,
     CALLBACK, 
+    CLIENT_ERROR, 
 
     // Client Loop back
-    CONNECTION_LOST
-
- 
+    CONNECTION_LOST 
 }; 
+
+enum class ERROR_T{
+    BAD_DEV_CONFIG, 
+    INCOMPATIBLE_VERSIONING, 
+    MASTER_DISCONNECT, 
+    FATAL_ERROR,
+    CLIENT_DISCONNECT, 
+    DEVICE_FAILURE, 
+}; 
+
+
 
 /*
     HANDSHAKE CONFIGURATION MESSAGE: 
@@ -75,6 +85,8 @@ struct SentHeader{
     uint8_t device_code = 0; 
     uint32_t body_size = 0; 
     uint16_t timer_id = 0; 
+    ERROR_T ec = ERROR_T::BAD_DEV_CONFIG; 
+
     bool fromInterrupt = false; 
 
     // Set by client

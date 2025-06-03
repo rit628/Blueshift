@@ -3,6 +3,8 @@
 #include "libtype/bls_types.hpp"
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/unordered_map.hpp>
+#include <exception>
+#include <stdexcept>
 #include <optional>
 #include <string>
 #include <variant>
@@ -27,6 +29,7 @@ enum class PORTTYPE{
     UART, 
     SPI
 }; 
+
 
 struct DeviceDescriptor{
     /* Binding/Declaration Attributes */
@@ -165,3 +168,12 @@ struct HeapMasterMessage
     HeapMasterMessage(std::shared_ptr<HeapDescriptor> heapTree, O_Info info, PROTOCOLS protocol, bool isInterrupt);
     ~HeapMasterMessage() = default;
 };
+
+/*
+    The GenericException class automatically disables 
+    
+*/ 
+
+
+
+

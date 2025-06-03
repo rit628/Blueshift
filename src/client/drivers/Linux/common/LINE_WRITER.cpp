@@ -1,6 +1,7 @@
 #ifdef __linux__
 
 #include "include/LINE_WRITER.hpp"
+#include "include/Common.hpp"
 
 void Device<TypeDef::LINE_WRITER>::processStates(DynamicMessage& dmsg) {
     dmsg.unpackStates(states);
@@ -53,6 +54,7 @@ void Device<TypeDef::LINE_WRITER>::init(std::unordered_map<std::string, std::str
     }
     else{
         std::cout<<"Could not find file"<<std::endl; 
+        throw BlsExceptionClass("LINE WRITER " + this->filename, ERROR_T::BAD_DEV_CONFIG);
     }
 
     // Add the interrupt and handler
