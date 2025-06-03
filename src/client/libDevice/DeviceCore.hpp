@@ -2,6 +2,7 @@
 
 #include "libDM/DynamicMessage.hpp"
 #include "libtype/typedefs.hpp"
+#include <condition_variable>
 #include <cstdint>
 #include <fstream>
 #include <functional>
@@ -31,7 +32,7 @@ class DeviceCore {
         bool isTrigger = false;
 
         std::mutex m;
-        std::condition_variable cv;
+        std::condition_variable_any cv;
         bool processing = false;
         bool watchersPaused = false;
 

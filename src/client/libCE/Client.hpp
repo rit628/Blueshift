@@ -36,7 +36,7 @@ class Client{
         // Sets up the boost asio context: 
         boost::asio::io_context client_ctx; 
         // Context must run in its own thread
-        std::thread ctxThread; 
+        std::jthread ctxThread; 
         // Socket that listens for broadcast: 
         boost::asio::ip::udp::socket bc_socket; 
         // Socket that is connected to server
@@ -84,7 +84,7 @@ class Client{
         void start(); 
 
         // Dispatches messages to jobs when recieved 
-        void listener(std::stop_token token);
+        void listener(std::stop_token stoken);
 
         // shutdown
         void shutdown();

@@ -38,8 +38,8 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt){
 
 
 
-void Client::listener(std::stop_token token){
-    while(!token.stop_requested()){
+void Client::listener(std::stop_token stoken){
+    while(!stoken.stop_requested()){
 
         auto inMsg = this->in_queue.read().sm; 
         
@@ -104,7 +104,7 @@ void Client::listener(std::stop_token token){
             if(this->curr_state == ClientState::IN_OPERATION){
                 auto dev_index = inMsg.header.device_code; 
     
-                auto state_change = std::thread([dev_index, dmsg = std::move(dmsg), this](){
+                auto state_change = std::jthread([dev_index, dmsg = std::move(dmsg), this](){
                 try{
                     // std::cout << "processStates begin" << std::endl;
                     this->deviceList.at(dev_index).processStates(dmsg);
@@ -225,7 +225,7 @@ bool Client::attemptConnection(boost::asio::ip::address master_address){
         this->client_connection->connectToMaster(master_endpoint, this->client_name);
 
         this->listenerThread = std::jthread(std::bind(&Client::listener, std::ref(*this), std::placeholders::_1));
-        this->ctxThread = std::thread([this](){this->client_ctx.run();});   
+        this->ctxThread = std::jthread([this](){this->client_ctx.run();});   
 
         if(this->listenerThread.joinable()){
             this->listenerThread.join(); 
