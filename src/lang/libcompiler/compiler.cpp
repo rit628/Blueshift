@@ -35,4 +35,6 @@ void Compiler::compileSource(const std::string& source) {
         auto& oblock = masterOblocks.at(descriptor.name);
         oblocks.emplace(descriptor.name, [&oblock, &interpreter](std::vector<BlsType> v) { return oblock(interpreter, v); });
     }
+    ast->accept(dependencyGraph);
+    std::cout << "kill me" << std::endl;
 }

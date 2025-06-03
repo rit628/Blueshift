@@ -1,5 +1,6 @@
 #pragma once
 #include "ast.hpp"
+#include "dependency_graph.hpp"
 #include "liblexer/lexer.hpp"
 #include "libparser/parser.hpp"
 #include "libinterpreter/interpreter.hpp"
