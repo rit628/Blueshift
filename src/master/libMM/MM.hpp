@@ -49,7 +49,7 @@ struct AtomicDMMContainer{
         }
 }; 
 
-#define BITSET_SZ sizeof(uint8_t)
+#define BITSET_SZ 32
 
 
 class TriggerManager{
@@ -109,8 +109,10 @@ class TriggerManager{
 
                 this->currentBitmap.set(this->stringMap[object]);         
                 bool found = this->testBit(); 
+                std::cout<<"KING KING KING"<<std::endl; 
                 if(found){
                     this->currentBitmap.reset(); 
+                    std::cout<<"I LOVE KIIIIIIDS"<<std::endl; 
                     return true; 
                 }
                 return false; 
