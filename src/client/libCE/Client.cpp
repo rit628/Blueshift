@@ -177,7 +177,7 @@ void Client::listener(std::stop_token stoken){
             for(Timer &timer : this->start_timers){
                 auto& device = this->deviceList.at(timer.device_num); 
 
-                if(!device.hasInterrupt()){
+                if(!device.hasInterrupt()) {
                     std::cout<<"build timer with period: "<<timer.period<<std::endl;
                     this->client_ticker.try_emplace(timer.id, this->client_ctx, device, this->client_connection, this->controller_alias, timer.device_num, timer.id);
                     this->client_ticker.at(timer.id).setPeriod(timer.period);
