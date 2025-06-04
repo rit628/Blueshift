@@ -26,7 +26,7 @@ namespace BlsLang {
                 "OPERATOR"
             };
 
-            Token(Type type, const std::string& literal, size_t absIdx, size_t lineNum, size_t colNum)
+            Token(Type type, const std::string& literal, size_t absIdx = 0, size_t lineNum = 0, size_t colNum = 0)
                 : type(type)
                 , literal(literal)
                 , absIdx(absIdx)
