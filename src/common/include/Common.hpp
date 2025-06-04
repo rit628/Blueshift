@@ -58,7 +58,7 @@ struct OBlockDesc{
 
     std::string name; 
     std::vector<DeviceDescriptor> binded_devices; 
-    int bytecode_offset; 
+    int bytecode_offset = 0; 
 
     // Reading Config
 
@@ -67,8 +67,9 @@ struct OBlockDesc{
         dropWrite: if true -> Only write to mailbox with the callback is open: 
     */
 
-    bool dropRead = true; 
-    bool dropWrite = true; 
+    bool dropRead = false; 
+    bool dropWrite = false; 
+    std::vector<std::vector<std::string>> triggerRules;
 
     // Configuration (all time in milliseconds)
 
@@ -84,6 +85,7 @@ struct OBlockDesc{
         ar & bytecode_offset;
         ar & dropRead;
         ar & dropWrite;
+        ar & triggerRules;
         ar & synchronize_states;
     }
 
