@@ -31,6 +31,8 @@ BlsObject DependencyGraph::visit(AstNode::Expression::Map& ast) {
 }
 
 BlsObject DependencyGraph::visit(AstNode::Expression::Access& ast) {
+    auto& symbolSet = symbolicationQueue.front().get();
+    symbolSet.emplace(ast.getObject()+ "%" + std::to_string(static_cast<int>(ast.getLocalIndex())));
     return std::monostate();
 }
 
@@ -62,12 +64,16 @@ BlsObject DependencyGraph::visit(AstNode::Statement::Declaration& ast) {
     auto lhsSymbol = ast.getName() + "%" + std::to_string(static_cast<int>(ast.getLocalIndex()));
     std::unordered_set<std::string> rhsSymbols;
     if (ast.getValue().has_value()) {
-        rhsSymbols = symbolicate(*ast.getValue()->get());
+        symbolicationQueue.push(rhsSymbols);
+        ast.getValue()->get()->accept(*this);
+        symbolicationQueue.pop();
     }
     std::unordered_map<std::string, DeviceDescriptor> deviceDependencies;
     for (auto&& symbol : rhsSymbols) {
-        auto& rhsDeps = currentSymbolDependencies->at(symbol).deviceDependencies;
-        deviceDependencies.merge(rhsDeps);
+        auto& rhsDevDeps = currentSymbolDependencies->at(symbol).deviceDependencies;
+        auto& rhsSymDeps = currentSymbolDependencies->at(symbol).symbolDependencies;
+        deviceDependencies.merge(rhsDevDeps);
+        rhsSymbols.merge(rhsSymDeps);
     }
     currentSymbolDependencies->emplace(lhsSymbol, DependencyData{
         deviceDependencies,

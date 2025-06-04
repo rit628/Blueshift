@@ -1,5 +1,6 @@
 oblock main(LINE_WRITER a) {
     string x = a.msg;
+    string y = x;
 }
 
 setup() {
