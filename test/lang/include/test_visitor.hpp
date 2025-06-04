@@ -491,4 +491,19 @@ namespace BlsLang {
     
         return true;
     }
+
+    inline BlsObject Tester::visit(AstNode::Initializer::Oblock& ast) {
+        auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
+        auto& expectedType = dynamic_cast<AstNode::Initializer::Oblock&>(*toCast);
+    
+        EXPECT_EQ(expectedType.getOption(), ast.getOption());
+        EXPECT_EQ(expectedType.getArgs().size(), ast.getArgs().size());
+        for (size_t i = 0; i < expectedType.getArgs().size(); i++) {
+            expectedVisits.push(std::move(expectedType.getArgs().at(i)));
+            ast.getArgs().at(i)->accept(*this);
+            expectedVisits.pop();
+        }
+    
+        return true;
+    }
 }

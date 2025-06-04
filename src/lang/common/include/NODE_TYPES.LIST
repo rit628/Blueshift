@@ -3,6 +3,7 @@ AST_NODE_ABSTRACT(AstNode::Function)
 AST_NODE_ABSTRACT(AstNode::Statement)
 AST_NODE_ABSTRACT(AstNode::Expression)
 AST_NODE_ABSTRACT(AstNode::Specifier)
+AST_NODE_ABSTRACT(AstNode::Initializer)
 
 AST_NODE(AstNode::Source)
 AST_NODE(AstNode::Setup)
@@ -31,3 +32,5 @@ AST_NODE(AstNode::Expression::List)
 AST_NODE(AstNode::Expression::Literal)
 
 AST_NODE(AstNode::Specifier::Type)
+
+AST_NODE(AstNode::Initializer::Oblock)

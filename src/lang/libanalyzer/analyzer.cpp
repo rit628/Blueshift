@@ -756,3 +756,7 @@ BlsObject Analyzer::visit(AstNode::Specifier::Type& ast) {
         throw SemanticError("Primitive or devtype cannot include type arguments.");
     }
 }
+
+BlsObject Analyzer::visit(AstNode::Initializer::Oblock& ast) {
+    throw SemanticError("TODO");
+} 
