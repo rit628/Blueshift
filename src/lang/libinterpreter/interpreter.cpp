@@ -534,3 +534,7 @@ BlsObject Interpreter::visit(AstNode::Specifier::Type& ast) {
         break;
     }
 }
+
+BlsObject Interpreter::visit(AstNode::Initializer::Oblock& ast) {
+    return std::monostate(); // Oblock initializers do not need to be visited in interpreter
+}

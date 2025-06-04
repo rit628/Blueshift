@@ -19,6 +19,7 @@ namespace BlsLang {
 
     class AstNode {
         public:
+            class Initializer;
             class Specifier;
             class Expression;
             class Statement;
@@ -30,6 +31,37 @@ namespace BlsLang {
             virtual ~AstNode() = default;
 
             friend std::ostream& operator<<(std::ostream& os, const AstNode& node);
+    };
+
+    class AstNode::Initializer : public AstNode {
+        public:
+            class Oblock;
+
+            virtual ~Initializer() = default;
+    };
+
+    class AstNode::Initializer::Oblock : public AstNode::Initializer {
+        public:
+
+            Oblock() = default;
+            Oblock(std::string option, std::vector<std::unique_ptr<AstNode::Expression>> args)
+                 : option(std::move(option)), args(std::move(args)) {}
+            Oblock(std::string option, std::initializer_list<AstNode::Expression*> args)
+                 : option(std::move(option))
+            {
+                for (auto&& arg : args) {
+                    this->args.push_back(std::unique_ptr<AstNode::Expression>(arg));
+                }
+            }
+
+            BlsObject accept(Visitor& v) override;
+
+            auto& getOption() { return option; }
+            auto& getArgs() { return args; }
+
+        private:
+            std::string option;
+            std::vector<std::unique_ptr<AstNode::Expression>> args;
     };
 
     class AstNode::Specifier : public AstNode {
@@ -655,23 +687,33 @@ namespace BlsLang {
             Oblock(std::string name
                  , std::vector<std::unique_ptr<AstNode::Specifier::Type>> parameterTypes
                  , std::vector<std::string> parameters
+                 , std::vector<std::unique_ptr<AstNode::Initializer::Oblock>> configOptions
                  , std::vector<std::unique_ptr<AstNode::Statement>> statements)
             : 
             Function(std::move(name)
                    , std::move(parameterTypes)
                    , std::move(parameters)
-                   , std::move(statements)) {}
+                   , std::move(statements))
+                   , configOptions(std::move(configOptions)) {}
             Oblock(std::string name
                  , std::initializer_list<AstNode::Specifier::Type*> parameterTypes
                  , std::vector<std::string> parameters
+                 , std::initializer_list<AstNode::Initializer::Oblock*> configOptions
                  , std::initializer_list<AstNode::Statement*> statements)
             : 
             Function(std::move(name)
                    , std::move(parameterTypes)
                    , std::move(parameters)
-                   , std::move(statements)) {}
+                   , std::move(statements))
+            {
+                for (auto&& option : configOptions) {
+                    this->configOptions.push_back(std::unique_ptr<AstNode::Initializer::Oblock>(option));
+                }
+            }
 
             BlsObject accept(Visitor& v) override;
+        private:
+            std::vector<std::unique_ptr<AstNode::Initializer::Oblock>> configOptions;
     };
 
     class AstNode::Setup : public AstNode {

@@ -80,8 +80,8 @@ std::unique_ptr<AstNode::Function> Parser::parseFunction() {
         } while (ts.match(COMMA));
     }
     matchExpectedSymbol(PARENTHESES_CLOSE, "at end of function parameter list.");
-    auto statements = parseBlock();
     if (returnType) { // parsed procedure
+        auto statements = parseBlock();
         return std::make_unique<AstNode::Function::Procedure>(std::move(name)
                                                             , std::move(returnType)
                                                             , std::move(parameterTypes)
@@ -89,9 +89,17 @@ std::unique_ptr<AstNode::Function> Parser::parseFunction() {
                                                             , std::move(statements));
     }
     else { // parsed oblock
+        std::vector<std::unique_ptr<AstNode::Initializer::Oblock>> configOptions;
+        if (ts.match(COLON)) {
+            do {
+                configOptions.push_back(parseOblockInitializer());
+            } while (ts.match(COMMA));
+        }
+        auto statements = parseBlock();
         return std::make_unique<AstNode::Function::Oblock>(std::move(name)
                                                          , std::move(parameterTypes)
                                                          , std::move(parameters)
+                                                         , std::move(configOptions)
                                                          , std::move(statements));
     }
 }
@@ -498,6 +506,21 @@ std::unique_ptr<AstNode::Specifier::Type> Parser::parseTypeSpecifier() {
         matchExpectedSymbol(TYPE_DELIMITER_CLOSE, "to match previous '<' in type specifier.");
     }
     return std::make_unique<AstNode::Specifier::Type>(std::move(name), std::move(typeArgs));
+}
+
+std::unique_ptr<AstNode::Initializer::Oblock> Parser::parseOblockInitializer() {
+    if (!ts.match(Token::Type::IDENTIFIER)) {
+        throw SyntaxError("Invalid oblock initialization option", ts.getLine(), ts.getColumn());
+    }
+    auto& option = ts.at(-1).getLiteral();
+    std::vector<std::unique_ptr<AstNode::Expression>> args;
+    if (ts.match(PARENTHESES_OPEN)) {
+        do {
+            args.push_back(parseExpression());
+        } while (ts.match(COMMA));
+        matchExpectedSymbol(PARENTHESES_CLOSE, "to match previous ')' in oblock initialization option.");
+    }
+    return std::make_unique<AstNode::Initializer::Oblock>(std::move(option), std::move(args));
 }
 
 void Parser::cleanLiteral(std::string& literal) {
