@@ -1,12 +1,13 @@
 #pragma once
-#include <gtest/gtest.h>
-#include <memory>
-#include <optional>
-#include <string>
 #include "analyzer.hpp"
 #include "ast.hpp"
 #include "call_stack.hpp"
 #include "test_visitor.hpp"
+#include <gtest/gtest.h>
+#include <memory>
+#include <optional>
+#include <string>
+#include <boost/range/combine.hpp>
 
 namespace BlsLang {
     class AnalyzerTest : public testing::Test {
@@ -22,7 +23,20 @@ namespace BlsLang {
                 analyzer.cs = cs;
                 ast->accept(analyzer);
                 EXPECT_EQ(analyzer.deviceDescriptors, metadata.deviceDescriptors);
-                EXPECT_EQ(analyzer.oblockDescriptors, metadata.oblockDescriptors);
+                auto& oblockDescriptors = analyzer.oblockDescriptors;
+                auto& expectedOblockDescriptors = metadata.oblockDescriptors;
+                for (auto&& [data, expectedData] : boost::combine(oblockDescriptors, expectedOblockDescriptors)) {
+                    EXPECT_EQ(data.first, expectedData.first);
+                    auto& desc = data.second;
+                    auto& expectedDesc = expectedData.second;
+                    EXPECT_EQ(desc.name, expectedDesc.name);
+                    EXPECT_EQ(desc.binded_devices, expectedDesc.binded_devices);
+                    EXPECT_EQ(desc.bytecode_offset, expectedDesc.bytecode_offset);
+                    EXPECT_EQ(desc.dropRead, expectedDesc.dropRead);
+                    EXPECT_EQ(desc.dropWrite, expectedDesc.dropWrite);
+                    EXPECT_EQ(desc.triggerRules, expectedDesc.triggerRules);
+                    EXPECT_EQ(desc.synchronize_states, expectedDesc.synchronize_states);
+                }
                 ASSERT_EQ(analyzer.literalPool.size(), metadata.literalPool.size());
                 EXPECT_EQ(analyzer.literalPool, metadata.literalPool);
                 if (decoratedAst != defaultAst) {

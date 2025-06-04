@@ -1,6 +1,7 @@
 #include "ast.hpp"
 #include "error_types.hpp"
 #include "fixtures/analyzer_test.hpp"
+#include "include/Common.hpp"
 #include "include/reserved_tokens.hpp"
 #include "test_macros.hpp"
 #include <cstdint>
@@ -998,6 +999,123 @@ namespace BlsLang {
         ));
 
         Metadata expectedMetadata;
+
+        TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, ConfigTests, OblockConfig) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Oblock(
+            "foo",
+            {
+                new AstNode::Specifier::Type(
+                    "LINE_WRITER",
+                    {}
+                ),
+                new AstNode::Specifier::Type(
+                    "LINE_WRITER",
+                    {}
+                ),
+                new AstNode::Specifier::Type(
+                    "LINE_WRITER",
+                    {}
+                )
+            },
+            {
+                "L1",
+                "L2",
+                "L3"
+            },
+            {
+                new AstNode::Initializer::Oblock(
+                    "triggerOn",
+                    {
+                        new AstNode::Expression::List(
+                            {
+                                new AstNode::Expression::Access(
+                                    "L1"
+                                ),
+                                new AstNode::Expression::Access(
+                                    "L2"
+                                )
+                            }
+                        ),
+                        new AstNode::Expression::Access(
+                            "L3"
+                        ),
+                    }
+                ),
+                new AstNode::Initializer::Oblock(
+                    "dropRead",
+                    {}
+                )
+            },
+            {}
+        ));
+    
+        auto decoratedAst = std::unique_ptr<AstNode>(new AstNode::Function::Oblock(
+            "foo",
+            {
+                new AstNode::Specifier::Type(
+                    "LINE_WRITER",
+                    {}
+                ),
+                new AstNode::Specifier::Type(
+                    "LINE_WRITER",
+                    {}
+                ),
+                new AstNode::Specifier::Type(
+                    "LINE_WRITER",
+                    {}
+                )
+            },
+            {
+                "L1",
+                "L2",
+                "L3"
+            },
+            {
+                new AstNode::Initializer::Oblock(
+                    "triggerOn",
+                    {
+                        new AstNode::Expression::List(
+                            {
+                                new AstNode::Expression::Access(
+                                    "L1"
+                                ),
+                                new AstNode::Expression::Access(
+                                    "L2"
+                                )
+                            }
+                        ),
+                        new AstNode::Expression::Access(
+                            "L3"
+                        ),
+                    }
+                ),
+                new AstNode::Initializer::Oblock(
+                    "dropRead",
+                    {}
+                )
+            },
+            {}
+        ));
+
+        Metadata expectedMetadata;
+
+        expectedMetadata.oblockDescriptors = {
+            {"foo", OBlockDesc{
+                "foo",
+                {},
+                0,
+                true,
+                false,
+                {
+                    {"L1", "L2"},
+                    {"L3"}
+                },
+                true
+            }}
+        };
 
         TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
     }

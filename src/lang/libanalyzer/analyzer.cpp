@@ -103,13 +103,18 @@ BlsObject Analyzer::visit(AstNode::Function::Oblock& ast) {
         parameterTypes.push_back(typeObject);
     }
     oblocks.emplace(oblockName, FunctionSignature(oblockName, std::monostate(), parameterTypes));
-    oblockDescriptors.emplace(oblockName, OBlockDesc(oblockName)); // create empty descriptor here to ensure all oblocks are accounted for even if some are not bound
-
+    
     cs.pushFrame(CallStack<std::string>::Frame::Context::FUNCTION, oblockName);
     auto params = ast.getParameters();
     for (int i = 0; i < params.size(); i++) {
         cs.addLocal(params.at(i), parameterTypes.at(i));
     }
+
+    oblockDescriptors.emplace(oblockName, OBlockDesc(oblockName));
+    for (auto&& option : ast.getConfigOptions()) {
+        option->accept(*this);
+    }
+    
     for (auto&& statement : ast.getStatements()) {
         statement->accept(*this);
     }
@@ -148,7 +153,7 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
             if (!oblocks.contains(name)) {
                 throw SemanticError(name + " does not refer to an oblock");
             }
-            OBlockDesc desc;
+            auto& desc = oblockDescriptors.at(name);
             desc.name = name;
             auto& devices = desc.binded_devices;
             for (auto&& arg : args) {
@@ -163,7 +168,6 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
                     throw RuntimeError(expr->getObject() + " does not refer to a device binding");
                 }
             }
-            oblockDescriptors.emplace(name, desc);
         }
         else {
             throw SemanticError("Statement within setup() must be an oblock binding expression or device binding declaration");
@@ -758,5 +762,51 @@ BlsObject Analyzer::visit(AstNode::Specifier::Type& ast) {
 }
 
 BlsObject Analyzer::visit(AstNode::Initializer::Oblock& ast) {
-    throw SemanticError("TODO");
+    auto& oblockName = cs.getFrameName();
+    auto& desc = oblockDescriptors.at(oblockName);
+    auto& option = ast.getOption();
+    auto& args = ast.getArgs();
+    if (option == "triggerOn") {
+        if (args.empty()) {
+            throw SemanticError("At least one argument must be supplied to triggerOn.");
+        }
+        auto updateRule = [this](std::unique_ptr<AstNode::Expression>& arg, std::vector<std::string>& rule) {
+            if (auto* resolvedArg = dynamic_cast<AstNode::Expression::Access*>(arg.get())) {
+                auto& param = resolvedArg->getObject();
+                cs.getLocal(param);
+                rule.push_back(param);
+            }
+            else {
+                throw SemanticError("Trigger targets must be oblock parameters.");
+            }
+        };
+        for (auto&& arg : args) {
+            std::vector<std::string> rule;
+            if (auto* resolvedList = dynamic_cast<AstNode::Expression::List*>(arg.get())) {
+                for (auto&& element : resolvedList->getElements()) {
+                    updateRule(element, rule);
+                }
+            }
+            else {
+                updateRule(arg, rule);
+            }
+            desc.triggerRules.push_back(std::move(rule));
+        }
+    }
+    else if (option == "dropRead") {
+        if (!args.empty()) {
+            throw SemanticError("dropRead takes no arguments.");
+        }
+        desc.dropRead = true;
+    }
+    else if (option == "dropWrite") {
+        if (!args.empty()) {
+            throw SemanticError("dropWrite takes no arguments.");
+        }
+        desc.dropWrite = true;
+    }
+    else {
+        throw SemanticError("Invalid oblock configuration option: " + option + ".");
+    }
+    return std::monostate();
 } 
