@@ -92,9 +92,19 @@ namespace BlsLang {
 
         auto& expectedParameterTypes = expectedOblock.getParameterTypes();
         auto& parameterTypes = ast.getParameterTypes();
+        EXPECT_EQ(expectedParameterTypes.size(), parameterTypes.size());
         for (size_t i = 0; i < expectedParameterTypes.size(); i++) {
             expectedVisits.push(std::move(expectedParameterTypes.at(i)));
             parameterTypes.at(i)->accept(*this);
+            expectedVisits.pop();
+        }
+
+        auto& expectedConfigOptions= expectedOblock.getConfigOptions();
+        auto& configOptions= ast.getConfigOptions();
+        EXPECT_EQ(expectedConfigOptions.size(), configOptions.size());
+        for (size_t i = 0; i < expectedConfigOptions.size(); i++) {
+            expectedVisits.push(std::move(expectedConfigOptions.at(i)));
+            configOptions.at(i)->accept(*this);
             expectedVisits.pop();
         }
     

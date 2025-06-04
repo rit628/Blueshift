@@ -672,10 +672,10 @@ namespace BlsLang {
                    , std::move(statements))
                    , returnType(returnType) {}
             
+            BlsObject accept(Visitor& v) override;
+            
             auto& getReturnType() { return returnType; }
 
-            BlsObject accept(Visitor& v) override;
-        
         private:
             std::unique_ptr<AstNode::Specifier::Type> returnType;
 
@@ -712,6 +712,9 @@ namespace BlsLang {
             }
 
             BlsObject accept(Visitor& v) override;
+
+            auto& getConfigOptions() { return configOptions; }
+
         private:
             std::vector<std::unique_ptr<AstNode::Initializer::Oblock>> configOptions;
     };
