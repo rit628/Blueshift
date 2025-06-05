@@ -139,6 +139,7 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
             if (!std::holds_alternative<std::string>(binding)) {
                 throw SemanticError("DEVTYPE binding must be a string literal");
             }
+            literalPool.erase(binding); // no need to add binding strings
             auto& bindStr = std::get<std::string>(binding);
             auto devDesc = parseDeviceBinding(name, devtype, bindStr);
             deviceDescriptors.emplace(name, devDesc);
