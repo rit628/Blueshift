@@ -16,7 +16,7 @@ MasterMailbox::MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMes
     {
         oblockReadMap[oblock.name] = make_unique<ReaderBox>(oblock.dropRead, oblock.dropWrite, oblock.name, oblock);
 
-        for(auto &devDesc : oblock.inDevices)
+        for(auto &devDesc : oblock.binded_devices)
         {
             string deviceName = devDesc.device_name;
             auto TSQPtr = make_shared<TSQ<DynamicMasterMessage>>();
@@ -29,7 +29,7 @@ MasterMailbox::MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMes
         }
 
         // Write the out devics
-        for(auto& devDesc : oblock.outDevices){
+        for(auto& devDesc : oblock.binded_devices){
             if(!emplaced_set.contains(devDesc.device_name)){
                 auto wb = std::make_unique<WriterBox>();
                 wb->deviceName = devDesc.device_name; 
@@ -76,6 +76,7 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
             // For now we count callbacks to update the state in the mailbox (CHECK IF CALLBACK DEV IN READ LIST)
             for(auto &oblockName : this->interruptName_map[devName]){
                 if(this->oblockReadMap[oblockName]->waitingQs.contains(devName)){
+                    DMM.info.oblock = oblockName; 
                     this->oblockReadMap[oblockName]->waitingQs[devName].lastMessage.replace(DMM); 
                     //std::cout<<"Wrote Callback into queue"<<std::endl; 
                     //this->oblockReadMap[oblock]->waitingQs[devName].stateQueues->write(DMM); 

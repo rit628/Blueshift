@@ -3,7 +3,6 @@
 #include "libEM/EM.hpp"
 #include "libMM/MM.hpp"
 #include "libNM/MasterNM.hpp"
-#include "libdepgraph/depgraph.hpp"
 #include "libtypes/bls_types.hpp"
 #include <functional>
 #include <unordered_map>
@@ -17,7 +16,7 @@ using DMM = DynamicMasterMessage;
     dependency graph. 
 */
 
-void modifyOblockDesc(std::vector<OBlockDesc> &oDescs,  GlobalContext &gcx){
+void modifyOblockDesc(std::vector<OBlockDesc> &oDescs){
     std::unordered_map<DeviceID, DeviceDescriptor&> devDesc; 
     for(auto& oblock : oDescs){
         // Construct the device device desc map: 
@@ -25,19 +24,7 @@ void modifyOblockDesc(std::vector<OBlockDesc> &oDescs,  GlobalContext &gcx){
         for(auto& str : oblock.binded_devices){
             devMap[str.device_name] = str; 
         }
-
-        // Fill in the global context: 
-        auto& inMap = gcx.oblockConnections[oblock.name].inDeviceList; 
-        auto& outMap = gcx.oblockConnections[oblock.name].outDeviceList; 
-
-        for(auto &devId : inMap){
-            oblock.inDevices.push_back(devMap[devId]);
-        }
-
-        for(auto& devId : outMap){
-            oblock.outDevices.push_back(devMap[devId]); 
-        }   
-
+        
         // Remove the artifical oblock adder
         if(oblock.name == "task"){
             std::cout<<"Establishing trigger rules"<<std::endl; 
@@ -67,11 +54,10 @@ int main(int argc, char *argv[]){
     printf("past compilation\n");
 
     std::vector<OBlockDesc> oblocks = compiler.getOblockDescriptors(); 
-    auto depGraph = compiler.getGlobalContext(); 
     auto functions = compiler.getOblocks();  
 
     // Alter the oblock contexts in the main (REMEMBER TO REMOVE WHEN LANGUAGE IS MADE)
-    modifyOblockDesc(oblocks, depGraph); 
+    modifyOblockDesc(oblocks); 
     
     // EM and MM
     TSQ<DMM> EM_MM_queue; 

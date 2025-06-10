@@ -21,12 +21,9 @@ void Compiler::compileFile(const std::string& source) {
 void Compiler::compileSource(const std::string& source) {
     tokens = lexer.lex(source);
     ast = parser.parse(tokens);
-    ast->accept(analyzer);
-    
+    ast->accept(analyzer);    
     ast->accept(masterInterpreter);
     auto& descriptors = analyzer.getOblockDescriptors();
-    ast->accept(this->depGraph); 
-    this->depGraph.printGlobalContext(); 
 
     auto& masterOblocks = masterInterpreter.getOblocks();
     euInterpreters.assign(descriptors.size(), masterInterpreter);

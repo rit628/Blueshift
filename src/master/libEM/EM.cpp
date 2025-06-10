@@ -76,7 +76,7 @@ void ExecutionUnit::running(TSQ<DynamicMasterMessage> &sendMM)
 {
     while(true)
     {
-        //if(EUcache.isEmpty()) {continue;}
+
         vector<DynamicMasterMessage> currentDMMs = EUcache.read();
         std::unordered_map<DeviceID, HeapMasterMessage> HMMs;
         
@@ -107,7 +107,7 @@ void ExecutionUnit::running(TSQ<DynamicMasterMessage> &sendMM)
         std::vector<HeapMasterMessage> outGoingStates;  
 
         // SHIP ALL OUTGOING DEVICES (EVEN ONCE NOT ALTERED)
-        for(auto& devDesc : this->Oblock.outDevices)
+        for(auto& devDesc : this->Oblock.binded_devices)
         {   
             int pos = this->devicePositionMap[devDesc.device_name]; 
             auto transformedState = std::get<shared_ptr<HeapDescriptor>>(transformableStates.at(pos));
@@ -136,7 +136,9 @@ void ExecutionUnit::running(TSQ<DynamicMasterMessage> &sendMM)
 ExecutionUnit &ExecutionManager::assign(DynamicMasterMessage DMM)
 {   
     
-    ExecutionUnit &assignedUnit = *EU_map.at(DMM.info.oblock);
+    std::cout<<"Searching Oblock for: "<<DMM.info.oblock<<std::endl; 
+    std::cout<<"Place into device: "<<DMM.info.device<<std::endl; 
+    ExecutionUnit &assignedUnit = *EU_map.at(DMM.info.oblock); 
     assignedUnit.stateMap.emplace(DMM.info.device, DMM);
     return assignedUnit;
 }
@@ -163,9 +165,11 @@ void ExecutionManager::running()
         
         vector<DynamicMasterMessage> currentDMMs = this->readMM.read();
 
-        std::cout<<"Recieved States"<<std::endl;
+        std::cout<<"RM Recieved States"<<std::endl;
        
         ExecutionUnit &assignedUnit = assign(currentDMMs.at(0));
+
+        std::cout<<"Post assignment "<<std::endl; 
 
         assignedUnit.EUcache.write(currentDMMs);
     

@@ -74,8 +74,8 @@ struct OBlockDesc{
     std::string name; 
     std::vector<DeviceDescriptor> binded_devices; 
     int bytecode_offset; 
-    std::vector<DeviceDescriptor> inDevices; 
-    std::vector<DeviceDescriptor> outDevices; 
+    //std::vector<DeviceDescriptor> inDevices; 
+    //std::vector<DeviceDescriptor> outDevices; 
     std::vector<std::vector<std::string>> triggerRules; 
     
     // Keeping this for the compiler but it should be removed: 
