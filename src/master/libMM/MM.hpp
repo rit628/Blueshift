@@ -63,11 +63,9 @@ class TriggerManager{
         // Device Constructor (created rules)
         TriggerManager(OBlockDesc& OBlockDesc){
             int i = 0; 
-            for(DeviceDescriptor& devDesc : OBlockDesc.inDevices){
-                if(!devDesc.isVtype){
-                    stringMap[devDesc.device_name] = i; 
-                    i++; 
-                }
+            for(DeviceDescriptor& devDesc : OBlockDesc.binded_devices){
+                stringMap[devDesc.device_name] = i; 
+                i++; 
             }
 
             // Add the default universal bitset (all 1s): 
