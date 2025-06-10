@@ -1,4 +1,10 @@
 #include "Client.hpp"
+#include "include/Common.hpp"
+#include "libnetwork/Connection.hpp"
+#include "libnetwork/Protocol.hpp"
+#include <functional>
+#include <exception>
+#include <stdexcept>
 
 Client::Client(std::string c_name): client_socket(client_ctx), bc_socket(client_ctx, udp::endpoint(udp::v4(), 2988)){
     this->client_name = c_name; 
@@ -10,32 +16,40 @@ void Client::start(){
     this->broadcastListen(); 
 }
 
-void Client::sendCallback(uint16_t deviceCode){
+
+void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt){
     // Write code for a callback
     SentMessage sm; 
     DynamicMessage dmsg; 
 
     // Get the latest state from the dmsg
- 
-    this->deviceList[deviceCode]->read_data(dmsg); 
+    try{
+        this->deviceList[deviceCode]->read_data(dmsg); 
+    }
+    catch(BlsExceptionClass& bec){
+        this->genBlsException->SendGenericException(bec.what(), bec.type());
+        //if(bec.isFatal()){
+          //  throw bec; 
+        //}
+    }
 
     // make message
     sm.body = dmsg.Serialize(); 
-
     sm.header.ctl_code = this->controller_alias;
-    sm.header.prot = Protocol::CALLBACK; 
+    sm.header.prot = type; 
     sm.header.device_code = deviceCode; 
     sm.header.timer_id = -1; 
     sm.header.volatility = -1; 
     sm.header.body_size = sm.body.size(); 
-
+    sm.header.fromInterrupt = fromInt; 
+    
     this->client_connection->send(sm); 
 }
 
 
 
-void Client::listener(){
-    while(1){
+void Client::listener(std::stop_token stoken){
+    while(!stoken.stop_requested()){
 
         auto inMsg = this->in_queue.read().sm; 
         
@@ -58,11 +72,13 @@ void Client::listener(){
             std::vector<uint16_t> device_alias; 
             std::vector<DEVTYPE> device_types; 
             std::vector<std::unordered_map<std::string, std::string>> srcs;  
+            std::vector<uint16_t> triggerList;
             uint8_t controller_alias = inMsg.header.ctl_code; 
 
             dmsg.unpack("__DEV_ALIAS__", device_alias);
             dmsg.unpack("__DEV_TYPES__", device_types); 
             dmsg.unpack("__DEV_PORTS__", srcs); 
+            dmsg.unpack("__DEV_INIT__", triggerList); 
 
             this->controller_alias = controller_alias; 
 
@@ -70,16 +86,28 @@ void Client::listener(){
             int size = device_alias.size(); 
             bool b = device_types.size() == size; 
             bool c = srcs.size() == size; 
+            bool d = triggerList.size() == size; 
+            
 
-            if(!(b && c)){
+            if(!(b && c  && d)){
                 throw std::invalid_argument("Config vectors of different sizes what!"); 
             }
 
             for(int i = 0; i < size; i++){
-                deviceList[device_alias[i]] = getDevice(device_types[i], srcs[i], device_alias[i]);
+                try{
+                    deviceList[device_alias[i]] = getDevice(device_types[i], srcs[i], device_alias[i], triggerList[i]);
+                }
+                catch(BlsExceptionClass& bec){
+                    this->genBlsException->SendGenericException(bec.what(), bec.type()); 
+                    /*
+                    if(bec.isFatal()){
+                        throw bec;  
+                    }
+                    */ 
+                }
             } 
 
-            // Check item: 
+            // Check item:      
             SentMessage sm; 
             sm.header.body_size = 0;
             sm.header.prot = Protocol::CONFIG_OK; 
@@ -95,12 +123,12 @@ void Client::listener(){
             if(this->curr_state == ClientState::IN_OPERATION){
                 auto dev_index = inMsg.header.device_code; 
     
-                auto state_change = std::thread([dev_index, dmsg = std::move(dmsg), this](){
+                auto state_change = std::jthread([dev_index, dmsg = std::move(dmsg), this](){
                 try{
                     std::cout << "proc_message begin" << std::endl;
                     this->deviceList[dev_index]->proc_message(dmsg);
                     //Translation of the callback happens at the network manage
-                    this->sendCallback(dev_index); 
+                    this->sendMessage(dev_index, Protocol::CALLBACK, false); 
                 }
                 catch(std::exception(e)){
                     std::cout<<e.what()<<std::endl; 
@@ -108,8 +136,6 @@ void Client::listener(){
                 });
 
                 state_change.detach(); 
-
-
             }
             else{
                 std::cout<<"Cannot process state change until configuration is complete"<<std::endl; 
@@ -145,10 +171,13 @@ void Client::listener(){
         }
         else if(ptype == Protocol::BEGIN){
 
+            if(this->curr_state == ClientState::SHUTDOWN){
+
+            }
+
+
             std::cout<<"CLIENT: Beginning sending process"<<std::endl; 
             this->curr_state = ClientState::IN_OPERATION; 
-
-            std::cout<<"Size: "<<this->start_timers.size()<<std::endl; 
 
             // Begin the timers only when the call is made
             for(Timer &timer : this->start_timers){
@@ -157,8 +186,10 @@ void Client::listener(){
                 if(!device->hasInterrupt){
                     std::cout<<"build timer with period: "<<timer.period<<std::endl;
                     this->client_ticker[timer.id] = std::make_unique<DeviceTimer>(this->client_ctx, device, this->client_connection, this->controller_alias, timer.device_num, timer.id); 
-                    // Initiate the timer
                     this->client_ticker[timer.id]->setPeriod(timer.period); 
+                
+                    sendMessage(timer.device_num, Protocol::SEND_STATE_INIT, false); 
+                    
                 }
             }
 
@@ -167,15 +198,23 @@ void Client::listener(){
                 
                 auto dev = pair.second;
                 auto dev_id = pair.first;  
-             
+                
+
+                // Sends the initial states of the device interrupt
                 if(dev->hasInterrupt){
                     // Organizes the device interrupts
-                    auto omar = std::make_unique<DeviceInterruptor>(dev, this->client_connection, this->global_interrupts, this->controller_alias, dev_id); 
+                    std::cout<<"Interrupt created!"<<std::endl; 
+                    auto omar = std::make_unique<DeviceInterruptor>(dev, this->client_connection, this->controller_alias, dev_id); 
                     omar->setupThreads(); 
                     this->interruptors.push_back(std::move(omar));
-                }   
+                    std::cout<<"Sending Initial State"<<std::endl; 
+                    sendMessage(dev_id, Protocol::SEND_STATE_INIT, true); 
+                }               
             }
-
+        }
+        else if(ptype == Protocol::CONNECTION_LOST){
+            std::cout<<"Connection lost detected by Client"<<std::endl; 
+            this->disconnect(); 
         }
         else{
             std::cout<<"Unknown protocol message!"<<std::endl; 
@@ -185,7 +224,7 @@ void Client::listener(){
 }
 
 void Client::broadcastListen(){
-    while(1){
+    while(true){
         std::cout<<"CLIENT: waiting for client connection"<<std::endl; 
         std::vector<char> buffer(MAX_NAME_LEN); 
         udp::endpoint master_endpoint; 
@@ -198,6 +237,10 @@ void Client::broadcastListen(){
             this->client_connection = std::make_shared<Connection>(
                 this->client_ctx, tcp::socket(this->client_ctx), Owner::CLIENT, this->in_queue, master_address
             ); 
+            this->client_connection->setName(this->client_name); 
+            this->genBlsException = std::make_unique<GenericBlsException>(
+                this->client_connection, Owner::CLIENT
+            ); 
 
             this->attemptConnection(master_endpoint.address()); 
             break;
@@ -208,11 +251,12 @@ void Client::broadcastListen(){
 bool Client::attemptConnection(boost::asio::ip::address master_address){
     try{
         tcp::endpoint master_endpoint(master_address, MASTER_PORT); 
+        
 
         this->client_connection->connectToMaster(master_endpoint, this->client_name);
 
-        this->listenerThread = std::thread([this](){this->listener();});
-        this->ctxThread = std::thread([this](){this->client_ctx.run();});   
+        this->listenerThread = std::jthread(std::bind(&Client::listener, std::ref(*this), std::placeholders::_1));
+        this->ctxThread = std::jthread([this](){this->client_ctx.run();});   
 
         if(this->listenerThread.joinable()){
             this->listenerThread.join(); 
@@ -223,6 +267,9 @@ bool Client::attemptConnection(boost::asio::ip::address master_address){
             this->ctxThread.join(); 
         }
 
+        //this->start(); 
+
+    
         std::cout<<this->client_name + " Connection successful!"<<std::endl; 
 
         return true; 
@@ -235,47 +282,39 @@ bool Client::attemptConnection(boost::asio::ip::address master_address){
 }
 
 
-// TO BE COMPLETED BY PHASE 3
-bool Client::connectTo(const std::string &endpt, const uint16_t port){
-    try{
-        
-        boost::asio::ip::tcp::resolver resolver(this->client_ctx); 
-        auto results = resolver.resolve(endpt, std::to_string(port)); 
-        std::string omar = results.begin()->endpoint().address().to_string(); 
-
-        this->client_connection = std::make_shared<Connection>(
-            this->client_ctx, tcp::socket(this->client_ctx) ,Owner::CLIENT, this->in_queue, omar
-        ); 
-
-        this->client_connection->connectToServer(results); 
-
-        return true; 
-
-    }
-    catch(std::exception e){
-        std::cout<<"ERROR: "<<e.what()<<std::endl; 
-        return false; 
-    }
-}
-
-
 bool Client::isConnected(){
     return this->client_connection->isConnected(); 
 }
 
 bool Client::disconnect(){
+    // Closes the socket
     if(this->client_connection->isConnected()){
         this->client_connection->disconnect(); 
-    }
+    }   
 
+    std::cout<<"Socket Closed"<<std::endl; 
+
+    // Kills the device interruptor and timer threads
+    interruptors.clear();
+
+    std::cout<<"Interrupt threads killed"<<std::endl; 
+
+    client_ticker.clear();
+
+    std::cout<<"Timers listeners killed"<<std::endl; 
+
+    // Stop the client and listener threads
     this->client_ctx.stop(); 
+    this->listenerThread.request_stop();
 
-    if(this->ctxThread.joinable()){
-        this->ctxThread.join(); 
-    }
+    std::cout<<"Context and client listener killed"<<std::endl;
+
+    this->deviceList.clear();
+    this->start_timers.clear();
+    
+    std::cout << "Client device data reset" << std::endl;
 
     return true; 
-
 }
 
 

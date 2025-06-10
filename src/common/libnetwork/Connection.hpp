@@ -16,6 +16,8 @@ enum class Owner{
     MASTER, 
 }; 
 
+
+
 struct OwnedSentMessage; 
 
 class Connection : public enable_shared_from_this<Connection>{
@@ -55,7 +57,7 @@ class Connection : public enable_shared_from_this<Connection>{
         bool isConnected() const; 
 
         std::string& getIP(); 
-        void send(const SentMessage &sm); 
+        void send(SentMessage sm); 
         std::string& getName(); 
         void setName(std::string& cname); 
 
@@ -68,4 +70,64 @@ class Connection : public enable_shared_from_this<Connection>{
 struct OwnedSentMessage{
     std::shared_ptr<Connection> connection; 
     SentMessage sm; 
+}; 
+
+
+class BlsExceptionClass : public std::exception{
+    std::string msg; 
+    ERROR_T error_t; 
+
+    public: 
+        explicit BlsExceptionClass(const std::string& message, ERROR_T error_type) :
+        msg(message), error_t(error_type) {}
+        const char* what() const noexcept override{
+            return msg.c_str(); 
+        }
+        ERROR_T type() {return this->error_t;}
+        bool isFatal() {return this->error_t < ERROR_T::FATAL_ERROR;}
+}; 
+
+
+class GenericBlsException{
+
+    private: 
+        std::shared_ptr<Connection> ConObj; 
+        Owner role; 
+        std::string message; 
+
+    public: 
+        GenericBlsException(std::shared_ptr<Connection> conny, Owner role)
+        {
+            this->ConObj = conny; 
+            this->role = role; 
+        }
+
+        // Generic Exception 
+        void SendGenericException(std::string errorMsg, ERROR_T ec){
+            SentMessage sm; 
+            std::string caller = "MASTER";
+            sm.header.prot = Protocol::MASTER_ERROR;  
+
+            if(this->role == Owner::CLIENT){
+               caller = ConObj->getName(); 
+               sm.header.prot = Protocol::CLIENT_ERROR; 
+            }
+            DynamicMessage dmsg; 
+
+            errorMsg = "FROM " + caller + ": " +errorMsg; 
+            dmsg.createField("message", errorMsg);
+            sm.body = dmsg.Serialize(); 
+            sm.header.body_size = sm.body.size();
+            sm.header.ec = ec; 
+            this->ConObj->send(sm); 
+        }
+
+        // Handles the reception of a message
+        void RecieveGenericException(SentMessage &sm){
+            DynamicMessage dmsg; 
+            dmsg.Capture(sm.body); 
+            std::string err_msg; 
+            dmsg.unpack("message", err_msg); 
+            throw BlsExceptionClass(err_msg, sm.header.ec); 
+        }
 }; 
