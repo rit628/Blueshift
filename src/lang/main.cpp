@@ -1,16 +1,21 @@
 #include "include/Common.hpp"
 #include "libcompiler/compiler.hpp"
+#include "libdivider/divider.hpp"
 #include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <bitset>
+#include <memory> 
 
 // Use a bitmap to quickly evaluate trigger rules. 
 // Assuming hte 
 
-int main() {
+using namespace BlsLang;
 
+
+
+int main() {
 
     // sample engine
     BlsLang::Lexer lexer;
@@ -109,26 +114,8 @@ int main() {
     std::cout<<"omar1: "<<omar1<<std::endl; 
     */ 
 
-
-    
-
-
-
-   
-
-
-
-
-
-
-
-
-
-
-
-
-
+    BlsLang::Compiler compiler;
+    compiler.compileFile("samples/src/main3.blu");
+     
     return 0;
-
-    
 }

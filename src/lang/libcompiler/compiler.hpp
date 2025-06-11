@@ -6,6 +6,7 @@
 #include "libinterpreter/interpreter.hpp"
 #include "libanalyzer/analyzer.hpp"
 #include "libdepgraph/depgraph.hpp"
+#include "libdivider/divider.hpp"
 #include "token.hpp"
 #include <memory>
 #include <vector>
@@ -20,6 +21,7 @@ namespace BlsLang {
             auto& getDeviceDescriptors() { return analyzer.getDeviceDescriptors(); }
             auto& getOblockDescriptors() { return analyzer.getOblockDescriptors(); }
             auto& getGlobalContext() {return depGraph.getGlobalContext();}
+            auto getOblockContexts(){return depGraph.getOblockMap();}
         private:
             std::vector<Token> tokens;
             std::unique_ptr<AstNode> ast;
@@ -28,6 +30,7 @@ namespace BlsLang {
             Analyzer analyzer;
             DepGraph depGraph; 
             Interpreter masterInterpreter;
+            Divider divider; 
             std::vector<Interpreter> euInterpreters;
             std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks;
     };

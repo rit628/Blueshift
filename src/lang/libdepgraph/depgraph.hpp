@@ -70,7 +70,17 @@ namespace BlsLang{
             bool isDevice(const SymbolID &candidate); 
 
         public: 
-            DepGraph() : Printer(std::cout){}; 
+
+        DepGraph() : Printer(std::cout){}; 
+
+            std::unordered_map<OblockID, OblockContext> getOblockMap(){
+                std::unordered_map<OblockID, OblockContext> sysCtx; 
+                for(auto& oblock : this->oblockCtxList){
+                    sysCtx[oblock.operatingOblock] = oblock;  
+                }
+                return sysCtx; 
+            }
+
         
             /*
             #define AST_NODE_ABSTRACT(...)

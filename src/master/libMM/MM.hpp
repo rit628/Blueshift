@@ -99,9 +99,9 @@ class TriggerManager{
             // Returns true if the new device corresponds to a trigger 
             bool processDevice(std::string &object){
                 // Pretty much check if the bitmap is filled
-                std::cout<<"What the hell boy"<<std::endl; 
+                //std::cout<<"What the hell boy"<<std::endl; 
                 int filledMap = pow(2, stringMap.size()) - 1; 
-                std::cout<<"map value: "<<filledMap<<std::endl; 
+                //std::cout<<"map value: "<<filledMap<<std::endl; 
                 if(this->initBitmap.to_ulong() != filledMap){
                     this->initBitmap.set(this->stringMap[object]); 
                     std::cout<<"init bitmap: "<<this->initBitmap<<std::endl; 
@@ -235,12 +235,8 @@ class MasterMailbox
     unordered_map<DeviceID, unique_ptr<WriterBox>> deviceWriteMap;
     unordered_map<DeviceID, std::vector<OblockID>> interruptName_map;
 
-
-    
     TSQ<std::string> readRequest; 
-
-
-
+    
     void assignNM(DynamicMasterMessage DMM);
     void assignEM(DynamicMasterMessage DMM);
     void runningNM();

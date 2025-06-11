@@ -5,6 +5,7 @@
 #include <tuple>
 #include <boost/range/combine.hpp>
 
+
 using namespace BlsLang;
 
 void Compiler::compileFile(const std::string& source) {
@@ -22,12 +23,25 @@ void Compiler::compileSource(const std::string& source) {
     tokens = lexer.lex(source);
     ast = parser.parse(tokens);
     ast->accept(analyzer);
-    
+    ast->accept(this->depGraph);
+    auto tempOblock = this->depGraph.getOblockMap();  
+    this->divider.setOblocks(this->depGraph.getOblockMap()); 
+    ast->accept(this->divider); 
     ast->accept(masterInterpreter);
-    auto& descriptors = analyzer.getOblockDescriptors();
-    ast->accept(this->depGraph); 
-    this->depGraph.printGlobalContext(); 
+    
+    auto& omar = this->divider.getContextsDebug(); 
+    for(auto& james : omar){
+        for(auto& item: james.second.symbolDeps){
+            std::cout<<"Level: "<<item.first<<std::endl; 
+            for(auto& item: item.second){
+                std::cout<<"item: "<<item<<std::endl; 
+            }
+            std::cout<<"-----------------------"<<std::endl; 
+        } 
+    }
 
+    auto& descriptors = analyzer.getOblockDescriptors();
+    
     auto& masterOblocks = masterInterpreter.getOblocks();
     euInterpreters.assign(descriptors.size(), masterInterpreter);
     for (auto&& [descriptor, interpreter] : boost::combine(descriptors, euInterpreters)) {
@@ -35,6 +49,5 @@ void Compiler::compileSource(const std::string& source) {
         auto& oblock = masterOblocks.at(descriptor.name);
         oblocks.emplace(descriptor.name, [&oblock, &interpreter](std::vector<BlsType> v) { return oblock(interpreter, v); });
     }
-    ast->accept(dependencyGraph);
-    std::cout << "kill me" << std::endl;
+
 }
