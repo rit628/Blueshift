@@ -149,7 +149,7 @@ target_include_directories(compiler PUBLIC ${BLS_CONFIG} ${LANG_COMMON} ${LANG_S
 target_link_libraries(compiler lang_common lexer parser interpreter analyzer generator depgraph ${BOOST_LIB_DEPS})
 
 add_executable(lang ${LANG_SRC_DIR}/main.cpp)
-target_link_libraries(lang compiler virtual_machine ${BOOST_LIB_DEPS})
+target_link_libraries(lang divider compiler virtual_machine ${BOOST_LIB_DEPS})
 
 # MASTER LIBS AND EXECUTABLE
 file(GLOB_RECURSE LIBTSM_SRC ${MASTER_SRC_DIR}/libTSM/*.cpp)

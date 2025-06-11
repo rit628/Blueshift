@@ -8,6 +8,7 @@
 #include "libinterpreter/interpreter.hpp"
 #include "libanalyzer/analyzer.hpp"
 #include "libdepgraph/depgraph.hpp"
+#include "libdivider/divider.hpp"
 #include "token.hpp"
 #include <memory>
 #include <vector>
@@ -25,7 +26,7 @@ namespace BlsLang {
             void compileSource(const std::string& source);
             auto& getOblocks() { return oblocks; }
             auto& getOblockDescriptors() { return oblockDescriptors; }
-        
+            auto getOblockContexts(){return depGraph.getOblockMap();}
         private:
             std::ostream& outputStream;
             std::vector<Token> tokens;
@@ -33,8 +34,10 @@ namespace BlsLang {
             Lexer lexer;
             Parser parser;
             Analyzer analyzer;
+            DepGraph depGraph;
             Generator generator;
             Interpreter masterInterpreter;
+            Divider divider; 
             std::vector<Interpreter> euInterpreters;
             std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks;
             std::vector<OBlockDesc> oblockDescriptors;
