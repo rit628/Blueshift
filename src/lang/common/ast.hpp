@@ -1,5 +1,6 @@
 #pragma once
 #include "libtypes/bls_types.hpp"
+#include <unordered_set>
 #include <variant>
 #include <cstddef>
 #include <cstdint>
@@ -424,18 +425,22 @@ namespace BlsLang {
         public:
             Declaration() = default;
             Declaration(std::string name
+                      , std::unordered_set<std::string> modifiers
                       , std::unique_ptr<AstNode::Specifier::Type> type
                       , std::optional<std::unique_ptr<AstNode::Expression>> value
                       , uint8_t localIndex = 0)
                       : name(std::move(name))
+                      , modifiers(modifiers)
                       , type(std::move(type))
                       , value(std::move(value))
                       , localIndex(localIndex) {}
             Declaration(std::string name
+                      , std::unordered_set<std::string> modifiers
                       , AstNode::Specifier::Type* type
                       , std::optional<AstNode::Expression*> value
                       , uint8_t localIndex = 0)
                       : name(std::move(name))
+                      , modifiers(modifiers)
                       , type(type)
                       , value(value)
                       , localIndex(localIndex) {}
@@ -443,12 +448,14 @@ namespace BlsLang {
             BlsObject accept(Visitor& v) override;
 
             auto& getName() { return name; }
+            auto& getModifiers() { return modifiers; }
             auto& getType() { return type; }
             auto& getValue() { return value; }
             auto& getLocalIndex() { return localIndex; }
 
         private:
             std::string name;
+            std::unordered_set<std::string> modifiers;
             std::unique_ptr<AstNode::Specifier::Type> type;
             std::optional<std::unique_ptr<AstNode::Expression>> value;
             uint8_t localIndex;

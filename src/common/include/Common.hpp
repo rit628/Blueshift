@@ -30,10 +30,10 @@ struct DeviceDescriptor{
     std::string controller; 
     std::unordered_map<std::string, std::string> port_maps; 
 
-    bool isInterrupt = false; 
-    bool isVtype = false; 
-    bool isConst = true; 
+    bool isVtype = false;
     int polling_period = 1000;
+    bool isConst = true;
+    bool isInterrupt = false;
 
     template<typename Archive>
     void serialize(Archive& ar, const unsigned int version) {
@@ -41,10 +41,10 @@ struct DeviceDescriptor{
         ar & devtype;
         ar & controller;
         ar & port_maps;
-        ar & isInterrupt;
         ar & isVtype;
-        ar & isConst;
         ar & polling_period;
+        ar & isConst;
+        ar & isInterrupt;
     }
 
     bool operator==(const DeviceDescriptor&) const = default;

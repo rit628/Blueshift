@@ -277,6 +277,8 @@ namespace BlsLang {
         auto& expectedDeclaration = dynamic_cast<AstNode::Statement::Declaration&>(*toCast);
     
         EXPECT_EQ(expectedDeclaration.getName(), ast.getName());
+
+        EXPECT_EQ(expectedDeclaration.getModifiers(), ast.getModifiers());
     
         auto& expectedType = expectedDeclaration.getType();
         auto& type = ast.getType();

@@ -2,6 +2,7 @@
 #include "binding_parser.hpp"
 #include "error_types.hpp"
 #include "include/Common.hpp"
+#include "include/reserved_tokens.hpp"
 #include "libtypes/typedefs.hpp"
 #include "analyzer.hpp"
 #include "libtypes/bls_types.hpp"
@@ -142,6 +143,7 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
             literalPool.erase(binding); // no need to add binding strings
             auto& bindStr = std::get<std::string>(binding);
             auto devDesc = parseDeviceBinding(name, devtype, bindStr);
+            devDesc.isVtype = deviceBinding->getModifiers().contains(RESERVED_VIRTUAL);
             deviceDescriptors.emplace(name, devDesc);
         }
         else if (auto* statementExpression = dynamic_cast<AstNode::Statement::Expression*>(statement.get())) {
@@ -679,86 +681,84 @@ BlsObject Analyzer::visit(AstNode::Expression::Map& ast) {
 BlsObject Analyzer::visit(AstNode::Specifier::Type& ast) {
     TYPE primaryType = getTypeFromName(ast.getName());
     const auto& typeArgs = ast.getTypeArgs();
-    if (primaryType == TYPE::list_t) {
-        if (typeArgs.size() != 1) throw SemanticError("List may only have a single type argument.");
-        auto argType = getTypeFromName(typeArgs.at(0)->getName());
-        auto list = std::make_shared<VectorDescriptor>(argType);
-        auto arg = resolve(typeArgs.at(0)->accept(*this));
-        list->append(arg);
-        list->getSampleElement() = arg;
-        return list;
-    }
-    else if (primaryType == TYPE::map_t) {
-        if (typeArgs.size() != 2) throw SemanticError("Map must have two type arguments.");
-        auto keyType = getTypeFromName(typeArgs.at(0)->getName());
-        if (keyType > TYPE::PRIMITIVE_COUNT || keyType == TYPE::void_t) {
-            throw SemanticError("Invalid key type for map.");
+    switch (primaryType) {
+        // explicit default constructors for declaration
+        case TYPE::void_t:
+            if (!typeArgs.empty()) throw SemanticError("Primitives cannot include type arguments.");
+            return BlsType(std::monostate());
+        break;
+
+        case TYPE::bool_t:
+            if (!typeArgs.empty()) throw SemanticError("Primitives cannot include type arguments.");
+            return BlsType(bool(false));
+        break;
+
+        case TYPE::int_t:
+            if (!typeArgs.empty()) throw SemanticError("Primitives cannot include type arguments.");
+            return BlsType(int64_t(0));
+        break;
+
+        case TYPE::float_t:
+            if (!typeArgs.empty()) throw SemanticError("Primitives cannot include type arguments.");
+            return BlsType(double(0.0));
+        break;
+
+        case TYPE::string_t:
+            if (!typeArgs.empty()) throw SemanticError("Primitives cannot include type arguments.");
+            return BlsType(std::string(""));
+        break;
+
+        case TYPE::list_t: {
+            if (typeArgs.size() != 1) throw SemanticError("List may only have a single type argument.");
+            auto argType = getTypeFromName(typeArgs.at(0)->getName());
+            auto list = std::make_shared<VectorDescriptor>(argType);
+            auto arg = resolve(typeArgs.at(0)->accept(*this));
+            list->append(arg);
+            list->getSampleElement() = arg;
+            return list;
         }
-        auto valType = getTypeFromName(typeArgs.at(1)->getName());
-        if (valType == TYPE::void_t) {
-            throw SemanticError("Invalid value type for map.");
-        }
-        auto map = std::make_shared<MapDescriptor>(TYPE::map_t, keyType, valType);
-        auto key = resolve(typeArgs.at(0)->accept(*this));
-        auto value = resolve(typeArgs.at(1)->accept(*this));
-        map->emplace(key, value);
-        map->getSampleElement() = value;
-        return BlsType(map);
-    }
-    else if (typeArgs.empty()) {
-        switch (primaryType) {
-            // explicit default constructors for declaration
-            case TYPE::void_t:
-                return BlsType(std::monostate());
-            break;
+        break;
 
-            case TYPE::bool_t:
-                return BlsType(bool(false));
-            break;
-
-            case TYPE::int_t:
-                return BlsType(int64_t(0));
-            break;
-
-            case TYPE::float_t:
-                return BlsType(double(0.0));
-            break;
-
-            case TYPE::string_t:
-                return BlsType(std::string(""));
-            break;
-
-            #define DEVTYPE_BEGIN(name) \
-            case TYPE::name: { \
-                using namespace TypeDef; \
-                auto devtype = std::make_shared<MapDescriptor>(TYPE::name, TYPE::string_t, TYPE::ANY); \
-                BlsType attr, attrVal;
-            #define ATTRIBUTE(name, type) \
-                attr = BlsType(#name); \
-                attrVal = BlsType(type()); \
-                devtype->emplace(attr, attrVal);
-            #define DEVTYPE_END \
-                return BlsType(devtype); \
-            break; \
+        case TYPE::map_t: {
+            if (typeArgs.size() != 2) throw SemanticError("Map must have two type arguments.");
+            auto keyType = getTypeFromName(typeArgs.at(0)->getName());
+            if (keyType > TYPE::PRIMITIVE_COUNT || keyType == TYPE::void_t) {
+                throw SemanticError("Invalid key type for map.");
             }
-            #include "DEVTYPES.LIST"
-            #undef DEVTYPE_BEGIN
-            #undef ATTRIBUTE
-            #undef DEVTYPE_END
-
-            case TYPE::ANY:
-            case TYPE::NONE:
-            case TYPE::COUNT:
-                throw SemanticError("Invalid type: " + ast.getName());
-            break;
-
-            default:
-                throw SemanticError("Container type must include element type arguments.");
-            break;
+            auto valType = getTypeFromName(typeArgs.at(1)->getName());
+            if (valType == TYPE::void_t) {
+                throw SemanticError("Invalid value type for map.");
+            }
+            auto map = std::make_shared<MapDescriptor>(TYPE::map_t, keyType, valType);
+            auto key = resolve(typeArgs.at(0)->accept(*this));
+            auto value = resolve(typeArgs.at(1)->accept(*this));
+            map->emplace(key, value);
+            map->getSampleElement() = value;
+            return BlsType(map);
         }
-    }
-    else {
-        throw SemanticError("Primitive or devtype cannot include type arguments.");
+        break;
+
+        #define DEVTYPE_BEGIN(name) \
+        case TYPE::name: { \
+            if (!typeArgs.empty()) throw SemanticError("Devtypes cannot include type arguments."); \
+            auto devtype = std::make_shared<MapDescriptor>(TYPE::name, TYPE::string_t, TYPE::ANY); \
+            BlsType attr, attrVal;
+        #define ATTRIBUTE(name, type) \
+            attr = BlsType(#name); \
+            attrVal = BlsType(type()); \
+            devtype->emplace(attr, attrVal);
+        #define DEVTYPE_END \
+            return BlsType(devtype); \
+        } \
+        break;
+        #include "DEVTYPES.LIST"
+        #undef DEVTYPE_BEGIN
+        #undef ATTRIBUTE
+        #undef DEVTYPE_END
+
+        default:
+            throw SemanticError("Invalid type: " + ast.getName());
+        break;
     }
 }
 

@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 #include <boost/regex.hpp>
@@ -138,7 +139,7 @@ std::unique_ptr<AstNode::Statement> Parser::parseStatement() {
         matchExpectedSymbol(SEMICOLON, "after continue statement.");
         return std::make_unique<AstNode::Statement::Continue>();
     }
-    else if (peekTypedDeclaration()) {
+    else if (peekTypeSpecifier() || peekModifier()) {
         return parseDeclarationStatement();
     }
     else {
@@ -153,6 +154,15 @@ std::unique_ptr<AstNode::Statement::Expression> Parser::parseExpressionStatement
 }
 
 std::unique_ptr<AstNode::Statement::Declaration> Parser::parseDeclarationStatement() {
+    std::unordered_set<std::string> modifiers;
+    while (peekModifier()) {
+        ts.match(Token::Type::IDENTIFIER);
+        auto& modifier = ts.at(-1).getLiteral();
+        if (modifiers.contains(modifier)) {
+            std::cerr << "Duplicate " << modifier << " declaration modifier." << std::endl;
+        }
+        modifiers.emplace(modifier);
+    }
     auto type = parseTypeSpecifier();
     if (!ts.match(Token::Type::IDENTIFIER)) {
         throw SyntaxError("Expected valid identifier for variable name.", ts.getLine(), ts.getColumn());
@@ -160,7 +170,10 @@ std::unique_ptr<AstNode::Statement::Declaration> Parser::parseDeclarationStateme
     auto& name = ts.at(-1).getLiteral();
     auto rhs = (ts.match(ASSIGNMENT)) ? std::make_optional(parseExpression()) : std::nullopt;
     matchExpectedSymbol(SEMICOLON, "at end of declaration.");
-    return std::make_unique<AstNode::Statement::Declaration>(std::move(name), std::move(type), std::move(rhs));
+    return std::make_unique<AstNode::Statement::Declaration>(std::move(name)
+                                                           , std::move(modifiers)
+                                                           , std::move(type)
+                                                           , std::move(rhs));
 }
 
 std::unique_ptr<AstNode::Statement::Return> Parser::parseReturnStatement() {
@@ -196,7 +209,7 @@ std::unique_ptr<AstNode::Statement::For> Parser::parseForStatement() {
     ts.match(RESERVED_FOR);
     matchExpectedSymbol(PARENTHESES_OPEN, "after 'for'.");
     auto parseInnerStatement = [this]() -> std::optional<std::unique_ptr<AstNode::Statement>> {
-        if (peekTypedDeclaration()) {
+        if (peekTypeSpecifier() || peekModifier()) {
             return parseDeclarationStatement();
         }
         else if (!ts.match(SEMICOLON)) {
@@ -497,9 +510,6 @@ std::unique_ptr<AstNode::Specifier::Type> Parser::parseTypeSpecifier() {
     auto& name = ts.at(-1).getLiteral();
     std::vector<std::unique_ptr<AstNode::Specifier::Type>> typeArgs;
     if (ts.match(TYPE_DELIMITER_OPEN)) {
-        if (!CONTAINER_TYPES.contains(name)) {
-            throw SyntaxError(invalidContainerMessage(), ts.getLine(), ts.getColumn());
-        }
         do {
             typeArgs.push_back(parseTypeSpecifier());
         } while (ts.match(COMMA));
@@ -540,25 +550,12 @@ void Parser::cleanLiteral(std::string& literal) {
     literal = boost::regex_replace(literal, escapes, replacements, boost::match_default | boost::format_all);
 }
 
-bool Parser::peekTypedDeclaration() {
-    return ts.peek(Token::Type::IDENTIFIER, Token::Type::IDENTIFIER) || peekNestedTypeSpecifier();
+bool Parser::peekModifier() {
+    return MODIFIERS.contains(ts.at(0).getLiteral());
 }
 
-bool Parser::peekNestedTypeSpecifier() {
-    if (!ts.peek(Token::Type::IDENTIFIER, TYPE_DELIMITER_OPEN)) return false;
-    return CONTAINER_TYPES.contains(ts.at(0).getLiteral());
-}
-
-constexpr const char * const Parser::invalidContainerMessage() {
-    return "Invalid container type. Container must be one of: { "
-    #define CONTAINER_BEGIN(name, ...) #name ", " 
-    #define METHOD(...)
-    #define CONTAINER_END
-    #include "CONTAINER_TYPES.LIST"
-    #undef CONTAINER_BEGIN
-    #undef METHOD
-    #undef CONTAINER_END
-    "\b\b }";
+bool Parser::peekTypeSpecifier() {
+    return TYPES.contains(ts.at(0).getLiteral());
 }
 
 void Parser::matchExpectedSymbol(std::string&& symbol, std::string&& message) {
