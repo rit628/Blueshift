@@ -290,6 +290,7 @@ std::ostream& operator<<(std::ostream& os, const BlsType& obj) {
                     os << "]";
                 }
                 break;
+
                 case TYPE::map_t: {
                     auto map = std::dynamic_pointer_cast<MapDescriptor>(x);
                     auto& internalMap = map->getMap();
@@ -306,6 +307,7 @@ std::ostream& operator<<(std::ostream& os, const BlsType& obj) {
                     os << "}";
                 }
                 break;
+                
                 default:
                 break;
             }

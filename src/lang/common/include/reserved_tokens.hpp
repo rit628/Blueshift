@@ -1,38 +1,13 @@
 #pragma once
 #include <unordered_set>
 #include <string>
+#include "libtypes/bls_types.hpp"
 
 namespace BlsLang {
-    
-    const static std::unordered_set<std::string> CONTAINER_TYPES = {
-        #define CONTAINER_BEGIN(name, ...) \
-        #name,
-        #define METHOD(...)
-        #define CONTAINER_END
-        #include "CONTAINER_TYPES.LIST"
-        #undef CONTAINER_BEGIN
-        #undef METHOD
-        #undef CONTAINER_END
-    };
-
-    #define DEVTYPE_BEGIN(typename) \
-    constexpr auto DEVTYPE_##typename (#typename); \
-    constexpr auto VTYPE_##typename ("v" #typename);
-    #define ATTRIBUTE(...)
-    #define DEVTYPE_END
-    #include "DEVTYPES.LIST"
-    #undef DEVTYPE_BEGIN
-    #undef ATTRIBUTE
-    #undef DEVTYPE_END
-    
-    constexpr auto PRIMITIVE_BOOL                       ("bool");
-    constexpr auto PRIMITIVE_INT                        ("int");
-    constexpr auto PRIMITIVE_FLOAT                      ("float");
-    constexpr auto PRIMITIVE_STRING                     ("string");
 
     constexpr auto LITERAL_TRUE                         ("true");
     constexpr auto LITERAL_FALSE                        ("false");
-
+    
     constexpr auto RESERVED_IF                          ("if");
     constexpr auto RESERVED_ELSE                        ("else");
     constexpr auto RESERVED_FOR                         ("for");
@@ -42,6 +17,8 @@ namespace BlsLang {
     constexpr auto RESERVED_BREAK                       ("break");
     constexpr auto RESERVED_CONTINUE                    ("continue");
 
+    constexpr auto RESERVED_VIRTUAL                     ("virtual");
+    
     constexpr auto RESERVED_OBLOCK                      ("oblock");
     constexpr auto RESERVED_SETUP                       ("setup");
 
@@ -94,5 +71,28 @@ namespace BlsLang {
     constexpr auto ASSIGNMENT_DIVISION                  ("/=");
     constexpr auto ASSIGNMENT_REMAINDER                 ("%=");
     constexpr auto ASSIGNMENT_EXPONENTIATION            ("^=");
+
+    const static std::unordered_set<std::string> TYPES {
+          PRIMITIVE_VOID
+        , PRIMITIVE_BOOL
+        , PRIMITIVE_INT
+        , PRIMITIVE_FLOAT
+        , PRIMITIVE_STRING
+        , CONTAINER_LIST
+        , CONTAINER_MAP
+
+        #define DEVTYPE_BEGIN(name) \
+        , DEVTYPE_##name
+        #define ATTRIBUTE(...)
+        #define DEVTYPE_END
+        #include "DEVTYPES.LIST"
+        #undef DEVTYPE_BEGIN
+        #undef ATTRIBUTE
+        #undef DEVTYPE_END
+    };
+
+    const static std::unordered_set<std::string> MODIFIERS {
+        RESERVED_VIRTUAL
+    };
 
 }

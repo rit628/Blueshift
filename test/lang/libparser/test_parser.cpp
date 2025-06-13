@@ -26,13 +26,13 @@ namespace BlsLang {
     GROUP_TEST_F(ParserTest, SpecifierTests, ContainerType) {
         // Example: list<int>
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, "list"),
+            Token(Token::Type::IDENTIFIER, CONTAINER_LIST),
             Token(Token::Type::OPERATOR, TYPE_DELIMITER_OPEN),
             Token(Token::Type::IDENTIFIER, PRIMITIVE_INT),
             Token(Token::Type::OPERATOR, TYPE_DELIMITER_CLOSE)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Specifier::Type(
-            "list",
+            CONTAINER_LIST,
             {
                 new AstNode::Specifier::Type(
                     PRIMITIVE_INT,
@@ -45,19 +45,19 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, SpecifierTests, NestedContainerType) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, "list"),
+            Token(Token::Type::IDENTIFIER, CONTAINER_LIST),
             Token(Token::Type::OPERATOR, TYPE_DELIMITER_OPEN),
-            Token(Token::Type::IDENTIFIER, "list"),
+            Token(Token::Type::IDENTIFIER, CONTAINER_LIST),
             Token(Token::Type::OPERATOR, TYPE_DELIMITER_OPEN),
             Token(Token::Type::IDENTIFIER, PRIMITIVE_FLOAT),
             Token(Token::Type::OPERATOR, TYPE_DELIMITER_CLOSE),
             Token(Token::Type::OPERATOR, TYPE_DELIMITER_CLOSE)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Specifier::Type(
-            "list",
+            CONTAINER_LIST,
             {
                 new AstNode::Specifier::Type(
-                    "list",
+                    CONTAINER_LIST,
                     {
                         new AstNode::Specifier::Type(PRIMITIVE_FLOAT, {})
                     }
@@ -70,7 +70,7 @@ namespace BlsLang {
     GROUP_TEST_F(ParserTest, SpecifierTests, MultipleTypeArguments) {
         // map<int, string>
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, "map"),
+            Token(Token::Type::IDENTIFIER, CONTAINER_MAP),
             Token(Token::Type::OPERATOR, TYPE_DELIMITER_OPEN),
             Token(Token::Type::IDENTIFIER, PRIMITIVE_INT),
             Token(Token::Type::OPERATOR, COMMA),
@@ -78,7 +78,7 @@ namespace BlsLang {
             Token(Token::Type::OPERATOR, TYPE_DELIMITER_CLOSE)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Specifier::Type(
-            "map",
+            CONTAINER_MAP,
             {
                 new AstNode::Specifier::Type(PRIMITIVE_INT, {}),
                 new AstNode::Specifier::Type(PRIMITIVE_STRING, {})
@@ -449,7 +449,6 @@ namespace BlsLang {
     }
     
     GROUP_TEST_F(ParserTest, StatementTests, DeclarationStatement) {
-        // Declaration statement: int x = 10;
         std::vector<Token> sampleTokens {
             Token(Token::Type::IDENTIFIER, PRIMITIVE_INT),
             Token(Token::Type::IDENTIFIER, "x"),
@@ -459,6 +458,25 @@ namespace BlsLang {
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Statement::Declaration(
             "x",
+            {},
+            new AstNode::Specifier::Type(PRIMITIVE_INT, {}),
+            new AstNode::Expression::Literal(static_cast<int64_t>(10))
+        ));
+        TEST_PARSE_STATEMENT(sampleTokens, std::move(expectedAst));
+    }
+
+    GROUP_TEST_F(ParserTest, StatementTests, VirtualDeclarationStatement) {
+        std::vector<Token> sampleTokens {
+            Token(Token::Type::IDENTIFIER, RESERVED_VIRTUAL),
+            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT),
+            Token(Token::Type::IDENTIFIER, "x"),
+            Token(Token::Type::OPERATOR, ASSIGNMENT),
+            Token(Token::Type::INTEGER, "10"),
+            Token(Token::Type::OPERATOR, SEMICOLON)
+        };
+        auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Statement::Declaration(
+            "x",
+            {"virtual"},
             new AstNode::Specifier::Type(PRIMITIVE_INT, {}),
             new AstNode::Expression::Literal(static_cast<int64_t>(10))
         ));
@@ -663,6 +681,7 @@ namespace BlsLang {
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Statement::For(
             new AstNode::Statement::Declaration(
                 "i",
+            {},
                 new AstNode::Specifier::Type(
                     PRIMITIVE_INT,
                     {}
@@ -1045,6 +1064,7 @@ namespace BlsLang {
                 {
                     new AstNode::Statement::Declaration(
                         "x",
+                        {},
                         new AstNode::Specifier::Type(
                             PRIMITIVE_INT,
                             {}

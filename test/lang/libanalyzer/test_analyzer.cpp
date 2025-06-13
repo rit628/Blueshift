@@ -13,6 +13,7 @@ namespace BlsLang {
     GROUP_TEST_F(AnalyzerTest, TypeTests, ValidDeclaration) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Declaration(
             "x",
+            {},
             new AstNode::Specifier::Type(
                 PRIMITIVE_INT,
                 {}
@@ -25,6 +26,7 @@ namespace BlsLang {
 
         auto decoratedAst = std::unique_ptr<AstNode>(new AstNode::Statement::Declaration(
             "x",
+            {},
             new AstNode::Specifier::Type(
                 PRIMITIVE_INT,
                 {}
@@ -45,6 +47,7 @@ namespace BlsLang {
     GROUP_TEST_F(AnalyzerTest, TypeTests, InvalidDeclaration) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Declaration(
             "x",
+            {},
             new AstNode::Specifier::Type(
                 PRIMITIVE_INT,
                 {}
@@ -60,6 +63,7 @@ namespace BlsLang {
     GROUP_TEST_F(AnalyzerTest, TypeTests, InvalidTypename) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Declaration(
             "x",
+            {},
             new AstNode::Specifier::Type(
                 "faketype",
                 {}
@@ -75,8 +79,9 @@ namespace BlsLang {
     GROUP_TEST_F(AnalyzerTest, TypeTests, ContainerWithNoArgs) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Declaration(
             "x",
+            {},
             new AstNode::Specifier::Type(
-                "list",
+                CONTAINER_LIST,
                 {}
             )
             ,
@@ -90,11 +95,12 @@ namespace BlsLang {
     GROUP_TEST_F(AnalyzerTest, TypeTests, PrimitiveWithArgs) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Declaration(
             "x",
+            {},
             new AstNode::Specifier::Type(
-                "int",
+                PRIMITIVE_INT,
                 {
                     new AstNode::Specifier::Type(
-                        "int",
+                        PRIMITIVE_INT,
                         {}
                     )
                 }
@@ -110,15 +116,16 @@ namespace BlsLang {
     GROUP_TEST_F(AnalyzerTest, TypeTests, ListWithTwoArgs) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Declaration(
             "x",
+            {},
             new AstNode::Specifier::Type(
-                "list",
+                CONTAINER_LIST,
                 {
                     new AstNode::Specifier::Type(
-                        "int",
+                        PRIMITIVE_INT,
                         {}
                     ),
                     new AstNode::Specifier::Type(
-                        "int",
+                        PRIMITIVE_INT,
                         {}
                     )
                 }
@@ -134,11 +141,12 @@ namespace BlsLang {
     GROUP_TEST_F(AnalyzerTest, TypeTests, MapWithOneArg) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Declaration(
             "x",
+            {},
             new AstNode::Specifier::Type(
-                "map",
+                CONTAINER_MAP,
                 {
                     new AstNode::Specifier::Type(
-                        "int",
+                        PRIMITIVE_INT,
                         {}
                     )
                 }
@@ -154,20 +162,21 @@ namespace BlsLang {
     GROUP_TEST_F(AnalyzerTest, TypeTests, InvalidKeyType) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Declaration(
             "x",
+            {},
             new AstNode::Specifier::Type(
-                "map",
+                CONTAINER_MAP,
                 {
                     new AstNode::Specifier::Type(
-                        "list",
+                        CONTAINER_LIST,
                         {
                             new AstNode::Specifier::Type(
-                                "int",
+                                PRIMITIVE_INT,
                                 {}
                             )
                         }
                     ),
                     new AstNode::Specifier::Type(
-                        "int",
+                        PRIMITIVE_INT,
                         {}
                     )
                 }
@@ -210,7 +219,7 @@ namespace BlsLang {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
             "f",
             new AstNode::Specifier::Type(
-                "string",
+                PRIMITIVE_STRING,
                 {}
             ),
             {},
@@ -230,7 +239,7 @@ namespace BlsLang {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
             "f",
             new AstNode::Specifier::Type(
-                "string",
+                PRIMITIVE_STRING,
                 {}
             ),
             {},
@@ -248,7 +257,7 @@ namespace BlsLang {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
             "f",
             new AstNode::Specifier::Type(
-                "void",
+                PRIMITIVE_VOID,
                 {}
             ),
             {},
@@ -263,7 +272,7 @@ namespace BlsLang {
         auto decoratedAst = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
             "f",
             new AstNode::Specifier::Type(
-                "void",
+                PRIMITIVE_VOID,
                 {}
             ),
             {},
@@ -283,7 +292,7 @@ namespace BlsLang {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
             "f",
             new AstNode::Specifier::Type(
-                "void",
+                PRIMITIVE_VOID,
                 {}
             ),
             {},
@@ -294,7 +303,7 @@ namespace BlsLang {
         auto decoratedAst = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
             "f",
             new AstNode::Specifier::Type(
-                "void",
+                PRIMITIVE_VOID,
                 {}
             ),
             {},
@@ -309,7 +318,7 @@ namespace BlsLang {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
             "f",
             new AstNode::Specifier::Type(
-                "int",
+                PRIMITIVE_INT,
                 {}
             ),
             {},
@@ -326,7 +335,7 @@ namespace BlsLang {
         auto decoratedAst = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
             "f",
             new AstNode::Specifier::Type(
-                "int",
+                PRIMITIVE_INT,
                 {}
             ),
             {},
@@ -351,7 +360,7 @@ namespace BlsLang {
     //     auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
     //         "f",
     //         new AstNode::Specifier::Type(
-    //             "int",
+    //             PRIMITIVE_INT,
     //             {}
     //         ),
     //         {},
@@ -366,7 +375,7 @@ namespace BlsLang {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
             "f",
             new AstNode::Specifier::Type(
-                "int",
+                PRIMITIVE_INT,
                 {}
             ),
             {},
@@ -383,7 +392,7 @@ namespace BlsLang {
         auto decoratedAst = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
             "f",
             new AstNode::Specifier::Type(
-                "int",
+                PRIMITIVE_INT,
                 {}
             ),
             {},
@@ -409,16 +418,16 @@ namespace BlsLang {
                 new AstNode::Function::Procedure(
                     "g",
                     new AstNode::Specifier::Type(
-                        "void",
+                        PRIMITIVE_VOID,
                         {}
                     ),
                     {
                         new AstNode::Specifier::Type(
-                            "int",
+                            PRIMITIVE_INT,
                             {}
                         ),
                         new AstNode::Specifier::Type(
-                            "string",
+                            PRIMITIVE_STRING,
                             {}
                         )
                     },
@@ -431,7 +440,7 @@ namespace BlsLang {
                 new AstNode::Function::Procedure(
                     "f",
                     new AstNode::Specifier::Type(
-                        "void",
+                        PRIMITIVE_VOID,
                         {}
                     ),
                     {},
@@ -463,7 +472,7 @@ namespace BlsLang {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
             "f",
             new AstNode::Specifier::Type(
-                "void",
+                PRIMITIVE_VOID,
                 {}
             ),
             {},
@@ -490,7 +499,7 @@ namespace BlsLang {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
             "f",
             new AstNode::Specifier::Type(
-                "void",
+                PRIMITIVE_VOID,
                 {}
             ),
             {},
@@ -527,7 +536,7 @@ namespace BlsLang {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
             "f",
             new AstNode::Specifier::Type(
-                "void",
+                PRIMITIVE_VOID,
                 {}
             ),
             {},
@@ -629,7 +638,7 @@ namespace BlsLang {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
             "f",
             new AstNode::Specifier::Type(
-                "void",
+                PRIMITIVE_VOID,
                 {}
             ),
             {},
@@ -637,8 +646,9 @@ namespace BlsLang {
             {
                 new AstNode::Statement::Declaration(
                     "x",
+                    {},
                     new AstNode::Specifier::Type(
-                        "int",
+                        PRIMITIVE_INT,
                         {}
                     ),
                     std::nullopt
@@ -659,7 +669,7 @@ namespace BlsLang {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
             "f",
             new AstNode::Specifier::Type(
-                "void",
+                PRIMITIVE_VOID,
                 {}
             ),
             {},
@@ -667,11 +677,12 @@ namespace BlsLang {
             {
                 new AstNode::Statement::Declaration(
                     "x",
+                    {},
                     new AstNode::Specifier::Type(
-                        "list",
+                        CONTAINER_LIST,
                         {
                             new AstNode::Specifier::Type(
-                                "int",
+                                PRIMITIVE_INT,
                                 {}
                             )
                         }
@@ -694,7 +705,7 @@ namespace BlsLang {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
             "f",
             new AstNode::Specifier::Type(
-                "void",
+                PRIMITIVE_VOID,
                 {}
             ),
             {},
@@ -702,15 +713,16 @@ namespace BlsLang {
             {
                 new AstNode::Statement::Declaration(
                     "x",
+                    {},
                     new AstNode::Specifier::Type(
-                        "map",
+                        CONTAINER_MAP,
                         {
                             new AstNode::Specifier::Type(
-                                "int",
+                                PRIMITIVE_INT,
                                 {}
                             ),
                             new AstNode::Specifier::Type(
-                                "int",
+                                PRIMITIVE_INT,
                                 {}
                             )
                         }
@@ -733,7 +745,7 @@ namespace BlsLang {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
             "f",
             new AstNode::Specifier::Type(
-                "void",
+                PRIMITIVE_VOID,
                 {}
             ),
             {},
@@ -741,15 +753,16 @@ namespace BlsLang {
             {
                 new AstNode::Statement::Declaration(
                     "x",
+                    {},
                     new AstNode::Specifier::Type(
-                        "map",
+                        CONTAINER_MAP,
                         {
                             new AstNode::Specifier::Type(
-                                "int",
+                                PRIMITIVE_INT,
                                 {}
                             ),
                             new AstNode::Specifier::Type(
-                                "int",
+                                PRIMITIVE_INT,
                                 {}
                             )
                         }
@@ -774,7 +787,7 @@ namespace BlsLang {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
             "f",
             new AstNode::Specifier::Type(
-                "void",
+                PRIMITIVE_VOID,
                 {}
             ),
             {},
@@ -797,16 +810,16 @@ namespace BlsLang {
                 new AstNode::Function::Procedure(
                     "g",
                     new AstNode::Specifier::Type(
-                        "void",
+                        PRIMITIVE_VOID,
                         {}
                     ),
                     {
                         new AstNode::Specifier::Type(
-                            "int",
+                            PRIMITIVE_INT,
                             {}
                         ),
                         new AstNode::Specifier::Type(
-                            "string",
+                            PRIMITIVE_STRING,
                             {}
                         )
                     },
@@ -819,7 +832,7 @@ namespace BlsLang {
                 new AstNode::Function::Procedure(
                     "f",
                     new AstNode::Specifier::Type(
-                        "void",
+                        PRIMITIVE_VOID,
                         {}
                     ),
                     {},
@@ -988,15 +1001,15 @@ namespace BlsLang {
                     "foo",
                     {
                         new AstNode::Specifier::Type(
-                            "LINE_WRITER",
+                            DEVTYPE_LINE_WRITER,
                             {}
                         ),
                         new AstNode::Specifier::Type(
-                            "LINE_WRITER",
+                            DEVTYPE_LINE_WRITER,
                             {}
                         ),
                         new AstNode::Specifier::Type(
-                            "LINE_WRITER",
+                            DEVTYPE_LINE_WRITER,
                             {}
                         )
                     },
@@ -1013,8 +1026,9 @@ namespace BlsLang {
                 {
                     new AstNode::Statement::Declaration(
                         "writer_1",
+                        {},
                         new AstNode::Specifier::Type(
-                            "LINE_WRITER",
+                            DEVTYPE_LINE_WRITER,
                             {}
                         ),
                         new AstNode::Expression::Literal(
@@ -1023,8 +1037,9 @@ namespace BlsLang {
                     ),
                     new AstNode::Statement::Declaration(
                         "writer_2",
+                        {RESERVED_VIRTUAL},
                         new AstNode::Specifier::Type(
-                            "LINE_WRITER",
+                            DEVTYPE_LINE_WRITER,
                             {}
                         ),
                         new AstNode::Expression::Literal(
@@ -1033,8 +1048,9 @@ namespace BlsLang {
                     ),
                     new AstNode::Statement::Declaration(
                         "writer_3",
+                        {},
                         new AstNode::Specifier::Type(
-                            "LINE_WRITER",
+                            DEVTYPE_LINE_WRITER,
                             {}
                         ),
                         new AstNode::Expression::Literal(
@@ -1068,15 +1084,15 @@ namespace BlsLang {
                     "foo",
                     {
                         new AstNode::Specifier::Type(
-                            "LINE_WRITER",
+                            DEVTYPE_LINE_WRITER,
                             {}
                         ),
                         new AstNode::Specifier::Type(
-                            "LINE_WRITER",
+                            DEVTYPE_LINE_WRITER,
                             {}
                         ),
                         new AstNode::Specifier::Type(
-                            "LINE_WRITER",
+                            DEVTYPE_LINE_WRITER,
                             {}
                         )
                     },
@@ -1093,8 +1109,9 @@ namespace BlsLang {
                 {
                     new AstNode::Statement::Declaration(
                         "writer_1",
+                        {},
                         new AstNode::Specifier::Type(
-                            "LINE_WRITER",
+                            DEVTYPE_LINE_WRITER,
                             {}
                         ),
                         new AstNode::Expression::Literal(
@@ -1103,8 +1120,9 @@ namespace BlsLang {
                     ),
                     new AstNode::Statement::Declaration(
                         "writer_2",
+                        {RESERVED_VIRTUAL},
                         new AstNode::Specifier::Type(
-                            "LINE_WRITER",
+                            DEVTYPE_LINE_WRITER,
                             {}
                         ),
                         new AstNode::Expression::Literal(
@@ -1113,8 +1131,9 @@ namespace BlsLang {
                     ),
                     new AstNode::Statement::Declaration(
                         "writer_3",
+                        {},
                         new AstNode::Specifier::Type(
-                            "LINE_WRITER",
+                            DEVTYPE_LINE_WRITER,
                             {}
                         ),
                         new AstNode::Expression::Literal(
@@ -1158,7 +1177,8 @@ namespace BlsLang {
                 "host-1",
                 {
                     {"file", "f2.txt"}
-                }
+                },
+                true
             }},
             {"writer_3", DeviceDescriptor{
                 "writer_3",
@@ -1188,7 +1208,8 @@ namespace BlsLang {
                         "host-1",
                         {
                             {"file", "f2.txt"}
-                        }
+                        },
+                        true
                     },
                     DeviceDescriptor{
                         "writer_3",
@@ -1215,15 +1236,15 @@ namespace BlsLang {
             "foo",
             {
                 new AstNode::Specifier::Type(
-                    "LINE_WRITER",
+                    DEVTYPE_LINE_WRITER,
                     {}
                 ),
                 new AstNode::Specifier::Type(
-                    "LINE_WRITER",
+                    DEVTYPE_LINE_WRITER,
                     {}
                 ),
                 new AstNode::Specifier::Type(
-                    "LINE_WRITER",
+                    DEVTYPE_LINE_WRITER,
                     {}
                 )
             },
@@ -1263,15 +1284,15 @@ namespace BlsLang {
             "foo",
             {
                 new AstNode::Specifier::Type(
-                    "LINE_WRITER",
+                    DEVTYPE_LINE_WRITER,
                     {}
                 ),
                 new AstNode::Specifier::Type(
-                    "LINE_WRITER",
+                    DEVTYPE_LINE_WRITER,
                     {}
                 ),
                 new AstNode::Specifier::Type(
-                    "LINE_WRITER",
+                    DEVTYPE_LINE_WRITER,
                     {}
                 )
             },
@@ -1332,15 +1353,15 @@ namespace BlsLang {
             "foo",
             {
                 new AstNode::Specifier::Type(
-                    "LINE_WRITER",
+                    DEVTYPE_LINE_WRITER,
                     {}
                 ),
                 new AstNode::Specifier::Type(
-                    "LINE_WRITER",
+                    DEVTYPE_LINE_WRITER,
                     {}
                 ),
                 new AstNode::Specifier::Type(
-                    "LINE_WRITER",
+                    DEVTYPE_LINE_WRITER,
                     {}
                 )
             },
@@ -1388,15 +1409,15 @@ namespace BlsLang {
             "foo",
             {
                 new AstNode::Specifier::Type(
-                    "LINE_WRITER",
+                    DEVTYPE_LINE_WRITER,
                     {}
                 ),
                 new AstNode::Specifier::Type(
-                    "LINE_WRITER",
+                    DEVTYPE_LINE_WRITER,
                     {}
                 ),
                 new AstNode::Specifier::Type(
-                    "LINE_WRITER",
+                    DEVTYPE_LINE_WRITER,
                     {}
                 )
             },
