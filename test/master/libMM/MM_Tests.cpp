@@ -188,7 +188,7 @@
 //     block1.bytecode_offset = 0;
 //     DeviceDescriptor commonDev1;
 //     commonDev1.device_name = "common_device";
-//     commonDev1.devtype = DEVTYPE::BUTTON;
+//     commonDev1.type = TYPE::BUTTON;
 //     commonDev1.controller = "ctrlA";
 //     commonDev1.port_maps = {};
 //     commonDev1.isInterrupt = false;
@@ -202,7 +202,7 @@
 //     block2.bytecode_offset = 0;
 //     DeviceDescriptor commonDev2;
 //     commonDev2.device_name = "common_device";
-//     commonDev2.devtype = DEVTYPE::BUTTON;
+//     commonDev2.type = TYPE::BUTTON;
 //     commonDev2.controller = "ctrlB";
 //     commonDev2.port_maps = {};
 //     commonDev2.isInterrupt = false;

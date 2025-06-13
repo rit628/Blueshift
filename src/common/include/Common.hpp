@@ -25,7 +25,7 @@ enum class PORTTYPE{
 
 struct DeviceDescriptor{
     std::string device_name; 
-    DEVTYPE devtype; 
+    TYPE type; 
 
     std::string controller; 
     std::unordered_map<std::string, std::string> port_maps; 
@@ -38,7 +38,7 @@ struct DeviceDescriptor{
     template<typename Archive>
     void serialize(Archive& ar, const unsigned int version) {
         ar & device_name;
-        ar & devtype;
+        ar & type;
         ar & controller;
         ar & port_maps;
         ar & isVtype;

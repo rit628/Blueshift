@@ -25,7 +25,7 @@ int main() {
         for (auto&& j : i.binded_devices) {
             std::cout << j.device_name << std::endl;
             std::cout << j.controller << std::endl;
-            std::cout << static_cast<int>(j.devtype) << std::endl;
+            std::cout << static_cast<int>(j.type) << std::endl;
             for (auto&& k : j.port_maps) {
                 std::cout << k.first << std::endl;
                 std::cout << k.second << std::endl;
@@ -55,7 +55,7 @@ int main() {
     //     for (auto&& j : i.binded_devices) {
     //         std::cout << j.device_name << std::endl;
     //         std::cout << j.controller << std::endl;
-    //         std::cout << static_cast<int>(j.devtype) << std::endl;
+    //         std::cout << static_cast<int>(j.type) << std::endl;
     //         for (auto&& k : j.port_maps) {
     //             std::cout << k.first << std::endl;
     //             std::cout << k.second << std::endl;

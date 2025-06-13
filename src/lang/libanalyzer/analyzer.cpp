@@ -93,7 +93,7 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
         if (auto* deviceBinding = dynamic_cast<AstNode::Statement::Declaration*>(statement.get())) {
             auto& name = deviceBinding->getName();
             auto devtypeObj = resolve(deviceBinding->getType()->accept(*this));
-            auto devtype = static_cast<DEVTYPE>(getType(devtypeObj));
+            auto type = getType(devtypeObj);
 
             auto& value = deviceBinding->getValue();
             if (!value.has_value()) {
@@ -106,7 +106,7 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
             }
             literalPool.erase(binding); // no need to add binding strings
             auto& bindStr = std::get<std::string>(binding);
-            auto devDesc = parseDeviceBinding(name, devtype, bindStr);
+            auto devDesc = parseDeviceBinding(name, type, bindStr);
             devDesc.isVtype = deviceBinding->getModifiers().contains(RESERVED_VIRTUAL);
             deviceDescriptors.emplace(name, devDesc);
         }
@@ -437,7 +437,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Method& ast) {
     auto& methodArgs = ast.getArguments();
     auto objType = getType(object);
     ast.getLocalIndex() = cs.getLocalIndex(objectName);
-    if (objType < TYPE::PRIMITIVE_COUNT || objType > TYPE::CONTAINER_COUNT) {
+    if (objType < TYPE::PRIMITIVES_END || objType > TYPE::CONTAINERS_END) {
         throw SemanticError("Methods may only be applied on container type objects.");
     }
     std::vector<BlsType> resolvedArgs;
@@ -521,7 +521,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Access& ast) {
     }
     else if (subscript.has_value()) {
         auto objType = getType(object);
-        if (objType < TYPE::PRIMITIVE_COUNT || objType > TYPE::CONTAINER_COUNT) {
+        if (objType < TYPE::PRIMITIVES_END || objType > TYPE::CONTAINERS_END) {
             throw SemanticError("Subscript access only possible on container type objects");
         }
         auto& subscriptable = std::get<std::shared_ptr<HeapDescriptor>>(object);
@@ -599,7 +599,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Map& ast) {
     auto addElement = [&, this](auto& element) {
         auto key = resolve(element.first->accept(*this));
         auto keyType = getType(key);
-        if (keyType > TYPE::PRIMITIVE_COUNT) {
+        if (keyType > TYPE::PRIMITIVES_END) {
             throw SemanticError("Invalid key type for map");
         }
         auto value = resolve(element.second->accept(*this));
@@ -686,7 +686,7 @@ BlsObject Analyzer::visit(AstNode::Specifier::Type& ast) {
         case TYPE::map_t: {
             if (typeArgs.size() != 2) throw SemanticError("Map must have two type arguments.");
             auto keyType = getTypeFromName(typeArgs.at(0)->getName());
-            if (keyType > TYPE::PRIMITIVE_COUNT || keyType == TYPE::void_t) {
+            if (keyType > TYPE::PRIMITIVES_END || keyType == TYPE::void_t) {
                 throw SemanticError("Invalid key type for map.");
             }
             auto valType = getTypeFromName(typeArgs.at(1)->getName());

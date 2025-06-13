@@ -88,10 +88,10 @@ void LINE_WRITER::read_data(DynamicMessage &dmsg) {
     dmsg.packStates(states);
 }
 
-std::shared_ptr<AbstractDevice> getDevice(DEVTYPE dtype, std::unordered_map<std::string, std::string> &port_nums, int device_alias) {
+std::shared_ptr<AbstractDevice> getDevice(TYPE dtype, std::unordered_map<std::string, std::string> &port_nums, int device_alias) {
     switch(dtype){
         #define DEVTYPE_BEGIN(name) \
-        case DEVTYPE::name: { \
+        case TYPE::name: { \
             auto devPtr = std::make_shared<name>(); \
             devPtr->set_ports(port_nums); \
             return devPtr; \
