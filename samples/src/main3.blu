@@ -1,17 +1,50 @@
-oblock reciever(LINE_WRITER d1, LINE_WRITER d2){
+oblock reciever(LINE_WRITER d1, LINE_WRITER d2, LINE_WRITER d3){
+    
     string a = d1.msg; 
-    string b = " hello ";  
-    string omar = b + a; 
-    string c = d2.msg + a; 
-    b = " goodbye "; 
-    c = b + " 501";
-    a = b + d2.msg; 
-    d1.msg = a; 
-    d2.msg = b; 
+    string k = "9"; 
+    string o = "514"; 
+    string b = k; 
+
+    if(k == "10"){
+        string q = "NDS"; 
+        if(k >= "15"){
+            a = "12" + q; 
+        }
+    }
+
+    b = "36"; 
+
+    if(k == "4"){
+        a = "5";
+     
+        if(o == "omar"){
+            b = d3.msg; 
+            a = "28" + b; 
+            d2.msg = a; 
+        }
+       
+        b = d2.msg;
+    }
+
+    b = "18"; 
+
+    string omar = "hello"; 
+
+    d1.msg = "King"; 
+
+    if(d3.msg + omar == "PRINT"){
+        d1.msg = a + b; 
+    }
 }
+
+
 
 setup(){
     LINE_WRITER dev1 = "CTL1::file-newfile.txt"; 
-    LINE_WRITER dev2 = "CTL1::file-dont.txt"; 
-    reciever(dev1, dev2); 
+    LINE_WRITER dev2 = "CTL2::file-dont.txt"; 
+    LINE_WRITER dev3 = "CTL3::file-omar.txt"; 
+    reciever(dev1, dev2, dev3); 
 }
+
+
+

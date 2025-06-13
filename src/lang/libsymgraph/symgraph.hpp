@@ -1,0 +1,169 @@
+#pragma once
+
+#include "../libdepgraph/depgraph.hpp"
+#include "ast.hpp"
+#include "include/Common.hpp"
+#include "symbolicator.hpp"
+#include <cstdint>
+#include <iostream>
+#include <memory>
+#include <unordered_map>
+#include <deque>
+#include <stack> 
+#include <set>
+
+// Contains a mapping from each statement to the device is can be split to. 
+using StatementPtr = uint32_t; 
+
+namespace BlsLang{
+    enum class StatementType{
+        EXPR, 
+        OBLOCK,
+        IF, 
+        ELSE,
+        FOR, 
+        WHILE, 
+        FUNCTION, 
+        STATEMENT, 
+    }; 
+
+    struct StatementData{
+        AstNode::Statement* ptr; 
+        std::shared_ptr<StatementData> initiatorPtr = nullptr; 
+        StatementType stype; 
+        std::unordered_set<DeviceID> devDeps;
+        std::unordered_set<SymbolID> symbolDeps; 
+        // Populated by the code division algorithm
+        std::vector<StatementData> childrenData; 
+    }; 
+
+    struct SymbolData{
+        SymbolID symbolName; 
+        std::unordered_set<SymbolID> symbolDeps; 
+        std::unordered_set<DeviceID> symbolDevice; 
+        std::shared_ptr<StatementData> statementInit; 
+        int absolutePosition = 0; 
+        int stackDepth = 0;
+    }; 
+
+    struct DeviceRedef{
+        SymbolID symbol; 
+        SymbolID object; 
+        std::string attr;
+        std::shared_ptr<StatementData> redefStatement; 
+    }; 
+
+    struct DeviceRedefsCtx{
+        std::deque<DeviceRedef> deviceRedefStack; 
+    }; 
+
+    // Current Context
+    struct divContext{
+        // Contains data about the oblock context
+        std::unordered_map<SymbolID, DeviceID> aliasDevMap; 
+        std::stack<std::shared_ptr<StatementData>> parentData; 
+        
+        std::unordered_map<SymbolID, SymbolData> symbolMap; 
+
+        std::unordered_map<SymbolID, int> redefCount; 
+        // Assignment Statement Specifics: 
+        SymbolID processingSymbol; 
+        // Determines if the current node is a left hand assignment (special at access)
+        bool leftHandAs = false; 
+
+        // unique symbol count
+        int symbolCount = 0;
+
+        // Int stack Depth
+        int currStackDepth = 0; 
+    
+        // Device RedefContext
+        std::unordered_map<DeviceID, DeviceRedefsCtx> devRedefMap; 
+
+        // Processing Symbol: 
+        std::shared_ptr<StatementData> currentSymbol; 
+
+        // Group all relevant symbols for every attribut specific to a device (to divide out the device) 
+        std::unordered_map<DeviceID, std::unordered_set<SymbolID>> deviceAssignmentSymbols; 
+
+
+    }; 
+
+
+    // Code delegation pair, provides the derived oblock and controller
+    struct OblockCtlPair{
+        std::unique_ptr<AstNode> derivedOblock; 
+        ControllerID targetCTL; 
+    }; 
+
+    struct SymbolComparator{
+        bool operator()(const SymbolData& left, const SymbolData& right) const {
+            return  left.absolutePosition < right.absolutePosition; 
+        }
+    }; 
+
+
+    class Symgraph : public Printer{
+        private: 
+            std::unordered_map<OblockID, OblockContext> oblockCtxMap; 
+            divContext ctx; 
+            std::unordered_map<OblockID, divContext> divContextMap; 
+            std::unordered_map<DeviceID, DeviceDescriptor> deviceDescriptors; 
+            Printer p; 
+
+            std::shared_ptr<StatementData> makeStData(AstNode::Statement* ptr, StatementType stype);
+            std::pair<std::unordered_set<SymbolID>, std::unordered_set<DeviceID>> getDeps(AstNode& ast);
+        
+            static std::unordered_set<SymbolID> symbolicate(AstNode& ast) {
+                Symbolicator s;
+                ast.accept(s);
+                return s.getSymbols();
+            }
+
+
+            // Drills up on a 
+            void populateCtlDist(SymbolID &initialSymbol, std::unordered_set<SymbolID> &vistedSymbols, ControllerID& targCtl); 
+
+
+        public: 
+            Symgraph() : 
+            Printer(std::cout), p(std::cout){}
+
+           ~Symgraph() = default; 
+            
+            BlsObject visit(AstNode::Source& ast) override; 
+            BlsObject visit(AstNode::Function::Oblock& ast) override; 
+            BlsObject visit(AstNode::Statement::Declaration& ast) override;
+            BlsObject visit(AstNode::Statement::Expression& ast) override; 
+            BlsObject visit(AstNode::Statement::If &ast) override; 
+            
+            BlsObject visit(AstNode::Expression::Access& ast) override; 
+            BlsObject visit(AstNode::Expression::Binary &ast) override; 
+       
+            /*
+                Debug and Drill Function Prototypes
+            */
+            void setMetadata(std::unordered_map<OblockID, OblockContext> oblockCtxMap, std::unordered_map<DeviceID, DeviceDescriptor> &devDesc){
+                this->oblockCtxMap = oblockCtxMap; 
+                this->deviceDescriptors = devDesc; 
+                
+            }
+
+            std::unordered_map<OblockID, divContext>& getContextsDebug(){
+                return this->divContextMap; 
+            }
+
+            /* 
+                Performing The Divisions
+            */
+
+            std::vector<std::pair<DeviceID, ControllerID>> findDivisions(); 
+          
+            // Gets dependendency list in order
+            void exhaustiveSymbolFillH(const SymbolID &originSymbol, std::unordered_set<SymbolID>& visitedSymbols, ControllerID &ctl, std::unordered_set<AstNode::Statement*> &visitedStatements); 
+            void exhaustiveStatementFillH(std::shared_ptr<StatementData> st, std::unordered_set<SymbolID>& visitedSymbols, ControllerID &ctl, std::unordered_set<AstNode::Statement*> &visitedStatements);
+            void annotateControllerDivide(); 
+            
+         
+    }; 
+} 

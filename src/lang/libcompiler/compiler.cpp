@@ -27,21 +27,13 @@ void Compiler::compileSource(const std::string& source) {
     generator.writeBytecode(outputStream);
     ast->accept(this->depGraph);
     auto tempOblock = this->depGraph.getOblockMap();  
-    this->divider.setOblocks(this->depGraph.getOblockMap()); 
-    ast->accept(this->divider); 
+    this->symGraph.setMetadata(this->depGraph.getOblockMap(), analyzer.getDeviceDescriptors()); 
+    ast->accept(this->symGraph); 
     ast->accept(masterInterpreter);
     
-    auto& omar = this->divider.getContextsDebug(); 
-    for(auto& james : omar){
-        for(auto& item: james.second.symbolDeps){
-            std::cout<<"Level: "<<item.first<<std::endl; 
-            for(auto& item: item.second){
-                std::cout<<"item: "<<item<<std::endl; 
-            }
-            std::cout<<"-----------------------"<<std::endl; 
-        } 
-    }
-
+    
+    this->symGraph.annotateControllerDivide(); 
+    
     auto& descriptors = analyzer.getOblockDescriptors();
 
     auto& masterOblocks = masterInterpreter.getOblocks();
