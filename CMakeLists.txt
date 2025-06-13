@@ -114,10 +114,15 @@ add_library(depgraph STATIC ${LIBDEPGRAPH_SRC})
 target_include_directories(depgraph PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
 target_link_libraries(depgraph lang_common types ${BOOST_LIB_DEPS})
 
+file(GLOB_RECURSE LIBSYMGRAPH_SRC ${LANG_SRC_DIR}/libsymgraph/*.cpp)
+add_library(symgraph STATIC ${LIBSYMGRAPH_SRC})
+target_include_directories(symgraph PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
+target_link_libraries(symgraph depgraph lang_common types ${BOOST_LIB_DEPS})
+
 file(GLOB_RECURSE LIBDIVIDER_SRC ${LANG_SRC_DIR}/libdivider/*.cpp)
 add_library(divider STATIC ${LIBDIVIDER_SRC})
 target_include_directories(divider PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
-target_link_libraries(divider depgraph lang_common types ${BOOST_LIB_DEPS})
+target_link_libraries(divider symgraph depgraph lang_common types ${BOOST_LIB_DEPS})
 
 file(GLOB_RECURSE LIBVIRTUALMACHINE_SRC ${LANG_SRC_DIR}/libvirtual_machine/*.cpp)
 add_library(virtual_machine STATIC ${LIBVIRTUALMACHINE_SRC})
@@ -127,10 +132,10 @@ target_link_libraries(virtual_machine lang_common types bytecode ${BOOST_LIB_DEP
 file(GLOB_RECURSE LIBCOMPILER_SRC ${LANG_SRC_DIR}/libcompiler/*.cpp)
 add_library(compiler STATIC ${LIBCOMPILER_SRC})
 target_include_directories(compiler PUBLIC ${BLS_CONFIG} ${LANG_COMMON} ${LANG_SRC_DIR})
-target_link_libraries(compiler lang_common lexer parser interpreter analyzer depgraph ${BOOST_LIB_DEPS})
+target_link_libraries(compiler lang_common lexer parser symgraph interpreter analyzer depgraph ${BOOST_LIB_DEPS})
 
 add_executable(lang ${LANG_SRC_DIR}/main.cpp)
-target_link_libraries(lang divider compiler virtual_machine ${BOOST_LIB_DEPS})
+target_link_libraries(lang symgraph compiler virtual_machine ${BOOST_LIB_DEPS})
 
 # MASTER LIBS AND EXECUTABLE
 file(GLOB_RECURSE LIBTSM_SRC ${MASTER_SRC_DIR}/libTSM/*.cpp)

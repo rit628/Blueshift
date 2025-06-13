@@ -1,5 +1,8 @@
-oblock main(LINE_WRITER a) {
-    string x = a.msg;
+oblock main(LINE_WRITER dev, dev2) {
+        
+
+
+
 }
 
 setup() {

@@ -11,6 +11,7 @@
 #include <vector>
 #include <string>
 #include <optional>
+#include <unordered_set> 
 
 namespace BlsLang {
 
@@ -369,14 +370,30 @@ namespace BlsLang {
             class For;
             class If;
 
+         
+            Statement() = default; 
+            Statement(std::unordered_set<std::string> controllerSplit)
+            : controllerSplit(controllerSplit) {}
+
             virtual ~Statement() = default;
+
+            auto& getControllerSplit(){
+                return controllerSplit; 
+            }; 
+
+            private:
+                std::unordered_set<std::string> controllerSplit; 
+            
     };
 
     class AstNode::Statement::Expression : public AstNode::Statement {
         public:
             Expression() = default;
-            Expression(std::unique_ptr<AstNode::Expression> expression)
-                     : expression(std::move(expression)) {}
+            Expression(std::unique_ptr<AstNode::Expression> expression
+                     , std::unordered_set<std::string> controllerSplit = {})
+                     :
+                     Statement(std::move(controllerSplit))
+                     , expression(std::move(expression)) {}
             Expression(AstNode::Expression* expression)
                      : expression(expression) {}
 

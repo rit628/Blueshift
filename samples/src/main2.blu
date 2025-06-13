@@ -23,6 +23,8 @@ oblock task(LINE_WRITER lw, READ_FILE rfp, FILE_LOG log){
     }   
 }
 
+
+
 setup(){   
     LINE_WRITER lw = "CTL1::file-file1.txt";
     READ_FILE rfp = "CTL1::file-omar.txt";

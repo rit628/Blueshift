@@ -6,7 +6,7 @@
 #include "libinterpreter/interpreter.hpp"
 #include "libanalyzer/analyzer.hpp"
 #include "libdepgraph/depgraph.hpp"
-#include "libdivider/divider.hpp"
+#include "libsymgraph/symgraph.hpp"
 #include "token.hpp"
 #include <memory>
 #include <vector>
@@ -30,7 +30,7 @@ namespace BlsLang {
             Analyzer analyzer;
             DepGraph depGraph; 
             Interpreter masterInterpreter;
-            Divider divider; 
+            Symgraph symGraph; 
             std::vector<Interpreter> euInterpreters;
             std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks;
     };
