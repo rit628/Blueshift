@@ -47,11 +47,11 @@ enum class TYPE : uint32_t {
   , int_t
   , float_t
   , string_t
-  , PRIMITIVE_COUNT
+  , PRIMITIVES_END
 
   , list_t
   , map_t
-  , CONTAINER_COUNT
+  , CONTAINERS_END
 
   #define DEVTYPE_BEGIN(name) \
   , name
@@ -61,22 +61,11 @@ enum class TYPE : uint32_t {
   #undef DEVTYPE_BEGIN
   #undef ATTRIBUTE
   #undef DEVTYPE_END
-  , DEVTYPE_COUNT
+  , DEVTYPES_END
 
   , ANY
   , NONE
   , COUNT
-};
-
-enum class DEVTYPE : uint32_t {
-  #define DEVTYPE_BEGIN(name) \
-  name = static_cast<uint32_t>(TYPE::name),
-  #define ATTRIBUTE(...)
-  #define DEVTYPE_END 
-  #include "DEVTYPES.LIST"
-  #undef DEVTYPE_BEGIN
-  #undef ATTRIBUTE
-  #undef DEVTYPE_END
 };
 
 struct TypeIdentifier {

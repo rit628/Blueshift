@@ -57,7 +57,7 @@ void Client::listener(){
             this->curr_state = ClientState::CONFIGURATION; 
 
             std::vector<uint16_t> device_alias; 
-            std::vector<DEVTYPE> device_types; 
+            std::vector<TYPE> device_types; 
             std::vector<std::unordered_map<std::string, std::string>> srcs;  
             uint8_t controller_alias = inMsg.header.ctl_code; 
 

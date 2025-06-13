@@ -1188,7 +1188,7 @@ namespace BlsLang {
         expectedMetadata.deviceDescriptors = {
             {"writer_1", DeviceDescriptor{
                 "writer_1",
-                DEVTYPE::LINE_WRITER,
+                TYPE::LINE_WRITER,
                 "host-1",
                 {
                     {"file", "f1.txt"}
@@ -1196,7 +1196,7 @@ namespace BlsLang {
             }},
             {"writer_2", DeviceDescriptor{
                 "writer_2",
-                DEVTYPE::LINE_WRITER,
+                TYPE::LINE_WRITER,
                 "host-1",
                 {
                     {"file", "f2.txt"}
@@ -1205,7 +1205,7 @@ namespace BlsLang {
             }},
             {"writer_3", DeviceDescriptor{
                 "writer_3",
-                DEVTYPE::LINE_WRITER,
+                TYPE::LINE_WRITER,
                 "host-2",
                 {
                     {"file", "f3.txt"}
@@ -1219,7 +1219,7 @@ namespace BlsLang {
                 {
                     DeviceDescriptor{
                         "writer_1",
-                        DEVTYPE::LINE_WRITER,
+                        TYPE::LINE_WRITER,
                         "host-1",
                         {
                             {"file", "f1.txt"}
@@ -1227,7 +1227,7 @@ namespace BlsLang {
                     },
                     DeviceDescriptor{
                         "writer_2",
-                        DEVTYPE::LINE_WRITER,
+                        TYPE::LINE_WRITER,
                         "host-1",
                         {
                             {"file", "f2.txt"}
@@ -1236,7 +1236,7 @@ namespace BlsLang {
                     },
                     DeviceDescriptor{
                         "writer_3",
-                        DEVTYPE::LINE_WRITER,
+                        TYPE::LINE_WRITER,
                         "host-2",
                         {
                             {"file", "f3.txt"}

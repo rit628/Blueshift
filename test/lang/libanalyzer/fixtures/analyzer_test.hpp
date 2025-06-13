@@ -25,7 +25,7 @@ namespace BlsLang {
                 ast->accept(analyzer);
                 static auto compareDeviceDescriptors = [](const DeviceDescriptor& desc, const DeviceDescriptor& expectedDesc) {
                     EXPECT_EQ(desc.device_name, expectedDesc.device_name);
-                    EXPECT_EQ(desc.devtype, expectedDesc.devtype);
+                    EXPECT_EQ(desc.type, expectedDesc.type);
                     EXPECT_EQ(desc.controller, expectedDesc.controller);
                     EXPECT_EQ(desc.port_maps, expectedDesc.port_maps);
                     EXPECT_EQ(desc.isVtype, expectedDesc.isVtype);

@@ -32,7 +32,7 @@ DeviceDescriptor tag_invoke(const value_to_tag<DeviceDescriptor>&, value const& 
     auto& obj = jv.as_object();
     DeviceDescriptor desc;
     desc.device_name = value_to<std::string>(obj.at("device_name"));
-    desc.devtype = static_cast<DEVTYPE>(value_to<uint32_t>(obj.at("devtype")));
+    desc.type = static_cast<TYPE>(value_to<uint32_t>(obj.at("type")));
     desc.controller = value_to<std::string>(obj.at("controller"));
     desc.port_maps = value_to<std::unordered_map<std::string, std::string>>(obj.at("port_maps"));
     desc.isInterrupt = value_to<bool>(obj.at("isInterrupt"));
