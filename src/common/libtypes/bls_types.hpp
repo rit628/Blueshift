@@ -78,6 +78,9 @@ class HeapDescriptor;
 struct BlsType : std::variant<std::monostate, bool, int64_t, double, std::string, std::shared_ptr<HeapDescriptor>> {
   using std::variant<std::monostate, bool, int64_t, double, std::string, std::shared_ptr<HeapDescriptor>>::variant;
   explicit operator bool() const;
+  explicit operator double() const;
+  explicit operator int64_t() const;
+  explicit operator std::string() const;
   friend BlsType operator-(const BlsType& operand);
   friend bool operator<(const BlsType& lhs, const BlsType& rhs);
   friend bool operator<=(const BlsType& lhs, const BlsType& rhs);

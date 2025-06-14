@@ -1296,6 +1296,31 @@ namespace BlsLang {
                     }
                 ),
                 new AstNode::Initializer::Oblock(
+                    "constPoll",
+                    {
+                        new AstNode::Expression::Map(
+                            {
+                                {
+                                    new AstNode::Expression::Access(
+                                        "L1"
+                                    ),
+                                    new AstNode::Expression::Literal(
+                                        int64_t(10)
+                                    )
+                                },
+                                {
+                                    new AstNode::Expression::Access(
+                                        "L2"
+                                    ),
+                                    new AstNode::Expression::Literal(
+                                        double(6.28)
+                                    )
+                                },
+                            }
+                        )
+                    }
+                ),
+                new AstNode::Initializer::Oblock(
                     "dropRead",
                     {}
                 )
@@ -1344,6 +1369,31 @@ namespace BlsLang {
                     }
                 ),
                 new AstNode::Initializer::Oblock(
+                    "constPoll",
+                    {
+                        new AstNode::Expression::Map(
+                            {
+                                {
+                                    new AstNode::Expression::Access(
+                                        "L1"
+                                    ),
+                                    new AstNode::Expression::Literal(
+                                        int64_t(10)
+                                    )
+                                },
+                                {
+                                    new AstNode::Expression::Access(
+                                        "L2"
+                                    ),
+                                    new AstNode::Expression::Literal(
+                                        double(6.28)
+                                    )
+                                },
+                            }
+                        )
+                    }
+                ),
+                new AstNode::Initializer::Oblock(
                     "dropRead",
                     {}
                 )
@@ -1356,7 +1406,24 @@ namespace BlsLang {
         expectedMetadata.oblockDescriptors = {
             {"foo", OBlockDesc{
                 "foo",
-                {},
+                {{
+                    "",
+                    TYPE::NONE,
+                    "",
+                    {},
+                    false,
+                    10
+
+                },
+                {
+                    "",
+                    TYPE::NONE,
+                    "",
+                    {},
+                    false,
+                    6
+
+                }, {}},
                 0,
                 true,
                 false,

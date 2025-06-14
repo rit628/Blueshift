@@ -103,15 +103,20 @@ BlsObject Analyzer::visit(AstNode::Function::Oblock& ast) {
         auto typeObject = resolve(type->accept(*this));
         parameterTypes.push_back(typeObject);
     }
-    oblocks.emplace(oblockName, FunctionSignature(oblockName, std::monostate(), parameterTypes));
     
     cs.pushFrame(CallStack<std::string>::Frame::Context::FUNCTION, oblockName);
     auto params = ast.getParameters();
+    std::unordered_map<std::string, uint8_t> parameterIndices;
     for (int i = 0; i < params.size(); i++) {
+        parameterIndices.emplace(params.at(i), i);
         cs.addLocal(params.at(i), parameterTypes.at(i));
     }
-
-    oblockDescriptors.emplace(oblockName, OBlockDesc(oblockName));
+    oblocks.emplace(oblockName, FunctionSignature(oblockName, std::monostate(), parameterTypes, parameterIndices));
+    
+    OBlockDesc desc;
+    desc.name = oblockName;
+    desc.binded_devices.resize(params.size());
+    oblockDescriptors.emplace(oblockName, std::move(desc));
     for (auto&& option : ast.getConfigOptions()) {
         option->accept(*this);
     }
@@ -159,16 +164,19 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
             auto& desc = oblockDescriptors.at(name);
             desc.name = name;
             auto& devices = desc.binded_devices;
-            for (auto&& arg : args) {
-                auto* expr = dynamic_cast<AstNode::Expression::Access*>(arg.get());
+            for (size_t i = 0; i < args.size(); i++) {
+                auto* expr = dynamic_cast<AstNode::Expression::Access*>(args.at(i).get());
                 if (expr == nullptr || expr->getMember().has_value() || expr->getSubscript().has_value()) {
                     throw SemanticError("Invalid oblock binding in setup()");
                 }
                 try {
-                    devices.push_back(deviceDescriptors.at(expr->getObject()));
+                    auto& dev = devices.at(i);
+                    auto pollPeriod = dev.polling_period;
+                    dev = deviceDescriptors.at(expr->getObject());
+                    dev.polling_period = pollPeriod;
                 }
                 catch (std::out_of_range) {
-                    throw RuntimeError(expr->getObject() + " does not refer to a device binding");
+                    throw SemanticError(expr->getObject() + " does not refer to a device binding");
                 }
             }
         }
@@ -778,7 +786,7 @@ BlsObject Analyzer::visit(AstNode::Initializer::Oblock& ast) {
                 rule.push_back(param);
             }
             else {
-                throw SemanticError("Trigger targets must be oblock parameters.");
+                throw SemanticError("Trigger targets must be oblock parameters or list of oblock parameters.");
             }
         };
         for (auto&& arg : args) {
@@ -792,6 +800,37 @@ BlsObject Analyzer::visit(AstNode::Initializer::Oblock& ast) {
                 updateRule(arg, rule);
             }
             desc.triggerRules.push_back(std::move(rule));
+        }
+    }
+    else if (option == "constPoll") {
+        if (args.size() != 1) {
+            throw SemanticError("Exactly one argument must be supplied to constPoll.");
+        }
+        auto* pollMap = dynamic_cast<AstNode::Expression::Map*>(args.at(0).get());
+        if (!pollMap) {
+            throw SemanticError("constPoll must be supplied a mapping of oblock parameters to polling rates.");
+        }
+        auto& parameterIndices = oblocks.at(oblockName).parameterIndices;
+        auto& boundDevices = oblockDescriptors.at(oblockName).binded_devices;
+        for (auto&& [key, value] : pollMap->getElements()) {
+            auto* paramExpr = dynamic_cast<AstNode::Expression::Access*>(key.get());
+            auto* rateExpr = dynamic_cast<AstNode::Expression::Literal*>(value.get());
+            if (!paramExpr) {
+                throw SemanticError("Mapping keys must be oblock parameters.");
+            }
+            if (!rateExpr
+             || std::holds_alternative<std::string>(rateExpr->getLiteral())
+             || std::holds_alternative<bool>(rateExpr->getLiteral())) {
+                throw SemanticError("Polling rate values must be integers or floats.");
+            }
+            auto& param = paramExpr->getObject();
+            auto rate = resolve(rateExpr->accept(*this));
+            literalPool.erase(rate);
+            literalCount--;
+            
+            auto& dev = boundDevices.at(parameterIndices.at(param));
+            dev.polling_period = int64_t(rate);
+            dev.isConst = true;
         }
     }
     else if (option == "dropRead") {
