@@ -179,6 +179,12 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
                     throw SemanticError(expr->getObject() + " does not refer to a device binding");
                 }
             }
+            // update trigger rules to point to device names rather than alias indices
+            for (auto&& trigger : desc.triggers) {
+                for (auto&& parameter : trigger.rule) {
+                    parameter = desc.binded_devices.at(std::stoi(parameter)).device_name;
+                }
+            }
         }
         else {
             throw SemanticError("Statement within setup() must be an oblock binding expression or device binding declaration");
@@ -779,11 +785,14 @@ BlsObject Analyzer::visit(AstNode::Initializer::Oblock& ast) {
         if (args.empty()) {
             throw SemanticError("At least one argument must be supplied to triggerOn.");
         }
-        auto updateRule = [this](std::unique_ptr<AstNode::Expression>& arg, std::vector<std::string>& rule) {
+
+        auto& parameterIndices = oblocks.at(oblockName).parameterIndices;
+        auto updateRule = [this, &parameterIndices](std::unique_ptr<AstNode::Expression>& arg, std::vector<std::string>& rule) {
             if (auto* resolvedArg = dynamic_cast<AstNode::Expression::Access*>(arg.get())) {
                 auto& param = resolvedArg->getObject();
-                cs.getLocal(param);
-                rule.push_back(param);
+                cs.getLocal(param); // check that param exists
+                // push back index of param to convert to device name in setup() visitor
+                rule.push_back(std::to_string(parameterIndices.at(param)));
             }
             else {
                 throw SemanticError("Trigger targets must be oblock parameters or list of oblock parameters.");
@@ -799,7 +808,7 @@ BlsObject Analyzer::visit(AstNode::Initializer::Oblock& ast) {
             else {
                 updateRule(arg, rule);
             }
-            desc.triggerRules.push_back(std::move(rule));
+            desc.triggers.push_back(TriggerData{std::move(rule)});
         }
     }
     else if (option == "constPoll") {

@@ -2,6 +2,9 @@
 #include "libDM/DynamicMessage.hpp"
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/unordered_map.hpp>
+#include <optional>
+#include <string>
+#include <vector>
 
 enum class PROTOCOLS
 {
@@ -50,6 +53,26 @@ struct DeviceDescriptor{
     bool operator==(const DeviceDescriptor&) const = default;
 }; 
 
+struct TriggerData {
+    std::vector<std::string> rule;
+    std::optional<std::string> id = std::nullopt;
+    uint8_t priority = 1;
+
+    template<typename Archive>
+    void serialize(Archive& ar, const unsigned int version) {
+        ar & rule;
+        bool hasId = id.has_value();
+        ar & hasId;
+        if (hasId) {
+            id = "";
+            ar & id.value();
+        }
+        ar & priority;
+    }
+
+    bool operator==(const TriggerData&) const = default;
+};
+
 struct OBlockDesc{
 
     /*
@@ -69,7 +92,7 @@ struct OBlockDesc{
 
     bool dropRead = false; 
     bool dropWrite = false; 
-    std::vector<std::vector<std::string>> triggerRules;
+    std::vector<TriggerData> triggers;
 
     // Configuration (all time in milliseconds)
 
@@ -85,7 +108,7 @@ struct OBlockDesc{
         ar & bytecode_offset;
         ar & dropRead;
         ar & dropWrite;
-        ar & triggerRules;
+        ar & triggers;
         ar & synchronize_states;
     }
 

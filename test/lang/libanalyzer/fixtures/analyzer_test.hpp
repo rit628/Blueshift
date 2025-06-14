@@ -42,7 +42,7 @@ namespace BlsLang {
                     EXPECT_EQ(desc.bytecode_offset, expectedDesc.bytecode_offset);
                     EXPECT_EQ(desc.dropRead, expectedDesc.dropRead);
                     EXPECT_EQ(desc.dropWrite, expectedDesc.dropWrite);
-                    EXPECT_EQ(desc.triggerRules, expectedDesc.triggerRules);
+                    EXPECT_EQ(desc.triggers, expectedDesc.triggers);
                     EXPECT_EQ(desc.synchronize_states, expectedDesc.synchronize_states);
                 };
 
