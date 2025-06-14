@@ -9,6 +9,7 @@
 #include "libanalyzer/analyzer.hpp"
 #include "libdepgraph/depgraph.hpp"
 #include "libsymgraph/symgraph.hpp"
+#include "libdivider/divider.hpp"
 #include "token.hpp"
 #include <memory>
 #include <vector>

@@ -42,8 +42,6 @@ namespace BlsLang{
         std::unordered_set<SymbolID> symbolDeps; 
         std::unordered_set<DeviceID> symbolDevice; 
         std::shared_ptr<StatementData> statementInit; 
-        int absolutePosition = 0; 
-        int stackDepth = 0;
     }; 
 
     struct DeviceRedef{
@@ -65,9 +63,11 @@ namespace BlsLang{
         
         std::unordered_map<SymbolID, SymbolData> symbolMap; 
 
-        std::unordered_map<SymbolID, int> redefCount; 
+        std::unordered_map<SymbolID, int> redefCount;
+         
         // Assignment Statement Specifics: 
         SymbolID processingSymbol; 
+
         // Determines if the current node is a left hand assignment (special at access)
         bool leftHandAs = false; 
 
@@ -94,12 +94,6 @@ namespace BlsLang{
     struct OblockCtlPair{
         std::unique_ptr<AstNode> derivedOblock; 
         ControllerID targetCTL; 
-    }; 
-
-    struct SymbolComparator{
-        bool operator()(const SymbolData& left, const SymbolData& right) const {
-            return  left.absolutePosition < right.absolutePosition; 
-        }
     }; 
 
 

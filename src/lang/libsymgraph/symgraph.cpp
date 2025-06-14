@@ -88,12 +88,12 @@ std::pair<std::unordered_set<SymbolID>, std::unordered_set<DeviceID>> Symgraph::
                 auto candidateInit = (*it).redefStatement->initiatorPtr->ptr; 
           
                 auto modString = (*it).symbol; 
-                symbolDeps.insert(modString); 
+                symbolDeps.insert(modString);  
                 deviceDeps.insert(this->ctx.symbolMap[modString].symbolDevice.begin(), this->ctx.symbolMap[modString].symbolDevice.end()); 
 
                 if(currentInitiator == candidateInit){
                     break;     
-                }
+                }                
             }; 
             
         }
@@ -125,7 +125,6 @@ std::pair<std::unordered_set<SymbolID>, std::unordered_set<DeviceID>> Symgraph::
     return stmtPtr; 
 }
 
-
 /*
 *  
 *
@@ -133,8 +132,6 @@ std::pair<std::unordered_set<SymbolID>, std::unordered_set<DeviceID>> Symgraph::
 *
 *   
 */ 
-
-
 
 BlsObject Symgraph::visit(AstNode::Source& ast){
     auto& oblockNodes = ast.getOblocks(); 
@@ -220,9 +217,7 @@ BlsObject Symgraph::visit(AstNode::Statement::Declaration &ast){;
     this->ctx.symbolMap[symbolName].symbolDeps = symbolDeps; 
     this->ctx.symbolMap[symbolName].symbolDevice = deviceDeps; 
     this->ctx.symbolMap[symbolName].statementInit = this->ctx.parentData.top(); 
-    this->ctx.symbolMap[symbolName].absolutePosition = this->ctx.symbolCount++; 
     this->ctx.symbolMap[symbolName].symbolName = symbolName; 
-    this->ctx.symbolMap[symbolName].stackDepth = this->ctx.parentData.size() - 1; 
 
     return true; 
 }
@@ -249,6 +244,7 @@ BlsObject Symgraph::visit(AstNode::Expression::Binary &ast){
         }
 
         newSymbol = extractRawSymbol(newSymbol) + "?" + std::to_string(++this->ctx.redefCount[extractRawSymbol(newSymbol)]); 
+        auto parentSymbol = extractRawSymbol(newSymbol) + "?0"; 
 
         // Process right hand side: 
         auto op = this->getDeps(*ast.getRight()); 
@@ -282,7 +278,8 @@ BlsObject Symgraph::visit(AstNode::Expression::Binary &ast){
             redefDequeue.push_back(omar); 
         }
         else{
-            auto& lastRedefParent = redefDequeue.back().redefStatement->initiatorPtr; 
+            auto& lastRedefParent = redefDequeue.back().redefStatement->initiatorPtr;  // Add the statement to the declaration
+
 
             // Initiate basic replacement if the sl is 0 
             if(currParentStatement->stype == StatementType::OBLOCK){
@@ -292,6 +289,10 @@ BlsObject Symgraph::visit(AstNode::Expression::Binary &ast){
             else{
                 // kill all previous redefintions in the same scope level; 
                 while(lastRedefParent->ptr == currParentStatement->ptr){
+                    auto remRedefObj = redefDequeue.back(); 
+                    if(remRedefObj.symbol == parentSymbol){
+                        
+                    }
                     redefDequeue.pop_back(); 
                     lastRedefParent = redefDequeue.back().redefStatement->initiatorPtr; 
                 }
@@ -316,19 +317,30 @@ BlsObject Symgraph::visit(AstNode::Expression::Binary &ast){
         symData.symbolDeps = symSet; 
         symData.symbolDevice = devSet; 
         symData.statementInit = this->ctx.parentData.top(); 
+
+
+        // If not an assignment on a device then force the declaration as a dependency
+        if(!this->ctx.aliasDevMap.contains(pureSymbol)){
+            SymbolID declSymbol = extractRawSymbol(newSymbol) + "?0"; 
+            if(this->ctx.symbolMap.contains(declSymbol)){
+                symSet.insert(declSymbol); 
+            }
+            else{
+                std::cout<<"Something went wrong! undeclared non-device symbol!"<<std::endl; 
+            }
+        }
         
         this->ctx.symbolMap[newSymbol].symbolDeps = symSet; 
         this->ctx.symbolMap[newSymbol].symbolDevice = devSet; 
         this->ctx.symbolMap[newSymbol].statementInit = this->ctx.parentData.top(); 
-        this->ctx.symbolMap[newSymbol].absolutePosition = this->ctx.symbolCount++; 
         this->ctx.symbolMap[newSymbol].symbolName = newSymbol; 
-        this->ctx.symbolMap[newSymbol].stackDepth = this->ctx.parentData.size() - 1; 
-     
+        this->ctx.symbolMap[newSymbol];
     }
 
      return true; 
 }
 
+// Used on the lhs side that gets the pure (unordered symbol)
 BlsObject Symgraph::visit(AstNode::Expression::Access &ast){
     if(this->ctx.leftHandAs){
         std::string symbol = ast.getObject(); 
@@ -349,8 +361,6 @@ BlsObject Symgraph::visit(AstNode::Expression::Access &ast){
 *
 *   
 */ 
-
-
 
 std::vector<std::pair<DeviceID, ControllerID>> Symgraph::findDivisions(){
     std::vector<std::pair<DeviceID, ControllerID>> decentralizePair; 
