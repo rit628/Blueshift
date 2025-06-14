@@ -63,6 +63,7 @@ namespace BlsLang {
                     compareOblockDescriptors(oblockDescriptors.at(expectedName), expectedDesc);
                 }
 
+                ASSERT_EQ(analyzer.literalPool.size(), metadata.literalPool.size());
                 EXPECT_EQ(analyzer.literalPool, metadata.literalPool);
                 if (decoratedAst != defaultAst) {
                     ASSERT_NE(ast, nullptr);

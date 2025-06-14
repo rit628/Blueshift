@@ -24,11 +24,11 @@ enum class PORTTYPE{
 }; 
 
 struct DeviceDescriptor{
-    std::string device_name; 
-    TYPE type; 
+    std::string device_name = ""; 
+    TYPE type = TYPE::NONE;
 
-    std::string controller; 
-    std::unordered_map<std::string, std::string> port_maps; 
+    std::string controller = ""; 
+    std::unordered_map<std::string, std::string> port_maps = {}; 
 
     bool isVtype = false;
     int polling_period = 1000;
