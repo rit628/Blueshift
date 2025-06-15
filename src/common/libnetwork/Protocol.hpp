@@ -30,6 +30,9 @@ enum class Protocol : uint8_t{
     SHUTDOWN, 
     TICKER_INITIAL, 
     MASTER_ERROR, 
+    OWNER_CANDIDATE_REQUEST, 
+    OWNER_RELEASE, 
+    OWNER_CONFIRM, 
 
     // (Client -> Master)
     CONFIG_NAME, 
@@ -37,6 +40,8 @@ enum class Protocol : uint8_t{
     SEND_STATE, 
     CALLBACK, 
     CLIENT_ERROR, 
+    OWNER_GRANT, 
+
 
     // Client Loop back
     CONNECTION_LOST 

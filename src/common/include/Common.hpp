@@ -17,10 +17,17 @@ enum class PROTOCOLS
 
     // EM -> MM
     REQUESTINGSTATES,
-
+    OWNER_CANDIDATE_REQUEST, 
+    OWNER_CONFIRM, 
+    OWNER_RELEASE, 
+  
     // NM -> MM
     CALLBACKRECIEVED,
+
+    //MM -> EM
+    OWNER_GRANT
    
+
 };
 
 enum class PORTTYPE{
@@ -53,6 +60,7 @@ struct DeviceDescriptor{
 
     /* Driver Configuration Attributes */
     bool isInterrupt = false;
+    bool isCursor = true;
 
     template<typename Archive>
     void serialize(Archive& ar, const unsigned int version) {

@@ -2,7 +2,9 @@
 
 #include "libTSQ/TSQ.hpp"
 #include "include/Common.hpp"
-#include "libtype/bls_types.hpp"
+#include "../../lang/libinterpreter/interpreter.hpp"
+#include "libScheduler/scheduler.hpp"
+#include "../../lang/common/ast.hpp"
 #include <unordered_map>
 #include <thread>
 #include <memory>
