@@ -19,11 +19,9 @@ namespace BlsLang {
             friend class AnalyzerTest;
             Analyzer() = default;
 
-            #define AST_NODE_ABSTRACT(...)
-            #define AST_NODE(Node) \
+            #define AST_NODE(Node, ...) \
             BlsObject visit(Node& ast) override;
             #include "include/NODE_TYPES.LIST"
-            #undef AST_NODE_ABSTRACT
             #undef AST_NODE
             
             auto& getOblockDescriptors() { return oblockDescriptors; }
