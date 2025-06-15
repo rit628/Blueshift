@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <gtest/gtest.h>
 #include <memory>
+#include <string>
 #include <variant>
 
 namespace BlsLang {
@@ -1132,9 +1133,34 @@ namespace BlsLang {
                                         )
                                     }
                                 ),
-                                new AstNode::Expression::Access(
-                                    "L3"
-                                ),
+                                new AstNode::Expression::Map(
+                                    {
+                                        {
+                                            new AstNode::Expression::Literal(
+                                                std::string("id")
+                                            ),
+                                            new AstNode::Expression::Literal(
+                                                std::string("my trigger")
+                                            )
+                                        },
+                                        {
+                                            new AstNode::Expression::Literal(
+                                                std::string("priority")
+                                            ),
+                                            new AstNode::Expression::Literal(
+                                                int64_t(12)
+                                            )
+                                        },
+                                        {
+                                            new AstNode::Expression::Literal(
+                                                std::string("rule")
+                                            ),
+                                            new AstNode::Expression::Access(
+                                                "L3"
+                                            ),
+                                        }
+                                    }
+                                )
                             }
                         ),
                         new AstNode::Initializer::Oblock(
@@ -1295,7 +1321,7 @@ namespace BlsLang {
                 false,
                 {
                     TriggerData{{"writer_1", "writer_2"}},
-                    TriggerData{{"writer_3"}}
+                    TriggerData{{"writer_3"}, "my trigger", 12}
                 },
                 true
             }}

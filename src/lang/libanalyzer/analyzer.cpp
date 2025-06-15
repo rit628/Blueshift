@@ -16,6 +16,7 @@
 #include <vector>
 #include <boost/range/iterator_range.hpp>
 #include <boost/range/combine.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
 
 using namespace BlsLang;
 
@@ -795,20 +796,63 @@ BlsObject Analyzer::visit(AstNode::Initializer::Oblock& ast) {
                 rule.push_back(std::to_string(parameterIndices.at(param)));
             }
             else {
-                throw SemanticError("Trigger targets must be oblock parameters or list of oblock parameters.");
+                throw SemanticError("Trigger rules must be oblock parameters or list of oblock parameters.");
             }
         };
-        for (auto&& arg : args) {
-            std::vector<std::string> rule;
-            if (auto* resolvedList = dynamic_cast<AstNode::Expression::List*>(arg.get())) {
+
+        auto createRule = [&updateRule](std::unique_ptr<AstNode::Expression>& ruleExpr, std::vector<std::string>& rule) {
+            if (auto* resolvedList = dynamic_cast<AstNode::Expression::List*>(ruleExpr.get())) {
                 for (auto&& element : resolvedList->getElements()) {
-                    updateRule(element, rule);
+                    updateRule(element, rule); // create conjunction rule
                 }
             }
             else {
-                updateRule(arg, rule);
+                updateRule(ruleExpr, rule); // create singleton rule
             }
-            desc.triggers.push_back(TriggerData{std::move(rule)});
+        };
+
+        for (auto&& arg : args) {
+            std::vector<std::string> rule;
+            std::optional<std::string> id = std::nullopt;
+            uint8_t priority = 1;
+            if (auto* resolvedMap = dynamic_cast<AstNode::Expression::Map*>(arg.get())) { // verbose syntax
+                for (auto&& [attrExpr, valExpr] : resolvedMap->getElements()) {
+                    auto* attrVal = dynamic_cast<AstNode::Expression::Literal*>(attrExpr.get());
+                    if (!attrVal || !std::holds_alternative<std::string>(attrVal->getLiteral())) {
+                        throw SemanticError("Trigger attributes must be given as strings.");
+                    }
+                    auto attribute = std::get<std::string>(attrVal->getLiteral());
+                    boost::algorithm::to_lower(attribute);
+                    if (attribute == "id") {
+                        auto* idVal = dynamic_cast<AstNode::Expression::Literal*>(valExpr.get());
+                        if (!idVal || !std::holds_alternative<std::string>(idVal->getLiteral())) {
+                            throw SemanticError("id attribute must be a string.");
+                        }
+                        id = std::get<std::string>(idVal->getLiteral());
+                    }
+                    else if (attribute == "priority") {
+                        auto* priorityVal = dynamic_cast<AstNode::Expression::Literal*>(valExpr.get());
+                        if (!priorityVal || !std::holds_alternative<int64_t>(priorityVal->getLiteral())) {
+                            throw SemanticError("priority attribute must be an integer.");
+                        }
+                        priority = std::get<int64_t>(priorityVal->getLiteral());
+                    }
+                    else if (attribute == "rule") {
+                        createRule(valExpr, rule);
+                    }
+                    else {
+                        // get original string (no lowercasing) for error clarity
+                        throw SemanticError("Invalid attribute " + std::get<std::string>(attrVal->getLiteral()) + " for trigger declaration.");
+                    }
+                }
+                if (rule.empty()) {
+                    throw SemanticError("Trigger declaration must provide a rule attribute.");
+                }
+            }
+            else { // shortcut syntax
+                createRule(arg, rule);
+            }
+            desc.triggers.push_back(TriggerData{std::move(rule), std::move(id), std::move(priority)});
         }
     }
     else if (option == "constPoll") {
