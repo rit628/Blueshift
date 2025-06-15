@@ -269,20 +269,7 @@ namespace BlsLang {
             }
         ));
 
-        auto decoratedAst = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
-            "f",
-            new AstNode::Specifier::Type(
-                PRIMITIVE_VOID,
-                {}
-            ),
-            {},
-            {},
-            {
-                new AstNode::Statement::Return(
-                    std::nullopt
-                )
-            }
-        ));
+        auto decoratedAst = ast->clone();
 
         TEST_ANALYZE(ast, decoratedAst);
     }
@@ -300,16 +287,7 @@ namespace BlsLang {
             {}
         ));
 
-        auto decoratedAst = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
-            "f",
-            new AstNode::Specifier::Type(
-                PRIMITIVE_VOID,
-                {}
-            ),
-            {},
-            {},
-            {}
-        ));
+        auto decoratedAst = ast->clone();
 
         TEST_ANALYZE(ast, decoratedAst);
     }
@@ -332,22 +310,7 @@ namespace BlsLang {
             }
         ));
 
-        auto decoratedAst = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
-            "f",
-            new AstNode::Specifier::Type(
-                PRIMITIVE_INT,
-                {}
-            ),
-            {},
-            {},
-            {
-                new AstNode::Statement::Return(
-                    new AstNode::Expression::Literal(
-                        int64_t(10)
-                    )
-                )
-            }
-        ));
+        auto decoratedAst = ast->clone();
 
         Metadata expectedMetadata;
         expectedMetadata.literalPool.emplace(10, 2);
@@ -389,22 +352,7 @@ namespace BlsLang {
             }
         ));
 
-        auto decoratedAst = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
-            "f",
-            new AstNode::Specifier::Type(
-                PRIMITIVE_INT,
-                {}
-            ),
-            {},
-            {},
-            {
-                new AstNode::Statement::Return(
-                    new AstNode::Expression::Literal(
-                        double(10.23)
-                    )
-                )
-            }
-        ));
+        auto decoratedAst = ast->clone();
 
         Metadata expectedMetadata;
         expectedMetadata.literalPool.emplace(10.23, 2);
@@ -905,14 +853,7 @@ namespace BlsLang {
             }
         ));
 
-        auto decoratedAst = std::unique_ptr<AstNode>(new AstNode::Statement::While(
-            new AstNode::Expression::Literal(
-                true
-            ),
-            {
-                new AstNode::Statement::Continue()
-            }
-        ));
+        auto decoratedAst = ast->clone();
 
         Metadata expectedMetadata;
         expectedMetadata.literalPool.emplace(true, 2);
@@ -930,14 +871,7 @@ namespace BlsLang {
             }
         ));
 
-        auto decoratedAst = std::unique_ptr<AstNode>(new AstNode::Statement::While(
-            new AstNode::Expression::Literal(
-                true
-            ),
-            {
-                new AstNode::Statement::Break()
-            }
-        ));
+        auto decoratedAst = ast->clone();
 
         Metadata expectedMetadata;
         expectedMetadata.literalPool.emplace(true, 2);
@@ -955,14 +889,7 @@ namespace BlsLang {
             }
         ));
 
-        auto decoratedAst = std::unique_ptr<AstNode>(new AstNode::Statement::For(
-            std::nullopt,
-            std::nullopt,
-            std::nullopt,
-            {
-                new AstNode::Statement::Continue()
-            }
-        ));
+        auto decoratedAst = ast->clone();
 
         Metadata expectedMetadata;
 
@@ -979,14 +906,7 @@ namespace BlsLang {
             }
         ));
 
-        auto decoratedAst = std::unique_ptr<AstNode>(new AstNode::Statement::For(
-            std::nullopt,
-            std::nullopt,
-            std::nullopt,
-            {
-                new AstNode::Statement::Break()
-            }
-        ));
+        auto decoratedAst = ast->clone();
 
         Metadata expectedMetadata;
 
@@ -1077,88 +997,7 @@ namespace BlsLang {
             )
         ));
     
-        auto decoratedAst = std::unique_ptr<AstNode>(new AstNode::Source(
-            {},
-            {
-                new AstNode::Function::Oblock(
-                    "foo",
-                    {
-                        new AstNode::Specifier::Type(
-                            DEVTYPE_LINE_WRITER,
-                            {}
-                        ),
-                        new AstNode::Specifier::Type(
-                            DEVTYPE_LINE_WRITER,
-                            {}
-                        ),
-                        new AstNode::Specifier::Type(
-                            DEVTYPE_LINE_WRITER,
-                            {}
-                        )
-                    },
-                    {
-                        "L1",
-                        "L2",
-                        "L3"
-                    },
-                    {},
-                    {}
-                )
-            },
-            new AstNode::Setup(
-                {
-                    new AstNode::Statement::Declaration(
-                        "writer_1",
-                        {},
-                        new AstNode::Specifier::Type(
-                            DEVTYPE_LINE_WRITER,
-                            {}
-                        ),
-                        new AstNode::Expression::Literal(
-                            std::string("host-1::file-f1.txt")
-                        )
-                    ),
-                    new AstNode::Statement::Declaration(
-                        "writer_2",
-                        {RESERVED_VIRTUAL},
-                        new AstNode::Specifier::Type(
-                            DEVTYPE_LINE_WRITER,
-                            {}
-                        ),
-                        new AstNode::Expression::Literal(
-                            std::string("host-1::file-f2.txt")
-                        )
-                    ),
-                    new AstNode::Statement::Declaration(
-                        "writer_3",
-                        {},
-                        new AstNode::Specifier::Type(
-                            DEVTYPE_LINE_WRITER,
-                            {}
-                        ),
-                        new AstNode::Expression::Literal(
-                            std::string("host-2::file-f3.txt")
-                        )
-                    ),
-                    new AstNode::Statement::Expression(
-                        new AstNode::Expression::Function(
-                            "foo",
-                            {
-                                new AstNode::Expression::Access(
-                                    "writer_1"
-                                ),
-                                new AstNode::Expression::Access(
-                                    "writer_2"
-                                ),
-                                new AstNode::Expression::Access(
-                                    "writer_3"
-                                )
-                            }
-                        )
-                    )
-                }
-            )
-        ));
+        auto decoratedAst = ast->clone();
 
         Metadata expectedMetadata;
 
@@ -1363,136 +1202,7 @@ namespace BlsLang {
             )
         ));
         
-        auto decoratedAst = std::unique_ptr<AstNode>(new AstNode::Source(
-            {},
-            {
-                new AstNode::Function::Oblock(
-                    "foo",
-                    {
-                        new AstNode::Specifier::Type(
-                            DEVTYPE_LINE_WRITER,
-                            {}
-                        ),
-                        new AstNode::Specifier::Type(
-                            DEVTYPE_LINE_WRITER,
-                            {}
-                        ),
-                        new AstNode::Specifier::Type(
-                            DEVTYPE_LINE_WRITER,
-                            {}
-                        )
-                    },
-                    {
-                        "L1",
-                        "L2",
-                        "L3"
-                    },
-                    {
-                        new AstNode::Initializer::Oblock(
-                            "triggerOn",
-                            {
-                                new AstNode::Expression::List(
-                                    {
-                                        new AstNode::Expression::Access(
-                                            "L1"
-                                        ),
-                                        new AstNode::Expression::Access(
-                                            "L2"
-                                        )
-                                    }
-                                ),
-                                new AstNode::Expression::Access(
-                                    "L3"
-                                ),
-                            }
-                        ),
-                        new AstNode::Initializer::Oblock(
-                            "constPoll",
-                            {
-                                new AstNode::Expression::Map(
-                                    {
-                                        {
-                                            new AstNode::Expression::Access(
-                                                "L1"
-                                            ),
-                                            new AstNode::Expression::Literal(
-                                                int64_t(10)
-                                            )
-                                        },
-                                        {
-                                            new AstNode::Expression::Access(
-                                                "L2"
-                                            ),
-                                            new AstNode::Expression::Literal(
-                                                double(6.28)
-                                            )
-                                        },
-                                    }
-                                )
-                            }
-                        ),
-                        new AstNode::Initializer::Oblock(
-                            "dropRead",
-                            {}
-                        )
-                    },
-                    {}
-                )
-            },
-            new AstNode::Setup(
-                {
-                    new AstNode::Statement::Declaration(
-                        "writer_1",
-                        {},
-                        new AstNode::Specifier::Type(
-                            DEVTYPE_LINE_WRITER,
-                            {}
-                        ),
-                        new AstNode::Expression::Literal(
-                            std::string("host-1::file-f1.txt")
-                        )
-                    ),
-                    new AstNode::Statement::Declaration(
-                        "writer_2",
-                        {},
-                        new AstNode::Specifier::Type(
-                            DEVTYPE_LINE_WRITER,
-                            {}
-                        ),
-                        new AstNode::Expression::Literal(
-                            std::string("host-1::file-f2.txt")
-                        )
-                    ),
-                    new AstNode::Statement::Declaration(
-                        "writer_3",
-                        {},
-                        new AstNode::Specifier::Type(
-                            DEVTYPE_LINE_WRITER,
-                            {}
-                        ),
-                        new AstNode::Expression::Literal(
-                            std::string("host-2::file-f3.txt")
-                        )
-                    ),
-                    new AstNode::Statement::Expression(
-                        new AstNode::Expression::Function(
-                            "foo",
-                            {
-                                new AstNode::Expression::Access(
-                                    "writer_1"
-                                ),
-                                new AstNode::Expression::Access(
-                                    "writer_2"
-                                ),
-                                new AstNode::Expression::Access(
-                                    "writer_3"
-                                )
-                            }
-                        )
-                    )
-                }
-            )
-        ));
+        auto decoratedAst = ast.get()->clone();
 
         Metadata expectedMetadata;
 
