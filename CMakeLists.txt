@@ -165,10 +165,15 @@ add_library(ticker STATIC ${LIBTICKER_SRC})
 target_include_directories(ticker PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
 target_link_libraries(ticker network TSQ ${BOOST_LIB_DEPS})
 
+file(GLOB_RECURSE LIBSCHEDULER_SRC ${MASTER_SRC_DIR}/libScheduler/*.cpp)
+add_library(scheduler STATIC ${LIBSCHEDULER_SRC})
+target_include_directories(scheduler PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
+target_link_libraries(scheduler TSQ ${BOOST_LIB_DEPS})
+
 file(GLOB_RECURSE LIBEM_SRC ${MASTER_SRC_DIR}/libEM/*.cpp)
 add_library(EM STATIC ${LIBEM_SRC})
 target_include_directories(EM PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${MASTER_SRC_DIR})
-target_link_libraries(EM TSM TSQ dynamic_message interpreter ${BOOST_LIB_DEPS})
+target_link_libraries(EM scheduler TSM TSQ dynamic_message interpreter ${BOOST_LIB_DEPS})
 
 file(GLOB_RECURSE LIBMM_SRC ${MASTER_SRC_DIR}/libMM/*.cpp)
 add_library(MM STATIC ${LIBMM_SRC})
