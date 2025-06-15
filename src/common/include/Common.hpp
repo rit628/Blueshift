@@ -13,10 +13,17 @@ enum class PROTOCOLS
 
     // EM -> MM
     REQUESTINGSTATES,
-
+    OWNER_CANDIDATE_REQUEST, 
+    OWNER_CONFIRM, 
+    OWNER_RELEASE, 
+  
     // NM -> MM
     CALLBACKRECIEVED,
+
+    //MM -> EM
+    OWNER_GRANT
    
+
 };
 
 enum class PORTTYPE{
@@ -44,6 +51,7 @@ struct DeviceDescriptor{
     bool isInterrupt = false; 
     bool isVtype = false; 
     bool isConst = true; 
+    bool isCursor = true; 
     
     /* 
         If the device is registered as a trigger then the exeuction of 

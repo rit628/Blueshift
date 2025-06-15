@@ -5,6 +5,7 @@
 #include "libDM/DynamicMessage.hpp"
 #include "include/Common.hpp"
 #include "../../lang/libinterpreter/interpreter.hpp"
+#include "libScheduler/scheduler.hpp"
 #include "../../lang/common/ast.hpp"
 #include <unordered_map>
 #include <thread>

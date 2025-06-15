@@ -8,9 +8,6 @@
 #include <unordered_set>
 
 
-
-
-
 namespace BlsLang{
 
     // Derived Oblock Metadata for performing the split
@@ -71,7 +68,7 @@ namespace BlsLang{
         DividerMetadata DivMeta; 
 
         /*
-
+            Divider Context
         */
         std::unordered_map<OblockID, OblockCopyInfo> oblockCopyMap; 
         bool inOblock = true; 
