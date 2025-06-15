@@ -9,11 +9,9 @@ namespace BlsLang {
 
     class Visitor {
         public:
-            #define AST_NODE_ABSTRACT(...)
-            #define AST_NODE(Node) \
+            #define AST_NODE(Node, ...) \
             virtual BlsObject visit(Node& ast) = 0;
             #include "include/NODE_TYPES.LIST"
-            #undef AST_NODE_ABSTRACT
             #undef AST_NODE
 
             virtual ~Visitor() = default;
