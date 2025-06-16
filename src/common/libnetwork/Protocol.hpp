@@ -91,8 +91,12 @@ struct SentHeader{
     uint16_t ctl_code = 0; 
     uint8_t device_code = 0; 
     uint32_t body_size = 0; 
-    uint16_t timer_id = 0; 
+    uint16_t timer_id = 0;
     ERROR_T ec = ERROR_T::BAD_DEV_CONFIG; 
+
+    // Used to communicate about oblock ownership between master and client
+    uint16_t oblock_id;
+    uint8_t oblock_priority; 
 
     bool fromInterrupt = false; 
 

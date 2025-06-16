@@ -1,6 +1,7 @@
 #include "MasterNM.hpp"
 #include "include/Common.hpp"
 #include "libDM/DynamicMessage.hpp"
+#include "libnetwork/Protocol.hpp"
 #include <algorithm>
 #include <exception>
 
@@ -41,14 +42,18 @@ void MasterNM::writeConfig(std::vector<OBlockDesc> &desc_list){
     std::set<std::string> c_list; 
     std::set<std::string> dev_list; 
 
+    int i = 0; 
     for(auto &oblock : desc_list){
+        this->oblock_list.push_back(oblock.name); 
+        this->oblock_alias_map[oblock.name] = i;  
+
         for(auto &dev : oblock.binded_devices){
             dev_list.insert(dev.device_name); 
             c_list.insert(dev.controller); 
         }
     }
 
-    int i = 0; 
+    i = 0; 
     for(auto &name : c_list){
         this->controller_alias_map[name] = i; 
         this->controller_list.push_back(name); 
@@ -225,9 +230,31 @@ void MasterNM::masterRead(){
 
         sm_main.header.device_code = this->device_alias_map[new_state.info.device]; 
         sm_main.header.ctl_code = this->controller_alias_map[new_state.info.controller]; 
-        sm_main.header.prot = Protocol::STATE_CHANGE; 
+
+        // Add other communication MASERT_PROTOCOLS
+        switch(new_state.protocol){
+            case PROTOCOLS::SENDSTATES : {
+                sm_main.header.prot = Protocol::SEND_STATE; 
+                break; 
+            }
+            case PROTOCOLS::OWNER_CANDIDATE_REQUEST : {
+                sm_main.header.prot = Protocol::OWNER_CANDIDATE_REQUEST ;
+                break; 
+            }
+            case PROTOCOLS::OWNER_CONFIRM : {
+                sm_main.header.prot = Protocol::OWNER_CONFIRM; 
+                break; 
+            }
+            case PROTOCOLS::OWNER_RELEASE : {  
+                sm_main.header.prot = Protocol::OWNER_RELEASE; 
+                break; 
+            }
+        }
+        
+        sm_main.header.prot = Protocol::STATE_CHANGE;
         sm_main.body = new_state.DM.Serialize(); 
         sm_main.header.body_size = sm_main.body.size(); 
+    
 
         messageClient(cont, sm_main); 
 
@@ -376,6 +403,16 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
             new_msg.isInterrupt = in_msg.sm.header.fromInterrupt;
             this->EMM_out_queue.write(new_msg);
 
+            break; 
+        }
+        // Add any other protocol involved in  
+        case Protocol::OWNER_GRANT : {
+            DMM new_msg; 
+            new_msg.protocol = PROTOCOLS::OWNER_GRANT; 
+            new_msg.info.controller = this->controller_list[in_msg.sm.header.ctl_code]; 
+            new_msg.info.device = this->device_list[in_msg.sm.header.device_code]; 
+            new_msg.info.oblock =  this->oblock_list[in_msg.sm.header.oblock_id]; 
+            this->EMM_out_queue.write(new_msg); 
             break; 
         }
         default:{

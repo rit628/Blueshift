@@ -101,7 +101,7 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
                     if(!this->oblockReadMap.contains(oid)){break;}
                     auto& targReadBox = this->oblockReadMap[oid]; 
                     DMM.info.oblock = oid; 
-                    targReadBox->insertState(DMM); 
+                    targReadBox->insertState(DMM, this->sendEM); 
                     targReadBox->handleRequest(sendEM); 
                 } 
             }
@@ -109,11 +109,16 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
                 OblockID targId = DMM.info.oblock; 
                 if(!this->oblockReadMap.contains(targId)){break;}
                 auto& rBox = this->oblockReadMap.at(targId); 
-                rBox->insertState(DMM);
+                rBox->insertState(DMM, sendEM);
                 rBox->handleRequest(sendEM); 
             }
          
             break;
+        }
+        // Add handlers for any other stated
+        case PROTOCOLS::OWNER_GRANT: {
+            this->sendEM.write({DMM}); 
+            break; 
         }
         default:
         {
@@ -139,7 +144,7 @@ void MasterMailbox::assignEM(DynamicMasterMessage DMM)
                 std::vector<OblockID> oblockList = this->interruptName_map[DMM.info.device]; 
                 for(auto &name : oblockList){
                     std::unique_ptr<ReaderBox>& reader = this->oblockReadMap[name]; 
-                    reader->insertState(DMM); 
+                    reader->insertState(DMM, this->sendEM); 
                 }   
                 break; 
             }
@@ -168,6 +173,25 @@ void MasterMailbox::assignEM(DynamicMasterMessage DMM)
 
             break;
         }
+        case PROTOCOLS::OWNER_CANDIDATE_REQUEST:{
+            // Readerb enters into an "open" state while the oblock is waiting for ownership of a device
+            auto oblockName = DMM.info.oblock; 
+            this->oblockReadMap[oblockName]->forwardPackets = true; 
+            this->sendEM.write({DMM}); 
+            break; 
+        }
+        case PROTOCOLS::OWNER_CONFIRM: {
+            // If confirms this means the oblock is not waiting for state and the readerbox can close
+            auto oblockName = DMM.info.oblock; 
+            this->oblockReadMap[oblockName]->forwardPackets = false; 
+            this->sendEM.write({DMM}); 
+            break; 
+        }
+        case PROTOCOLS::OWNER_RELEASE:{
+            this->sendEM.write({DMM}); 
+            break; 
+        }
+
         default:
         {
             break;

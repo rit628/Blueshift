@@ -6,6 +6,11 @@
 #include <stdexcept>
 #include <unordered_set>
 
+using ControllerID = std::string; 
+using DeviceID = std::string; 
+using OblockID = std::string; 
+
+
 enum class PROTOCOLS
 {
     // both: 
@@ -21,7 +26,9 @@ enum class PROTOCOLS
     CALLBACKRECIEVED,
 
     //MM -> EM
-    OWNER_GRANT
+    OWNER_GRANT, 
+    // MM->EM (Forward data to a waiting device)
+    WAIT_STATE_FORWARD
    
 
 };
@@ -121,7 +128,7 @@ struct DynamicMasterMessage
     O_Info info;
     DynamicMessage DM;
     bool isInterrupt;
-    PROTOCOLS protocol;
+   PROTOCOLS protocol;
     DynamicMasterMessage() = default;
     DynamicMasterMessage(DynamicMessage DM, O_Info info, PROTOCOLS protocol, bool isInterrupt);
     ~DynamicMasterMessage() = default;
@@ -141,10 +148,35 @@ struct HeapMasterMessage
     ~HeapMasterMessage() = default;
 };
 
+
 /*
-    The GenericException class automatically disables 
-    
-*/ 
+    Schdueling issue
+*/
+
+// ScheduleRequestMetadata
+enum class PROCSTATE{
+    WAITING, 
+    EXECUTED, 
+    LOADED, 
+}; 
+
+
+// Scheduler Request State
+struct SchedulerReq{
+    OblockID requestorOblock; 
+    DeviceID targetDevice; 
+    int priority; 
+    PROCSTATE ps;     
+    int cyclesWaiting; 
+    ControllerID ctl; 
+}; 
+
+// Req Scheduler used by 
+struct ReqComparator{
+    bool operator()(const SchedulerReq& a, const SchedulerReq& b) const {
+        return a.priority > b.priority; 
+    }
+}; 
 
 
 
