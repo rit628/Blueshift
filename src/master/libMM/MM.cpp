@@ -134,11 +134,16 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
                 OblockID targId = DMM.info.oblock; 
                 if(!this->oblockReadMap.contains(targId)){break;}
                 auto& rBox = this->oblockReadMap.at(targId); 
-                rBox->insertState(DMM);
+                rBox->insertState(DMM, sendEM);
                 rBox->handleRequest(sendEM); 
             }
          
             break;
+        }
+        // Add handlers for any other stated
+        case PROTOCOLS::OWNER_GRANT: {
+            this->sendEM.write({DMM}); 
+            break; 
         }
         default:
         {
@@ -211,6 +216,25 @@ void MasterMailbox::assignEM(HeapMasterMessage DMM)
 
             break;
         }
+        case PROTOCOLS::OWNER_CANDIDATE_REQUEST:{
+            // Readerb enters into an "open" state while the oblock is waiting for ownership of a device
+            auto oblockName = DMM.info.oblock; 
+            this->oblockReadMap[oblockName]->forwardPackets = true; 
+            this->sendEM.write({DMM}); 
+            break; 
+        }
+        case PROTOCOLS::OWNER_CONFIRM: {
+            // If confirms this means the oblock is not waiting for state and the readerbox can close
+            auto oblockName = DMM.info.oblock; 
+            this->oblockReadMap[oblockName]->forwardPackets = false; 
+            this->sendEM.write({DMM}); 
+            break; 
+        }
+        case PROTOCOLS::OWNER_RELEASE:{
+            this->sendEM.write({DMM}); 
+            break; 
+        }
+
         default:
         {
             break;

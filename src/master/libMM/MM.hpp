@@ -109,10 +109,8 @@ class TriggerManager{
 
                 this->currentBitmap.set(this->stringMap[object]);         
                 bool found = this->testBit(); 
-                std::cout<<"KING KING KING"<<std::endl; 
                 if(found){
                     this->currentBitmap.reset(); 
-                    std::cout<<"I LOVE KIIIIIIDS"<<std::endl; 
                     return true; 
                 }
                 return false; 
@@ -157,16 +155,25 @@ struct ReaderBox
         bool statesRequested = false;
         string OblockName;
         bool pending_requests; 
+        // used when forwarding packets to the EM when while the process is waiting for write permissions
+        bool forwardPackets = false; 
 
 
-    
         // Inserts the state into the object: 
         // the bool initEvent determines if the event is an initial event or not
-        void insertState(HeapMasterMessage newDMM){
+        void insertState(HeapMasterMessage newDMM, TSQ<vector<DynamicMasterMessage>>& sendEM){
             if(!this->waitingQs.contains(newDMM.info.device)){
                 return; 
             }
+
             DeviceBox& targDev = this->waitingQs[newDMM.info.device];
+
+            if(forwardPackets && targDev.devDropRead){
+                newDMM.protocol = PROTOCOLS::WAIT_STATE_FORWARD; 
+                sendEM.write({newDMM}); 
+                return; 
+            }
+
             if(targDev.devDropRead){
                 targDev.stateQueues->clearQueue(); 
             }
@@ -222,6 +229,13 @@ struct WriterBox
 };
 
 
+struct EMStateMessage{
+    std::string TriggerName; 
+    std::vector<DynamicMasterMessage> dmm_list; 
+    int priority; 
+    PROTOCOLS protocol; 
+
+}; 
 
 class MasterMailbox
 {

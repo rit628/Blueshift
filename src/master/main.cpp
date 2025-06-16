@@ -7,6 +7,7 @@
 #include <functional>
 #include <unordered_map>
 
+
 using DMM = DynamicMasterMessage;
 
 
@@ -37,6 +38,8 @@ using DMM = DynamicMasterMessage;
 
 
 int main(int argc, char *argv[]){
+
+    
     std::string filename;
 
     if(argc == 2){
@@ -82,5 +85,6 @@ int main(int argc, char *argv[]){
     t1.join(); 
     t2.join(); 
     t3.join(); 
+    
     
 }

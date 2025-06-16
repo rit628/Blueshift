@@ -4,13 +4,11 @@
 #include "libTSQ/TSQ.hpp"
 #include <mutex>
 #include <queue>
+#include <shared_mutex>
 #include <unordered_map> 
 #include <vector>
+#include <set> 
 
-
-using ControllerID = std::string; 
-using DeviceID = std::string; 
-using OblockID = std::string; 
 
 /*
     Waiting: The oblock is in the queue for all devices
@@ -19,35 +17,35 @@ using OblockID = std::string;
 */
 
 
-// ScheduleRequestMetadata
-enum class PROCSTATE{
-    WAITING, 
-    EXECUTED, 
-    LOADED, 
-}; 
-
-
-// Scheduler Request State
-struct SchedulerReq{
-    OblockID requestorOblock; 
-    DeviceID targetDevice; 
-    int priority; 
-    PROCSTATE ps;     
-    int cyclesWaiting; 
-}; 
-
-// Req Scheduler used by 
-struct ReqComparator{
-    bool operator()(const SchedulerReq& a, const SchedulerReq& b) const {
-        return a.priority > b.priority; 
-    }
-}; 
-
 struct DeviceQueue{
-    // Currently Loaded request from the Compiler
-    SchedulerReq loadedRequest; 
-    std::priority_queue<SchedulerReq, std::vector<SchedulerReq>, ReqComparator> pendingRequests; 
+    // Currently Loaded request from the master
+    private: 
+        std::priority_queue<SchedulerReq, std::vector<SchedulerReq>, ReqComparator> pendingRequests;
+        // Lock to maintain thread saftey on pendingRequest priority queue 
+        mutable std::shared_mutex mut;
+    
+    public: 
+        SchedulerReq loadedRequest; 
+
+        void QueuePush(SchedulerReq &newReq){
+            std::shared_lock<std::shared_mutex> lock(mut); 
+            pendingRequests.push(newReq); 
+        }
+
+        SchedulerReq QueuePop(){
+            std::shared_lock<std::shared_mutex> lock(mut); 
+            SchedulerReq topVal = pendingRequests.top(); 
+            pendingRequests.pop(); 
+            return topVal; 
+
+        }
+
+        bool QueueEmpty(){
+            std::shared_lock<std::shared_mutex> lock(mut); 
+            return pendingRequests.empty(); 
+        }
 }; 
+
 
 
 // Loaded state info: 
@@ -96,7 +94,7 @@ class DeviceScheduler{
 
     public: 
         DeviceScheduler(std::vector<OBlockDesc> &oblockDescList, TSQ<DynamicMasterMessage> &sendMM); 
-        void request(SchedulerReq &reqOblock); 
+        void request(OblockID& oblockName, int priority); 
         void receive(DynamicMasterMessage &DMM); 
         void release(OblockID &reqOblock); 
 }; 

@@ -8,9 +8,15 @@
 #include <unordered_map>
 #include "libnetwork/Protocol.hpp"
 #include "libnetwork/Connection.hpp"
+#include <set> 
 
 using boost::asio::ip::tcp; 
-using boost::asio::ip::udp; 
+using boost::asio::ip::udp;
+
+// numeric id types for different devices
+using cont_int = uint16_t; 
+using dev_int = uint16_t; 
+using oblock_int = uint16_t; 
 
 using TimePoint = std::chrono::time_point<std::chrono::high_resolution_clock>; 
 
@@ -24,6 +30,67 @@ enum class ClientState{
     // The client is in shutdown mode, so its going to sleep
     SHUTDOWN, 
 };
+
+// Scheduler Request State client side (Repalces the string val)
+struct ClientSideReq{
+    uint16_t requestorOblock; 
+    uint16_t targetDevice; 
+    int priority; 
+    PROCSTATE ps;     
+    int cyclesWaiting; 
+    uint16_t ctl; 
+};
+
+// ClientSideReq comparator
+struct ClientSideReqComp{
+    bool operator()(const ClientSideReq& a, const ClientSideReq &b) const{
+        return a.priority > b.priority; 
+    }
+}; 
+
+
+// Receives the queue for each controller
+struct ControllerQueue{
+    private: 
+        std::unordered_map<int, ClientSideReq> latestState; 
+        std::set<ClientSideReq, ClientSideReqComp> newSet; 
+
+
+    public: 
+
+        bool currOwned = false; 
+        // The device owner is identified by the ctl_id, oblock_int
+        std::pair<cont_int, oblock_int> owner;     
+
+        void addRequest(ClientSideReq &newReq){
+            if(latestState.find(newReq.ctl) != latestState.end()){
+                auto& ls= latestState[newReq.ctl];
+                // Replace if higher priority
+                if(ls.priority <= newReq.priority){
+                    auto it = newSet.find(ls); 
+                    newSet.erase(it); 
+                    newSet.insert(newReq); 
+                    latestState[newReq.ctl] = newReq; 
+                }
+            }
+            else{
+                newSet.insert(newReq); 
+                latestState[newReq.ctl] = newReq; 
+            }
+        }
+
+        std::set<ClientSideReq, ClientSideReqComp> &getSet(){
+            return newSet; 
+        }
+}; 
+
+
+struct DeviceHandleContainer {
+    DeviceHandle deviceHandle;
+    ControllerQueue pendingRequests;
+    DeviceHandleContainer(TYPE dtype, std::unordered_map<std::string, std::string> &config, uint16_t sendInterrupt)
+                        : deviceHandle(dtype, config, sendInterrupt) {}
+}; 
 
 class Client{
     private: 
@@ -54,7 +121,7 @@ class Client{
        // Ticker Mutex; 
         std::shared_mutex ticker_mutex; 
         // Contains the list of known devices
-        std::unordered_map<int, DeviceHandle> deviceList;     
+        std::unordered_map<int, DeviceHandleContainer> deviceList;     
         // client name used to identify controller
         std::string client_name; 
         // Listens for incoming message and places it into the spot
@@ -62,7 +129,7 @@ class Client{
         // use to keep track of the state 
         ClientState curr_state; 
         // sends a callback for a device
-        void sendMessage(uint16_t device, Protocol prot, bool );  
+        void sendMessage(uint16_t device, Protocol prot, bool fromint, oblock_int oint);  
         // Send a message
         void send(SentMessage &msg); 
         // Updates the ticker table
