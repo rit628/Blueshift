@@ -1027,27 +1027,27 @@ namespace BlsLang {
 
         expectedMetadata.deviceDescriptors = {
             {"writer_1", DeviceDescriptor{
-                "writer_1",
-                TYPE::LINE_WRITER,
-                "host-1",
-                {
+                .device_name = "writer_1",
+                .type = TYPE::LINE_WRITER,
+                .controller = "host-1",
+                .port_maps = {
                     {"file", "f1.txt"}
                 }
             }},
             {"writer_2", DeviceDescriptor{
-                "writer_2",
-                TYPE::LINE_WRITER,
-                "host-1",
-                {
+                .device_name = "writer_2",
+                .type = TYPE::LINE_WRITER,
+                .controller = "host-1",
+                .port_maps = {
                     {"file", "f2.txt"}
                 },
-                true
+                .isVtype = true
             }},
             {"writer_3", DeviceDescriptor{
-                "writer_3",
-                TYPE::LINE_WRITER,
-                "host-2",
-                {
+                .device_name = "writer_3",
+                .type = TYPE::LINE_WRITER,
+                .controller = "host-2",
+                .port_maps = {
                     {"file", "f3.txt"}
                 }
             }}
@@ -1055,39 +1055,34 @@ namespace BlsLang {
 
         expectedMetadata.oblockDescriptors = {
             {"foo", OBlockDesc{
-                "foo",
-                {
+                .name = "foo",
+                .binded_devices = {
                     DeviceDescriptor{
-                        "writer_1",
-                        TYPE::LINE_WRITER,
-                        "host-1",
-                        {
+                        .device_name = "writer_1",
+                        .type = TYPE::LINE_WRITER,
+                        .controller = "host-1",
+                        .port_maps = {
                             {"file", "f1.txt"}
                         }
                     },
                     DeviceDescriptor{
-                        "writer_2",
-                        TYPE::LINE_WRITER,
-                        "host-1",
-                        {
+                        .device_name = "writer_2",
+                        .type = TYPE::LINE_WRITER,
+                        .controller = "host-1",
+                        .port_maps = {
                             {"file", "f2.txt"}
                         },
-                        true
+                        .isVtype = true
                     },
                     DeviceDescriptor{
-                        "writer_3",
-                        TYPE::LINE_WRITER,
-                        "host-2",
-                        {
+                        .device_name = "writer_3",
+                        .type = TYPE::LINE_WRITER,
+                        .controller = "host-2",
+                        .port_maps = {
                             {"file", "f3.txt"}
                         }
                     }
-                },
-                0,
-                false,
-                false,
-                {},
-                true
+                }
             }}
         };
 
@@ -1277,8 +1272,7 @@ namespace BlsLang {
                 "host-1",
                 {
                     {"file", "f2.txt"}
-                },
-                false
+                }
             }},
             {"writer_3", DeviceDescriptor{
                 "writer_3",
@@ -1292,53 +1286,44 @@ namespace BlsLang {
 
         expectedMetadata.oblockDescriptors = {
             {"foo", OBlockDesc{
-                "foo",
-                {
+                .name = "foo",
+                .binded_devices = {
                     DeviceDescriptor{
-                        "writer_1",
-                        TYPE::LINE_WRITER,
-                        "host-1",
-                        {
+                        .device_name = "writer_1",
+                        .type = TYPE::LINE_WRITER,
+                        .controller = "host-1",
+                        .port_maps = {
                             {"file", "f1.txt"}
                         },
-                        false,
-                        true,
-                        false,
-                        10,
-                        true
+                        .dropRead = true,
+                        .polling_period = 10,
+                        .isConst = true
                     },
                     DeviceDescriptor{
-                        "writer_2",
-                        TYPE::LINE_WRITER,
-                        "host-1",
-                        {
+                        .device_name = "writer_2",
+                        .type = TYPE::LINE_WRITER,
+                        .controller = "host-1",
+                        .port_maps = {
                             {"file", "f2.txt"}
                         },
-                        false,
-                        false,
-                        false,
-                        6,
-                        true
+                        .polling_period = 6,
+                        .isConst = true
                     },
                     DeviceDescriptor{
-                        "writer_3",
-                        TYPE::LINE_WRITER,
-                        "host-2",
-                        {
+                        .device_name = "writer_3",
+                        .type = TYPE::LINE_WRITER,
+                        .controller = "host-2",
+                        .port_maps = {
                             {"file", "f3.txt"}
                         },
-                        false,
-                        true
+                        .dropRead = true
                     }
                 },
-                0,
-                true,
-                false,
-                {
+                .dropRead = true,
+                .triggers = {
                     TriggerData{{"writer_1", "writer_2"}},
                     TriggerData{{"writer_3"}, "my trigger", 12}
-                },
-                true
+                }
             }}
         };
 
