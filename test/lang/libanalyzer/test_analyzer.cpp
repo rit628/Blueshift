@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 #include <memory>
 #include <string>
+#include <variant>
 
 namespace BlsLang {
     
@@ -1141,7 +1142,7 @@ namespace BlsLang {
                             }
                         ),
                         new AstNode::Initializer::Oblock(
-                            "constPoll",
+                            "constPollOn",
                             {
                                 new AstNode::Expression::Map(
                                     {
@@ -1166,8 +1167,15 @@ namespace BlsLang {
                             }
                         ),
                         new AstNode::Initializer::Oblock(
-                            "dropRead",
-                            {}
+                            "dropReadOn",
+                            {
+                                new AstNode::Expression::Access(
+                                    "L1"
+                                ),
+                                new AstNode::Expression::Access(
+                                    "L3"
+                                )
+                            }
                         )
                     },
                     {}
@@ -1272,7 +1280,10 @@ namespace BlsLang {
                             {"file", "f1.txt"}
                         },
                         false,
-                        10
+                        true,
+                        false,
+                        10,
+                        true
                     },
                     DeviceDescriptor{
                         "writer_2",
@@ -1282,7 +1293,10 @@ namespace BlsLang {
                             {"file", "f2.txt"}
                         },
                         false,
-                        6
+                        false,
+                        false,
+                        6,
+                        true
                     },
                     DeviceDescriptor{
                         "writer_3",
@@ -1290,7 +1304,9 @@ namespace BlsLang {
                         "host-2",
                         {
                             {"file", "f3.txt"}
-                        }
+                        },
+                        false,
+                        true
                     }
                 },
                 0,
