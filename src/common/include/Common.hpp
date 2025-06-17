@@ -1,9 +1,11 @@
 #pragma once
 #include "libDM/DynamicMessage.hpp"
+#include "libtypes/bls_types.hpp"
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/unordered_map.hpp>
 #include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
 enum class PROTOCOLS
@@ -27,15 +29,20 @@ enum class PORTTYPE{
 }; 
 
 struct DeviceDescriptor{
-    std::string device_name = ""; 
+    /* Binding/Declaration Attributes */
+    std::string device_name = "";
     TYPE type = TYPE::NONE;
-
-    std::string controller = ""; 
-    std::unordered_map<std::string, std::string> port_maps = {}; 
-
+    std::string controller = "";
+    std::unordered_map<std::string, std::string> port_maps = {};
     bool isVtype = false;
+
+    /* Oblock Specific Attributes */
+    bool dropRead = false;
+    bool dropWrite = false;
     int polling_period = 1000;
     bool isConst = true;
+
+    /* Driver Configuration Attributes */
     bool isInterrupt = false;
 
     template<typename Archive>
@@ -45,6 +52,8 @@ struct DeviceDescriptor{
         ar & controller;
         ar & port_maps;
         ar & isVtype;
+        ar & dropRead;
+        ar & dropWrite;
         ar & polling_period;
         ar & isConst;
         ar & isInterrupt;

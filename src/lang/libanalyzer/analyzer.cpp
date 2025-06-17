@@ -171,10 +171,13 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
                     throw SemanticError("Invalid oblock binding in setup()");
                 }
                 try {
+                    auto& declaredDev = deviceDescriptors.at(expr->getObject());
                     auto& dev = devices.at(i);
-                    auto pollPeriod = dev.polling_period;
-                    dev = deviceDescriptors.at(expr->getObject());
-                    dev.polling_period = pollPeriod;
+                    dev.device_name = declaredDev.device_name;
+                    dev.type = declaredDev.type;
+                    dev.controller = declaredDev.controller;
+                    dev.port_maps = declaredDev.port_maps;
+                    dev.isVtype = declaredDev.isVtype;
                 }
                 catch (std::out_of_range) {
                     throw SemanticError(expr->getObject() + " does not refer to a device binding");
@@ -780,6 +783,9 @@ BlsObject Analyzer::visit(AstNode::Specifier::Type& ast) {
 BlsObject Analyzer::visit(AstNode::Initializer::Oblock& ast) {
     auto& oblockName = cs.getFrameName();
     auto& desc = oblockDescriptors.at(oblockName);
+    auto& signature = oblocks.at(oblockName);
+    auto& boundDevices = desc.binded_devices;
+    auto& parameterIndices = signature.parameterIndices;
     auto& option = ast.getOption();
     auto& args = ast.getArgs();
     if (option == "triggerOn") {
@@ -787,7 +793,6 @@ BlsObject Analyzer::visit(AstNode::Initializer::Oblock& ast) {
             throw SemanticError("At least one argument must be supplied to triggerOn.");
         }
 
-        auto& parameterIndices = oblocks.at(oblockName).parameterIndices;
         auto updateRule = [this, &parameterIndices](std::unique_ptr<AstNode::Expression>& arg, std::vector<std::string>& rule) {
             if (auto* resolvedArg = dynamic_cast<AstNode::Expression::Access*>(arg.get())) {
                 auto& param = resolvedArg->getObject();
@@ -855,7 +860,7 @@ BlsObject Analyzer::visit(AstNode::Initializer::Oblock& ast) {
             desc.triggers.push_back(TriggerData{std::move(rule), std::move(id), std::move(priority)});
         }
     }
-    else if (option == "constPoll") {
+    else if (option == "constPollOn") {
         if (args.size() != 1) {
             throw SemanticError("Exactly one argument must be supplied to constPoll.");
         }
@@ -863,8 +868,6 @@ BlsObject Analyzer::visit(AstNode::Initializer::Oblock& ast) {
         if (!pollMap) {
             throw SemanticError("constPoll must be supplied a mapping of oblock parameters to polling rates.");
         }
-        auto& parameterIndices = oblocks.at(oblockName).parameterIndices;
-        auto& boundDevices = oblockDescriptors.at(oblockName).binded_devices;
         for (auto&& [key, value] : pollMap->getElements()) {
             auto* paramExpr = dynamic_cast<AstNode::Expression::Access*>(key.get());
             auto* rateExpr = dynamic_cast<AstNode::Expression::Literal*>(value.get());
@@ -886,15 +889,29 @@ BlsObject Analyzer::visit(AstNode::Initializer::Oblock& ast) {
             dev.isConst = true;
         }
     }
-    else if (option == "dropRead") {
-        if (!args.empty()) {
-            throw SemanticError("dropRead takes no arguments.");
+    else if (option == "dropReadOn") {
+        if (args.empty()) {
+            throw SemanticError("dropReadOn takes at least one argument.");
+        }
+        for (auto&& arg : args) {
+            if (auto* parameter = dynamic_cast<AstNode::Expression::Access*>(arg.get())) {
+                auto& alias = parameter->getObject();
+                cs.getLocal(alias); // check that param exists
+                boundDevices.at(parameterIndices.at(alias)).dropRead = true;
+            }
         }
         desc.dropRead = true;
     }
-    else if (option == "dropWrite") {
-        if (!args.empty()) {
-            throw SemanticError("dropWrite takes no arguments.");
+    else if (option == "dropWriteOn") {
+        if (args.empty()) {
+            throw SemanticError("dropWriteOn takes at least one argument.");
+        }
+        for (auto&& arg : args) {
+            if (auto* parameter = dynamic_cast<AstNode::Expression::Access*>(arg.get())) {
+                auto& alias = parameter->getObject();
+                cs.getLocal(alias); // check that param exists
+                boundDevices.at(parameterIndices.at(alias)).dropWrite = true;
+            }
         }
         desc.dropWrite = true;
     }
