@@ -78,7 +78,7 @@ int main(int argc, char *argv[]){
     
     // EM and MM
     TSQ<DMM> EM_MM_queue; 
-    TSQ<std::vector<DMM>> MM_EM_queue; 
+    TSQ<EMStateMessage> MM_EM_queue; 
     
     // NM and MM
     TSQ<DMM> NM_MM_queue; 

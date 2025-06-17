@@ -7,7 +7,7 @@
 
 // 
 
-ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<vector<DynamicMasterMessage>> &readMM, 
+ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<EMStateMessage> &readMM, 
     TSQ<DynamicMasterMessage> &sendMM, 
     std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks)
     : readMM(readMM), sendMM(sendMM), scheduler(OblockList, sendMM)
@@ -92,22 +92,23 @@ void ExecutionUnit::running(TSQ<DynamicMasterMessage> &sendMM)
     while(true)
     {
         //if(EUcache.isEmpty()) {continue;}
-        vector<DynamicMasterMessage> currentDMMs = EUcache.read();
+       EMStateMessage currentDMMs = EUcache.read();
 
 
-        this->globalScheduler.request(this->Oblock.name, 1); 
 
 
         std::unordered_map<DeviceID, HeapMasterMessage> HMMs;
         
         // Fill in the known data into the stack 
-        for(auto &dmm : currentDMMs)
+        for(auto &dmm : currentDMMs.dmm_list)
         {   
             HeapMasterMessage HMM(dmm.DM.toTree(), dmm.info, 
             dmm.protocol, dmm.isInterrupt);
 
             HMMs[HMM.info.device] = HMM; 
         }
+
+        this->globalScheduler.request(this->Oblock.name, currentDMMs.priority); 
 
         replaceCachedStates(HMMs); 
 
@@ -188,13 +189,27 @@ void ExecutionManager::running()
             started = false; 
         }
         
-        vector<DynamicMasterMessage> currentDMMs = this->readMM.read();
+        EMStateMessage currentDMMs = this->readMM.read(); 
+        ExecutionUnit &assignedUnit = assign(currentDMMs.dmm_list[0]);
 
-        std::cout<<"Recieved States"<<std::endl;
-       
-        ExecutionUnit &assignedUnit = assign(currentDMMs.at(0));
+        switch(currentDMMs.protocol){
+            case(PROTOCOLS::OWNER_GRANT):{
+                this->scheduler.receive(currentDMMs.dmm_list[0]); 
+                break;
+            }
+            case(PROTOCOLS::WAIT_STATE_FORWARD):{
+                DynamicMasterMessage dmm = currentDMMs.dmm_list[0]; 
+                assignedUnit.replacementCache.insert(dmm.info.device, dmm); 
+                break; 
+            }
+            default:{
+                assignedUnit.EUcache.write(currentDMMs);
+                break; 
+            }
 
-        assignedUnit.EUcache.write(currentDMMs);
+        }   
+        
+
     
         if(assignedUnit.EUcache.getSize() < 3)
         {   

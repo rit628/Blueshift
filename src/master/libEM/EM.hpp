@@ -26,7 +26,7 @@ class ExecutionUnit
     vector<string> devices;
     vector<bool> isVtype;
     vector<string> controllers;
-    TSQ<vector<DynamicMasterMessage>> EUcache;
+    TSQ<EMStateMessage> EUcache;
     thread executionThread;
     bool stop = false;
     std::unordered_map<std::string, int> devicePositionMap; 
@@ -56,7 +56,7 @@ class ExecutionManager
 {
     public:
     //ExecutionManager() = default;
-    ExecutionManager(vector<OBlockDesc> OblockList, TSQ<vector<DynamicMasterMessage>> &readMM, 
+    ExecutionManager(vector<OBlockDesc> OblockList, TSQ<EMStateMessage> &readMM, 
         TSQ<DynamicMasterMessage> &sendMM, 
         std::unordered_map<std::string, 
         std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks);
@@ -65,7 +65,7 @@ class ExecutionManager
 
     void running();
 
-    TSQ<vector<DynamicMasterMessage>> &readMM;
+    TSQ<EMStateMessage> &readMM;
     TSQ<DynamicMasterMessage> &sendMM;
     unordered_map<string, unique_ptr<ExecutionUnit>> EU_map;
     vector<OBlockDesc> OblockList;

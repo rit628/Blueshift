@@ -134,6 +134,17 @@ struct DynamicMasterMessage
     ~DynamicMasterMessage() = default;
 };
 
+struct EMStateMessage{
+    std::string TriggerName; 
+    OblockID oblockName; 
+    std::vector<DynamicMasterMessage> dmm_list; 
+    int priority; 
+    PROTOCOLS protocol; 
+
+
+}; 
+
+
 struct HeapMasterMessage
 {
     public:
