@@ -90,17 +90,20 @@ class TriggerManager{
 
         private: 
             // Tests bit against ruleset: 
-            bool testBit(){
-                return std::ranges::any_of(this->ruleset.begin(), this->ruleset.end(), 
-                    [this](const auto& val){
-                        return (this->currentBitmap & val) == val;
-                    }
-                );
+            bool testBit(int& id){
+                int i = 0; 
+                for(auto& ruleBit : this->ruleset){
+                    if((this->currentBitmap & ruleBit) == ruleBit){
+                        id = i; 
+                        return true;
+                    }; 
+                    i++; 
+                }
+                return false; 
             }
         public: 
             // Returns true if the new device corresponds to a trigger 
-            bool processDevice(std::string &object){
-                // Pretty much check if the bitmap is filled
+            bool processDevice(std::string &object, int& trigger_id){
                 int filledMap = pow(2, stringMap.size()) - 1; 
                 if(this->initBitmap.to_ulong() != filledMap){
                     this->initBitmap.set(this->stringMap[object]); 
@@ -108,9 +111,10 @@ class TriggerManager{
                 }
 
                 this->currentBitmap.set(this->stringMap[object]);         
-                bool found = this->testBit(); 
+                bool found = this->testBit(trigger_id); 
                 if(found){
                     this->currentBitmap.reset(); 
+    
                     return true; 
                 }
                 return false; 
@@ -161,7 +165,7 @@ struct ReaderBox
 
         // Inserts the state into the object: 
         // the bool initEvent determines if the event is an initial event or not
-        void insertState(HeapMasterMessage newDMM, TSQ<vector<DynamicMasterMessage>>& sendEM){
+        void insertState(HeapMasterMessage newDMM, TSQ<EMStateMessage>& sendEM){
             if(!this->waitingQs.contains(newDMM.info.device)){
                 return; 
             }
@@ -169,8 +173,10 @@ struct ReaderBox
             DeviceBox& targDev = this->waitingQs[newDMM.info.device];
 
             if(forwardPackets && targDev.devDropRead){
-                newDMM.protocol = PROTOCOLS::WAIT_STATE_FORWARD; 
-                sendEM.write({newDMM}); 
+                EMStateMessage ems; 
+                ems.protocol = PROTOCOLS::WAIT_STATE_FORWARD; 
+                ems.dmm_list = {newDMM}; 
+                sendEM.write(ems); 
                 return; 
             }
 
@@ -182,7 +188,8 @@ struct ReaderBox
 
 
             // Begin Trigger Analysis: 
-            bool writeTrig = this->triggerMan.processDevice(newDMM.info.device); 
+            int triggerId = -1; 
+            bool writeTrig = this->triggerMan.processDevice(newDMM.info.device, triggerId); 
             if(writeTrig){
                 std::vector<HeapMasterMessage> trigEvent; 
                 for(auto& [name, devBox] : this->waitingQs){
@@ -197,6 +204,7 @@ struct ReaderBox
                         trigEvent.push_back(newHmm);
                     }
                 }
+
                 this->triggerCache.push_back(trigEvent); 
             }
         }
@@ -206,9 +214,16 @@ struct ReaderBox
             if(pending_requests){
                 int maxQueueSz = this->triggerCache.size() < MAX_EM_QUEUE_FILL?  triggerCache.size() : MAX_EM_QUEUE_FILL;     
                 for(int i = 0; i < maxQueueSz; i++){
-                    auto dmm = this->triggerCache.back(); 
+                    auto dmmVect = this->triggerCache.back(); 
+                    // Update when trigger naming comes 
                     this->triggerCache.pop_back(); 
-                    sendEM.write(dmm); 
+                    EMStateMessage ems; 
+                    ems.TriggerName = "NONE"; 
+                    ems.dmm_list = dmmVect; 
+                    ems.protocol = PROTOCOLS::SENDSTATES; 
+                    ems.priority = 1; 
+                    ems.oblockName = this->OblockName; 
+                    sendEM.write(ems); 
                 }
             }   
         }   
@@ -229,13 +244,6 @@ struct WriterBox
 };
 
 
-struct EMStateMessage{
-    std::string TriggerName; 
-    std::vector<DynamicMasterMessage> dmm_list; 
-    int priority; 
-    PROTOCOLS protocol; 
-
-}; 
 
 class MasterMailbox
 {

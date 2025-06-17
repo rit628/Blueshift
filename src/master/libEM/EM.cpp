@@ -95,7 +95,6 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
         vector<HeapMasterMessage> currentHMMs = EUcache.read();
 
 
-        this->globalScheduler.request(this->Oblock.name, 1); 
 
 
         std::unordered_map<DeviceID, HeapMasterMessage> HMMs;
@@ -105,6 +104,8 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
         {   
             HMMs[HMM.info.device] = HMM; 
         }
+
+        this->globalScheduler.request(this->Oblock.name, currentDMMs.priority); 
 
         replaceCachedStates(HMMs); 
 
@@ -183,11 +184,27 @@ void ExecutionManager::running()
             started = false; 
         }
         
-        vector<HeapMasterMessage> currentHMMs = this->readMM.read();
-       
-        ExecutionUnit &assignedUnit = assign(currentHMMs.at(0));
+        EMStateMessage currentDMMs = this->readMM.read(); 
+        ExecutionUnit &assignedUnit = assign(currentDMMs.dmm_list[0]);
 
-        assignedUnit.EUcache.write(currentHMMs);
+        switch(currentDMMs.protocol){
+            case(PROTOCOLS::OWNER_GRANT):{
+                this->scheduler.receive(currentDMMs.dmm_list[0]); 
+                break;
+            }
+            case(PROTOCOLS::WAIT_STATE_FORWARD):{
+                DynamicMasterMessage dmm = currentDMMs.dmm_list[0]; 
+                assignedUnit.replacementCache.insert(dmm.info.device, dmm); 
+                break; 
+            }
+            default:{
+                assignedUnit.EUcache.write(currentDMMs);
+                break; 
+            }
+
+        }   
+        
+
     
         if(assignedUnit.EUcache.getSize() < 3)
         {   

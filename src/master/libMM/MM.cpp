@@ -142,7 +142,13 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
         }
         // Add handlers for any other stated
         case PROTOCOLS::OWNER_GRANT: {
-            this->sendEM.write({DMM}); 
+            EMStateMessage ems; 
+            ems.dmm_list = {DMM}; 
+            ems.priority = -1; 
+            ems.protocol = PROTOCOLS::OWNER_GRANT; 
+            ems.TriggerName = ""; 
+            ems.oblockName = DMM.info.oblock; 
+            this->sendEM.write(ems); 
             break; 
         }
         default:
@@ -217,21 +223,22 @@ void MasterMailbox::assignEM(HeapMasterMessage DMM)
             break;
         }
         case PROTOCOLS::OWNER_CANDIDATE_REQUEST:{
-            // Readerb enters into an "open" state while the oblock is waiting for ownership of a device
             auto oblockName = DMM.info.oblock; 
             this->oblockReadMap[oblockName]->forwardPackets = true; 
-            this->sendEM.write({DMM}); 
+            this->sendNM.write(DMM); 
             break; 
         }
         case PROTOCOLS::OWNER_CONFIRM: {
             // If confirms this means the oblock is not waiting for state and the readerbox can close
             auto oblockName = DMM.info.oblock; 
             this->oblockReadMap[oblockName]->forwardPackets = false; 
-            this->sendEM.write({DMM}); 
+            this->sendNM.write(DMM); 
             break; 
         }
         case PROTOCOLS::OWNER_RELEASE:{
-            this->sendEM.write({DMM}); 
+            auto oblockName = DMM.info.oblock; 
+            this->oblockReadMap[oblockName]->forwardPackets = false; 
+            this->sendNM.write(DMM); 
             break; 
         }
 
