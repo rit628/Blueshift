@@ -101,7 +101,7 @@ struct OBlockDesc{
 
     bool dropRead = false; 
     bool dropWrite = false; 
-    std::vector<TriggerData> triggers;
+    std::vector<TriggerData> triggers = {};
 
     // Configuration (all time in milliseconds)
 
