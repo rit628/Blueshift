@@ -10,27 +10,6 @@
 
 namespace BlsLang{
 
-    // Derived Oblock Metadata for performing the split
-    struct DerivedOblock{
-        std::unordered_set<DeviceID> devices; 
-        OblockID oblockName; 
-        std::unordered_set<ControllerID> dividedCtls; 
-    }; 
-
-    struct ControllerMetadata{
-        // Oblock List
-        ControllerID ctlName; 
-        std::unordered_map<OblockID, DerivedOblock> oblockData; 
-        std::vector<DeviceID> devices;  
-    }; 
-
-    // Data from dep graph needed to function (in addition to the annotation)
-    struct DividerMetadata{
-        std::unordered_map<ControllerID, ControllerMetadata> ctlMetaData; 
-        std::unordered_map<OblockID ,std::unordered_set<ControllerID>> OblockControllerSplit; 
-    }; 
-
-
     // Controller Source 
     struct ControllerSource{
         std::unique_ptr<AstNode::Source> ctlSource; 
@@ -79,8 +58,8 @@ namespace BlsLang{
         
         
     public: 
-        Divider():Printer(std::cout) {
-
+        Divider(DividerMetadata& newData):Printer(std::cout) {
+            this->DivMeta = newData; 
         }
 
         BlsObject visit(AstNode::Source& ast) override; 

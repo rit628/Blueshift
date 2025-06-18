@@ -72,16 +72,9 @@ BlsObject Divider::visit(AstNode::Function::Oblock &ast){
             Fill out Oblock header data
         */ 
 
-        DerivedOblock derOblock = this->DivMeta.ctlMetaData[ctl].oblockData[ast.getName()];
-        std::vector<std::string> newParameters; 
-        std::vector<std::unique_ptr<AstNode::Specifier::Type>> newParameterTypes; 
-
-        for(auto& dev : ast.getParameters()){
-            if(derOblock.devices.contains(dev)){    
-                newParameters.push_back(dev); 
-            } 
-        }
-        oci.oblockPtr->getParameters() = newParameters; 
+        auto& derOblock = this->DivMeta.ctlMetaData[ctl].oblockData[ast.getName()];
+        std::unordered_set<DeviceID> derivedDevSet; 
+        oci.oblockPtr->getParameters() = derOblock.parameterList;  
         this->oblockCopyMap.emplace(oblockName, std::move(oci)); 
     }
 
@@ -149,7 +142,8 @@ BlsObject Divider::visit(AstNode::Statement::If &ast){
 }
 
 BlsObject Divider::visit(AstNode::Statement::Declaration &ast){
-    auto ctls = ast.getControllerSplit();
+    auto totalCntSplit = this->DivMeta.OblockControllerSplit[this->currOblock]; 
+    auto writeCtls = ast.getControllerSplit();
     
     if(this->inSetup){
         // Add the statement to the declaration
@@ -157,7 +151,7 @@ BlsObject Divider::visit(AstNode::Statement::Declaration &ast){
         return std::monostate(); 
     }
 
-    for(auto& ctlName : ctls){
+    for(auto& ctlName : totalCntSplit){
         auto OblockName = this->currOblock + "_" + ctlName;
         auto splitDecl = std::make_unique<AstNode::Statement::Declaration>();
 
@@ -167,10 +161,12 @@ BlsObject Divider::visit(AstNode::Statement::Declaration &ast){
         auto& typeObj = ast.getType(); 
         splitDecl->getType()->getName() = typeObj->getName(); 
 
-        
-        if(ast.getValue().has_value()){
-            *splitDecl->getValue()->get() = *ast.getValue()->get();
+        if(writeCtls.contains(ctlName)){
+            if(ast.getValue().has_value()){
+                *splitDecl->getValue()->get() = *ast.getValue()->get();
+            }
         }
+    
         this->oblockCopyMap[OblockName].blockStack.top().push_back(std::move(splitDecl));
     }
 
@@ -182,9 +178,7 @@ BlsObject Divider::visit(AstNode::Statement::Declaration &ast){
 BlsObject Divider::visit(AstNode::Statement::Expression &ast){
     if(this->inSetup){
          // Add the statement to the declaration
-
-
-     
+        
         return std::monostate(); 
     }
 
