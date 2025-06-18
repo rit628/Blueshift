@@ -1,11 +1,14 @@
 #include "symgraph.hpp"
 #include "ast.hpp"
 #include "error_types.hpp"
+#include "include/Common.hpp"
 #include "symbolicator.hpp"
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
 #include <memory>
+#include <stack>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -125,6 +128,17 @@ std::pair<std::unordered_set<SymbolID>, std::unordered_set<DeviceID>> Symgraph::
     return stmtPtr; 
 }
 
+void Symgraph::clearContext(){
+    this->ctx.aliasDevMap.clear(); 
+    this->ctx.symbolMap.clear(); 
+    this->ctx.devRedefMap.clear(); 
+    this->ctx.redefCount.clear(); 
+    this->ctx.deviceAssignmentSymbols.clear(); 
+    // Should be empty anyways but for good measure
+    std::stack<std::shared_ptr<StatementData>>().swap(this->ctx.parentData); 
+    this->ctx.leftHandAs = false; 
+}
+
 /*
 *  
 *
@@ -138,13 +152,15 @@ BlsObject Symgraph::visit(AstNode::Source& ast){
     for(auto& oblock : oblockNodes){
         auto &src = this->ctx;
         std::string name = oblock->getName(); 
+        this->ctx.currentOblock = name; 
         auto& oblockCtx = this->oblockCtxMap[name]; 
         src.aliasDevMap = oblockCtx.devAliasMap; 
         auto oblockPtr = makeStData(nullptr, StatementType::OBLOCK);
         this->ctx.parentData.push(oblockPtr); 
         oblock->accept(*this);
-        this->divContextMap[name] = this->ctx; 
         this->ctx.parentData.pop(); 
+        this->annotateControllerDivide(); 
+        this->clearContext(); 
     }
     return true; 
 }
@@ -155,6 +171,7 @@ BlsObject Symgraph::visit(AstNode::Function::Oblock& ast){
         this->ctx.parentData.push(stmtPtr); 
         stmt->accept(*this); 
         this->ctx.parentData.pop();  
+        // Annotate the controller divide for a spe
     }
     return true; 
 }
@@ -334,7 +351,6 @@ BlsObject Symgraph::visit(AstNode::Expression::Binary &ast){
         this->ctx.symbolMap[newSymbol].symbolDevice = devSet; 
         this->ctx.symbolMap[newSymbol].statementInit = this->ctx.parentData.top(); 
         this->ctx.symbolMap[newSymbol].symbolName = newSymbol; 
-        this->ctx.symbolMap[newSymbol];
     }
 
      return true; 
@@ -362,34 +378,103 @@ BlsObject Symgraph::visit(AstNode::Expression::Access &ast){
 *   
 */ 
 
+/* 
+    Uses the device dependencies to identify how to split an oblock. An Oblock can be split into oblock_[ctl#] for each 
+    subset of devices it can be taken from. 
+*/ 
+
+struct DevDeps{
+    std::unordered_set<DeviceID> deviceDeps; 
+    std::unordered_set<ControllerID> ctlDeps; 
+}; 
+
 std::vector<std::pair<DeviceID, ControllerID>> Symgraph::findDivisions(){
+    
     std::vector<std::pair<DeviceID, ControllerID>> decentralizePair; 
-    std::unordered_map<DeviceID, std::unordered_set<ControllerID>> devToDevDeps;
+    std::unordered_map<DeviceID, DevDeps> devToDeps; 
+    std::unordered_map<DeviceID, DeviceDescriptor> ddesc;  
+
+    // Create the device descriptors map: 
+    for(auto& dev: this->oblockDescriptorMap[ctx.currentOblock].binded_devices){
+        ddesc[dev.device_name] = dev; 
+    }
+
+
 
     for(auto& pair : this->ctx.devRedefMap ){
         SymbolID vals = pair.first; 
-        auto [device, attr] = getObjectMember(vals); 
-        if(this->ctx.aliasDevMap.contains(device)){
-            DeviceID devName = this->ctx.aliasDevMap[device]; 
+        auto [deviceAlias, attr] = getObjectMember(vals); 
+        if(this->ctx.aliasDevMap.contains(deviceAlias)){
 
+            DeviceID devName = this->ctx.aliasDevMap[deviceAlias]; 
             auto& redefStack = pair.second.deviceRedefStack;
+            auto& deviceDeps = devToDeps[deviceAlias]; 
+            deviceDeps.deviceDeps.insert(deviceAlias); 
+            deviceDeps.ctlDeps.insert(ddesc[devName].controller); 
+            
+
             for(auto it = redefStack.rbegin(); it != redefStack.rend(); ++it){
                 auto& deviceDeps = this->ctx.symbolMap[it->symbol].symbolDevice; 
                 this->ctx.deviceAssignmentSymbols[devName].insert(it->symbol);
-                devToDevDeps[device].insert(deviceDeps.begin(), deviceDeps.end()); 
+                for(auto& devDep : deviceDeps){
+                    auto& devDepCont =  devToDeps[deviceAlias]; 
+
+                    devDepCont.deviceDeps.insert(devDep); 
+                    DeviceID realDevName = this->ctx.aliasDevMap[devDep]; 
+                    ControllerID ctlName = ddesc[realDevName].controller; 
+                    devDepCont.ctlDeps.insert(ctlName); 
+                }   
             }
         }
-        
     }
 
-    // Construct the decentralized vector
-    for(auto& [devName, set] : devToDevDeps){
-        if(set.size() <= 1){
-            ControllerID ctlName = this->deviceDescriptors[devName].controller; 
-            decentralizePair.push_back(std::make_pair(devName, ctlName)); 
-        }else{
-            decentralizePair.push_back(std::make_pair(devName, "MASTER")); 
+    // an oblock gets split into multiple controllers (but only once for now)
+    std::unordered_map<ControllerID, OBlockData> derivedInfo;
+    std::unordered_set<DeviceID> addedBinds; 
+
+
+    for(auto& pair : devToDeps){
+        ControllerID targController; 
+
+        if(pair.second.ctlDeps.size() <= 1){
+            ControllerID targController = *pair.second.ctlDeps.begin(); 
+            decentralizePair.push_back(std::make_pair(pair.first, targController));
+
         }
+        else{
+            decentralizePair.push_back(std::make_pair(pair.first, "MASTER")); 
+            targController = "MASTER"; 
+        }
+
+        // Update the oblock Descriptors
+
+        this->finalMetadata.OblockControllerSplit[this->ctx.currentOblock].insert(targController); 
+        auto& derOblockDesc = derivedInfo[targController].oblockDesc;
+        auto& paramList = derivedInfo[targController].parameterList; 
+
+        derOblockDesc.name = this->ctx.currentOblock + "_" + targController; 
+        auto& devDeps = pair.second.deviceDeps; 
+        auto& currDevDesc = ddesc[this->ctx.aliasDevMap[pair.first]]; 
+
+        std::for_each(devDeps.begin(), devDeps.end(), [&](const DeviceID& str){
+            auto& readDevDesc = ddesc[this->ctx.aliasDevMap[str]]; 
+
+            if(!addedBinds.contains(readDevDesc.device_name)){
+                derOblockDesc.inDevices.push_back(readDevDesc);  
+                derOblockDesc.binded_devices.push_back(readDevDesc);  
+                paramList.push_back(str);   
+                addedBinds.insert(readDevDesc.device_name); 
+            }
+        }); 
+
+        if(!addedBinds.contains(currDevDesc.device_name)){
+            derOblockDesc.outDevices.push_back(currDevDesc);
+            derOblockDesc.binded_devices.push_back(currDevDesc); 
+            paramList.push_back(pair.first); 
+            addedBinds.insert(currDevDesc.device_name); 
+        }
+        
+        // Figure out how to handle triggers in decentralization:
 
     }
 
@@ -456,3 +541,8 @@ std::vector<std::pair<DeviceID, ControllerID>> Symgraph::findDivisions(){
         }
     }
  }
+
+  DividerMetadata Symgraph::getDivisionData(){
+    return this->finalMetadata; 
+ }
+

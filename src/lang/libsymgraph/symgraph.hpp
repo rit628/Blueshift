@@ -10,12 +10,32 @@
 #include <unordered_map>
 #include <deque>
 #include <stack> 
-#include <set>
+#include <vector> 
 
 // Contains a mapping from each statement to the device is can be split to. 
 using StatementPtr = uint32_t; 
 
+
 namespace BlsLang{
+
+    struct OBlockData{
+        std::vector<std::string> parameterList; 
+        OBlockDesc oblockDesc; 
+    }; 
+
+    struct ControllerMetadata{
+        // Oblock List
+        ControllerID ctlName; 
+        std::unordered_map<OblockID, OBlockData> oblockData; 
+    }; 
+
+    // Data from dep graph needed to function (in addition to the annotation)
+    struct DividerMetadata{
+        std::unordered_map<ControllerID, ControllerMetadata> ctlMetaData; 
+        std::unordered_map<OblockID ,std::unordered_set<ControllerID>> OblockControllerSplit; 
+    }; 
+
+
     enum class StatementType{
         EXPR, 
         OBLOCK,
@@ -32,9 +52,7 @@ namespace BlsLang{
         std::shared_ptr<StatementData> initiatorPtr = nullptr; 
         StatementType stype; 
         std::unordered_set<DeviceID> devDeps;
-        std::unordered_set<SymbolID> symbolDeps; 
-        // Populated by the code division algorithm
-        std::vector<StatementData> childrenData; 
+        std::unordered_set<SymbolID> symbolDeps;  
     }; 
 
     struct SymbolData{
@@ -57,56 +75,41 @@ namespace BlsLang{
 
     // Current Context
     struct divContext{
+        // Current oblock
+        OblockID currentOblock;  
+
         // Contains data about the oblock context
         std::unordered_map<SymbolID, DeviceID> aliasDevMap; 
         std::stack<std::shared_ptr<StatementData>> parentData; 
-        
         std::unordered_map<SymbolID, SymbolData> symbolMap; 
-
         std::unordered_map<SymbolID, int> redefCount;
          
-        // Assignment Statement Specifics: 
-        SymbolID processingSymbol; 
-
         // Determines if the current node is a left hand assignment (special at access)
         bool leftHandAs = false; 
 
-        // unique symbol count
-        int symbolCount = 0;
-
-        // Int stack Depth
-        int currStackDepth = 0; 
-    
         // Device RedefContext
         std::unordered_map<DeviceID, DeviceRedefsCtx> devRedefMap; 
 
-        // Processing Symbol: 
-        std::shared_ptr<StatementData> currentSymbol; 
-
         // Group all relevant symbols for every attribut specific to a device (to divide out the device) 
         std::unordered_map<DeviceID, std::unordered_set<SymbolID>> deviceAssignmentSymbols; 
-
-
     }; 
-
-
-    // Code delegation pair, provides the derived oblock and controller
-    struct OblockCtlPair{
-        std::unique_ptr<AstNode> derivedOblock; 
-        ControllerID targetCTL; 
-    }; 
-
 
     class Symgraph : public Printer{
         private: 
+            // End Product of the symbolic dep graph (other than AST statement annotation)
+            DividerMetadata finalMetadata; 
+            
+            // Multi data
             std::unordered_map<OblockID, OblockContext> oblockCtxMap; 
             divContext ctx; 
-            std::unordered_map<OblockID, divContext> divContextMap; 
-            std::unordered_map<DeviceID, DeviceDescriptor> deviceDescriptors; 
+            //std::unordered_map<OblockID, divContext> divContextMap; 
+            //std::unordered_map<DeviceID, DeviceDescriptor> deviceDescriptors; 
+            std::unordered_map<OblockID, OBlockDesc> oblockDescriptorMap; 
             Printer p; 
 
             std::shared_ptr<StatementData> makeStData(AstNode::Statement* ptr, StatementType stype);
             std::pair<std::unordered_set<SymbolID>, std::unordered_set<DeviceID>> getDeps(AstNode& ast);
+            
         
             static std::unordered_set<SymbolID> symbolicate(AstNode& ast) {
                 Symbolicator s;
@@ -114,9 +117,9 @@ namespace BlsLang{
                 return s.getSymbols();
             }
 
+            void clearContext(); 
+            DividerMetadata getDivisionData(); 
 
-            // Drills up on a 
-            void populateCtlDist(SymbolID &initialSymbol, std::unordered_set<SymbolID> &vistedSymbols, ControllerID& targCtl); 
 
 
         public: 
@@ -137,16 +140,13 @@ namespace BlsLang{
             /*
                 Debug and Drill Function Prototypes
             */
-            void setMetadata(std::unordered_map<OblockID, OblockContext> oblockCtxMap, std::unordered_map<DeviceID, DeviceDescriptor> &devDesc){
+            void setMetadata(std::unordered_map<OblockID, OblockContext> oblockCtxMap, std::vector<OBlockDesc> &centralizedOblocks){
                 this->oblockCtxMap = oblockCtxMap; 
-                this->deviceDescriptors = devDesc; 
-                
+                for(auto& oDesc : centralizedOblocks){
+                    this->oblockDescriptorMap[oDesc.name] = oDesc; 
+                }
             }
-
-            std::unordered_map<OblockID, divContext>& getContextsDebug(){
-                return this->divContextMap; 
-            }
-
+   
             /* 
                 Performing The Divisions
             */

@@ -25,12 +25,15 @@ void Compiler::compileSource(const std::string& source) {
     ast->accept(analyzer);
     ast->accept(this->depGraph);
     auto tempOblock = this->depGraph.getOblockMap();  
-    this->symGraph.setMetadata(this->depGraph.getOblockMap(), analyzer.getDeviceDescriptors()); 
+    this->symGraph.setMetadata(this->depGraph.getOblockMap(), analyzer.getOblockDescriptors()); 
     ast->accept(this->symGraph); 
-    ast->accept(masterInterpreter);
-    
-    
     this->symGraph.annotateControllerDivide(); 
+
+
+
+    ast->accept(masterInterpreter);
+        
+ 
     
     auto& descriptors = analyzer.getOblockDescriptors();
     
