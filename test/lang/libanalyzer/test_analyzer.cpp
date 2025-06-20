@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <gtest/gtest.h>
 #include <memory>
+#include <variant>
 
 namespace BlsLang {
     
@@ -36,7 +37,9 @@ namespace BlsLang {
         ));
 
         Metadata expectedMetadata;
-        expectedMetadata.literalPool.emplace(2, 2);
+        expectedMetadata.literalPool = {
+            {2, 0}
+        };
 
         TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
     }
@@ -274,7 +277,12 @@ namespace BlsLang {
             }
         ));
 
-        TEST_ANALYZE(ast, decoratedAst);
+        Metadata expectedMetadata;
+        expectedMetadata.literalPool = {
+            {std::monostate(), 0}
+        };
+
+        TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
     }
 
     /* NEEDS DEPENDENCY GRAPH */
@@ -301,7 +309,12 @@ namespace BlsLang {
             {}
         ));
 
-        TEST_ANALYZE(ast, decoratedAst);
+        Metadata expectedMetadata;
+        expectedMetadata.literalPool = {
+            {std::monostate(), 0}
+        };
+
+        TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
     }
 
     GROUP_TEST_F(AnalyzerTest, TypeTests, TypedReturn) {
@@ -340,7 +353,10 @@ namespace BlsLang {
         ));
 
         Metadata expectedMetadata;
-        expectedMetadata.literalPool.emplace(10, 2);
+        expectedMetadata.literalPool = {
+            {0, 0},
+            {10, 1}
+        };
 
         TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
     }
@@ -397,7 +413,10 @@ namespace BlsLang {
         ));
 
         Metadata expectedMetadata;
-        expectedMetadata.literalPool.emplace(10.23, 2);
+        expectedMetadata.literalPool = {
+            {0, 0},
+            {10.23, 1}
+        };
 
         TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
     }
@@ -901,7 +920,9 @@ namespace BlsLang {
         ));
 
         Metadata expectedMetadata;
-        expectedMetadata.literalPool.emplace(true, 2);
+        expectedMetadata.literalPool = {
+            {true, 0}
+        };
 
         TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
     }
@@ -926,7 +947,9 @@ namespace BlsLang {
         ));
 
         Metadata expectedMetadata;
-        expectedMetadata.literalPool.emplace(true, 2);
+        expectedMetadata.literalPool = {
+            {true, 0}
+        };
 
         TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
     }

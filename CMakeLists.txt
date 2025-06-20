@@ -118,6 +118,11 @@ add_library(analyzer STATIC ${LIBANALYZER_SRC})
 target_include_directories(analyzer PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
 target_link_libraries(analyzer lang_common types ${BOOST_LIB_DEPS})
 
+file(GLOB_RECURSE LIBGENERATOR_SRC ${LANG_SRC_DIR}/libgenerator/*.cpp)
+add_library(generator STATIC ${LIBGENERATOR_SRC})
+target_include_directories(generator PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
+target_link_libraries(generator lang_common types ${BOOST_LIB_DEPS})
+
 file(GLOB_RECURSE LIBVIRTUALMACHINE_SRC ${LANG_SRC_DIR}/libvirtual_machine/*.cpp)
 add_library(virtual_machine STATIC ${LIBVIRTUALMACHINE_SRC})
 target_include_directories(virtual_machine PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
@@ -126,7 +131,7 @@ target_link_libraries(virtual_machine lang_common types bytecode ${BOOST_LIB_DEP
 file(GLOB_RECURSE LIBCOMPILER_SRC ${LANG_SRC_DIR}/libcompiler/*.cpp)
 add_library(compiler STATIC ${LIBCOMPILER_SRC})
 target_include_directories(compiler PUBLIC ${BLS_CONFIG} ${LANG_COMMON} ${LANG_SRC_DIR})
-target_link_libraries(compiler lang_common lexer parser interpreter analyzer ${BOOST_LIB_DEPS})
+target_link_libraries(compiler lang_common lexer parser interpreter analyzer generator ${BOOST_LIB_DEPS})
 
 add_executable(lang ${LANG_SRC_DIR}/main.cpp)
 target_link_libraries(lang compiler virtual_machine ${BOOST_LIB_DEPS})
@@ -223,6 +228,11 @@ if(NOT CMAKE_CROSSCOMPILING)
     target_include_directories(test_libanalyzer PUBLIC ${TEST_DEPS} ${LANG_COMMON} ${LANG_SRC_DIR}/libanalyzer ${LANG_TEST_DIR}/include)
     target_link_libraries(test_libanalyzer analyzer lang_common GTest::gtest_main)
 
+    file(GLOB_RECURSE LIBGENERATOR_TESTS ${LANG_TEST_DIR}/libgenerator/*.cpp)
+    add_executable(test_libgenerator ${LIBGENERATOR_TESTS})
+    target_include_directories(test_libgenerator PUBLIC ${TEST_DEPS} ${LANG_COMMON} ${LANG_SRC_DIR}/libgenerator ${LANG_TEST_DIR}/include)
+    target_link_libraries(test_libgenerator generator lang_common GTest::gtest_main)
+
     file(GLOB_RECURSE LANG_E2E_TESTS ${LANG_TEST_DIR}/e2e/*.cpp)
     add_executable(test_lang ${LANG_E2E_TESTS})
     target_include_directories(test_lang PUBLIC ${TEST_DEPS} ${LANG_COMMON} ${LANG_SRC_DIR})
@@ -248,6 +258,7 @@ if(NOT CMAKE_CROSSCOMPILING)
     gtest_discover_tests(test_liblexer)
     gtest_discover_tests(test_libparser)
     gtest_discover_tests(test_libanalyzer)
+    gtest_discover_tests(test_libgenerator)
     gtest_discover_tests(
         test_lang
         WORKING_DIRECTORY ${LANG_TEST_DIR}/e2e/samples

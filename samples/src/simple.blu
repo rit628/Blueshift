@@ -1,5 +1,16 @@
-int main() {
-    return {1 : ["2"], 2 : []};
+void main() {
+    return;
+}
+
+oblock test() {
+    //!true;
+
+    //int i;
+    //i = 2 + 3 - 10;
+    //float j = 3.33;
+    //j += 1;
+    int k;
+    ++k;
 }
 
 setup() {
