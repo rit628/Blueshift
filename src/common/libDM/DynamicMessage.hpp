@@ -796,28 +796,31 @@ class DynamicMessage{
 
    // Utility function to get the volatility of a field
     void getFieldVolatility(std::unordered_map<std::string, std::deque<float>>  &vol_list, int vol_field_size){
-        int i = 0; 
         for(auto &obj : this->attributeMap){    
             int desc = obj.second; 
 
-            TYPE type = this->Descriptors[desc].descType; 
+            TYPE type = this->Descriptors.at(desc).descType; 
 
             // If the value is of numeric type; 
             if(type == TYPE::float_t){
-                float carrier; 
-                int trav_dist; 
-                this->deserialize(desc ,carrier, trav_dist); 
-                vol_list[obj.first].push_back(carrier); 
+                double carrier;
+                int trav_dist;
+                this->deserialize(desc ,carrier, trav_dist);
+                if (!vol_list.contains(obj.first)) {
+                    vol_list.try_emplace(obj.first);
+                }
+                vol_list.at(obj.first).push_back(carrier);
                 
             }
             else if(type == TYPE::int_t){
-                uint32_t carrier; 
-                int trav_dist; 
-                this->deserialize(desc, carrier, trav_dist); 
-                vol_list[obj.first].push_back(static_cast<float>(carrier));
+                int64_t carrier;
+                int trav_dist;
+                this->deserialize(desc, carrier, trav_dist);
+                if (!vol_list.contains(obj.first)) {
+                    vol_list.try_emplace(obj.first);
+                }
+                vol_list.at(obj.first).push_back(carrier);
             }
-
-            i++; 
         }
    }
 
