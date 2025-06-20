@@ -1,67 +1,36 @@
 #pragma once
 
-#include "DeviceCore.hpp"
-#include "libDM/DynamicMessage.hpp"
-#include "libtypes/typedefs.hpp"
-#include <atomic>
 #include <concepts>
 #include <cstdio>
-#include <iostream>
-#include <fstream>
+#include <string>
 #include <sys/fcntl.h>
-#include <chrono>
-#include <thread>
+#include <unordered_map>
 
-namespace Device {
-    #define DEVTYPE_BEGIN(name) \
-    class name;
-    #define ATTRIBUTE(...)
-    #define DEVTYPE_END
-    #include "DEVTYPES.LIST"
-    #undef DEVTYPE_BEGIN
-    #undef ATTRIBUTE
-    #undef DEVTYPE_END
-    
-    class TIMER_TEST : public AbstractDevice {
-        private: 
-            TypeDef::TIMER_TEST states;
-            std::string filename;
-            std::ofstream write_file; 
+/* 
+    enforces driver api adherence and collects all declarations for variant AbstractDevice creation
+    might be possible to automate with modules but for now this will suffice
+    until support for modules improves in clang
+*/
+#include "include/TIMER_TEST.hpp"
+#include "include/LINE_WRITER.hpp"
+#include "include/LIGHT.hpp"
+#include "include/BUTTON.hpp"
+#include "include/MOTOR.hpp"
+#include "include/READ_FILE_POLL.hpp"
 
-            void proc_message_impl(DynamicMessage& dmsg) override;
-        
-        public:
-            void set_ports(std::unordered_map<std::string, std::string> &srcs) override;
-            void read_data(DynamicMessage &dmsg) override;
-    };
+template<typename T>
+concept DeviceDriver = requires (T device, std::unordered_map<std::string, std::string>& config, DynamicMessage& dmsg) {
+    { device.init(config) } -> std::same_as<void>;
+    { device.processStates(dmsg) } -> std::same_as<void>;
+    { device.transmitStates(dmsg) } -> std::same_as<void>;
+};
 
-    /*
-        This Interrupt type device reads messages from a file (consdiers the first line)
-        and sends the contents of the first line of the file once the return button is pressed
-    */
-    class LINE_WRITER : public AbstractDevice {
-        private:
-            TypeDef::LINE_WRITER states;
-            std::string filename;
-            std::fstream file_stream;
-
-            void proc_message_impl(DynamicMessage& dmsg) override;
-
-        public:
-            bool handleInterrupt();
-            void set_ports(std::unordered_map<std::string, std::string> &src) override;
-            void read_data(DynamicMessage &dmsg) override;
-    };
-    
-    #define DEVTYPE_BEGIN(name) \
-    static_assert(std::derived_from<name, AbstractDevice>, #name " must inherit from AbstractDevice");
-    #define ATTRIBUTE(...)
-    #define DEVTYPE_END
-    #include "DEVTYPES.LIST"
-    #undef DEVTYPE_BEGIN
-    #undef ATTRIBUTE
-    #undef DEVTYPE_END
-}
-
-// Device reciever object returns and sets up an object 
-std::shared_ptr<AbstractDevice> getDevice(DEVTYPE dtype, std::unordered_map<std::string, std::string> &port_nums, int device_alias);
+#define DEVTYPE_BEGIN(name) \
+static_assert(std::derived_from<Device<TypeDef::name>, DeviceCore>, "Device<TypeDef::" #name "> must inherit from DeviceCore"); \
+static_assert(DeviceDriver<Device<TypeDef::name>>, "Device<TypeDef::" #name "> must implement init(), processStates(), and transmitStates()");
+#define ATTRIBUTE(...)
+#define DEVTYPE_END
+#include "DEVTYPES.LIST"
+#undef DEVTYPE_BEGIN
+#undef ATTRIBUTE
+#undef DEVTYPE_END

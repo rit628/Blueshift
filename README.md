@@ -5,7 +5,8 @@
 - `python 3.9+`
 
 ## Recommended Software
-- `cmake 3.25+` - Local Builds
+- `cmake 3.30+` - Local Builds
+- `llvm 19+` - Local Builds
 - `clang 19+` - Local Builds
 - `lld 19+` - Local Builds
 - `lldb 19+` - Debugging

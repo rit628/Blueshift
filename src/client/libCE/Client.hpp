@@ -1,6 +1,6 @@
 #pragma once
 
-#include "libDevice/Devices.hpp"
+#include "libDevice/DeviceUtil.hpp"
 #include <thread>
 #include <shared_mutex>
 #include <unordered_map>
@@ -55,7 +55,7 @@ class Client{
        // Ticker Mutex; 
         std::shared_mutex ticker_mutex; 
         // Contains the list of known devices
-        std::unordered_map<int, std::shared_ptr<AbstractDevice>> deviceList;     
+        std::unordered_map<int, AbstractDevice> deviceList;     
         // client name used to identify controller
         std::string client_name; 
         // Listens for incoming message and places it into the spot
@@ -79,8 +79,8 @@ class Client{
         */
                 
         // Ticker table
-        std::unordered_map<uint16_t, std::unique_ptr<DeviceTimer>> client_ticker;
-        std::vector<std::unique_ptr<DeviceInterruptor>> interruptors;
+        std::unordered_map<uint16_t, DeviceTimer> client_ticker;
+        std::vector<DeviceInterruptor> interruptors;
         std::vector<std::thread> global_interrupts;  
 
 

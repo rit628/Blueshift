@@ -7,6 +7,7 @@ import socket
 import re
 import atexit
 import time
+import tarfile
 import multiprocessing as mp
 from dotenv import load_dotenv
 from scapy.all import sniff, conf, sendp
@@ -132,11 +133,28 @@ def attach_debugger(process_name, debug_binary, server_port):
             return
 
 def symlink(source : Path | str, target : Path | str, is_directory = False):
+    # add "." as part of target for links relative to source
     source = Path(source)
     if source.exists() or source.is_symlink():
         os.unlink(source)
     source.symlink_to(target, target_is_directory=is_directory)
     return source
+
+@run_as_src_user
+def make_sysroot(target, local):
+    base_path = "build" if local else Path("build", "remote")
+    sysroot_path = Path(base_path, "sysroot", target)
+    sysroot_path.mkdir(parents=True, exist_ok=True)
+    if not os.listdir(sysroot_path):
+        platform = os.getenv(f"{target.upper()}_PLATFORM")
+        archive_path = Path("build", f"{target}-rootfs.tar")
+        atexit.register(run_cmd, ["docker", "rm", f"{target}-sysroot"], exit_on_failure=False, stderr=subprocess.DEVNULL)
+        run_cmd(["docker", "build", "--platform", platform, "-t", f"{PROJECT_PREFIX}-{target}-sysroot-generator", Path(".docker", "sysroot", target)])
+        run_cmd(["docker", "create", "-q", "--platform", platform, "--name", f"{target}-sysroot", f"{PROJECT_PREFIX}-{target}-sysroot-generator"])
+        run_cmd(["docker", "export", f"{target}-sysroot", "-o", archive_path])
+        with tarfile.open(archive_path, "r") as tar:
+            tar.extractall(sysroot_path, filter="fully_trusted")
+        os.remove(archive_path)
 
 def run(args):
     if args.local:
@@ -260,49 +278,68 @@ def deploy(args):
 
 def build(args):
     ARTIFACT_TYPE = args.build_type.lower()
-    ARTIFACT_DIR = Path(BUILD_OUTPUT_DIRECTORY, ARTIFACT_TYPE)
+    TARGET_PLATFORM = args.target if args.target != "local" else ""
+    ARTIFACT_DIR = Path(BUILD_OUTPUT_DIRECTORY, TARGET_PLATFORM, ARTIFACT_TYPE)
     COMPILE_DB_PATH = Path(BUILD_OUTPUT_DIRECTORY, "compile_commands.json")
     build_args = [f"--build-type", args.build_type,
                   "--compiler", args.compiler,
-                  "--parallel", str(args.parallel)]
+                  "--parallel", str(args.parallel),
+                  "--target", args.target]
     if args.image_build:
         run_cmd(["docker", "compose", "build"])
     if args.clean:
         build_args.append("--clean")
         rmtree(ARTIFACT_DIR, ignore_errors=True)
+    if TARGET_PLATFORM:
+        make_sysroot(TARGET_PLATFORM, args.local)
 
     if args.local:
-        cpp_compiler = f"-DCMAKE_CXX_COMPILER={args.compiler}"
+        cpp_compiler = "-DCMAKE_CXX_COMPILER="
         c_compiler = "-DCMAKE_C_COMPILER="
-        linker = "-DCMAKE_LINKER="
+        linker = "-DCMAKE_LINKER_TYPE="
         build_type = f"-DCMAKE_BUILD_TYPE={args.build_type}"
-        if args.compiler == 'clang++':
+        toolchain_file = "-DCMAKE_TOOLCHAIN_FILE=" + (str(Path(os.getcwd(), ".cmake", f"{args.compiler}-{TARGET_PLATFORM}.cmake")) if TARGET_PLATFORM else "")
+        if args.compiler == 'clang':
             c_compiler += "clang"
-            linker += "lld"
+            cpp_compiler += "clang++"
+            linker += "LLD"
         else:
             c_compiler += "gcc"
-            linker += "ld"
-        cmake_args = [c_compiler, cpp_compiler, linker, build_type, "-Wno-dev"]
+            cpp_compiler += "g++"
+            linker += "BFD"
+        cmake_args = [c_compiler, cpp_compiler, linker, build_type, toolchain_file, "-Wno-dev"]
         run_cmd(["cmake", *cmake_args, "-S", ".", "-B", ARTIFACT_DIR])
-        symlink(COMPILE_DB_PATH, Path(".", ARTIFACT_TYPE, "compile_commands.json"))
+        symlink(COMPILE_DB_PATH, Path(".", TARGET_PLATFORM, ARTIFACT_TYPE, "compile_commands.json"))
 
         # 1 <= j <= n-1 (keep 1 core free for background tasks)
         core_count = str(max(1, min(args.parallel, NUM_CORES - 1)))
         run_cmd(["cmake", "--build", ".", "-j", core_count, "-t", *args.make],
                        cwd=f"./{ARTIFACT_DIR}")
-        symlink(TARGET_OUTPUT_DIRECTORY, Path(".", ARTIFACT_TYPE), True)
+        if not TARGET_PLATFORM:
+            # only update binary targets if built for current machine's arch
+            symlink(TARGET_OUTPUT_DIRECTORY, Path(".", ARTIFACT_TYPE), True)
     else: # build binaries in remote container
         initialize_host()
         run_cmd(["docker", "compose", "run", "--rm", "builder",
                         "build", "-l", *build_args, *args.make])
         @run_as_src_user
         def link_compile_commands():
-            symlink(TARGET_OUTPUT_DIRECTORY, Path(".", "remote", ARTIFACT_TYPE))
-            curr_db_path = Path(REMOTE_OUTPUT_DIRECTORY, ARTIFACT_TYPE, "compile_commands.json")
+            remote_target_path = Path(".", "remote", TARGET_PLATFORM, ARTIFACT_TYPE)
+            if not TARGET_PLATFORM:
+                # only update binary targets if built for current machine's arch
+                symlink(TARGET_OUTPUT_DIRECTORY, remote_target_path)
+                build_location = TARGET_OUTPUT_DIRECTORY
+            else:
+                cross_target_path = Path(BUILD_OUTPUT_DIRECTORY, TARGET_PLATFORM)
+                symlink(cross_target_path, remote_target_path)
+                symlink(Path(BUILD_OUTPUT_DIRECTORY, "sysroot"), Path(".", "remote", "sysroot"))
+                build_location = cross_target_path
+
+            curr_db_path = Path(REMOTE_OUTPUT_DIRECTORY, TARGET_PLATFORM, ARTIFACT_TYPE, "compile_commands.json")
             with (curr_db_path.open("r") as db, COMPILE_DB_PATH.open("w") as out):
                 cwd = os.getcwd()
                 build_dir = str(Path(CONTAINER_MOUNT_DIRECTORY, ARTIFACT_DIR))
-                replacement_dir = str(Path(cwd, TARGET_OUTPUT_DIRECTORY))
+                replacement_dir = str(Path(cwd, build_location))
                 for line in db:
                     line = line.replace(build_dir, replacement_dir)  # replace build dir
                     line = line.replace(CONTAINER_MOUNT_DIRECTORY, cwd)  # replace source dir
@@ -333,12 +370,15 @@ def reset(args):
     image_ids = get_output(f"docker image ls | grep {PROJECT_PREFIX} | awk '{{ print $3 }}'", shell=True)
     volumes = get_output(f"docker volume ls | grep {PROJECT_NAME} | awk '{{ print $2 }}'", shell=True)
         
-    if any((network_id, container_ids, image_ids, volumes)):
+    if network_id:
         run_cmd(["docker", "network", "rm", network_id])
-        run_cmd(["docker", "container", "stop"] + container_ids.split('\n'))
+    if container_ids:
+        run_cmd(["docker", "container", "stop"] + container_ids.split('\n'), exit_on_failure=False)
         run_cmd(["docker", "container", "rm", "-f"] + container_ids.split('\n'))
+    if image_ids:
         run_cmd(["docker", "image", "prune", "-f"])
         run_cmd(["docker", "image", "rm", "-f"] + image_ids.split('\n'))
+    if volumes:
         run_cmd(["docker", "volume", "rm", "-f"] + volumes.split('\n'))
 
     if args.system_prune:
@@ -439,17 +479,21 @@ build_parser.add_argument("-i", "--image-build",
                           action="store_true")
 build_parser.add_argument("-c", "--compiler",
                           help="set compiler used for building",
-                          choices=["clang++", "g++"],
-                          default="clang++")
+                          choices=["clang", "gcc"],
+                          default="clang")
 build_parser.add_argument("-j", "--parallel",
                           help="set number of logical cores to use for compilation",
                           metavar="JOBS",
                           type=int,
                           default=NUM_CORES)
-build_parser.add_argument("-t", "--build-type",
+build_parser.add_argument("-b", "--build-type",
                           help="set cmake build type",
                           choices=["Debug", "Release", "MinSizeRel", "RelWithDebInfo"],
                           default="Debug")
+build_parser.add_argument("-t", "--target",
+                          help="set target platform",
+                          choices=["local", "rpi64"],
+                          default="local")
 build_parser.add_argument("-l", "--local",
                           help="build for local host only; container builds are not updated",
                           action="store_true")

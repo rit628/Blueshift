@@ -1,0 +1,32 @@
+oblock light(LIGHT target, LINE_WRITER remote) {
+    println(target.on);
+    if (remote.msg == "ON") {
+        target.on = true;
+    }
+    else if (remote.msg == "OFF") {
+        target.on = false;
+    }
+    else {
+        println("INVALID COMMAND");
+    }
+}
+
+oblock button(BUTTON button, LIGHT rpi_light) {
+    if (button.pressed == true) {
+        println("button pressed!");
+        rpi_light.on = true; 
+    }
+    else {
+        println("button depressed!");
+        rpi_light.on = false; 
+    }
+}
+
+setup() {
+    LIGHT rpi_light = "rpi::PIN-16";
+    //LINE_WRITER rpi_light_controller = "remote::file-file1.txt"; 
+    //light(rpi_light, rpi_light_controller);
+    
+    BUTTON rpi_button = "rpi::PIN-21";
+    button(rpi_button, rpi_light);
+}
