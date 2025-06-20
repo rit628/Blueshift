@@ -135,7 +135,7 @@ void Client::listener(){
                     if(this->client_ticker.find(new_timer.id) == this->client_ticker.end()){
                         std::cout<<"UH OH: "<<new_timer.id<<std::endl; 
                     }
-                    this->client_ticker[new_timer.id]->setPeriod(new_timer.period);
+                    this->client_ticker.at(new_timer.id).setPeriod(new_timer.period);
                 }
                 else{
                     std::cerr<<"Constant poll not supposed to be sent by update protocol"<<std::endl; 
@@ -157,23 +157,22 @@ void Client::listener(){
 
                 if(!device.hasInterrupt()){
                     std::cout<<"build timer with period: "<<timer.period<<std::endl;
-                    this->client_ticker[timer.id] = std::make_unique<DeviceTimer>(this->client_ctx, device, this->client_connection, this->controller_alias, timer.device_num, timer.id); 
+                    this->client_ticker.try_emplace(timer.id, this->client_ctx, device, this->client_connection, this->controller_alias, timer.device_num, timer.id);
                     // Initiate the timer
-                    this->client_ticker[timer.id]->setPeriod(timer.period); 
+                    this->client_ticker.at(timer.id).setPeriod(timer.period);
                 }
             }
 
              // populate the Device interruptors; 
-             for(auto& pair : this->deviceList){
+            for(auto& pair : this->deviceList){
                 
                 auto& dev = pair.second;
                 auto dev_id = pair.first;  
              
                 if(dev.hasInterrupt()){
                     // Organizes the device interrupts
-                    auto omar = std::make_unique<DeviceInterruptor>(dev, this->client_connection, this->global_interrupts, this->controller_alias, dev_id); 
-                    omar->setupThreads(); 
-                    this->interruptors.push_back(std::move(omar));
+                    auto& omar = this->interruptors.emplace_back(dev, this->client_connection, this->global_interrupts, this->controller_alias, dev_id);
+                    omar.setupThreads();
                 }   
             }
 

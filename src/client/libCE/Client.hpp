@@ -79,8 +79,8 @@ class Client{
         */
                 
         // Ticker table
-        std::unordered_map<uint16_t, std::unique_ptr<DeviceTimer>> client_ticker;
-        std::vector<std::unique_ptr<DeviceInterruptor>> interruptors;
+        std::unordered_map<uint16_t, DeviceTimer> client_ticker;
+        std::vector<DeviceInterruptor> interruptors;
         std::vector<std::thread> global_interrupts;  
 
 
