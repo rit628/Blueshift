@@ -1,10 +1,12 @@
-#include "libnetwork/Connection.hpp"
-#include "libnetwork/Protocol.hpp"
 #ifdef __linux__
 
+#include "libnetwork/Connection.hpp"
+#include "libnetwork/Protocol.hpp"
 #include "include/LINE_WRITER.hpp"
 
-void Device<TypeDef::LINE_WRITER>::processStates(DynamicMessage& dmsg) {
+using namespace Device;
+
+void LINE_WRITER::processStates(DynamicMessage& dmsg) {
     dmsg.unpackStates(states);
 
     if (this->file_stream.is_open()) {
@@ -25,7 +27,7 @@ void Device<TypeDef::LINE_WRITER>::processStates(DynamicMessage& dmsg) {
 }
 
 // can add better keybinding libraries in the future
-bool Device<TypeDef::LINE_WRITER>::handleInterrupt(){
+bool LINE_WRITER::handleInterrupt(){
 
     this->file_stream.open(this->filename, std::ios::in);
     this->file_stream.clear(); 
@@ -46,7 +48,7 @@ bool Device<TypeDef::LINE_WRITER>::handleInterrupt(){
     return false; 
 }
 
-void Device<TypeDef::LINE_WRITER>::init(std::unordered_map<std::string, std::string> &config) {
+void LINE_WRITER::init(std::unordered_map<std::string, std::string> &config) {
     this->filename = "./samples/client/" + config["file"]; 
     
     this->file_stream.open(filename, std::ios::in | std::ios::out); 
@@ -62,11 +64,11 @@ void Device<TypeDef::LINE_WRITER>::init(std::unordered_map<std::string, std::str
     this->addFileIWatch(this->filename, [this](){return this->handleInterrupt();}); 
 }
 
-void Device<TypeDef::LINE_WRITER>::transmitStates(DynamicMessage &dmsg) {
+void LINE_WRITER::transmitStates(DynamicMessage &dmsg) {
     dmsg.packStates(states);
 }
 
-Device<TypeDef::LINE_WRITER>::~Device() {
+LINE_WRITER::~LINE_WRITER() {
     file_stream.close();
 }
 

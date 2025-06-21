@@ -1,16 +1,18 @@
-#include "libnetwork/Connection.hpp"
-#include "libnetwork/Protocol.hpp"
 #ifdef __linux__
 
+#include "libnetwork/Connection.hpp"
+#include "libnetwork/Protocol.hpp"
 #include "include/TIMER_TEST.hpp"
 
-void Device<TypeDef::TIMER_TEST>::processStates(DynamicMessage& dmsg) {
+using namespace Device;
+
+void TIMER_TEST::processStates(DynamicMessage& dmsg) {
     dmsg.unpackStates(states);
     write_file << std::to_string(this->states.test_val) << ",";  
     write_file.flush(); 
 }
 
-void Device<TypeDef::TIMER_TEST>::init(std::unordered_map<std::string, std::string> &config) {
+void TIMER_TEST::init(std::unordered_map<std::string, std::string> &config) {
     filename = "./samples/client/" + config["file"]; 
     write_file.open(filename);
     if(write_file.is_open()){
@@ -22,11 +24,11 @@ void Device<TypeDef::TIMER_TEST>::init(std::unordered_map<std::string, std::stri
     }
 }
 
-void Device<TypeDef::TIMER_TEST>::transmitStates(DynamicMessage &dmsg) {
+void TIMER_TEST::transmitStates(DynamicMessage &dmsg) {
     dmsg.packStates(states);
 }
 
-Device<TypeDef::TIMER_TEST>::~Device() {
+TIMER_TEST::~TIMER_TEST() {
     write_file.close();
 }
 

@@ -1,17 +1,19 @@
+#ifdef __linux__
+
 #include "libnetwork/Connection.hpp"
 #include "libnetwork/Protocol.hpp"
 #include "libtypes/typedefs.hpp"
-#ifdef __linux__
-
 #include "include/FILE_LOG.hpp"
 
-void Device<TypeDef::FILE_LOG>::processStates(DynamicMessage& dmsg) {
+using namespace Device;
+
+void FILE_LOG::processStates(DynamicMessage& dmsg) {
     dmsg.unpackStates(this->states);
     std::cout<<"Processing message: "<<states.add_msg<<std::endl;
     this->outStream<<this->states.add_msg<<std::endl;
 }
 
-void Device<TypeDef::FILE_LOG>::init(std::unordered_map<std::string, std::string> &config) {
+void FILE_LOG::init(std::unordered_map<std::string, std::string> &config) {
     this->filename = "./samples/client/" + config["file"]; 
     this->outStream.open(filename);
     if(this->outStream.is_open()){
@@ -25,12 +27,12 @@ void Device<TypeDef::FILE_LOG>::init(std::unordered_map<std::string, std::string
     this->addFileIWatch(filename, []{return true;}); 
 }
 
-void Device<TypeDef::FILE_LOG>::transmitStates(DynamicMessage &dmsg) {
+void FILE_LOG::transmitStates(DynamicMessage &dmsg) {
     std::cout<<"State add_msg value: "<<this->states.add_msg<<std::endl;
     dmsg.packStates(this->states);
 }
 
-Device<TypeDef::FILE_LOG>::~Device() {
+FILE_LOG::~FILE_LOG() {
     this->outStream.close();
 }
 

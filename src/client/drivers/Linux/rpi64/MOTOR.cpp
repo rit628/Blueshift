@@ -3,7 +3,9 @@
 #include "include/MOTOR.hpp"
 #include <pigpio.h>
 
-void Device<TypeDef::MOTOR>::init(std::unordered_map<std::string, std::string> &config)
+using namespace Device;
+
+void MOTOR::init(std::unordered_map<std::string, std::string> &config)
 {
     in1_pin  = std::stoi(config.at("IN1"));
     in2_pin = std::stoi(config.at("IN2"));
@@ -26,19 +28,19 @@ void Device<TypeDef::MOTOR>::init(std::unordered_map<std::string, std::string> &
     gpioSetPWMfrequency(pwm_pin, 1000);
 }
 
-void Device<TypeDef::MOTOR>::processStates(DynamicMessage &dmsg)
+void MOTOR::processStates(DynamicMessage &dmsg)
 {
     dmsg.unpackStates(states);
 
 }
 
-void Device<TypeDef::MOTOR>::transmitStates(DynamicMessage &dmsg)
+void MOTOR::transmitStates(DynamicMessage &dmsg)
 {
     dmsg.packStates(states);
     apply_speed(states.speed);
 }
 
-void Device<TypeDef::MOTOR>::apply_speed(int speed)
+void MOTOR::apply_speed(int speed)
 {
     if(speed > 100) speed = 100;
         if(speed < -100) speed = -100;
@@ -69,7 +71,7 @@ void Device<TypeDef::MOTOR>::apply_speed(int speed)
         }
 }
 
-Device<TypeDef::MOTOR>::~Device() 
+MOTOR::~MOTOR() 
 {
     gpioTerminate();
 }

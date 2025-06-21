@@ -3,7 +3,9 @@
 #include "include/BUTTON.hpp"
 #include <pigpio.h>
 
-bool Device<TypeDef::BUTTON>::handleInterrupt(int gpio, int level, uint32_t tick) {
+using namespace Device;
+
+bool BUTTON::handleInterrupt(int gpio, int level, uint32_t tick) {
     // static auto DEBOUNCE_TIME = std::chrono::microseconds(10);
     if (level == RISING_EDGE) {
         states.pressed = true;
@@ -22,7 +24,7 @@ bool Device<TypeDef::BUTTON>::handleInterrupt(int gpio, int level, uint32_t tick
 
 }
 
-void Device<TypeDef::BUTTON>::init(std::unordered_map<std::string, std::string> &config) {
+void BUTTON::init(std::unordered_map<std::string, std::string> &config) {
     this->PIN = std::stoi(config.at("PIN"));
     this->lastPress = std::chrono::high_resolution_clock::now();
     if (gpioInitialise() == PI_INIT_FAILED) 
@@ -33,21 +35,21 @@ void Device<TypeDef::BUTTON>::init(std::unordered_map<std::string, std::string> 
     gpioSetMode(this->PIN, PI_INPUT);
     gpioSetPullUpDown(this->PIN, PI_PUD_UP);
 
-    auto bound = std::bind(&Device<TypeDef::BUTTON>::handleInterrupt, std::ref(*this), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3); 
+    auto bound = std::bind(&BUTTON::handleInterrupt, std::ref(*this), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3); 
 
     addGPIOIWatch(this->PIN, bound);
 }
 
-void Device<TypeDef::BUTTON>::processStates(DynamicMessage &dmsg) {
+void BUTTON::processStates(DynamicMessage &dmsg) {
     // should do nothing
     dmsg.unpackStates(states);
 }
 
-void Device<TypeDef::BUTTON>::transmitStates(DynamicMessage &dmsg) {
+void BUTTON::transmitStates(DynamicMessage &dmsg) {
     dmsg.packStates(states);
 }
 
-Device<TypeDef::BUTTON>::~Device() {
+BUTTON::~BUTTON() {
     gpioTerminate();
 }
 

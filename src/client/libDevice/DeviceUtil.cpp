@@ -13,7 +13,7 @@ DeviceHandle::DeviceHandle(TYPE dtype, std::unordered_map<std::string, std::stri
     switch(dtype){
         #define DEVTYPE_BEGIN(name) \
         case TYPE::name: { \
-            this->device.emplace<Device<TypeDef::name>>(); \
+            this->device.emplace<Device::name>(); \
             this->init(config); \
             this->isTrigger = sendInterrupt; \
             break; \

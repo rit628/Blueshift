@@ -29,10 +29,10 @@
 
 */
 
-using boost::asio::ip::tcp; 
-using boost::asio::ip::udp; 
+using boost::asio::ip::tcp;
+using boost::asio::ip::udp;
 
-using TimePoint = std::chrono::time_point<std::chrono::high_resolution_clock>; 
+using TimePoint = std::chrono::time_point<std::chrono::high_resolution_clock>;
 
 class DeviceInterruptor;
 
@@ -41,7 +41,7 @@ class DeviceHandle {
         using device_t = std::variant<
         std::monostate
         #define DEVTYPE_BEGIN(name) \
-        , Device<TypeDef::name>
+        , Device::name
         #define ATTRIBUTE(...)
         #define DEVTYPE_END
         #include "DEVTYPES.LIST"

@@ -3,16 +3,16 @@
 #include "../DeviceCore.hpp"
 #include "libtypes/typedefs.hpp"
 
-template<>
-class Device<TypeDef::READ_FILE> : public DeviceCore {
-    private: 
-        TypeDef::READ_FILE states;
+namespace Device {
+    class READ_FILE : public DeviceCore<TypeDef::READ_FILE> {
+        private:
             std::string filename;
             std::ifstream file_stream;
-
-    public: 
-        ~Device();
-        void processStates(DynamicMessage& dmsg);
-        void init(std::unordered_map<std::string, std::string> &config);
-        void transmitStates(DynamicMessage &dmsg);
-};
+        
+        public: 
+            ~READ_FILE();
+            void processStates(DynamicMessage& dmsg);
+            void init(std::unordered_map<std::string, std::string> &config);
+            void transmitStates(DynamicMessage &dmsg);
+    };
+}
