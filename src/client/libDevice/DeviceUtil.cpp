@@ -9,7 +9,7 @@
 template<class... Ts>
 struct overloads : Ts... { using Ts::operator()...; };
 
-AbstractDevice::AbstractDevice(TYPE dtype, std::unordered_map<std::string, std::string> &config, uint16_t sendInterrupt) {
+DeviceHandle::DeviceHandle(TYPE dtype, std::unordered_map<std::string, std::string> &config, uint16_t sendInterrupt) {
     switch(dtype){
         #define DEVTYPE_BEGIN(name) \
         case TYPE::name: { \
@@ -30,14 +30,14 @@ AbstractDevice::AbstractDevice(TYPE dtype, std::unordered_map<std::string, std::
     }
 }
 
-void AbstractDevice::processStatesImpl(DynamicMessage& input) {
+void DeviceHandle::processStatesImpl(DynamicMessage& input) {
     std::visit(overloads {
         [](std::monostate&) {},
         [&input](auto& dev) { dev.processStates(input); }
     }, device);
 }
 
-void AbstractDevice::processStates(DynamicMessage dmsg) {
+void DeviceHandle::processStates(DynamicMessage dmsg) {
     if (!hasInterrupt()) {
         processStatesImpl(dmsg);
         return;
@@ -72,28 +72,28 @@ void AbstractDevice::processStates(DynamicMessage dmsg) {
     cv.notify_one();
 }
 
-void AbstractDevice::init(std::unordered_map<std::string, std::string> &config) {
+void DeviceHandle::init(std::unordered_map<std::string, std::string> &config) {
     std::visit(overloads {
         [](std::monostate&) {},
         [&config](auto& dev) { dev.init(config); }
     }, device);
 }
 
-void AbstractDevice::transmitStates(DynamicMessage &dmsg) {
+void DeviceHandle::transmitStates(DynamicMessage &dmsg) {
     std::visit(overloads {
         [](std::monostate&) {},
         [&dmsg](auto& dev) { dev.transmitStates(dmsg); }
     }, device);
 }
 
-bool AbstractDevice::hasInterrupt() {
+bool DeviceHandle::hasInterrupt() {
     return std::visit(overloads {
         [](std::monostate&) { return false; },
         [](auto& dev) { return dev.hasInterrupt; }
     }, device);
 }
 
-std::vector<Interrupt_Desc>& AbstractDevice::getIdescList() {
+std::vector<Interrupt_Desc>& DeviceHandle::getIdescList() {
     return std::visit(overloads {
         [](std::monostate&) -> std::vector<Interrupt_Desc>& { /* never called */ },
         [](auto& dev) -> std::vector<Interrupt_Desc>& { return dev.Idesc_list; }
@@ -217,7 +217,7 @@ void DeviceInterruptor::sendMessage() {
     sm.header.volatility = 0; 
 
     DynamicMessage dmsg; 
-    this->abs_device.transmitStates(dmsg); 
+    this->device.transmitStates(dmsg); 
     sm.body = dmsg.Serialize(); 
 
     sm.header.body_size = sm.body.size() ; 
@@ -242,10 +242,10 @@ void DeviceInterruptor::enableWatchers() {
 }
 
 void DeviceInterruptor::manageWatchers(std::stop_token stoken) {
-    auto& m = this->abs_device.m;
-    auto& cv = this->abs_device.cv;
-    auto& processing = this->abs_device.processing;
-    auto& watchersPaused = this->abs_device.watchersPaused;
+    auto& m = this->device.m;
+    auto& cv = this->device.cv;
+    auto& processing = this->device.processing;
+    auto& watchersPaused = this->device.watchersPaused;
     while (!stoken.stop_requested()) {
         // wait for device to receive a new message to process or for device reset
         {
@@ -308,7 +308,7 @@ void DeviceInterruptor::IFileWatcher(std::stop_token stoken, std::string fname, 
             continue;
         }
         bool ret_val = handler(); 
-        if(ret_val && !this->abs_device.processing){
+        if(ret_val && !this->device.processing){
             std::cerr<<"Sending message"<<std::endl;
             this->sendMessage();  
         }
@@ -353,7 +353,7 @@ void DeviceInterruptor::setupThreads() {
     auto iFileWatcher = std::bind(&DeviceInterruptor::IFileWatcher, std::ref(*this), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
     auto iGpioWatcher = std::bind(&DeviceInterruptor::IGpioWatcher, std::ref(*this), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
     auto manageWatchers = std::bind(&DeviceInterruptor::manageWatchers, std::ref(*this), std::placeholders::_1);
-    for(auto& idesc : this->abs_device.getIdescList()){
+    for(auto& idesc : this->device.getIdescList()){
         switch(idesc.src_type){
             case(SrcType::UNIX_FILE) : {
                 this->globalWatcherThreads.emplace_back(iFileWatcher, idesc.file_src, std::get<std::function<bool()>>(idesc.interruptHandle)); 

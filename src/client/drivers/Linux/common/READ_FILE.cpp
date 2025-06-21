@@ -29,7 +29,7 @@ void Device<TypeDef::READ_FILE>::transmitStates(DynamicMessage &dmsg) {
 }
 
 Device<TypeDef::READ_FILE>::~Device() {
-     this->file_stream.close();
+    this->file_stream.close();
 }
 
 #endif

@@ -34,7 +34,7 @@ class DeviceCore {
         void addFileIWatch(std::string &fileName, std::function<bool()> handler = sendState);
         void addGPIOIWatch(int gpio_port, std::function<bool(int, int, uint32_t)> interruptHandle);
 
-        friend class AbstractDevice;
+        friend class DeviceHandle;
 };
 
 template<typename T>

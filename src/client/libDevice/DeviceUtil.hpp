@@ -36,7 +36,7 @@ using TimePoint = std::chrono::time_point<std::chrono::high_resolution_clock>;
 
 class DeviceInterruptor;
 
-class AbstractDevice {
+class DeviceHandle {
     private:
         using device_t = std::variant<
         std::monostate
@@ -63,7 +63,7 @@ class AbstractDevice {
         bool processing = false;
         bool watchersPaused = false;
 
-        AbstractDevice(TYPE dtype, std::unordered_map<std::string, std::string> &config, uint16_t sendInterrupt);
+        DeviceHandle(TYPE dtype, std::unordered_map<std::string, std::string> &config, uint16_t sendInterrupt);
         void processStates(DynamicMessage input);
         void init(std::unordered_map<std::string, std::string> &config);
         void transmitStates(DynamicMessage &dmsg);
@@ -74,7 +74,7 @@ class AbstractDevice {
 // Device Timer used for configuring polling rates dynamically; 
 class DeviceTimer{
     private: 
-        AbstractDevice& device; 
+        DeviceHandle& device; 
         std::unordered_map<std::string, std::deque<float>> attr_history;  
         std::unordered_map<std::string, float> vol_map; 
         int ctl_code; 
@@ -97,8 +97,8 @@ class DeviceTimer{
         std::chrono::milliseconds getRemainingTime();
 
     public: 
-        DeviceTimer(boost::asio::io_context &in_ctx, AbstractDevice& abs, std::shared_ptr<Connection> cc, int ctl, int dev, int id)
-        : device(abs), ctl_code(ctl), device_code(dev), timer_id(id), conex(cc), ctx(in_ctx), timer(ctx) {}
+        DeviceTimer(boost::asio::io_context &in_ctx, DeviceHandle& device, std::shared_ptr<Connection> cc, int ctl, int dev, int id)
+        : device(device), ctl_code(ctl), device_code(dev), timer_id(id), conex(cc), ctx(in_ctx), timer(ctx) {}
 
         ~DeviceTimer();
 
@@ -115,7 +115,7 @@ class DeviceTimer{
 */
 class DeviceInterruptor{
     private: 
-        AbstractDevice& abs_device; 
+        DeviceHandle& device; 
         std::shared_ptr<Connection> client_connection; 
         std::jthread watcherManagerThread;
         std::vector<std::jthread> globalWatcherThreads; 
@@ -134,10 +134,10 @@ class DeviceInterruptor{
         
     public: 
         // Device Interruptor
-        DeviceInterruptor(AbstractDevice& targDev, std::shared_ptr<Connection> conex, int ctl, int dd)
-        : abs_device(targDev), client_connection(conex), ctl_code(ctl), device_code(dd) {}
+        DeviceInterruptor(DeviceHandle& targDev, std::shared_ptr<Connection> conex, int ctl, int dd)
+        : device(targDev), client_connection(conex), ctl_code(ctl), device_code(dd) {}
         DeviceInterruptor(const DeviceInterruptor& other)
-        : abs_device(other.abs_device), client_connection(other.client_connection), ctl_code(other.ctl_code), device_code(other.device_code) {}
+        : device(other.device), client_connection(other.client_connection), ctl_code(other.ctl_code), device_code(other.device_code) {}
         ~DeviceInterruptor();
         // Setup Watcher Thread
         void setupThreads();
