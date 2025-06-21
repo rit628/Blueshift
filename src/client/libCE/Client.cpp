@@ -1,5 +1,6 @@
 #include "Client.hpp"
 #include "include/Common.hpp"
+#include "libDevice/DeviceUtil.hpp"
 #include "libnetwork/Connection.hpp"
 #include "libnetwork/Protocol.hpp"
 #include <functional>
@@ -188,9 +189,7 @@ void Client::listener(std::stop_token stoken){
                     std::cout<<"build timer with period: "<<timer.period<<std::endl;
                     this->client_ticker.try_emplace(timer.id, this->client_ctx, device, this->client_connection, this->controller_alias, timer.device_num, timer.id);
                     this->client_ticker.at(timer.id).setPeriod(timer.period);
-                    if(!device.isTrigger()){
-                        sendMessage(timer.device_num, Protocol::SEND_STATE, false); 
-                    }
+                    sendMessage(timer.device_num, Protocol::SEND_STATE, false); 
                 }
             }
 
@@ -202,8 +201,8 @@ void Client::listener(std::stop_token stoken){
              
                 if(dev.hasInterrupt()){
                     // Organizes the device interrupts
-                    std::cout<<"Interrupt created!"<<std::endl; 
-                    auto& omar = this->interruptors.emplace_back(dev, this->client_connection, this->global_interrupts, this->controller_alias, dev_id);
+                    std::cout<<"Interrupt created!"<<std::endl;
+                    auto& omar = this->interruptors.emplace_back(dev, this->client_connection, this->controller_alias, dev_id);
                     omar.setupThreads();
                     std::cout<<"Sending Initial State"<<std::endl; 
                     sendMessage(dev_id, Protocol::SEND_STATE_INIT, true); 

@@ -1,7 +1,8 @@
+#include "libnetwork/Connection.hpp"
+#include "libnetwork/Protocol.hpp"
 #ifdef __linux__
 
 #include "include/TIMER_TEST.hpp"
-#include "include/Common.hpp"
 
 void Device<TypeDef::TIMER_TEST>::processStates(DynamicMessage& dmsg) {
     dmsg.unpackStates(states);

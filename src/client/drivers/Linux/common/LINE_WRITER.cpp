@@ -1,7 +1,8 @@
+#include "libnetwork/Connection.hpp"
+#include "libnetwork/Protocol.hpp"
 #ifdef __linux__
 
 #include "include/LINE_WRITER.hpp"
-#include "include/Common.hpp"
 
 void Device<TypeDef::LINE_WRITER>::processStates(DynamicMessage& dmsg) {
     dmsg.unpackStates(states);

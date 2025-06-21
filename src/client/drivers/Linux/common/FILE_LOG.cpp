@@ -1,8 +1,9 @@
+#include "libnetwork/Connection.hpp"
+#include "libnetwork/Protocol.hpp"
 #include "libtypes/typedefs.hpp"
 #ifdef __linux__
 
 #include "include/FILE_LOG.hpp"
-#include "include/Common.hpp"
 
 void Device<TypeDef::FILE_LOG>::processStates(DynamicMessage& dmsg) {
     dmsg.unpackStates(this->states);

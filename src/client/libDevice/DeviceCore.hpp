@@ -2,7 +2,6 @@
 
 #include "libDM/DynamicMessage.hpp"
 #include "libtype/typedefs.hpp"
-#include <condition_variable>
 #include <cstdint>
 #include <fstream>
 #include <functional>
@@ -26,17 +25,11 @@ struct Interrupt_Desc {
 }; 
 
 class DeviceCore {
-    protected:
+    private:
         std::vector<Interrupt_Desc> Idesc_list;
         bool hasInterrupt = false;
-        bool isTrigger = false;
-
-        std::mutex m;
-        std::condition_variable_any cv;
-        bool processing = false;
-        bool watchersPaused = false;  
-
-
+    
+    public:
         // Interrupt watch
         void addFileIWatch(std::string &fileName, std::function<bool()> handler = sendState);
         void addGPIOIWatch(int gpio_port, std::function<bool(int, int, uint32_t)> interruptHandle);
@@ -53,8 +46,6 @@ class Device : public DeviceCore {
         void processStates(DynamicMessage& dmsg);
         void init(std::unordered_map<std::string, std::string> &config);
         void transmitStates(DynamicMessage& dmsg);
-
-        friend class AbstractDevice;
 };
 
 #define DEVTYPE_BEGIN(name) \

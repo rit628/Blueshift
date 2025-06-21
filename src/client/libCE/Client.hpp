@@ -69,15 +69,8 @@ class Client{
         void updateTicker(); 
         // Temp timers 
         std::vector<Timer> start_timers; 
-        // Signal Connection signal Await Thread
-        std::thread signaThread; 
         // Error Sender: 
         std::unique_ptr<GenericBlsException> genBlsException; 
-
-        /*
-            Signal Management: 
-        */
-        bool isListening = true; 
 
         /*
             State management information
@@ -86,7 +79,6 @@ class Client{
         // Ticker table
         std::unordered_map<uint16_t, DeviceTimer> client_ticker;
         std::vector<DeviceInterruptor> interruptors;
-        std::vector<std::thread> global_interrupts;  
 
 
     public: 

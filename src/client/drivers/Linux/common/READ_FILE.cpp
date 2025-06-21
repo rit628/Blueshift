@@ -1,8 +1,9 @@
+#include "libnetwork/Connection.hpp"
+#include "libnetwork/Protocol.hpp"
 #include "libtypes/typedefs.hpp"
 #ifdef __linux__
 
 #include "include/READ_FILE.hpp"
-#include "include/Common.hpp"
 
 void Device<TypeDef::READ_FILE>::processStates(DynamicMessage& dmsg) {
 

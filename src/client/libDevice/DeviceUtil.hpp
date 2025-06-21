@@ -11,6 +11,7 @@
 #include "libnetwork/Connection.hpp"
 #include <memory>
 #include <mutex>
+#include <stop_token>
 #include <sys/inotify.h>
 #include <tuple>
 #include <unistd.h> 
@@ -54,10 +55,11 @@ class AbstractDevice {
         void processStatesImpl(DynamicMessage& input);
     
     public:
-        uint16_t id; 
+        uint16_t id;
+        bool isTrigger;
 
         std::mutex m;
-        std::condition_variable cv;
+        std::condition_variable_any cv;
         bool processing = false;
         bool watchersPaused = false;
 
@@ -66,7 +68,6 @@ class AbstractDevice {
         void init(std::unordered_map<std::string, std::string> &config);
         void transmitStates(DynamicMessage &dmsg);
         bool hasInterrupt();
-        bool isTrigger();
         std::vector<Interrupt_Desc>& getIdescList();
 };
 
@@ -99,6 +100,8 @@ class DeviceTimer{
         DeviceTimer(boost::asio::io_context &in_ctx, AbstractDevice& abs, std::shared_ptr<Connection> cc, int ctl, int dev, int id)
         : device(abs), ctl_code(ctl), device_code(dev), timer_id(id), conex(cc), ctx(in_ctx), timer(ctx) {}
 
+        ~DeviceTimer();
+
         void timerCallback();
         void setPeriod(int new_period);
         void Send(SentMessage &msg);
@@ -114,25 +117,28 @@ class DeviceInterruptor{
     private: 
         AbstractDevice& abs_device; 
         std::shared_ptr<Connection> client_connection; 
-        std::thread watcherManagerThread;
-        std::vector<std::thread> &globalWatcherThreads; 
+        std::jthread watcherManagerThread;
+        std::vector<std::jthread> globalWatcherThreads; 
         std::vector<std::tuple<int, int, std::string>> watchDescriptors; 
         int ctl_code; 
-        int device_code; 
+        int device_code;
 
 
         void sendMessage();
         void disableWatchers();
         void enableWatchers();
-        void manageWatchers();
+        void manageWatchers(std::stop_token stoken);
         // Add Inotify thread blocking code here
-        void IFileWatcher(std::string fname, std::function<bool()> handler);
-        void IGpioWatcher(int portNum, std::function<bool(int, int , uint32_t)> interruptHandle);
+        void IFileWatcher(std::stop_token stoken, std::string fname, std::function<bool()> handler);
+        void IGpioWatcher(std::stop_token stoken, int portNum, std::function<bool(int, int , uint32_t)> interruptHandle);
         
     public: 
         // Device Interruptor
-        DeviceInterruptor(AbstractDevice& targDev,  std::shared_ptr<Connection> conex, std::vector<std::thread> &gWT, int ctl, int dd)
-        : abs_device(targDev), client_connection(conex), globalWatcherThreads(gWT), ctl_code(ctl), device_code(dd) {}
+        DeviceInterruptor(AbstractDevice& targDev, std::shared_ptr<Connection> conex, int ctl, int dd)
+        : abs_device(targDev), client_connection(conex), ctl_code(ctl), device_code(dd) {}
+        DeviceInterruptor(const DeviceInterruptor& other)
+        : abs_device(other.abs_device), client_connection(other.client_connection), ctl_code(other.ctl_code), device_code(other.device_code) {}
+        ~DeviceInterruptor();
         // Setup Watcher Thread
         void setupThreads();
 }; 
