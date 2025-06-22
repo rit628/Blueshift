@@ -882,7 +882,6 @@ BlsObject Analyzer::visit(AstNode::Initializer::Oblock& ast) {
             auto& param = paramExpr->getObject();
             auto rate = resolve(rateExpr->accept(*this));
             literalPool.erase(rate);
-            literalCount--;
             
             auto& dev = boundDevices.at(parameterIndices.at(param));
             dev.polling_period = int64_t(rate);

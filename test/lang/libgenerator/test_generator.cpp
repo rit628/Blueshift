@@ -749,6 +749,7 @@ namespace BlsLang {
     GROUP_TEST_F(GeneratorTest, StatementTests, ValuelessDeclaration) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Declaration(
             "x",
+            {},
             new AstNode::Specifier::Type(
                 PRIMITIVE_INT,
                 {}
@@ -772,6 +773,7 @@ namespace BlsLang {
     GROUP_TEST_F(GeneratorTest, StatementTests, ValuedDeclaration) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Declaration(
             "x",
+            {},
             new AstNode::Specifier::Type(
                 PRIMITIVE_INT,
                 {}
@@ -806,6 +808,7 @@ namespace BlsLang {
             {
                 new AstNode::Statement::Declaration(
                     "x",
+                    {},
                     new AstNode::Specifier::Type(
                         PRIMITIVE_INT,
                         {}
@@ -843,6 +846,7 @@ namespace BlsLang {
             {
                 new AstNode::Statement::Declaration(
                     "x",
+                    {},
                     new AstNode::Specifier::Type(
                         PRIMITIVE_INT,
                         {}
@@ -859,6 +863,7 @@ namespace BlsLang {
                     {
                         new AstNode::Statement::Declaration(
                             "y",
+                            {},
                             new AstNode::Specifier::Type(
                                 PRIMITIVE_FLOAT,
                                 {}
@@ -904,6 +909,7 @@ namespace BlsLang {
             {
                 new AstNode::Statement::Declaration(
                     "x",
+                    {},
                     new AstNode::Specifier::Type(
                         PRIMITIVE_INT,
                         {}
@@ -920,6 +926,7 @@ namespace BlsLang {
                     {
                         new AstNode::Statement::Declaration(
                             "y",
+                            {},
                             new AstNode::Specifier::Type(
                                 PRIMITIVE_FLOAT,
                                 {}
@@ -935,6 +942,7 @@ namespace BlsLang {
             {
                 new AstNode::Statement::Declaration(
                     "z",
+                    {},
                     new AstNode::Specifier::Type(
                         PRIMITIVE_STRING,
                         {}
@@ -976,6 +984,7 @@ namespace BlsLang {
             {
                 new AstNode::Statement::Declaration(
                     "x",
+                    {},
                     new AstNode::Specifier::Type(
                         PRIMITIVE_INT,
                         {}
@@ -1012,6 +1021,7 @@ namespace BlsLang {
                 new AstNode::Statement::Break(),
                 new AstNode::Statement::Declaration(
                     "x",
+                    {},
                     new AstNode::Specifier::Type(
                         PRIMITIVE_INT,
                         {}
@@ -1049,6 +1059,7 @@ namespace BlsLang {
                 new AstNode::Statement::Continue(),
                 new AstNode::Statement::Declaration(
                     "x",
+                    {},
                     new AstNode::Specifier::Type(
                         PRIMITIVE_INT,
                         {}
@@ -1085,6 +1096,7 @@ namespace BlsLang {
             {
                 new AstNode::Statement::Declaration(
                     "x",
+                    {},
                     new AstNode::Specifier::Type(
                         PRIMITIVE_INT,
                         {}
@@ -1304,6 +1316,7 @@ namespace BlsLang {
                     {
                         "l1"
                     },
+                    {},
                     {
                         new AstNode::Statement::Expression(
                             new AstNode::Expression::Function(
