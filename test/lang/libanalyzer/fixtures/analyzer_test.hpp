@@ -14,11 +14,8 @@ namespace BlsLang {
             struct Metadata {
                 Metadata() { };
                 std::unordered_map<std::string, DeviceDescriptor> deviceDescriptors;
-                std::vector<OBlockDesc> oblockDescriptors;
-                std::unordered_map<BlsType, uint8_t> literalPool = {
-                    {std::monostate(), 0},  // for void return values
-                    {1, 1}  // for increment & decrement expressions
-                };
+                std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+                std::unordered_map<BlsType, uint8_t> literalPool;
             };
 
             void TEST_ANALYZE(std::unique_ptr<AstNode>& ast, std::unique_ptr<AstNode>& decoratedAst = defaultAst, Metadata metadata = Metadata(), CallStack<std::string> cs = CallStack<std::string>(CallStack<std::string>::Frame::Context::FUNCTION)) {
@@ -26,6 +23,7 @@ namespace BlsLang {
                 ast->accept(analyzer);
                 EXPECT_EQ(analyzer.deviceDescriptors, metadata.deviceDescriptors);
                 EXPECT_EQ(analyzer.oblockDescriptors, metadata.oblockDescriptors);
+                ASSERT_EQ(analyzer.literalPool.size(), metadata.literalPool.size());
                 EXPECT_EQ(analyzer.literalPool, metadata.literalPool);
                 if (decoratedAst != defaultAst) {
                     ASSERT_NE(ast, nullptr);

@@ -12,7 +12,7 @@ using namespace BlsLang;
 
 void VirtualMachine::transform(size_t oblockOffset, std::vector<BlsType>& deviceStates) {
     instruction = oblockOffset;
-    signal = SIGNAL::SIGSTART;
+    signal = SIGNAL::START;
     cs.pushFrame(instruction, deviceStates);
     dispatch();
     cs.popFrame();
@@ -75,16 +75,18 @@ void VirtualMachine::LOAD(uint8_t index, int) {
     cs.pushOperand(variable);
 }
 
-void VirtualMachine::INC(uint8_t index, int) {
-    auto variable = cs.getLocal(index);
-    variable = variable + 1;
-    cs.pushOperand(variable);
+void VirtualMachine::ASTORE(int) {
+    auto value = cs.popOperand();
+    auto index = cs.popOperand();
+    auto object = cs.popOperand();
+    std::get<std::shared_ptr<HeapDescriptor>>(object)->access(index) = value;
 }
 
-void VirtualMachine::DEC(uint8_t index, int) {
-    auto variable = cs.getLocal(index);
-    variable = variable - 1;
-    cs.pushOperand(variable);
+void VirtualMachine::ALOAD(int) {
+    auto index = cs.popOperand();
+    auto object = cs.popOperand();
+    auto value = std::get<std::shared_ptr<HeapDescriptor>>(object)->access(index);
+    cs.pushOperand(value);
 }
 
 void VirtualMachine::NOT(int) {
@@ -187,7 +189,7 @@ void VirtualMachine::JMP(uint16_t address, int) {
 
 void VirtualMachine::BRANCH(uint16_t address, int) {
     auto condition = cs.popOperand();
-    if (condition) {
+    if (!condition) {
         instruction = address;
     }
 }
@@ -198,13 +200,6 @@ void VirtualMachine::RETURN(int) {
     if (!std::holds_alternative<std::monostate>(result)) {
         cs.pushOperand(result);
     }
-}
-
-void VirtualMachine::ACC(int) {
-    auto index = cs.popOperand();
-    auto object = cs.popOperand();
-    auto value = std::get<std::shared_ptr<HeapDescriptor>>(object)->access(index);
-    cs.pushOperand(value);
 }
 
 void VirtualMachine::EMPLACE(int) {

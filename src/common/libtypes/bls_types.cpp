@@ -343,6 +343,9 @@ size_t std::hash<BlsType>::operator()(const BlsType& obj) const {
         [](const std::string& x) -> size_t {
             return std::hash<std::string>{}(x);
         },
+        [](bool x) -> size_t {
+            return ((x) ? 7741 : 7753);
+        },
         [](auto x) -> size_t {
             return std::hash<decltype(x)>{}(x);
         }
@@ -361,6 +364,14 @@ MapDescriptor::MapDescriptor(TYPE objType, TYPE keyType, TYPE contType) {
     this->keyType = keyType;
     this->contType = contType;
     this->map = std::make_shared<std::unordered_map<std::string, BlsType>>(); 
+}
+
+MapDescriptor::MapDescriptor(std::initializer_list<std::pair<std::string, BlsType>> elements) {
+    this->objType = TYPE::map_t;
+    this->keyType = TYPE::string_t;
+    this->contType = TYPE::ANY;
+    this->map = std::make_shared<std::unordered_map<std::string, BlsType>>();
+    this->map->insert(elements.begin(), elements.end());
 }
 
 BlsType& MapDescriptor::access(BlsType &obj) {
@@ -391,6 +402,13 @@ VectorDescriptor::VectorDescriptor(TYPE contType) {
     this->objType = TYPE::list_t;
     this->contType = contType; 
     vector = std::make_shared<std::vector<BlsType>>(); 
+}
+
+VectorDescriptor::VectorDescriptor(std::initializer_list<BlsType> elements) {
+    this->objType = TYPE::list_t;
+    this->contType = TYPE::ANY;
+    vector = std::make_shared<std::vector<BlsType>>();
+    vector->assign(elements);
 }
 
 BlsType& VectorDescriptor::access(BlsType &int_acc) {

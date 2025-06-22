@@ -22,13 +22,17 @@ void Compiler::compileSource(const std::string& source) {
     tokens = lexer.lex(source);
     ast = parser.parse(tokens);
     ast->accept(analyzer);
+    ast->accept(generator);
+    generator.writeBytecode(outputStream);
     ast->accept(masterInterpreter);
     auto& descriptors = analyzer.getOblockDescriptors();
     auto& masterOblocks = masterInterpreter.getOblocks();
     euInterpreters.assign(descriptors.size(), masterInterpreter);
-    for (auto&& [descriptor, interpreter] : boost::combine(descriptors, euInterpreters)) {
-        if (!masterOblocks.contains(descriptor.name)) { continue; }
-        auto& oblock = masterOblocks.at(descriptor.name);
-        oblocks.emplace(descriptor.name, [&oblock, &interpreter](std::vector<BlsType> v) { return oblock(interpreter, v); });
+    for (auto&& [descPair, interpreter] : boost::combine(descriptors, euInterpreters)) {
+        auto& [oblockName, descriptor] = descPair;
+        if (!masterOblocks.contains(oblockName)) { continue; }
+        auto& oblock = masterOblocks.at(oblockName);
+        oblocks.emplace(oblockName, [&oblock, &interpreter](std::vector<BlsType> v) { return oblock(interpreter, v); });
+        oblockDescriptors.push_back(descriptor);
     }
 }

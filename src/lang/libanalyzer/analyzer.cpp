@@ -1,10 +1,12 @@
 #include "ast.hpp"
 #include "binding_parser.hpp"
 #include "error_types.hpp"
+#include "include/Common.hpp"
 #include "libtypes/typedefs.hpp"
 #include "analyzer.hpp"
 #include "libtypes/bls_types.hpp"
 #include "call_stack.hpp"
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <string>
@@ -37,6 +39,41 @@ BlsObject Analyzer::visit(AstNode::Function::Procedure& ast) {
     auto& procedureName = ast.getName();
     auto returnType = resolve(ast.getReturnType()->get()->accept(*this));
     
+    // add default constructed literal to pool for non-returning control paths
+    // will only be necessary for void once control path checking is implemented
+    switch (getType(returnType)) {
+        case TYPE::void_t:
+            addToPool(std::monostate());
+        break;
+
+        case TYPE::bool_t:
+            addToPool(false);
+        break;
+
+        case TYPE::int_t:
+            addToPool(0);
+        break;
+
+        case TYPE::float_t:
+            addToPool(0.0);
+        break;
+
+        case TYPE::string_t:
+            addToPool("");
+        break;
+
+        case TYPE::list_t:
+            addToPool(std::make_shared<VectorDescriptor>(TYPE::ANY));
+        break;
+
+        case TYPE::map_t:
+            addToPool(std::make_shared<MapDescriptor>(TYPE::ANY));
+        break;
+
+        default:
+        break;
+    }
+    
     std::vector<BlsType> parameterTypes;
     for (auto&& type : ast.getParameterTypes()) {
         auto typeObject = resolve(type->accept(*this));
@@ -66,6 +103,7 @@ BlsObject Analyzer::visit(AstNode::Function::Oblock& ast) {
         parameterTypes.push_back(typeObject);
     }
     oblocks.emplace(oblockName, FunctionSignature(oblockName, std::monostate(), parameterTypes));
+    oblockDescriptors.emplace(oblockName, OBlockDesc(oblockName)); // create empty descriptor here to ensure all oblocks are accounted for even if some are not bound
 
     cs.pushFrame(CallStack<std::string>::Frame::Context::FUNCTION, oblockName);
     auto params = ast.getParameters();
@@ -125,7 +163,7 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
                     throw RuntimeError(expr->getObject() + " does not refer to a device binding");
                 }
             }
-            oblockDescriptors.push_back(desc);
+            oblockDescriptors.at(name) = std::move(desc);
         }
         else {
             throw SemanticError("Statement within setup() must be an oblock binding expression or device binding declaration");
@@ -373,8 +411,11 @@ BlsObject Analyzer::visit(AstNode::Expression::Unary& ast) {
     auto op = getUnOpEnum(ast.getOp());
     auto position = ast.getPosition();
 
-    if ((op >= UNARY_OPERATOR::INC) && std::holds_alternative<BlsType>(expression)) {
-        throw SemanticError("Assignments to temporary not permitted");
+    if (op >= UNARY_OPERATOR::INC) {
+        addToPool(1); // literal 1 needs to be pushed for increment/decrement
+        if (std::holds_alternative<BlsType>(expression)) {
+            throw SemanticError("Assignments to temporary not permitted");
+        }
     }
     
     // operator type checking done by overload specialization
@@ -438,11 +479,15 @@ BlsObject Analyzer::visit(AstNode::Expression::Method& ast) {
     }
     auto& operable = std::get<std::shared_ptr<HeapDescriptor>>(object);
     // temporary solution for method type checking; not scalable with arbitrary number of methods
-    if (methodName == "append" && operable->getType() != TYPE::list_t) {
-        throw SemanticError("append may only be used on list type objects");
+    if (methodName == "append") {
+        if (operable->getType() != TYPE::list_t) {
+            throw SemanticError("append may only be used on list type objects");
+        }
     }
-    else if (methodName == "add" && operable->getType() != TYPE::map_t) {
-        throw SemanticError("add may only be used on map type objects");
+    else if (methodName == "add") {
+        if (operable->getType() != TYPE::map_t) {
+            throw SemanticError("add may only be used on map type objects");
+        }
     }
     else if (methodName == "size") {
         return BlsType(operable->getSize());
@@ -508,6 +553,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Access& ast) {
         }
         auto& accessible = std::get<std::shared_ptr<HeapDescriptor>>(object);
         auto memberName = BlsType(member.value());
+        addToPool(memberName); // member accesses need string literal representation of member at runtime
         return std::ref(accessible->access(memberName));
     }
     else if (subscript.has_value()) {
@@ -530,9 +576,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Literal& ast) {
         [&literal](auto& value) { literal = value; }
     };
     std::visit(convert, ast.getLiteral());
-    if (!literalPool.contains(literal)) {
-        literalPool.emplace(literal, literalCount++);
-    }
+    addToPool(literal);
     return literal;
 }
 
@@ -541,7 +585,7 @@ BlsObject Analyzer::visit(AstNode::Expression::List& ast) {
     auto listLiteral = std::make_shared<VectorDescriptor>(TYPE::ANY);
     auto& elements = ast.getElements();
     BlsType initIdx = 0;
-    auto addElement = [&, this](auto& element) {
+    auto addElement = [&, this](size_t index, auto& element) {
         auto literal = resolve(element->accept(*this));
         list->append(literal);
         auto& valExpressionType = typeid(*element);
@@ -552,29 +596,26 @@ BlsObject Analyzer::visit(AstNode::Expression::List& ast) {
         }
         else {
             BlsType null = std::monostate();
+            addToPool(int64_t(index)); // literal integer representing index needs to be available at runtime for population
             listLiteral->append(null);
         }
         return literal;
     };
 
     if (elements.size() > 0) {
-        addElement(elements.at(0));
+        addElement(0, elements.at(0));
         list->setCont(getType(list->access(initIdx)));
         list->getSampleElement() = list->access(initIdx);
-        for (auto&& element : boost::make_iterator_range(elements.begin() + 1, elements.end())) {
-            auto value = addElement(element);
+        for (size_t i = 1; i < elements.size(); i++) {
+            auto value = addElement(i, elements.at(i));
             if (!typeCompatible(list->access(initIdx), value)) {
                 throw SemanticError("List literal declaration must be of homogeneous type.");
             }
         }
     }
 
-    if (!literalPool.contains(listLiteral)) {
-        literalPool.emplace(listLiteral, literalCount++);
-    }
-
+    addToPool(listLiteral);
     ast.getLiteral() = listLiteral;
-
     return list;
 }
 
@@ -624,10 +665,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Map& ast) {
         }
     }
 
-    if (!literalPool.contains(mapLiteral)) {
-        literalPool.emplace(mapLiteral, literalCount++);
-    }
-
+    addToPool(mapLiteral);
     ast.getLiteral() = mapLiteral;
 
     return map;
