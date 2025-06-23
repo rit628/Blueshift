@@ -136,20 +136,37 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
             auto& name = deviceBinding->getName();
             auto devtypeObj = resolve(deviceBinding->getType()->accept(*this));
             auto type = getType(devtypeObj);
-
             auto& value = deviceBinding->getValue();
-            if (!value.has_value()) {
-                throw SemanticError("DEVTYPE binding cannot be empty");
-            }
+            DeviceDescriptor devDesc;
 
-            auto binding = resolve(value->get()->accept(*this));
-            if (!std::holds_alternative<std::string>(binding)) {
-                throw SemanticError("DEVTYPE binding must be a string literal");
+            if (type > TYPE::CONTAINERS_END) {  // use binding parser for devtypes
+                if (!value.has_value()) {
+                    throw SemanticError("DEVTYPE binding cannot be empty");
+                }
+    
+                auto binding = resolve(value->get()->accept(*this));
+                if (!std::holds_alternative<std::string>(binding)) {
+                    throw SemanticError("DEVTYPE binding must be a string literal");
+                }
+                literalPool.erase(binding); // no need to add binding strings
+                auto& bindStr = std::get<std::string>(binding);
+                devDesc = parseDeviceBinding(name, type, bindStr);
+                devDesc.isVtype = deviceBinding->getModifiers().contains(RESERVED_VIRTUAL);
             }
-            literalPool.erase(binding); // no need to add binding strings
-            auto& bindStr = std::get<std::string>(binding);
-            auto devDesc = parseDeviceBinding(name, type, bindStr);
-            devDesc.isVtype = deviceBinding->getModifiers().contains(RESERVED_VIRTUAL);
+            else {
+                if (!deviceBinding->getModifiers().contains(RESERVED_VIRTUAL)) {
+                    throw SemanticError("Non DEVTYPE devices must be declared as virtual.");
+                }
+                if (value.has_value()) {
+                    devtypeObj = resolve(value->get()->accept(*this));
+                }
+                devDesc.device_name = name;
+                devDesc.type = type;
+                devDesc.controller = "MASTER";
+                devDesc.isVtype = true;
+            }
+            
+            devDesc.initialValue = devtypeObj;
             deviceDescriptors.emplace(name, devDesc);
         }
         else if (auto* statementExpression = dynamic_cast<AstNode::Statement::Expression*>(statement.get())) {

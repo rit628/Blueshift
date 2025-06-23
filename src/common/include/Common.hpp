@@ -34,6 +34,7 @@ struct DeviceDescriptor{
     TYPE type = TYPE::NONE;
     std::string controller = "";
     std::unordered_map<std::string, std::string> port_maps = {};
+    BlsType initialValue = std::monostate();
     bool isVtype = false;
 
     /* Oblock Specific Attributes */
@@ -51,6 +52,7 @@ struct DeviceDescriptor{
         ar & type;
         ar & controller;
         ar & port_maps;
+        ar & initialValue;
         ar & isVtype;
         ar & dropRead;
         ar & dropWrite;

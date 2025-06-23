@@ -3,6 +3,8 @@
 #include "fixtures/analyzer_test.hpp"
 #include "include/Common.hpp"
 #include "include/reserved_tokens.hpp"
+#include "libtypes/bls_types.hpp"
+#include "libtypes/typedefs.hpp"
 #include "test_macros.hpp"
 #include <cstdint>
 #include <gtest/gtest.h>
@@ -1032,7 +1034,8 @@ namespace BlsLang {
                 .controller = "host-1",
                 .port_maps = {
                     {"file", "f1.txt"}
-                }
+                },
+                .initialValue = createDevtype(TypeDef::LINE_WRITER())
             }},
             {"writer_2", DeviceDescriptor{
                 .device_name = "writer_2",
@@ -1041,6 +1044,7 @@ namespace BlsLang {
                 .port_maps = {
                     {"file", "f2.txt"}
                 },
+                .initialValue = createDevtype(TypeDef::LINE_WRITER()),
                 .isVtype = true
             }},
             {"writer_3", DeviceDescriptor{
@@ -1049,7 +1053,8 @@ namespace BlsLang {
                 .controller = "host-2",
                 .port_maps = {
                     {"file", "f3.txt"}
-                }
+                },
+                .initialValue = createDevtype(TypeDef::LINE_WRITER()),
             }}
         };
 
@@ -1063,7 +1068,8 @@ namespace BlsLang {
                         .controller = "host-1",
                         .port_maps = {
                             {"file", "f1.txt"}
-                        }
+                        },
+                        .initialValue = createDevtype(TypeDef::LINE_WRITER())
                     },
                     DeviceDescriptor{
                         .device_name = "writer_2",
@@ -1072,6 +1078,7 @@ namespace BlsLang {
                         .port_maps = {
                             {"file", "f2.txt"}
                         },
+                        .initialValue = createDevtype(TypeDef::LINE_WRITER()),
                         .isVtype = true
                     },
                     DeviceDescriptor{
@@ -1080,7 +1087,8 @@ namespace BlsLang {
                         .controller = "host-2",
                         .port_maps = {
                             {"file", "f3.txt"}
-                        }
+                        },
+                        .initialValue = createDevtype(TypeDef::LINE_WRITER())
                     }
                 }
             }}
@@ -1259,28 +1267,31 @@ namespace BlsLang {
 
         expectedMetadata.deviceDescriptors = {
             {"writer_1", DeviceDescriptor{
-                "writer_1",
-                TYPE::LINE_WRITER,
-                "host-1",
-                {
+                .device_name = "writer_1",
+                .type = TYPE::LINE_WRITER,
+                .controller = "host-1",
+                .port_maps = {
                     {"file", "f1.txt"}
-                }
+                },
+                .initialValue = createDevtype(TypeDef::LINE_WRITER())
             }},
             {"writer_2", DeviceDescriptor{
-                "writer_2",
-                TYPE::LINE_WRITER,
-                "host-1",
-                {
+                .device_name = "writer_2",
+                .type = TYPE::LINE_WRITER,
+                .controller = "host-1",
+                .port_maps = {
                     {"file", "f2.txt"}
-                }
+                },
+                .initialValue = createDevtype(TypeDef::LINE_WRITER())
             }},
             {"writer_3", DeviceDescriptor{
-                "writer_3",
-                TYPE::LINE_WRITER,
-                "host-2",
-                {
+                .device_name = "writer_3",
+                .type = TYPE::LINE_WRITER,
+                .controller = "host-2",
+                .port_maps = {
                     {"file", "f3.txt"}
-                }
+                },
+                .initialValue = createDevtype(TypeDef::LINE_WRITER())
             }}
         };
 
@@ -1295,6 +1306,7 @@ namespace BlsLang {
                         .port_maps = {
                             {"file", "f1.txt"}
                         },
+                        .initialValue = createDevtype(TypeDef::LINE_WRITER()),
                         .dropRead = true,
                         .polling_period = 10,
                         .isConst = true
@@ -1306,6 +1318,7 @@ namespace BlsLang {
                         .port_maps = {
                             {"file", "f2.txt"}
                         },
+                        .initialValue = createDevtype(TypeDef::LINE_WRITER()),
                         .polling_period = 6,
                         .isConst = true
                     },
@@ -1316,6 +1329,7 @@ namespace BlsLang {
                         .port_maps = {
                             {"file", "f3.txt"}
                         },
+                        .initialValue = createDevtype(TypeDef::LINE_WRITER()),
                         .dropRead = true
                     }
                 },

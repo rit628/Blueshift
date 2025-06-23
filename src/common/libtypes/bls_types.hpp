@@ -1,4 +1,5 @@
 #pragma once
+#include "typedefs.hpp"
 #include <cmath>
 #include <cstddef>
 #include <functional>
@@ -178,6 +179,25 @@ class VectorDescriptor : public HeapDescriptor, std::enable_shared_from_this<Vec
     template<typename Archive>
     void serialize(Archive& ar, const unsigned int version);
 };
+
+template<typename T>
+BlsType createDevtype(T states) {
+    auto devtype = std::make_shared<MapDescriptor>(TYPE::ANY);
+    using namespace TypeDef;
+    #define DEVTYPE_BEGIN(name) \
+    if constexpr (std::same_as<T, name>) { 
+    #define ATTRIBUTE(name, ...) \
+        BlsType name##_key = #name; \
+        BlsType name##_val = states.name; \
+        devtype->emplace(name##_key, name##_val);
+    #define DEVTYPE_END \
+    }
+    #include "DEVTYPES.LIST"
+    #undef DEVTYPE_BEGIN
+    #undef ATTRIBUTE
+    #undef DEVTYPE_END
+    return devtype;
+}
 
 constexpr TYPE getTypeFromName(const std::string& type) {
   if (type == BlsLang::PRIMITIVE_VOID) return TYPE::void_t;
