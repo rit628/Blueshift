@@ -7,15 +7,13 @@
 
 namespace BlsLang {
 
-    inline DeviceDescriptor parseDeviceBinding(const std::string deviceName, TYPE type, const std::string& binding) {
+    inline DeviceDescriptor parseDeviceBinding(const std::string& binding) {
         static boost::regex bindingPattern(R"(([a-zA-Z0-9_\-]+)::([a-zA-Z_]+-[^,\- ]+(?:,[a-zA-Z_]+-[^,\- ]+)*))");
         boost::smatch bindingContents;
         if (!boost::regex_match(binding, bindingContents, bindingPattern)) {
             throw RuntimeError("Invalid binding string");
         }
         DeviceDescriptor result;
-        result.device_name = deviceName;
-        result.type = type;
         result.controller = bindingContents[1];
         // Make polling rates dynamic
         result.isConst = true; 

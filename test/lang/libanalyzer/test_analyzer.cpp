@@ -955,7 +955,7 @@ namespace BlsLang {
                             {}
                         ),
                         new AstNode::Specifier::Type(
-                            DEVTYPE_LINE_WRITER,
+                            PRIMITIVE_INT,
                             {}
                         )
                     },
@@ -993,14 +993,14 @@ namespace BlsLang {
                         )
                     ),
                     new AstNode::Statement::Declaration(
-                        "writer_3",
-                        {},
+                        "signaler",
+                        {RESERVED_VIRTUAL},
                         new AstNode::Specifier::Type(
-                            DEVTYPE_LINE_WRITER,
+                            PRIMITIVE_INT,
                             {}
                         ),
                         new AstNode::Expression::Literal(
-                            std::string("host-2::file-f3.txt")
+                            int64_t(12)
                         )
                     ),
                     new AstNode::Statement::Expression(
@@ -1014,7 +1014,7 @@ namespace BlsLang {
                                     "writer_2"
                                 ),
                                 new AstNode::Expression::Access(
-                                    "writer_3"
+                                    "signaler"
                                 )
                             }
                         )
@@ -1047,14 +1047,13 @@ namespace BlsLang {
                 .initialValue = createDevtype(TypeDef::LINE_WRITER()),
                 .isVtype = true
             }},
-            {"writer_3", DeviceDescriptor{
-                .device_name = "writer_3",
-                .type = TYPE::LINE_WRITER,
-                .controller = "host-2",
-                .port_maps = {
-                    {"file", "f3.txt"}
-                },
-                .initialValue = createDevtype(TypeDef::LINE_WRITER()),
+            {"signaler", DeviceDescriptor{
+                .device_name = "signaler",
+                .type = TYPE::int_t,
+                .controller = "MASTER",
+                .port_maps = {},
+                .initialValue = int64_t(12),
+                .isVtype = true
             }}
         };
 
@@ -1082,13 +1081,12 @@ namespace BlsLang {
                         .isVtype = true
                     },
                     DeviceDescriptor{
-                        .device_name = "writer_3",
-                        .type = TYPE::LINE_WRITER,
-                        .controller = "host-2",
-                        .port_maps = {
-                            {"file", "f3.txt"}
-                        },
-                        .initialValue = createDevtype(TypeDef::LINE_WRITER())
+                        .device_name = "signaler",
+                        .type = TYPE::int_t,
+                        .controller = "MASTER",
+                        .port_maps = {},
+                        .initialValue = int64_t(12),
+                        .isVtype = true
                     }
                 }
             }}

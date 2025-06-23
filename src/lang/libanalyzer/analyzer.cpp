@@ -131,6 +131,8 @@ BlsObject Analyzer::visit(AstNode::Function::Oblock& ast) {
 }
 
 BlsObject Analyzer::visit(AstNode::Setup& ast) {
+    auto completedLiteralPool = std::move(literalPool); // save initial literal pool as setup values arent necessary at runtime
+
     for (auto&& statement : ast.getStatements()) {
         if (auto* deviceBinding = dynamic_cast<AstNode::Statement::Declaration*>(statement.get())) {
             auto& name = deviceBinding->getName();
@@ -148,9 +150,8 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
                 if (!std::holds_alternative<std::string>(binding)) {
                     throw SemanticError("DEVTYPE binding must be a string literal");
                 }
-                literalPool.erase(binding); // no need to add binding strings
                 auto& bindStr = std::get<std::string>(binding);
-                devDesc = parseDeviceBinding(name, type, bindStr);
+                devDesc = parseDeviceBinding(bindStr);
                 devDesc.isVtype = deviceBinding->getModifiers().contains(RESERVED_VIRTUAL);
             }
             else {
@@ -160,12 +161,12 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
                 if (value.has_value()) {
                     devtypeObj = resolve(value->get()->accept(*this));
                 }
-                devDesc.device_name = name;
-                devDesc.type = type;
                 devDesc.controller = "MASTER";
                 devDesc.isVtype = true;
             }
             
+            devDesc.device_name = name;
+            devDesc.type = type;
             devDesc.initialValue = devtypeObj;
             deviceDescriptors.emplace(name, devDesc);
         }
@@ -211,6 +212,8 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
             throw SemanticError("Statement within setup() must be an oblock binding expression or device binding declaration");
         }
     }
+
+    literalPool = std::move(completedLiteralPool);
     return std::monostate();
 }
 
