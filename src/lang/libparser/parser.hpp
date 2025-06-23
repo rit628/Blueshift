@@ -39,12 +39,12 @@ namespace BlsLang {
             std::unique_ptr<AstNode::Expression> parsePrimaryExpression();
             std::unique_ptr<AstNode::Specifier> parseSpecifier();
             std::unique_ptr<AstNode::Specifier::Type> parseTypeSpecifier();
+            std::unique_ptr<AstNode::Initializer::Oblock> parseOblockInitializer();
 
             // helpers
             void cleanLiteral(std::string& literal);
-            bool peekTypedDeclaration();
-            bool peekNestedTypeSpecifier();
-            constexpr const char * const invalidContainerMessage();
+            bool peekModifier();
+            bool peekTypeSpecifier();
             void matchExpectedSymbol(std::string&& symbol, std::string&& message);
     };
 

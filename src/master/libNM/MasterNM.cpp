@@ -69,7 +69,7 @@ void MasterNM::writeConfig(std::vector<OBlockDesc> &desc_list){
             this->dd_map[dev.device_name] = dev; 
             
             this->ctl_configs[dev.controller].device_alias.push_back(this->device_alias_map[dev.device_name]); 
-            this->ctl_configs[dev.controller].type.push_back(dev.devtype); 
+            this->ctl_configs[dev.controller].type.push_back(dev.type); 
             this->ctl_configs[dev.controller].srcs.push_back(dev.port_maps); 
 
             dev_list.insert(dev.device_name); 

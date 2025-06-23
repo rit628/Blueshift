@@ -2,6 +2,7 @@
 #include "binding_parser.hpp"
 #include "error_types.hpp"
 #include "include/Common.hpp"
+#include "include/reserved_tokens.hpp"
 #include "libtypes/typedefs.hpp"
 #include "analyzer.hpp"
 #include "libtypes/bls_types.hpp"
@@ -15,6 +16,7 @@
 #include <vector>
 #include <boost/range/iterator_range.hpp>
 #include <boost/range/combine.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
 
 using namespace BlsLang;
 
@@ -37,7 +39,7 @@ BlsObject Analyzer::visit(AstNode::Source& ast) {
 
 BlsObject Analyzer::visit(AstNode::Function::Procedure& ast) {
     auto& procedureName = ast.getName();
-    auto returnType = resolve(ast.getReturnType()->get()->accept(*this));
+    auto returnType = resolve(ast.getReturnType()->accept(*this));
     
     // add default constructed literal to pool for non-returning control paths
     // will only be necessary for void once control path checking is implemented
@@ -102,14 +104,24 @@ BlsObject Analyzer::visit(AstNode::Function::Oblock& ast) {
         auto typeObject = resolve(type->accept(*this));
         parameterTypes.push_back(typeObject);
     }
-    oblocks.emplace(oblockName, FunctionSignature(oblockName, std::monostate(), parameterTypes));
-    oblockDescriptors.emplace(oblockName, OBlockDesc(oblockName)); // create empty descriptor here to ensure all oblocks are accounted for even if some are not bound
-
+    
     cs.pushFrame(CallStack<std::string>::Frame::Context::FUNCTION, oblockName);
     auto params = ast.getParameters();
+    std::unordered_map<std::string, uint8_t> parameterIndices;
     for (int i = 0; i < params.size(); i++) {
+        parameterIndices.emplace(params.at(i), i);
         cs.addLocal(params.at(i), parameterTypes.at(i));
     }
+    oblocks.emplace(oblockName, FunctionSignature(oblockName, std::monostate(), parameterTypes, parameterIndices));
+    
+    OBlockDesc desc;
+    desc.name = oblockName;
+    desc.binded_devices.resize(params.size());
+    oblockDescriptors.emplace(oblockName, std::move(desc));
+    for (auto&& option : ast.getConfigOptions()) {
+        option->accept(*this);
+    }
+    
     for (auto&& statement : ast.getStatements()) {
         statement->accept(*this);
     }
@@ -119,23 +131,43 @@ BlsObject Analyzer::visit(AstNode::Function::Oblock& ast) {
 }
 
 BlsObject Analyzer::visit(AstNode::Setup& ast) {
+    auto completedLiteralPool = std::move(literalPool); // save initial literal pool as setup values arent necessary at runtime
+
     for (auto&& statement : ast.getStatements()) {
         if (auto* deviceBinding = dynamic_cast<AstNode::Statement::Declaration*>(statement.get())) {
             auto& name = deviceBinding->getName();
             auto devtypeObj = resolve(deviceBinding->getType()->accept(*this));
-            auto devtype = static_cast<DEVTYPE>(getType(devtypeObj));
-
+            auto type = getType(devtypeObj);
             auto& value = deviceBinding->getValue();
-            if (!value.has_value()) {
-                throw SemanticError("DEVTYPE binding cannot be empty");
-            }
+            DeviceDescriptor devDesc;
 
-            auto binding = resolve(value->get()->accept(*this));
-            if (!std::holds_alternative<std::string>(binding)) {
-                throw SemanticError("DEVTYPE binding must be a string literal");
+            if (type > TYPE::CONTAINERS_END) {  // use binding parser for devtypes
+                if (!value.has_value()) {
+                    throw SemanticError("DEVTYPE binding cannot be empty");
+                }
+    
+                auto binding = resolve(value->get()->accept(*this));
+                if (!std::holds_alternative<std::string>(binding)) {
+                    throw SemanticError("DEVTYPE binding must be a string literal");
+                }
+                auto& bindStr = std::get<std::string>(binding);
+                devDesc = parseDeviceBinding(bindStr);
+                devDesc.isVtype = deviceBinding->getModifiers().contains(RESERVED_VIRTUAL);
             }
-            auto& bindStr = std::get<std::string>(binding);
-            auto devDesc = parseDeviceBinding(name, devtype, bindStr);
+            else {
+                if (!deviceBinding->getModifiers().contains(RESERVED_VIRTUAL)) {
+                    throw SemanticError("Non DEVTYPE devices must be declared as virtual.");
+                }
+                if (value.has_value()) {
+                    devtypeObj = resolve(value->get()->accept(*this));
+                }
+                devDesc.controller = "MASTER";
+                devDesc.isVtype = true;
+            }
+            
+            devDesc.device_name = name;
+            devDesc.type = type;
+            devDesc.initialValue = devtypeObj;
             deviceDescriptors.emplace(name, devDesc);
         }
         else if (auto* statementExpression = dynamic_cast<AstNode::Statement::Expression*>(statement.get())) {
@@ -148,27 +180,40 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
             if (!oblocks.contains(name)) {
                 throw SemanticError(name + " does not refer to an oblock");
             }
-            OBlockDesc desc;
+            auto& desc = oblockDescriptors.at(name);
             desc.name = name;
             auto& devices = desc.binded_devices;
-            for (auto&& arg : args) {
-                auto* expr = dynamic_cast<AstNode::Expression::Access*>(arg.get());
+            for (size_t i = 0; i < args.size(); i++) {
+                auto* expr = dynamic_cast<AstNode::Expression::Access*>(args.at(i).get());
                 if (expr == nullptr || expr->getMember().has_value() || expr->getSubscript().has_value()) {
                     throw SemanticError("Invalid oblock binding in setup()");
                 }
                 try {
-                    devices.push_back(deviceDescriptors.at(expr->getObject()));
+                    auto& declaredDev = deviceDescriptors.at(expr->getObject());
+                    auto& dev = devices.at(i);
+                    dev.device_name = declaredDev.device_name;
+                    dev.type = declaredDev.type;
+                    dev.controller = declaredDev.controller;
+                    dev.port_maps = declaredDev.port_maps;
+                    dev.isVtype = declaredDev.isVtype;
                 }
                 catch (std::out_of_range) {
-                    throw RuntimeError(expr->getObject() + " does not refer to a device binding");
+                    throw SemanticError(expr->getObject() + " does not refer to a device binding");
                 }
             }
-            oblockDescriptors.at(name) = std::move(desc);
+            // update trigger rules to point to device names rather than alias indices
+            for (auto&& trigger : desc.triggers) {
+                for (auto&& parameter : trigger.rule) {
+                    parameter = desc.binded_devices.at(std::stoi(parameter)).device_name;
+                }
+            }
         }
         else {
             throw SemanticError("Statement within setup() must be an oblock binding expression or device binding declaration");
         }
     }
+
+    literalPool = std::move(completedLiteralPool);
     return std::monostate();
 }
 
@@ -469,7 +514,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Method& ast) {
     auto& methodArgs = ast.getArguments();
     auto objType = getType(object);
     ast.getLocalIndex() = cs.getLocalIndex(objectName);
-    if (objType < TYPE::PRIMITIVE_COUNT || objType > TYPE::CONTAINER_COUNT) {
+    if (objType < TYPE::PRIMITIVES_END || objType > TYPE::CONTAINERS_END) {
         throw SemanticError("Methods may only be applied on container type objects.");
     }
     std::vector<BlsType> resolvedArgs;
@@ -558,7 +603,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Access& ast) {
     }
     else if (subscript.has_value()) {
         auto objType = getType(object);
-        if (objType < TYPE::PRIMITIVE_COUNT || objType > TYPE::CONTAINER_COUNT) {
+        if (objType < TYPE::PRIMITIVES_END || objType > TYPE::CONTAINERS_END) {
             throw SemanticError("Subscript access only possible on container type objects");
         }
         auto& subscriptable = std::get<std::shared_ptr<HeapDescriptor>>(object);
@@ -631,7 +676,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Map& ast) {
     auto addElement = [&, this](auto& element) {
         auto key = resolve(element.first->accept(*this));
         auto keyType = getType(key);
-        if (keyType > TYPE::PRIMITIVE_COUNT) {
+        if (keyType > TYPE::PRIMITIVES_END) {
             throw SemanticError("Invalid key type for map");
         }
         auto value = resolve(element.second->accept(*this));
@@ -674,85 +719,223 @@ BlsObject Analyzer::visit(AstNode::Expression::Map& ast) {
 BlsObject Analyzer::visit(AstNode::Specifier::Type& ast) {
     TYPE primaryType = getTypeFromName(ast.getName());
     const auto& typeArgs = ast.getTypeArgs();
-    if (primaryType == TYPE::list_t) {
-        if (typeArgs.size() != 1) throw SemanticError("List may only have a single type argument.");
-        auto argType = getTypeFromName(typeArgs.at(0)->getName());
-        auto list = std::make_shared<VectorDescriptor>(argType);
-        auto arg = resolve(typeArgs.at(0)->accept(*this));
-        list->append(arg);
-        list->getSampleElement() = arg;
-        return list;
-    }
-    else if (primaryType == TYPE::map_t) {
-        if (typeArgs.size() != 2) throw SemanticError("Map must have two type arguments.");
-        auto keyType = getTypeFromName(typeArgs.at(0)->getName());
-        if (keyType > TYPE::PRIMITIVE_COUNT || keyType == TYPE::void_t) {
-            throw SemanticError("Invalid key type for map.");
+    switch (primaryType) {
+        // explicit default constructors for declaration
+        case TYPE::void_t:
+            if (!typeArgs.empty()) throw SemanticError("Primitives cannot include type arguments.");
+            return BlsType(std::monostate());
+        break;
+
+        case TYPE::bool_t:
+            if (!typeArgs.empty()) throw SemanticError("Primitives cannot include type arguments.");
+            return BlsType(bool(false));
+        break;
+
+        case TYPE::int_t:
+            if (!typeArgs.empty()) throw SemanticError("Primitives cannot include type arguments.");
+            return BlsType(int64_t(0));
+        break;
+
+        case TYPE::float_t:
+            if (!typeArgs.empty()) throw SemanticError("Primitives cannot include type arguments.");
+            return BlsType(double(0.0));
+        break;
+
+        case TYPE::string_t:
+            if (!typeArgs.empty()) throw SemanticError("Primitives cannot include type arguments.");
+            return BlsType(std::string(""));
+        break;
+
+        case TYPE::list_t: {
+            if (typeArgs.size() != 1) throw SemanticError("List may only have a single type argument.");
+            auto argType = getTypeFromName(typeArgs.at(0)->getName());
+            auto list = std::make_shared<VectorDescriptor>(argType);
+            auto arg = resolve(typeArgs.at(0)->accept(*this));
+            list->append(arg);
+            list->getSampleElement() = arg;
+            return list;
         }
-        auto valType = getTypeFromName(typeArgs.at(1)->getName());
-        if (valType == TYPE::void_t) {
-            throw SemanticError("Invalid value type for map.");
-        }
-        auto map = std::make_shared<MapDescriptor>(TYPE::map_t, keyType, valType);
-        auto key = resolve(typeArgs.at(0)->accept(*this));
-        auto value = resolve(typeArgs.at(1)->accept(*this));
-        map->emplace(key, value);
-        map->getSampleElement() = value;
-        return BlsType(map);
-    }
-    else if (typeArgs.empty()) {
-        switch (primaryType) {
-            // explicit default constructors for declaration
-            case TYPE::void_t:
-                return BlsType(std::monostate());
-            break;
+        break;
 
-            case TYPE::bool_t:
-                return BlsType(bool(false));
-            break;
-
-            case TYPE::int_t:
-                return BlsType(int64_t(0));
-            break;
-
-            case TYPE::float_t:
-                return BlsType(double(0.0));
-            break;
-
-            case TYPE::string_t:
-                return BlsType(std::string(""));
-            break;
-
-            #define DEVTYPE_BEGIN(name) \
-            case TYPE::name: { \
-                using namespace TypeDef; \
-                auto devtype = std::make_shared<MapDescriptor>(TYPE::name, TYPE::string_t, TYPE::ANY); \
-                BlsType attr, attrVal;
-            #define ATTRIBUTE(name, type) \
-                attr = BlsType(#name); \
-                attrVal = BlsType(type()); \
-                devtype->emplace(attr, attrVal);
-            #define DEVTYPE_END \
-                return BlsType(devtype); \
-            break; \
+        case TYPE::map_t: {
+            if (typeArgs.size() != 2) throw SemanticError("Map must have two type arguments.");
+            auto keyType = getTypeFromName(typeArgs.at(0)->getName());
+            if (keyType > TYPE::PRIMITIVES_END || keyType == TYPE::void_t) {
+                throw SemanticError("Invalid key type for map.");
             }
-            #include "DEVTYPES.LIST"
-            #undef DEVTYPE_BEGIN
-            #undef ATTRIBUTE
-            #undef DEVTYPE_END
-
-            case TYPE::ANY:
-            case TYPE::NONE:
-            case TYPE::COUNT:
-                throw SemanticError("Invalid type: " + ast.getName());
-            break;
-
-            default:
-                throw SemanticError("Container type must include element type arguments.");
-            break;
+            auto valType = getTypeFromName(typeArgs.at(1)->getName());
+            if (valType == TYPE::void_t) {
+                throw SemanticError("Invalid value type for map.");
+            }
+            auto map = std::make_shared<MapDescriptor>(TYPE::map_t, keyType, valType);
+            auto key = resolve(typeArgs.at(0)->accept(*this));
+            auto value = resolve(typeArgs.at(1)->accept(*this));
+            map->emplace(key, value);
+            map->getSampleElement() = value;
+            return BlsType(map);
         }
-    }
-    else {
-        throw SemanticError("Primitive or devtype cannot include type arguments.");
+        break;
+
+        #define DEVTYPE_BEGIN(name) \
+        case TYPE::name: { \
+            if (!typeArgs.empty()) throw SemanticError("Devtypes cannot include type arguments."); \
+            auto devtype = std::make_shared<MapDescriptor>(TYPE::name, TYPE::string_t, TYPE::ANY); \
+            BlsType attr, attrVal;
+        #define ATTRIBUTE(name, type) \
+            attr = BlsType(#name); \
+            attrVal = BlsType(type()); \
+            devtype->emplace(attr, attrVal);
+        #define DEVTYPE_END \
+            return BlsType(devtype); \
+        } \
+        break;
+        #include "DEVTYPES.LIST"
+        #undef DEVTYPE_BEGIN
+        #undef ATTRIBUTE
+        #undef DEVTYPE_END
+
+        default:
+            throw SemanticError("Invalid type: " + ast.getName());
+        break;
     }
 }
+
+BlsObject Analyzer::visit(AstNode::Initializer::Oblock& ast) {
+    auto& oblockName = cs.getFrameName();
+    auto& desc = oblockDescriptors.at(oblockName);
+    auto& signature = oblocks.at(oblockName);
+    auto& boundDevices = desc.binded_devices;
+    auto& parameterIndices = signature.parameterIndices;
+    auto& option = ast.getOption();
+    auto& args = ast.getArgs();
+    if (option == "triggerOn") {
+        if (args.empty()) {
+            throw SemanticError("At least one argument must be supplied to triggerOn.");
+        }
+
+        auto updateRule = [this, &parameterIndices](std::unique_ptr<AstNode::Expression>& arg, std::vector<std::string>& rule) {
+            if (auto* resolvedArg = dynamic_cast<AstNode::Expression::Access*>(arg.get())) {
+                auto& param = resolvedArg->getObject();
+                cs.getLocal(param); // check that param exists
+                // push back index of param to convert to device name in setup() visitor
+                rule.push_back(std::to_string(parameterIndices.at(param)));
+            }
+            else {
+                throw SemanticError("Trigger rules must be oblock parameters or list of oblock parameters.");
+            }
+        };
+
+        auto createRule = [&updateRule](std::unique_ptr<AstNode::Expression>& ruleExpr, std::vector<std::string>& rule) {
+            if (auto* resolvedList = dynamic_cast<AstNode::Expression::List*>(ruleExpr.get())) {
+                for (auto&& element : resolvedList->getElements()) {
+                    updateRule(element, rule); // create conjunction rule
+                }
+            }
+            else {
+                updateRule(ruleExpr, rule); // create singleton rule
+            }
+        };
+
+        for (auto&& arg : args) {
+            std::vector<std::string> rule;
+            std::optional<std::string> id = std::nullopt;
+            uint8_t priority = 1;
+            if (auto* resolvedMap = dynamic_cast<AstNode::Expression::Map*>(arg.get())) { // verbose syntax
+                for (auto&& [attrExpr, valExpr] : resolvedMap->getElements()) {
+                    auto* attrVal = dynamic_cast<AstNode::Expression::Literal*>(attrExpr.get());
+                    if (!attrVal || !std::holds_alternative<std::string>(attrVal->getLiteral())) {
+                        throw SemanticError("Trigger attributes must be given as strings.");
+                    }
+                    auto attribute = std::get<std::string>(attrVal->getLiteral());
+                    boost::algorithm::to_lower(attribute);
+                    if (attribute == "id") {
+                        auto* idVal = dynamic_cast<AstNode::Expression::Literal*>(valExpr.get());
+                        if (!idVal || !std::holds_alternative<std::string>(idVal->getLiteral())) {
+                            throw SemanticError("id attribute must be a string.");
+                        }
+                        id = std::get<std::string>(idVal->getLiteral());
+                    }
+                    else if (attribute == "priority") {
+                        auto* priorityVal = dynamic_cast<AstNode::Expression::Literal*>(valExpr.get());
+                        if (!priorityVal || !std::holds_alternative<int64_t>(priorityVal->getLiteral())) {
+                            throw SemanticError("priority attribute must be an integer.");
+                        }
+                        priority = std::get<int64_t>(priorityVal->getLiteral());
+                    }
+                    else if (attribute == "rule") {
+                        createRule(valExpr, rule);
+                    }
+                    else {
+                        // get original string (no lowercasing) for error clarity
+                        throw SemanticError("Invalid attribute " + std::get<std::string>(attrVal->getLiteral()) + " for trigger declaration.");
+                    }
+                }
+                if (rule.empty()) {
+                    throw SemanticError("Trigger declaration must provide a rule attribute.");
+                }
+            }
+            else { // shortcut syntax
+                createRule(arg, rule);
+            }
+            desc.triggers.push_back(TriggerData{std::move(rule), std::move(id), std::move(priority)});
+        }
+    }
+    else if (option == "constPollOn") {
+        if (args.size() != 1) {
+            throw SemanticError("Exactly one argument must be supplied to constPoll.");
+        }
+        auto* pollMap = dynamic_cast<AstNode::Expression::Map*>(args.at(0).get());
+        if (!pollMap) {
+            throw SemanticError("constPoll must be supplied a mapping of oblock parameters to polling rates.");
+        }
+        for (auto&& [key, value] : pollMap->getElements()) {
+            auto* paramExpr = dynamic_cast<AstNode::Expression::Access*>(key.get());
+            auto* rateExpr = dynamic_cast<AstNode::Expression::Literal*>(value.get());
+            if (!paramExpr) {
+                throw SemanticError("Mapping keys must be oblock parameters.");
+            }
+            if (!rateExpr
+             || std::holds_alternative<std::string>(rateExpr->getLiteral())
+             || std::holds_alternative<bool>(rateExpr->getLiteral())) {
+                throw SemanticError("Polling rate values must be integers or floats.");
+            }
+            auto& param = paramExpr->getObject();
+            auto rate = resolve(rateExpr->accept(*this));
+            literalPool.erase(rate);
+            
+            auto& dev = boundDevices.at(parameterIndices.at(param));
+            dev.polling_period = int64_t(rate);
+            dev.isConst = true;
+        }
+    }
+    else if (option == "dropReadOn") {
+        if (args.empty()) {
+            throw SemanticError("dropReadOn takes at least one argument.");
+        }
+        for (auto&& arg : args) {
+            if (auto* parameter = dynamic_cast<AstNode::Expression::Access*>(arg.get())) {
+                auto& alias = parameter->getObject();
+                cs.getLocal(alias); // check that param exists
+                boundDevices.at(parameterIndices.at(alias)).dropRead = true;
+            }
+        }
+        desc.dropRead = true;
+    }
+    else if (option == "dropWriteOn") {
+        if (args.empty()) {
+            throw SemanticError("dropWriteOn takes at least one argument.");
+        }
+        for (auto&& arg : args) {
+            if (auto* parameter = dynamic_cast<AstNode::Expression::Access*>(arg.get())) {
+                auto& alias = parameter->getObject();
+                cs.getLocal(alias); // check that param exists
+                boundDevices.at(parameterIndices.at(alias)).dropWrite = true;
+            }
+        }
+        desc.dropWrite = true;
+    }
+    else {
+        throw SemanticError("Invalid oblock configuration option: " + option + ".");
+    }
+    return std::monostate();
+} 

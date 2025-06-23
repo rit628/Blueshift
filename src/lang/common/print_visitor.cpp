@@ -6,6 +6,17 @@ using namespace BlsLang;
 template<class... Ts>
 struct overloads : Ts... { using Ts::operator()...; };
 
+BlsObject Printer::visit(AstNode::Initializer::Oblock& ast) {
+    os << "AstNode::Initializer::Oblock {\n";
+    os << "  option = " << ast.getOption() << "\n";
+    os << "  " << "arguments = <";
+    for (auto&& arg : ast.getArgs()) {
+        arg->accept((*this));
+    }
+    os << " >\n}" << std::endl;
+    return true;
+}
+
 BlsObject Printer::visit(AstNode::Specifier::Type& ast) {
     os << "AstNode::Specifier::Type {\n";
     os << "  name = " << ast.getName() << "\n";
@@ -229,12 +240,7 @@ BlsObject Printer::visit(AstNode::Statement::If& ast) {
 BlsObject Printer::visit(AstNode::Function::Procedure& ast) {
     os << "AstNode::Function::Procedure {\n  name = " << ast.getName();
     os << "\n  returnType = ";
-    if (ast.getReturnType().has_value()) {
-        ast.getReturnType()->get()->accept(*this);
-    }
-    else {
-        os << "void";
-    }
+    ast.getReturnType()->accept(*this);
     os << "\n  parameterTypes = [";
     for (auto&& type : ast.getParameterTypes()) {
         type->accept(*this);

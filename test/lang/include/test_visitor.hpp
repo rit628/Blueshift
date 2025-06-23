@@ -10,11 +10,9 @@ namespace BlsLang {
             Tester() = default;
             Tester(std::unique_ptr<AstNode> expectedAst) : expectedAst(std::move(expectedAst)) {}
             void addExpectedAst(std::unique_ptr<AstNode> expectedAst) { this->expectedAst = std::move(expectedAst); }
-            #define AST_NODE_ABSTRACT(...)
-            #define AST_NODE(Node) \
+            #define AST_NODE(Node, ...) \
             BlsObject visit(Node& ast) override;
             #include "include/NODE_TYPES.LIST"
-            #undef AST_NODE_ABSTRACT
             #undef AST_NODE
     
             std::unique_ptr<AstNode> expectedAst;
@@ -67,8 +65,8 @@ namespace BlsLang {
             expectedVisits.pop();
         }
 
-        expectedVisits.push(std::move(*expectedProcedure.getReturnType()));
-        ast.getReturnType()->get()->accept(*this);
+        expectedVisits.push(std::move(expectedProcedure.getReturnType()));
+        ast.getReturnType()->accept(*this);
         expectedVisits.pop();
 
         auto& expectedStatements = expectedProcedure.getStatements();
@@ -92,9 +90,19 @@ namespace BlsLang {
 
         auto& expectedParameterTypes = expectedOblock.getParameterTypes();
         auto& parameterTypes = ast.getParameterTypes();
+        EXPECT_EQ(expectedParameterTypes.size(), parameterTypes.size());
         for (size_t i = 0; i < expectedParameterTypes.size(); i++) {
             expectedVisits.push(std::move(expectedParameterTypes.at(i)));
             parameterTypes.at(i)->accept(*this);
+            expectedVisits.pop();
+        }
+
+        auto& expectedConfigOptions= expectedOblock.getConfigOptions();
+        auto& configOptions= ast.getConfigOptions();
+        EXPECT_EQ(expectedConfigOptions.size(), configOptions.size());
+        for (size_t i = 0; i < expectedConfigOptions.size(); i++) {
+            expectedVisits.push(std::move(expectedConfigOptions.at(i)));
+            configOptions.at(i)->accept(*this);
             expectedVisits.pop();
         }
     
@@ -250,14 +258,14 @@ namespace BlsLang {
 
     inline BlsObject Tester::visit(AstNode::Statement::Continue& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
-        auto& expectedContinue = dynamic_cast<AstNode::Statement::Continue&>(*toCast);
+        std::ignore = dynamic_cast<AstNode::Statement::Continue&>(*toCast);
         
         return true;
     }
     
     inline BlsObject Tester::visit(AstNode::Statement::Break& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
-        auto& expectedBreak = dynamic_cast<AstNode::Statement::Break&>(*toCast);
+        std::ignore = dynamic_cast<AstNode::Statement::Break&>(*toCast);
         
         return true;
     }
@@ -267,6 +275,8 @@ namespace BlsLang {
         auto& expectedDeclaration = dynamic_cast<AstNode::Statement::Declaration&>(*toCast);
     
         EXPECT_EQ(expectedDeclaration.getName(), ast.getName());
+
+        EXPECT_EQ(expectedDeclaration.getModifiers(), ast.getModifiers());
     
         auto& expectedType = expectedDeclaration.getType();
         auto& type = ast.getType();
@@ -486,6 +496,21 @@ namespace BlsLang {
         for (size_t i = 0; i < expectedType.getTypeArgs().size(); i++) {
             expectedVisits.push(std::move(expectedType.getTypeArgs().at(i)));
             ast.getTypeArgs().at(i)->accept(*this);
+            expectedVisits.pop();
+        }
+    
+        return true;
+    }
+
+    inline BlsObject Tester::visit(AstNode::Initializer::Oblock& ast) {
+        auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
+        auto& expectedType = dynamic_cast<AstNode::Initializer::Oblock&>(*toCast);
+    
+        EXPECT_EQ(expectedType.getOption(), ast.getOption());
+        EXPECT_EQ(expectedType.getArgs().size(), ast.getArgs().size());
+        for (size_t i = 0; i < expectedType.getArgs().size(); i++) {
+            expectedVisits.push(std::move(expectedType.getArgs().at(i)));
+            ast.getArgs().at(i)->accept(*this);
             expectedVisits.pop();
         }
     

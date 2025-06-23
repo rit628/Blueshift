@@ -19,11 +19,9 @@ namespace BlsLang {
             friend class AnalyzerTest;
             Analyzer() = default;
 
-            #define AST_NODE_ABSTRACT(...)
-            #define AST_NODE(Node) \
+            #define AST_NODE(Node, ...) \
             BlsObject visit(Node& ast) override;
             #include "include/NODE_TYPES.LIST"
-            #undef AST_NODE_ABSTRACT
             #undef AST_NODE
             
             auto& getOblockDescriptors() { return oblockDescriptors; }
@@ -35,14 +33,15 @@ namespace BlsLang {
             struct FunctionSignature {
                 std::string name;
                 BlsType returnType;
-                std::vector<BlsType> parameterTypes;
+                std::vector<BlsType> parameterTypes = {};
+                std::unordered_map<std::string, uint8_t> parameterIndices = {};
                 bool variadic = false;
             };
 
             CallStack<std::string> cs;
             std::unordered_map<std::string, FunctionSignature> procedures = {
-                {"println", {"println", std::monostate(), {}, true}},
-                {"print", {"print", std::monostate(), {}, true}}
+                {"println", {"println", std::monostate(), {}, {}, true}},
+                {"print", {"print", std::monostate(), {}, {}, true}}
             };
             std::unordered_map<std::string, FunctionSignature> oblocks;
             std::unordered_map<std::string, DeviceDescriptor> deviceDescriptors;

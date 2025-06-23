@@ -13,7 +13,7 @@ using namespace boost::json;
 void tag_invoke(const value_from_tag&, value& jv, DeviceDescriptor const & desc) {
     auto& obj = jv.emplace_object();
     obj.emplace("device_name", value_from(desc.device_name));
-    obj.emplace("devtype", value_from(static_cast<uint32_t>(desc.devtype)));
+    obj.emplace("type", value_from(static_cast<uint32_t>(desc.type)));
     obj.emplace("controller", value_from(desc.controller));
     obj.emplace("port_maps", value_from(desc.port_maps));
     obj.emplace("isInterrupt", value_from(desc.isInterrupt));

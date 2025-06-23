@@ -47,7 +47,7 @@ enum class Protocol : uint8_t{
 struct DeviceConfigMsg{
 
     // Device type
-    std::vector<DEVTYPE> type; 
+    std::vector<TYPE> type; 
 
     // Numeric alias for device
     std::vector<uint16_t> device_alias; 

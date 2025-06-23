@@ -4,6 +4,7 @@
 #include "test_macros.hpp"
 #include "error_types.hpp"
 #include "include/reserved_tokens.hpp"
+#include "token.hpp"
 #include <cstddef>
 #include <gtest/gtest.h>
 #include <memory>
@@ -13,7 +14,7 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, SpecifierTests, SimpleType) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT, 0, 1, 1)
+            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Specifier::Type(
             PRIMITIVE_INT,
@@ -25,13 +26,13 @@ namespace BlsLang {
     GROUP_TEST_F(ParserTest, SpecifierTests, ContainerType) {
         // Example: list<int>
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, "list", 0, 1, 1),
-            Token(Token::Type::OPERATOR, TYPE_DELIMITER_OPEN, 1, 1, 2),
-            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT, 2, 1, 3),
-            Token(Token::Type::OPERATOR, TYPE_DELIMITER_CLOSE, 3, 1, 4)
+            Token(Token::Type::IDENTIFIER, CONTAINER_LIST),
+            Token(Token::Type::OPERATOR, TYPE_DELIMITER_OPEN),
+            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT),
+            Token(Token::Type::OPERATOR, TYPE_DELIMITER_CLOSE)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Specifier::Type(
-            "list",
+            CONTAINER_LIST,
             {
                 new AstNode::Specifier::Type(
                     PRIMITIVE_INT,
@@ -44,19 +45,19 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, SpecifierTests, NestedContainerType) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, "list", 0, 1, 1),
-            Token(Token::Type::OPERATOR, TYPE_DELIMITER_OPEN, 1, 1, 2),
-            Token(Token::Type::IDENTIFIER, "list", 2, 1, 3),
-            Token(Token::Type::OPERATOR, TYPE_DELIMITER_OPEN, 3, 1, 4),
-            Token(Token::Type::IDENTIFIER, PRIMITIVE_FLOAT, 4, 1, 5),
-            Token(Token::Type::OPERATOR, TYPE_DELIMITER_CLOSE, 5, 1, 6),
-            Token(Token::Type::OPERATOR, TYPE_DELIMITER_CLOSE, 6, 1, 7)
+            Token(Token::Type::IDENTIFIER, CONTAINER_LIST),
+            Token(Token::Type::OPERATOR, TYPE_DELIMITER_OPEN),
+            Token(Token::Type::IDENTIFIER, CONTAINER_LIST),
+            Token(Token::Type::OPERATOR, TYPE_DELIMITER_OPEN),
+            Token(Token::Type::IDENTIFIER, PRIMITIVE_FLOAT),
+            Token(Token::Type::OPERATOR, TYPE_DELIMITER_CLOSE),
+            Token(Token::Type::OPERATOR, TYPE_DELIMITER_CLOSE)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Specifier::Type(
-            "list",
+            CONTAINER_LIST,
             {
                 new AstNode::Specifier::Type(
-                    "list",
+                    CONTAINER_LIST,
                     {
                         new AstNode::Specifier::Type(PRIMITIVE_FLOAT, {})
                     }
@@ -69,15 +70,15 @@ namespace BlsLang {
     GROUP_TEST_F(ParserTest, SpecifierTests, MultipleTypeArguments) {
         // map<int, string>
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, "map", 0, 1, 1),
-            Token(Token::Type::OPERATOR, TYPE_DELIMITER_OPEN, 1, 1, 2),
-            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT, 2, 1, 3),
-            Token(Token::Type::OPERATOR, COMMA, 3, 1, 4),
-            Token(Token::Type::IDENTIFIER, PRIMITIVE_STRING, 4, 1, 5),
-            Token(Token::Type::OPERATOR, TYPE_DELIMITER_CLOSE, 5, 1, 6)
+            Token(Token::Type::IDENTIFIER, CONTAINER_MAP),
+            Token(Token::Type::OPERATOR, TYPE_DELIMITER_OPEN),
+            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT),
+            Token(Token::Type::OPERATOR, COMMA),
+            Token(Token::Type::IDENTIFIER, PRIMITIVE_STRING),
+            Token(Token::Type::OPERATOR, TYPE_DELIMITER_CLOSE)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Specifier::Type(
-            "map",
+            CONTAINER_MAP,
             {
                 new AstNode::Specifier::Type(PRIMITIVE_INT, {}),
                 new AstNode::Specifier::Type(PRIMITIVE_STRING, {})
@@ -88,7 +89,7 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, ExpressionTests, LiteralInteger) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::INTEGER, "123", 0, 1, 1)
+            Token(Token::Type::INTEGER, "123")
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Literal(
             static_cast<int64_t>(123)
@@ -98,7 +99,7 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, ExpressionTests, LiteralBinaryInteger) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::INTEGER, "0b101", 0, 1, 1)
+            Token(Token::Type::INTEGER, "0b101")
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Literal(
             static_cast<int64_t>(5)
@@ -108,7 +109,7 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, ExpressionTests, LiteralOctalInteger) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::INTEGER, "071", 0, 1, 1)
+            Token(Token::Type::INTEGER, "071")
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Literal(
             static_cast<int64_t>(57)
@@ -118,7 +119,7 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, ExpressionTests, LiteralHexadecimalInteger) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::INTEGER, "0xf", 0, 1, 1)
+            Token(Token::Type::INTEGER, "0xf")
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Literal(
             static_cast<int64_t>(15)
@@ -128,7 +129,7 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, ExpressionTests, LiteralFloat) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::FLOAT, "6.28", 0, 1, 1)
+            Token(Token::Type::FLOAT, "6.28")
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Literal(
             6.28
@@ -138,7 +139,7 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, ExpressionTests, LiteralString) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::STRING, R"("hello \n \\ \"wrld\" ")", 0, 1, 1)
+            Token(Token::Type::STRING, R"("hello \n \\ \"wrld\" ")")
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Literal(
             std::string("hello \n \\ \"wrld\" ")
@@ -148,7 +149,7 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, ExpressionTests, LiteralBoolean) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, LITERAL_TRUE, 0, 1, 1)
+            Token(Token::Type::IDENTIFIER, LITERAL_TRUE)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Literal(
             true
@@ -158,13 +159,13 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, ExpressionTests, ListExpression) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::OPERATOR, BRACKET_OPEN, 0, 1, 1),
-            Token(Token::Type::INTEGER, "1", 1, 1, 2),
-            Token(Token::Type::OPERATOR, COMMA, 2, 1, 3),
-            Token(Token::Type::INTEGER, "2", 3, 1, 4),
-            Token(Token::Type::OPERATOR, COMMA, 4, 1, 5),
-            Token(Token::Type::INTEGER, "3", 5, 1, 6),
-            Token(Token::Type::OPERATOR, BRACKET_CLOSE, 6, 1, 7)
+            Token(Token::Type::OPERATOR, BRACKET_OPEN),
+            Token(Token::Type::INTEGER, "1"),
+            Token(Token::Type::OPERATOR, COMMA),
+            Token(Token::Type::INTEGER, "2"),
+            Token(Token::Type::OPERATOR, COMMA),
+            Token(Token::Type::INTEGER, "3"),
+            Token(Token::Type::OPERATOR, BRACKET_CLOSE)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::List(
             {
@@ -178,9 +179,9 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, ExpressionTests, BinaryAddition) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::INTEGER, "2", 0, 1, 1),
-            Token(Token::Type::OPERATOR, ARITHMETIC_ADDITION, 1, 1, 2),
-            Token(Token::Type::INTEGER, "3", 2, 1, 3)
+            Token(Token::Type::INTEGER, "2"),
+            Token(Token::Type::OPERATOR, ARITHMETIC_ADDITION),
+            Token(Token::Type::INTEGER, "3")
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Binary(
             ARITHMETIC_ADDITION,
@@ -196,10 +197,10 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, ExpressionTests, BinaryAssignment) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, "a", 0, 1, 1),
-            Token(Token::Type::OPERATOR, ASSIGNMENT, 1, 1, 2),
-            Token(Token::Type::INTEGER, "10", 2, 1, 3),
-            Token(Token::Type::OPERATOR, SEMICOLON, 3, 1, 4)
+            Token(Token::Type::IDENTIFIER, "a"),
+            Token(Token::Type::OPERATOR, ASSIGNMENT),
+            Token(Token::Type::INTEGER, "10"),
+            Token(Token::Type::OPERATOR, SEMICOLON)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Binary(
             ASSIGNMENT,
@@ -211,10 +212,10 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, ExpressionTests, BinaryCompoundAssignment) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, "a", 0, 1, 1),
-            Token(Token::Type::OPERATOR, ASSIGNMENT_ADDITION, 1, 1, 2),
-            Token(Token::Type::INTEGER, "10", 2, 1, 3),
-            Token(Token::Type::OPERATOR, SEMICOLON, 3, 1, 4)
+            Token(Token::Type::IDENTIFIER, "a"),
+            Token(Token::Type::OPERATOR, ASSIGNMENT_ADDITION),
+            Token(Token::Type::INTEGER, "10"),
+            Token(Token::Type::OPERATOR, SEMICOLON)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Binary(
             ASSIGNMENT_ADDITION,
@@ -226,11 +227,11 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, ExpressionTests, ComplexBinaryExpression) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::INTEGER, "1", 0, 1, 1),
-            Token(Token::Type::OPERATOR, ARITHMETIC_ADDITION, 1, 1, 2),
-            Token(Token::Type::INTEGER, "2", 2, 1, 3),
-            Token(Token::Type::OPERATOR, ARITHMETIC_MULTIPLICATION, 3, 1, 4),
-            Token(Token::Type::INTEGER, "3", 4, 1, 5)
+            Token(Token::Type::INTEGER, "1"),
+            Token(Token::Type::OPERATOR, ARITHMETIC_ADDITION),
+            Token(Token::Type::INTEGER, "2"),
+            Token(Token::Type::OPERATOR, ARITHMETIC_MULTIPLICATION),
+            Token(Token::Type::INTEGER, "3")
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Binary(
             ARITHMETIC_ADDITION,
@@ -247,13 +248,13 @@ namespace BlsLang {
     GROUP_TEST_F(ParserTest, ExpressionTests, GroupedBinaryExpression) {
         // (a + b) * c
         std::vector<Token> sampleTokens {
-            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 0, 1, 1),
-            Token(Token::Type::IDENTIFIER, "a", 1, 1, 2),
-            Token(Token::Type::OPERATOR, ARITHMETIC_ADDITION, 2, 1, 3),
-            Token(Token::Type::IDENTIFIER, "b", 3, 1, 4),
-            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 4, 1, 5),
-            Token(Token::Type::OPERATOR, ARITHMETIC_MULTIPLICATION, 5, 1, 6),
-            Token(Token::Type::IDENTIFIER, "c", 6, 1, 7)
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+            Token(Token::Type::IDENTIFIER, "a"),
+            Token(Token::Type::OPERATOR, ARITHMETIC_ADDITION),
+            Token(Token::Type::IDENTIFIER, "b"),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
+            Token(Token::Type::OPERATOR, ARITHMETIC_MULTIPLICATION),
+            Token(Token::Type::IDENTIFIER, "c")
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Binary(
             ARITHMETIC_MULTIPLICATION,
@@ -271,8 +272,8 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, ExpressionTests, UnaryNegative) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::OPERATOR, UNARY_NEGATIVE, 0, 1, 1),
-            Token(Token::Type::INTEGER, "5", 1, 1, 2)
+            Token(Token::Type::OPERATOR, UNARY_NEGATIVE),
+            Token(Token::Type::INTEGER, "5")
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Unary(
             UNARY_NEGATIVE,
@@ -285,8 +286,8 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, ExpressionTests, PostfixUnaryExpression) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, "a", 0, 1, 1),
-            Token(Token::Type::OPERATOR, UNARY_INCREMENT, 1, 1, 2)
+            Token(Token::Type::IDENTIFIER, "a"),
+            Token(Token::Type::OPERATOR, UNARY_INCREMENT)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Unary(
             UNARY_INCREMENT,
@@ -298,9 +299,9 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, ExpressionTests, GroupedExpression) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 0, 1, 1),
-            Token(Token::Type::INTEGER, "7", 1, 1, 2),
-            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 2, 1, 3)
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+            Token(Token::Type::INTEGER, "7"),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Group(
             new AstNode::Expression::Literal(
@@ -312,12 +313,12 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, ExpressionTests, FunctionCallExpression) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, "foo", 0, 1, 1),
-            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 1, 1, 2),
-            Token(Token::Type::INTEGER, "42", 2, 1, 3),
-            Token(Token::Type::OPERATOR, COMMA, 3, 1, 4),
-            Token(Token::Type::FLOAT, "3.14", 4, 1, 5),
-            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 5, 1, 6)
+            Token(Token::Type::IDENTIFIER, "foo"),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+            Token(Token::Type::INTEGER, "42"),
+            Token(Token::Type::OPERATOR, COMMA),
+            Token(Token::Type::FLOAT, "3.14"),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Function(
             "foo",
@@ -332,20 +333,20 @@ namespace BlsLang {
     GROUP_TEST_F(ParserTest, ExpressionTests, NestedFunctionCallExpression) {
         // foo(bar(1), baz(2))
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, "foo", 0, 1, 1),
-            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 1, 1, 2),
+            Token(Token::Type::IDENTIFIER, "foo"),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
                 // First argument: bar(1)
-                Token(Token::Type::IDENTIFIER, "bar", 2, 1, 3),
-                Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 3, 1, 4),
-                Token(Token::Type::INTEGER, "1", 4, 1, 5),
-                Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 5, 1, 6),
-                Token(Token::Type::OPERATOR, COMMA, 6, 1, 7),
+                Token(Token::Type::IDENTIFIER, "bar"),
+                Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+                Token(Token::Type::INTEGER, "1"),
+                Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
+                Token(Token::Type::OPERATOR, COMMA),
                 // Second argument: baz(2)
-                Token(Token::Type::IDENTIFIER, "baz", 7, 1, 8),
-                Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 8, 1, 9),
-                Token(Token::Type::INTEGER, "2", 9, 1, 10),
-                Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 10, 1, 11),
-            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 11, 1, 12)
+                Token(Token::Type::IDENTIFIER, "baz"),
+                Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+                Token(Token::Type::INTEGER, "2"),
+                Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Function(
             "foo",
@@ -359,12 +360,12 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, ExpressionTests, MethodCallExpression) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, "obj", 0, 1, 1),
-            Token(Token::Type::OPERATOR, MEMBER_ACCESS, 1, 1, 2),
-            Token(Token::Type::IDENTIFIER, "method", 2, 1, 3),
-            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 3, 1, 4),
-            Token(Token::Type::IDENTIFIER, LITERAL_TRUE, 4, 1, 5),
-            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 5, 1, 6)
+            Token(Token::Type::IDENTIFIER, "obj"),
+            Token(Token::Type::OPERATOR, MEMBER_ACCESS),
+            Token(Token::Type::IDENTIFIER, "method"),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+            Token(Token::Type::IDENTIFIER, LITERAL_TRUE),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Method(
             "obj",
@@ -379,14 +380,14 @@ namespace BlsLang {
     GROUP_TEST_F(ParserTest, ExpressionTests, MethodCallMultipleArguments) {
         // obj.method(10, 20)
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, "obj", 0, 1, 1),
-            Token(Token::Type::OPERATOR, MEMBER_ACCESS, 1, 1, 2),
-            Token(Token::Type::IDENTIFIER, "method", 2, 1, 3),
-            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 3, 1, 4),
-            Token(Token::Type::INTEGER, "10", 4, 1, 5),
-            Token(Token::Type::OPERATOR, COMMA, 5, 1, 6),
-            Token(Token::Type::INTEGER, "20", 6, 1, 7),
-            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 7, 1, 8)
+            Token(Token::Type::IDENTIFIER, "obj"),
+            Token(Token::Type::OPERATOR, MEMBER_ACCESS),
+            Token(Token::Type::IDENTIFIER, "method"),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+            Token(Token::Type::INTEGER, "10"),
+            Token(Token::Type::OPERATOR, COMMA),
+            Token(Token::Type::INTEGER, "20"),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Method(
             "obj", "method",
@@ -401,9 +402,9 @@ namespace BlsLang {
     GROUP_TEST_F(ParserTest, ExpressionTests, MemberAccessExpression) {
         // obj.field
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, "obj", 0, 1, 1),
-            Token(Token::Type::OPERATOR, MEMBER_ACCESS, 1, 1, 2),
-            Token(Token::Type::IDENTIFIER, "field", 2, 1, 3)
+            Token(Token::Type::IDENTIFIER, "obj"),
+            Token(Token::Type::OPERATOR, MEMBER_ACCESS),
+            Token(Token::Type::IDENTIFIER, "field")
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Access(
             "obj", "field"
@@ -413,10 +414,10 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, ExpressionTests, AccessSubscript) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, "arr", 0, 1, 1),
-            Token(Token::Type::OPERATOR, BRACKET_OPEN, 1, 1, 2),
-            Token(Token::Type::INTEGER, "0", 2, 1, 3),
-            Token(Token::Type::OPERATOR, BRACKET_CLOSE, 3, 1, 4)
+            Token(Token::Type::IDENTIFIER, "arr"),
+            Token(Token::Type::OPERATOR, BRACKET_OPEN),
+            Token(Token::Type::INTEGER, "0"),
+            Token(Token::Type::OPERATOR, BRACKET_CLOSE)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Access(
             "arr",
@@ -427,19 +428,19 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, ExpressionTests, UnmatchedParenthesis) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 0, 1, 1),
-            Token(Token::Type::INTEGER, "42", 1, 1, 2)
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+            Token(Token::Type::INTEGER, "42")
         };
         EXPECT_THROW(TEST_PARSE_EXPRESSION(sampleTokens, nullptr), SyntaxError);
     }
 
     GROUP_TEST_F(ParserTest, StatementTests, ExpressionStatement) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, "foo", 0, 1, 1),
-            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 1, 1, 2),
-            Token(Token::Type::INTEGER, "42", 2, 1, 3),
-            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 3, 1, 4),
-            Token(Token::Type::OPERATOR, SEMICOLON, 4, 1, 5)
+            Token(Token::Type::IDENTIFIER, "foo"),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+            Token(Token::Type::INTEGER, "42"),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
+            Token(Token::Type::OPERATOR, SEMICOLON)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Statement::Expression(
             new AstNode::Expression::Function("foo", { new AstNode::Expression::Literal(static_cast<int64_t>(42)) })
@@ -448,16 +449,34 @@ namespace BlsLang {
     }
     
     GROUP_TEST_F(ParserTest, StatementTests, DeclarationStatement) {
-        // Declaration statement: int x = 10;
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT, 0, 1, 1),
-            Token(Token::Type::IDENTIFIER, "x", 1, 1, 2),
-            Token(Token::Type::OPERATOR, ASSIGNMENT, 2, 1, 3),
-            Token(Token::Type::INTEGER, "10", 3, 1, 4),
-            Token(Token::Type::OPERATOR, SEMICOLON, 4, 1, 5)
+            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT),
+            Token(Token::Type::IDENTIFIER, "x"),
+            Token(Token::Type::OPERATOR, ASSIGNMENT),
+            Token(Token::Type::INTEGER, "10"),
+            Token(Token::Type::OPERATOR, SEMICOLON)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Statement::Declaration(
             "x",
+            {},
+            new AstNode::Specifier::Type(PRIMITIVE_INT, {}),
+            new AstNode::Expression::Literal(static_cast<int64_t>(10))
+        ));
+        TEST_PARSE_STATEMENT(sampleTokens, std::move(expectedAst));
+    }
+
+    GROUP_TEST_F(ParserTest, StatementTests, VirtualDeclarationStatement) {
+        std::vector<Token> sampleTokens {
+            Token(Token::Type::IDENTIFIER, RESERVED_VIRTUAL),
+            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT),
+            Token(Token::Type::IDENTIFIER, "x"),
+            Token(Token::Type::OPERATOR, ASSIGNMENT),
+            Token(Token::Type::INTEGER, "10"),
+            Token(Token::Type::OPERATOR, SEMICOLON)
+        };
+        auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Statement::Declaration(
+            "x",
+            {"virtual"},
             new AstNode::Specifier::Type(PRIMITIVE_INT, {}),
             new AstNode::Expression::Literal(static_cast<int64_t>(10))
         ));
@@ -466,9 +485,9 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, StatementTests, ReturnStatement) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, RESERVED_RETURN, 0, 1, 1),
-            Token(Token::Type::INTEGER, "42", 1, 1, 2),
-            Token(Token::Type::OPERATOR, SEMICOLON, 2, 1, 3)
+            Token(Token::Type::IDENTIFIER, RESERVED_RETURN),
+            Token(Token::Type::INTEGER, "42"),
+            Token(Token::Type::OPERATOR, SEMICOLON)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Statement::Return(
             new AstNode::Expression::Literal(static_cast<int64_t>(42))
@@ -478,8 +497,8 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, StatementTests, ReturnVoidStatement) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, RESERVED_RETURN, 0, 1, 1),
-            Token(Token::Type::OPERATOR, SEMICOLON, 1, 1, 2)
+            Token(Token::Type::IDENTIFIER, RESERVED_RETURN),
+            Token(Token::Type::OPERATOR, SEMICOLON)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Statement::Return(
             std::nullopt
@@ -490,23 +509,23 @@ namespace BlsLang {
     GROUP_TEST_F(ParserTest, StatementTests, IfElseStatement) {
         // if ( a ) { b = 1; } else { b = 2; }
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, RESERVED_IF, 0, 1, 1),
-            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 1, 1, 2),
-            Token(Token::Type::IDENTIFIER, "a", 2, 1, 3),
-            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 3, 1, 4),
-            Token(Token::Type::OPERATOR, BRACE_OPEN, 4, 1, 5),
-            Token(Token::Type::IDENTIFIER, "b", 5, 1, 6),
-            Token(Token::Type::OPERATOR, ASSIGNMENT, 6, 1, 7),
-            Token(Token::Type::INTEGER, "1", 7, 1, 8),
-            Token(Token::Type::OPERATOR, SEMICOLON, 8, 1, 9),
-            Token(Token::Type::OPERATOR, BRACE_CLOSE, 9, 1, 10),
-            Token(Token::Type::IDENTIFIER, RESERVED_ELSE, 10, 1, 11),
-            Token(Token::Type::OPERATOR, BRACE_OPEN, 11, 1, 12),
-            Token(Token::Type::IDENTIFIER, "b", 12, 1, 13),
-            Token(Token::Type::OPERATOR, ASSIGNMENT, 13, 1, 14),
-            Token(Token::Type::INTEGER, "2", 14, 1, 15),
-            Token(Token::Type::OPERATOR, SEMICOLON, 15, 1, 16),
-            Token(Token::Type::OPERATOR, BRACE_CLOSE, 16, 1, 17)
+            Token(Token::Type::IDENTIFIER, RESERVED_IF),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+            Token(Token::Type::IDENTIFIER, "a"),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
+            Token(Token::Type::OPERATOR, BRACE_OPEN),
+            Token(Token::Type::IDENTIFIER, "b"),
+            Token(Token::Type::OPERATOR, ASSIGNMENT),
+            Token(Token::Type::INTEGER, "1"),
+            Token(Token::Type::OPERATOR, SEMICOLON),
+            Token(Token::Type::OPERATOR, BRACE_CLOSE),
+            Token(Token::Type::IDENTIFIER, RESERVED_ELSE),
+            Token(Token::Type::OPERATOR, BRACE_OPEN),
+            Token(Token::Type::IDENTIFIER, "b"),
+            Token(Token::Type::OPERATOR, ASSIGNMENT),
+            Token(Token::Type::INTEGER, "2"),
+            Token(Token::Type::OPERATOR, SEMICOLON),
+            Token(Token::Type::OPERATOR, BRACE_CLOSE)
         };
 
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Statement::If(
@@ -533,34 +552,34 @@ namespace BlsLang {
     GROUP_TEST_F(ParserTest, StatementTests, IfElseIfStatement) {
         // if (a) { x = 1; } else if (b) { x = 2; } else { x = 3; }
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, RESERVED_IF, 0, 1, 1),
-            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 1, 1, 2),
-            Token(Token::Type::IDENTIFIER, "a", 2, 1, 3),
-            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 3, 1, 4),
-            Token(Token::Type::OPERATOR, BRACE_OPEN, 4, 1, 5),
-            Token(Token::Type::IDENTIFIER, "x", 5, 1, 6),
-            Token(Token::Type::OPERATOR, ASSIGNMENT, 6, 1, 7),
-            Token(Token::Type::INTEGER, "1", 7, 1, 8),
-            Token(Token::Type::OPERATOR, SEMICOLON, 8, 1, 9),
-            Token(Token::Type::OPERATOR, BRACE_CLOSE, 9, 1, 10),
-            Token(Token::Type::IDENTIFIER, RESERVED_ELSE, 10, 1, 11),
-            Token(Token::Type::IDENTIFIER, RESERVED_IF, 11, 1, 12),
-            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 12, 1, 13),
-            Token(Token::Type::IDENTIFIER, "b", 13, 1, 14),
-            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 14, 1, 15),
-            Token(Token::Type::OPERATOR, BRACE_OPEN, 15, 1, 16),
-            Token(Token::Type::IDENTIFIER, "x", 16, 1, 17),
-            Token(Token::Type::OPERATOR, ASSIGNMENT, 17, 1, 18),
-            Token(Token::Type::INTEGER, "2", 18, 1, 19),
-            Token(Token::Type::OPERATOR, SEMICOLON, 19, 1, 20),
-            Token(Token::Type::OPERATOR, BRACE_CLOSE, 20, 1, 21),
-            Token(Token::Type::IDENTIFIER, RESERVED_ELSE, 21, 1, 22),
-            Token(Token::Type::OPERATOR, BRACE_OPEN, 22, 1, 23),
-            Token(Token::Type::IDENTIFIER, "x", 23, 1, 24),
-            Token(Token::Type::OPERATOR, ASSIGNMENT, 24, 1, 25),
-            Token(Token::Type::INTEGER, "3", 25, 1, 26),
-            Token(Token::Type::OPERATOR, SEMICOLON, 26, 1, 27),
-            Token(Token::Type::OPERATOR, BRACE_CLOSE, 27, 1, 28)
+            Token(Token::Type::IDENTIFIER, RESERVED_IF),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+            Token(Token::Type::IDENTIFIER, "a"),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
+            Token(Token::Type::OPERATOR, BRACE_OPEN),
+            Token(Token::Type::IDENTIFIER, "x"),
+            Token(Token::Type::OPERATOR, ASSIGNMENT),
+            Token(Token::Type::INTEGER, "1"),
+            Token(Token::Type::OPERATOR, SEMICOLON),
+            Token(Token::Type::OPERATOR, BRACE_CLOSE),
+            Token(Token::Type::IDENTIFIER, RESERVED_ELSE),
+            Token(Token::Type::IDENTIFIER, RESERVED_IF),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+            Token(Token::Type::IDENTIFIER, "b"),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
+            Token(Token::Type::OPERATOR, BRACE_OPEN),
+            Token(Token::Type::IDENTIFIER, "x"),
+            Token(Token::Type::OPERATOR, ASSIGNMENT),
+            Token(Token::Type::INTEGER, "2"),
+            Token(Token::Type::OPERATOR, SEMICOLON),
+            Token(Token::Type::OPERATOR, BRACE_CLOSE),
+            Token(Token::Type::IDENTIFIER, RESERVED_ELSE),
+            Token(Token::Type::OPERATOR, BRACE_OPEN),
+            Token(Token::Type::IDENTIFIER, "x"),
+            Token(Token::Type::OPERATOR, ASSIGNMENT),
+            Token(Token::Type::INTEGER, "3"),
+            Token(Token::Type::OPERATOR, SEMICOLON),
+            Token(Token::Type::OPERATOR, BRACE_CLOSE)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Statement::If(
             new AstNode::Expression::Access("a"),
@@ -599,18 +618,18 @@ namespace BlsLang {
     GROUP_TEST_F(ParserTest, StatementTests, WhileStatement) {
         // while ( a ) { a = a - 1; }
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, RESERVED_WHILE, 0, 1, 1),
-            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 1, 1, 2),
-            Token(Token::Type::IDENTIFIER, "a", 2, 1, 3),
-            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 3, 1, 4),
-            Token(Token::Type::OPERATOR, BRACE_OPEN, 4, 1, 5),
-            Token(Token::Type::IDENTIFIER, "a", 5, 1, 6),
-            Token(Token::Type::OPERATOR, ASSIGNMENT, 6, 1, 7),
-            Token(Token::Type::IDENTIFIER, "a", 7, 1, 8),
-            Token(Token::Type::OPERATOR, ARITHMETIC_SUBTRACTION, 8, 1, 9),
-            Token(Token::Type::INTEGER, "1", 9, 1, 10),
-            Token(Token::Type::OPERATOR, SEMICOLON, 10, 1, 11),
-            Token(Token::Type::OPERATOR, BRACE_CLOSE, 11, 1, 12)
+            Token(Token::Type::IDENTIFIER, RESERVED_WHILE),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+            Token(Token::Type::IDENTIFIER, "a"),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
+            Token(Token::Type::OPERATOR, BRACE_OPEN),
+            Token(Token::Type::IDENTIFIER, "a"),
+            Token(Token::Type::OPERATOR, ASSIGNMENT),
+            Token(Token::Type::IDENTIFIER, "a"),
+            Token(Token::Type::OPERATOR, ARITHMETIC_SUBTRACTION),
+            Token(Token::Type::INTEGER, "1"),
+            Token(Token::Type::OPERATOR, SEMICOLON),
+            Token(Token::Type::OPERATOR, BRACE_CLOSE)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Statement::While(
             new AstNode::Expression::Access("a"),
@@ -632,36 +651,37 @@ namespace BlsLang {
     GROUP_TEST_F(ParserTest, StatementTests, ForStatement) {
         // for ( int i = 0; i < 10; i++ ) { sum = sum + i; }
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, RESERVED_FOR, 0,1,1),
-            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 1,1,2),
+            Token(Token::Type::IDENTIFIER, RESERVED_FOR),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
             // Init: int i = 0;
-            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT, 2,1,3),
-            Token(Token::Type::IDENTIFIER, "i", 3,1,4),
-            Token(Token::Type::OPERATOR, ASSIGNMENT, 4,1,5),
-            Token(Token::Type::INTEGER, "0", 5,1,6),
-            Token(Token::Type::OPERATOR, SEMICOLON, 6,1,7),
+            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT),
+            Token(Token::Type::IDENTIFIER, "i"),
+            Token(Token::Type::OPERATOR, ASSIGNMENT),
+            Token(Token::Type::INTEGER, "0"),
+            Token(Token::Type::OPERATOR, SEMICOLON),
             // Condition: i < 10;
-            Token(Token::Type::IDENTIFIER, "i", 7,1,8),
-            Token(Token::Type::OPERATOR, COMPARISON_LT, 8,1,9),
-            Token(Token::Type::INTEGER, "10", 9,1,10),
-            Token(Token::Type::OPERATOR, SEMICOLON, 10,1,11),
+            Token(Token::Type::IDENTIFIER, "i"),
+            Token(Token::Type::OPERATOR, COMPARISON_LT),
+            Token(Token::Type::INTEGER, "10"),
+            Token(Token::Type::OPERATOR, SEMICOLON),
             // Increment: i++
-            Token(Token::Type::IDENTIFIER, "i", 11,1,12),
-            Token(Token::Type::OPERATOR, UNARY_INCREMENT, 12,1,13),
-            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 13,1,14),
-            Token(Token::Type::OPERATOR, BRACE_OPEN, 14,1,15),
+            Token(Token::Type::IDENTIFIER, "i"),
+            Token(Token::Type::OPERATOR, UNARY_INCREMENT),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
+            Token(Token::Type::OPERATOR, BRACE_OPEN),
             // Block: sum = sum + i;
-            Token(Token::Type::IDENTIFIER, "sum", 15,1,16),
-            Token(Token::Type::OPERATOR, ASSIGNMENT, 16,1,17),
-            Token(Token::Type::IDENTIFIER, "sum", 17,1,18),
-            Token(Token::Type::OPERATOR, ARITHMETIC_ADDITION, 18,1,19),
-            Token(Token::Type::IDENTIFIER, "i", 19,1,20),
-            Token(Token::Type::OPERATOR, SEMICOLON, 20,1,21),
-            Token(Token::Type::OPERATOR, BRACE_CLOSE, 21,1,22)
+            Token(Token::Type::IDENTIFIER, "sum"),
+            Token(Token::Type::OPERATOR, ASSIGNMENT),
+            Token(Token::Type::IDENTIFIER, "sum"),
+            Token(Token::Type::OPERATOR, ARITHMETIC_ADDITION),
+            Token(Token::Type::IDENTIFIER, "i"),
+            Token(Token::Type::OPERATOR, SEMICOLON),
+            Token(Token::Type::OPERATOR, BRACE_CLOSE)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Statement::For(
             new AstNode::Statement::Declaration(
                 "i",
+            {},
                 new AstNode::Specifier::Type(
                     PRIMITIVE_INT,
                     {}
@@ -698,21 +718,21 @@ namespace BlsLang {
     GROUP_TEST_F(ParserTest, StatementTests, EmptyForStatement) {
         // For loop with empty init, condition, and increment: for (;;){ foo(); }
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, RESERVED_FOR, 0, 1, 1),
-            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 1, 1, 2),
+            Token(Token::Type::IDENTIFIER, RESERVED_FOR),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
             // Empty init statement
-            Token(Token::Type::OPERATOR, SEMICOLON, 2, 1, 3),
+            Token(Token::Type::OPERATOR, SEMICOLON),
             // Empty condition
-            Token(Token::Type::OPERATOR, SEMICOLON, 3, 1, 4),
+            Token(Token::Type::OPERATOR, SEMICOLON),
             // Empty increment expression, then closing parenthesis
-            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 4, 1, 5),
-            Token(Token::Type::OPERATOR, BRACE_OPEN, 5, 1, 6),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
+            Token(Token::Type::OPERATOR, BRACE_OPEN),
                 // Block: foo();
-                Token(Token::Type::IDENTIFIER, "foo", 6, 1, 7),
-                Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 7, 1, 8),
-                Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 8, 1, 9),
-                Token(Token::Type::OPERATOR, SEMICOLON, 9, 1, 10),
-            Token(Token::Type::OPERATOR, BRACE_CLOSE, 10, 1, 11)
+                Token(Token::Type::IDENTIFIER, "foo"),
+                Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+                Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
+                Token(Token::Type::OPERATOR, SEMICOLON),
+            Token(Token::Type::OPERATOR, BRACE_CLOSE)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Statement::For(
             std::nullopt,
@@ -729,9 +749,9 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, StatementTests, MissingSemicolonStatement) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, "x", 0, 1, 1),
-            Token(Token::Type::OPERATOR, ASSIGNMENT, 1, 1, 2),
-            Token(Token::Type::INTEGER, "5", 2, 1, 3)
+            Token(Token::Type::IDENTIFIER, "x"),
+            Token(Token::Type::OPERATOR, ASSIGNMENT),
+            Token(Token::Type::INTEGER, "5")
         };
         EXPECT_THROW(TEST_PARSE_STATEMENT(sampleTokens, nullptr), SyntaxError);
     }
@@ -740,15 +760,15 @@ namespace BlsLang {
     GROUP_TEST_F(ParserTest, FunctionTests, Procedure) {
         // int main() { return 0; }
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT, 0,1,1),
-            Token(Token::Type::IDENTIFIER, "main", 1,1,2),
-            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 2,1,3),
-            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 3,1,4),
-            Token(Token::Type::OPERATOR, BRACE_OPEN, 4,1,5),
-            Token(Token::Type::IDENTIFIER, RESERVED_RETURN, 5,1,6),
-            Token(Token::Type::INTEGER, "0", 6,1,7),
-            Token(Token::Type::OPERATOR, SEMICOLON, 7,1,8),
-            Token(Token::Type::OPERATOR, BRACE_CLOSE, 8,1,9)
+            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT),
+            Token(Token::Type::IDENTIFIER, "main"),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
+            Token(Token::Type::OPERATOR, BRACE_OPEN),
+            Token(Token::Type::IDENTIFIER, RESERVED_RETURN),
+            Token(Token::Type::INTEGER, "0"),
+            Token(Token::Type::OPERATOR, SEMICOLON),
+            Token(Token::Type::OPERATOR, BRACE_CLOSE)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
             "main",
@@ -770,22 +790,22 @@ namespace BlsLang {
     GROUP_TEST_F(ParserTest, FunctionTests, ProcedureWithParameters) {
         // Procedure with parameters: int add(int a, int b) { return a + b; }
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT, 0,1,1),
-            Token(Token::Type::IDENTIFIER, "add", 1,1,2),
-            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 2,1,3),
-            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT, 3,1,4),
-            Token(Token::Type::IDENTIFIER, "a", 4,1,5),
-            Token(Token::Type::OPERATOR, COMMA, 5,1,6),
-            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT, 6,1,7),
-            Token(Token::Type::IDENTIFIER, "b", 7,1,8),
-            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 8,1,9),
-            Token(Token::Type::OPERATOR, BRACE_OPEN, 9,1,10),
-            Token(Token::Type::IDENTIFIER, RESERVED_RETURN, 10,1,11),
-            Token(Token::Type::IDENTIFIER, "a", 11,1,12),
-            Token(Token::Type::OPERATOR, ARITHMETIC_ADDITION, 12,1,13),
-            Token(Token::Type::IDENTIFIER, "b", 13,1,14),
-            Token(Token::Type::OPERATOR, SEMICOLON, 14,1,15),
-            Token(Token::Type::OPERATOR, BRACE_CLOSE, 15,1,16)
+            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT),
+            Token(Token::Type::IDENTIFIER, "add"),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT),
+            Token(Token::Type::IDENTIFIER, "a"),
+            Token(Token::Type::OPERATOR, COMMA),
+            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT),
+            Token(Token::Type::IDENTIFIER, "b"),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
+            Token(Token::Type::OPERATOR, BRACE_OPEN),
+            Token(Token::Type::IDENTIFIER, RESERVED_RETURN),
+            Token(Token::Type::IDENTIFIER, "a"),
+            Token(Token::Type::OPERATOR, ARITHMETIC_ADDITION),
+            Token(Token::Type::IDENTIFIER, "b"),
+            Token(Token::Type::OPERATOR, SEMICOLON),
+            Token(Token::Type::OPERATOR, BRACE_CLOSE)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
             "add",
@@ -811,19 +831,20 @@ namespace BlsLang {
     GROUP_TEST_F(ParserTest, FunctionTests, Oblock) {
         // oblock foo() { a = 1; }
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, RESERVED_OBLOCK, 0,1,1),
-            Token(Token::Type::IDENTIFIER, "foo", 1,1,2),
-            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 2,1,3),
-            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 3,1,4),
-            Token(Token::Type::OPERATOR, BRACE_OPEN, 4,1,5),
-            Token(Token::Type::IDENTIFIER, "a", 5,1,6),
-            Token(Token::Type::OPERATOR, ASSIGNMENT, 6,1,7),
-            Token(Token::Type::INTEGER, "1", 7,1,8),
-            Token(Token::Type::OPERATOR, SEMICOLON, 8,1,9),
-            Token(Token::Type::OPERATOR, BRACE_CLOSE, 9,1,10)
+            Token(Token::Type::IDENTIFIER, RESERVED_OBLOCK),
+            Token(Token::Type::IDENTIFIER, "foo"),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
+            Token(Token::Type::OPERATOR, BRACE_OPEN),
+            Token(Token::Type::IDENTIFIER, "a"),
+            Token(Token::Type::OPERATOR, ASSIGNMENT),
+            Token(Token::Type::INTEGER, "1"),
+            Token(Token::Type::OPERATOR, SEMICOLON),
+            Token(Token::Type::OPERATOR, BRACE_CLOSE)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Function::Oblock(
             "foo",
+            {},
             {},
             {},
             {
@@ -837,26 +858,108 @@ namespace BlsLang {
         TEST_PARSE_FUNCTION(sampleTokens, std::move(expectedAst));
     }
 
+    GROUP_TEST_F(ParserTest, FunctionTests, OblockWithInitializerOptions) {
+        // oblock foo(LIGHT L1, LIGHT L2, LIGHT L3) : triggerOn([L1, L2], L3), dropRead { }
+        std::vector<Token> sampleTokens {
+            Token(Token::Type::IDENTIFIER, RESERVED_OBLOCK),
+            Token(Token::Type::IDENTIFIER, "foo"),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+            Token(Token::Type::IDENTIFIER, "LIGHT"),
+            Token(Token::Type::IDENTIFIER, "L1"),
+            Token(Token::Type::OPERATOR, COMMA),
+            Token(Token::Type::IDENTIFIER, "LIGHT"),
+            Token(Token::Type::IDENTIFIER, "L2"),
+            Token(Token::Type::OPERATOR, COMMA),
+            Token(Token::Type::IDENTIFIER, "LIGHT"),
+            Token(Token::Type::IDENTIFIER, "L3"),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
+            Token(Token::Type::OPERATOR, COLON),
+            Token(Token::Type::IDENTIFIER, "triggerOn"),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+            Token(Token::Type::OPERATOR, BRACKET_OPEN),
+            Token(Token::Type::IDENTIFIER, "L1"),
+            Token(Token::Type::OPERATOR, COMMA),
+            Token(Token::Type::IDENTIFIER, "L2"),
+            Token(Token::Type::OPERATOR, BRACKET_CLOSE),
+            Token(Token::Type::OPERATOR, COMMA),
+            Token(Token::Type::IDENTIFIER, "L3"),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
+            Token(Token::Type::OPERATOR, COMMA),
+            Token(Token::Type::IDENTIFIER, "dropRead"),
+            Token(Token::Type::OPERATOR, BRACE_OPEN),
+            Token(Token::Type::OPERATOR, BRACE_CLOSE)
+        };
+        auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Function::Oblock(
+            "foo",
+            {
+                new AstNode::Specifier::Type(
+                    "LIGHT",
+                    {}
+                ),
+                new AstNode::Specifier::Type(
+                    "LIGHT",
+                    {}
+                ),
+                new AstNode::Specifier::Type(
+                    "LIGHT",
+                    {}
+                )
+            },
+            {
+                "L1",
+                "L2",
+                "L3"
+            },
+            {
+                new AstNode::Initializer::Oblock(
+                    "triggerOn",
+                    {
+                        new AstNode::Expression::List(
+                            {
+                                new AstNode::Expression::Access(
+                                    "L1"
+                                ),
+                                new AstNode::Expression::Access(
+                                    "L2"
+                                )
+                            }
+                        ),
+                        new AstNode::Expression::Access(
+                            "L3"
+                        ),
+                    }
+                ),
+                new AstNode::Initializer::Oblock(
+                    "dropRead",
+                    {}
+                )
+            },
+            {}
+        ));
+        TEST_PARSE_FUNCTION(sampleTokens, std::move(expectedAst));
+    }
+
     GROUP_TEST_F(ParserTest, FunctionTests, OblockMultipleStatements) {
         // Oblock with multiple statements: oblock init() { x = 0; y = 0; }
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, RESERVED_OBLOCK, 0,1,1),
-            Token(Token::Type::IDENTIFIER, "init", 1,1,2),
-            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 2,1,3),
-            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 3,1,4),
-            Token(Token::Type::OPERATOR, BRACE_OPEN, 4,1,5),
-            Token(Token::Type::IDENTIFIER, "x", 5,1,6),
-            Token(Token::Type::OPERATOR, ASSIGNMENT, 6,1,7),
-            Token(Token::Type::INTEGER, "0", 7,1,8),
-            Token(Token::Type::OPERATOR, SEMICOLON, 8,1,9),
-            Token(Token::Type::IDENTIFIER, "y", 9,1,10),
-            Token(Token::Type::OPERATOR, ASSIGNMENT, 10,1,11),
-            Token(Token::Type::INTEGER, "0", 11,1,12),
-            Token(Token::Type::OPERATOR, SEMICOLON, 12,1,13),
-            Token(Token::Type::OPERATOR, BRACE_CLOSE, 13,1,14)
+            Token(Token::Type::IDENTIFIER, RESERVED_OBLOCK),
+            Token(Token::Type::IDENTIFIER, "init"),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
+            Token(Token::Type::OPERATOR, BRACE_OPEN),
+            Token(Token::Type::IDENTIFIER, "x"),
+            Token(Token::Type::OPERATOR, ASSIGNMENT),
+            Token(Token::Type::INTEGER, "0"),
+            Token(Token::Type::OPERATOR, SEMICOLON),
+            Token(Token::Type::IDENTIFIER, "y"),
+            Token(Token::Type::OPERATOR, ASSIGNMENT),
+            Token(Token::Type::INTEGER, "0"),
+            Token(Token::Type::OPERATOR, SEMICOLON),
+            Token(Token::Type::OPERATOR, BRACE_CLOSE)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Function::Oblock(
             "init",
+            {},
             {},
             {},
             {
@@ -877,11 +980,11 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, FunctionTests, MissingFunctionName) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT, 0, 1, 1),
-            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 1, 1, 2),
-            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 2, 1, 3),
-            Token(Token::Type::OPERATOR, BRACE_OPEN, 3, 1, 4),
-            Token(Token::Type::OPERATOR, BRACE_CLOSE, 4, 1, 5)
+            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
+            Token(Token::Type::OPERATOR, BRACE_OPEN),
+            Token(Token::Type::OPERATOR, BRACE_CLOSE)
         };
         EXPECT_THROW(TEST_PARSE_FUNCTION(sampleTokens, nullptr), SyntaxError);
     }
@@ -893,37 +996,37 @@ namespace BlsLang {
         // Setup: setup() { int x = 5; }
         std::vector<Token> sampleTokens {
             // Procedure:
-            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT, 0,1,1),
-            Token(Token::Type::IDENTIFIER, "main", 1,1,2),
-            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 2,1,3),
-            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 3,1,4),
-            Token(Token::Type::OPERATOR, BRACE_OPEN, 4,1,5),
-            Token(Token::Type::IDENTIFIER, RESERVED_RETURN, 5,1,6),
-            Token(Token::Type::INTEGER, "0", 6,1,7),
-            Token(Token::Type::OPERATOR, SEMICOLON, 7,1,8),
-            Token(Token::Type::OPERATOR, BRACE_CLOSE, 8,1,9),
+            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT),
+            Token(Token::Type::IDENTIFIER, "main"),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
+            Token(Token::Type::OPERATOR, BRACE_OPEN),
+            Token(Token::Type::IDENTIFIER, RESERVED_RETURN),
+            Token(Token::Type::INTEGER, "0"),
+            Token(Token::Type::OPERATOR, SEMICOLON),
+            Token(Token::Type::OPERATOR, BRACE_CLOSE),
             // Oblock:
-            Token(Token::Type::IDENTIFIER, RESERVED_OBLOCK, 9,1,10),
-            Token(Token::Type::IDENTIFIER, "helper", 10,1,11),
-            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 11,1,12),
-            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 12,1,13),
-            Token(Token::Type::OPERATOR, BRACE_OPEN, 13,1,14),
-            Token(Token::Type::IDENTIFIER, "a", 14,1,15),
-            Token(Token::Type::OPERATOR, ASSIGNMENT, 15,1,16),
-            Token(Token::Type::INTEGER, "1", 16,1,17),
-            Token(Token::Type::OPERATOR, SEMICOLON, 17,1,18),
-            Token(Token::Type::OPERATOR, BRACE_CLOSE, 18,1,19),
+            Token(Token::Type::IDENTIFIER, RESERVED_OBLOCK),
+            Token(Token::Type::IDENTIFIER, "helper"),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
+            Token(Token::Type::OPERATOR, BRACE_OPEN),
+            Token(Token::Type::IDENTIFIER, "a"),
+            Token(Token::Type::OPERATOR, ASSIGNMENT),
+            Token(Token::Type::INTEGER, "1"),
+            Token(Token::Type::OPERATOR, SEMICOLON),
+            Token(Token::Type::OPERATOR, BRACE_CLOSE),
             // Setup:
-            Token(Token::Type::IDENTIFIER, RESERVED_SETUP, 19,1,20),
-            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 20,1,21),
-            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 21,1,22),
-            Token(Token::Type::OPERATOR, BRACE_OPEN, 22,1,23),
-            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT, 23,1,24),
-            Token(Token::Type::IDENTIFIER, "x", 24,1,25),
-            Token(Token::Type::OPERATOR, ASSIGNMENT, 25,1,26),
-            Token(Token::Type::INTEGER, "5", 26,1,27),
-            Token(Token::Type::OPERATOR, SEMICOLON, 27,1,28),
-            Token(Token::Type::OPERATOR, BRACE_CLOSE, 28,1,29)
+            Token(Token::Type::IDENTIFIER, RESERVED_SETUP),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
+            Token(Token::Type::OPERATOR, BRACE_OPEN),
+            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT),
+            Token(Token::Type::IDENTIFIER, "x"),
+            Token(Token::Type::OPERATOR, ASSIGNMENT),
+            Token(Token::Type::INTEGER, "5"),
+            Token(Token::Type::OPERATOR, SEMICOLON),
+            Token(Token::Type::OPERATOR, BRACE_CLOSE)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Source(
             {
@@ -947,6 +1050,7 @@ namespace BlsLang {
                     "helper",
                     {},
                     {},
+                    {},
                     {
                         new AstNode::Statement::Expression(new AstNode::Expression::Binary(
                             ASSIGNMENT,
@@ -960,6 +1064,7 @@ namespace BlsLang {
                 {
                     new AstNode::Statement::Declaration(
                         "x",
+                        {},
                         new AstNode::Specifier::Type(
                             PRIMITIVE_INT,
                             {}
@@ -975,42 +1080,42 @@ namespace BlsLang {
     GROUP_TEST_F(ParserTest, SourceTests, MultipleProceduresAndOblocks) {
         std::vector<Token> sampleTokens {
             // Procedure 1: int main() { return 0; }
-            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT, 0,1,1),
-            Token(Token::Type::IDENTIFIER, "main", 1,1,2),
-            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 2,1,3),
-            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 3,1,4),
-            Token(Token::Type::OPERATOR, BRACE_OPEN, 4,1,5),
-            Token(Token::Type::IDENTIFIER, RESERVED_RETURN, 5,1,6),
-            Token(Token::Type::INTEGER, "0", 6,1,7),
-            Token(Token::Type::OPERATOR, SEMICOLON, 7,1,8),
-            Token(Token::Type::OPERATOR, BRACE_CLOSE, 8,1,9),
+            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT),
+            Token(Token::Type::IDENTIFIER, "main"),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
+            Token(Token::Type::OPERATOR, BRACE_OPEN),
+            Token(Token::Type::IDENTIFIER, RESERVED_RETURN),
+            Token(Token::Type::INTEGER, "0"),
+            Token(Token::Type::OPERATOR, SEMICOLON),
+            Token(Token::Type::OPERATOR, BRACE_CLOSE),
             // Procedure 2: int helper() { return 1; }
-            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT, 9,1,10),
-            Token(Token::Type::IDENTIFIER, "helper", 10,1,11),
-            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 11,1,12),
-            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 12,1,13),
-            Token(Token::Type::OPERATOR, BRACE_OPEN, 13,1,14),
-            Token(Token::Type::IDENTIFIER, RESERVED_RETURN, 14,1,15),
-            Token(Token::Type::INTEGER, "1", 15,1,16),
-            Token(Token::Type::OPERATOR, SEMICOLON, 16,1,17),
-            Token(Token::Type::OPERATOR, BRACE_CLOSE, 17,1,18),
+            Token(Token::Type::IDENTIFIER, PRIMITIVE_INT),
+            Token(Token::Type::IDENTIFIER, "helper"),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
+            Token(Token::Type::OPERATOR, BRACE_OPEN),
+            Token(Token::Type::IDENTIFIER, RESERVED_RETURN),
+            Token(Token::Type::INTEGER, "1"),
+            Token(Token::Type::OPERATOR, SEMICOLON),
+            Token(Token::Type::OPERATOR, BRACE_CLOSE),
             // Oblock: oblock config() { flag = true; }
-            Token(Token::Type::IDENTIFIER, RESERVED_OBLOCK, 18,1,19),
-            Token(Token::Type::IDENTIFIER, "config", 19,1,20),
-            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 20,1,21),
-            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 21,1,22),
-            Token(Token::Type::OPERATOR, BRACE_OPEN, 22,1,23),
-            Token(Token::Type::IDENTIFIER, "flag", 23,1,24),
-            Token(Token::Type::OPERATOR, ASSIGNMENT, 24,1,25),
-            Token(Token::Type::IDENTIFIER, LITERAL_TRUE, 25,1,26),
-            Token(Token::Type::OPERATOR, SEMICOLON, 26,1,27),
-            Token(Token::Type::OPERATOR, BRACE_CLOSE, 27,1,28),
+            Token(Token::Type::IDENTIFIER, RESERVED_OBLOCK),
+            Token(Token::Type::IDENTIFIER, "config"),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
+            Token(Token::Type::OPERATOR, BRACE_OPEN),
+            Token(Token::Type::IDENTIFIER, "flag"),
+            Token(Token::Type::OPERATOR, ASSIGNMENT),
+            Token(Token::Type::IDENTIFIER, LITERAL_TRUE),
+            Token(Token::Type::OPERATOR, SEMICOLON),
+            Token(Token::Type::OPERATOR, BRACE_CLOSE),
             // Setup: setup() { }
-            Token(Token::Type::IDENTIFIER, RESERVED_SETUP, 28,1,29),
-            Token(Token::Type::OPERATOR, PARENTHESES_OPEN, 29,1,30),
-            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE, 30,1,31),
-            Token(Token::Type::OPERATOR, BRACE_OPEN, 31,1,32),
-            Token(Token::Type::OPERATOR, BRACE_CLOSE, 32,1,33)
+            Token(Token::Type::IDENTIFIER, RESERVED_SETUP),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
+            Token(Token::Type::OPERATOR, BRACE_OPEN),
+            Token(Token::Type::OPERATOR, BRACE_CLOSE)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Source(
             {
@@ -1042,6 +1147,7 @@ namespace BlsLang {
                     "config",
                     {},
                     {},
+                    {},
                     {
                         new AstNode::Statement::Expression(new AstNode::Expression::Binary(
                             ASSIGNMENT,
@@ -1063,7 +1169,7 @@ namespace BlsLang {
 
     GROUP_TEST_F(ParserTest, SourceTests, InvalidTopLevelElement) {
         std::vector<Token> sampleTokens {
-            Token(Token::Type::OPERATOR, "?", 0, 1, 1)
+            Token(Token::Type::OPERATOR, "?")
         };
         EXPECT_THROW(TEST_PARSE_SOURCE(sampleTokens, nullptr), SyntaxError);
     }

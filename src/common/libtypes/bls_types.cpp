@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <variant>
 #include <boost/functional/hash.hpp>
@@ -66,6 +67,39 @@ BlsType::operator bool() const {
         }
         else {
             throw std::runtime_error("Operand does not have boolean type.");
+        }
+    }, *this);
+}
+
+BlsType::operator double() const {
+    return std::visit([](const auto& a) -> double {
+        if constexpr (Numeric<decltype(a)>) {
+            return double(a);
+        }
+        else {
+            throw std::runtime_error("Operand does not have numeric type.");
+        }
+    }, *this);
+}
+
+BlsType::operator int64_t() const {
+    return std::visit([](const auto& a) -> int64_t {
+        if constexpr (Numeric<decltype(a)>) {
+            return int64_t(a);
+        }
+        else {
+            throw std::runtime_error("Operand does not have numeric type.");
+        }
+    }, *this);
+}
+
+BlsType::operator std::string() const {
+    return std::visit([](const auto& a) -> std::string {
+        if constexpr (TypeDef::String<decltype(a)>) {
+            return std::string(a);
+        }
+        else {
+            throw std::runtime_error("Operand does not have string type.");
         }
     }, *this);
 }
@@ -290,6 +324,7 @@ std::ostream& operator<<(std::ostream& os, const BlsType& obj) {
                     os << "]";
                 }
                 break;
+
                 case TYPE::map_t: {
                     auto map = std::dynamic_pointer_cast<MapDescriptor>(x);
                     auto& internalMap = map->getMap();
@@ -306,6 +341,7 @@ std::ostream& operator<<(std::ostream& os, const BlsType& obj) {
                     os << "}";
                 }
                 break;
+                
                 default:
                 break;
             }

@@ -1,7 +1,12 @@
 #pragma once
 #include "libDM/DynamicMessage.hpp"
+#include "libtypes/bls_types.hpp"
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/unordered_map.hpp>
+#include <optional>
+#include <string>
+#include <variant>
+#include <vector>
 
 enum class PROTOCOLS
 {
@@ -24,31 +29,60 @@ enum class PORTTYPE{
 }; 
 
 struct DeviceDescriptor{
-    std::string device_name; 
-    DEVTYPE devtype; 
+    /* Binding/Declaration Attributes */
+    std::string device_name = "";
+    TYPE type = TYPE::NONE;
+    std::string controller = "";
+    std::unordered_map<std::string, std::string> port_maps = {};
+    BlsType initialValue = std::monostate();
+    bool isVtype = false;
 
-    std::string controller; 
-    std::unordered_map<std::string, std::string> port_maps; 
-
-    bool isInterrupt = false; 
-    bool isVtype = false; 
-    bool isConst = true; 
+    /* Oblock Specific Attributes */
+    bool dropRead = false;
+    bool dropWrite = false;
     int polling_period = 1000;
+    bool isConst = true;
+
+    /* Driver Configuration Attributes */
+    bool isInterrupt = false;
 
     template<typename Archive>
     void serialize(Archive& ar, const unsigned int version) {
         ar & device_name;
-        ar & devtype;
+        ar & type;
         ar & controller;
         ar & port_maps;
-        ar & isInterrupt;
+        ar & initialValue;
         ar & isVtype;
-        ar & isConst;
+        ar & dropRead;
+        ar & dropWrite;
         ar & polling_period;
+        ar & isConst;
+        ar & isInterrupt;
     }
 
     bool operator==(const DeviceDescriptor&) const = default;
 }; 
+
+struct TriggerData {
+    std::vector<std::string> rule;
+    std::optional<std::string> id = std::nullopt;
+    uint8_t priority = 1;
+
+    template<typename Archive>
+    void serialize(Archive& ar, const unsigned int version) {
+        ar & rule;
+        bool hasId = id.has_value();
+        ar & hasId;
+        if (hasId) {
+            id = "";
+            ar & id.value();
+        }
+        ar & priority;
+    }
+
+    bool operator==(const TriggerData&) const = default;
+};
 
 struct OBlockDesc{
 
@@ -58,7 +92,7 @@ struct OBlockDesc{
 
     std::string name; 
     std::vector<DeviceDescriptor> binded_devices; 
-    int bytecode_offset; 
+    int bytecode_offset = 0; 
 
     // Reading Config
 
@@ -67,8 +101,9 @@ struct OBlockDesc{
         dropWrite: if true -> Only write to mailbox with the callback is open: 
     */
 
-    bool dropRead = true; 
-    bool dropWrite = true; 
+    bool dropRead = false; 
+    bool dropWrite = false; 
+    std::vector<TriggerData> triggers = {};
 
     // Configuration (all time in milliseconds)
 
@@ -84,6 +119,7 @@ struct OBlockDesc{
         ar & bytecode_offset;
         ar & dropRead;
         ar & dropWrite;
+        ar & triggers;
         ar & synchronize_states;
     }
 

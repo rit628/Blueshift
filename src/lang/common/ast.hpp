@@ -1,5 +1,6 @@
 #pragma once
 #include "libtypes/bls_types.hpp"
+#include <unordered_set>
 #include <variant>
 #include <cstddef>
 #include <cstdint>
@@ -19,6 +20,7 @@ namespace BlsLang {
 
     class AstNode {
         public:
+            class Initializer;
             class Specifier;
             class Expression;
             class Statement;
@@ -27,9 +29,39 @@ namespace BlsLang {
             class Source;
             
             virtual BlsObject accept(Visitor& v) = 0;
+            virtual std::unique_ptr<AstNode> clone() const = 0;
             virtual ~AstNode() = default;
 
             friend std::ostream& operator<<(std::ostream& os, const AstNode& node);
+    };
+
+    class AstNode::Initializer : public AstNode {
+        public:
+            class Oblock;
+
+            virtual ~Initializer() = default;
+            virtual std::unique_ptr<AstNode::Initializer> cloneBase() const = 0;
+    };
+
+    class AstNode::Initializer::Oblock : public AstNode::Initializer {
+        public:
+
+            Oblock() = default;
+            Oblock(std::string option, std::vector<std::unique_ptr<AstNode::Expression>> args);
+            Oblock(std::string option, std::initializer_list<AstNode::Expression*> args);
+            Oblock(const Oblock& other);
+            Oblock& operator=(const Oblock& rhs);
+
+            BlsObject accept(Visitor& v) override;
+            std::unique_ptr<AstNode> clone() const override;
+            std::unique_ptr<AstNode::Initializer> cloneBase() const override;
+
+            auto& getOption() { return option; }
+            auto& getArgs() { return args; }
+
+        private:
+            std::string option;
+            std::vector<std::unique_ptr<AstNode::Expression>> args;
     };
 
     class AstNode::Specifier : public AstNode {
@@ -37,22 +69,20 @@ namespace BlsLang {
             class Type;
         
             virtual ~Specifier() = default;
+            virtual std::unique_ptr<AstNode::Specifier> cloneBase() const = 0;
     };
 
     class AstNode::Specifier::Type : public AstNode::Specifier {
         public:
             Type() = default;
-            Type(std::string name, std::vector<std::unique_ptr<AstNode::Specifier::Type>> typeArgs)
-               : name(std::move(name)), typeArgs(std::move(typeArgs)) {}
-            Type(std::string name, std::initializer_list<AstNode::Specifier::Type*> typeArgs)
-               : name(std::move(name))
-            {
-                for (auto&& arg : typeArgs) {
-                    this->typeArgs.push_back(std::unique_ptr<AstNode::Specifier::Type>(arg));
-                }
-            }
+            Type(std::string name, std::vector<std::unique_ptr<AstNode::Specifier::Type>> typeArgs);
+            Type(std::string name, std::initializer_list<AstNode::Specifier::Type*> typeArgs);
+            Type(const Type& other);
+            Type& operator=(const Type& rhs);
             
             BlsObject accept(Visitor& v) override;
+            std::unique_ptr<AstNode> clone() const override;
+            std::unique_ptr<AstNode::Specifier> cloneBase() const override;
 
             auto& getName() { return name; }
             auto& getTypeArgs() { return typeArgs; }
@@ -76,17 +106,22 @@ namespace BlsLang {
             class Binary;
 
             virtual ~Expression() = default;
+            virtual std::unique_ptr<AstNode::Expression> cloneBase() const = 0;
     };
 
     class AstNode::Expression::Literal : public AstNode::Expression {
         public:
             Literal() = default;
-            Literal(int64_t literal)        : literal(std::move(literal)) {}
-            Literal(double literal)         : literal(std::move(literal)) {}
-            Literal(bool literal)           : literal(std::move(literal)) {}
-            Literal(std::string literal)    : literal(std::move(literal)) {}
+            Literal(int64_t literal);
+            Literal(double literal);
+            Literal(bool literal);
+            Literal(std::string literal);
+            Literal(const Literal& other);
+            Literal& operator=(const Literal& rhs);
 
             BlsObject accept(Visitor& v) override;
+            std::unique_ptr<AstNode> clone() const override;
+            std::unique_ptr<AstNode::Expression> cloneBase() const override;
 
             auto& getLiteral() { return literal; }
 
@@ -97,20 +132,14 @@ namespace BlsLang {
     class AstNode::Expression::List : public AstNode::Expression {
         public:
             List() = default;
-            List(std::vector<std::unique_ptr<AstNode::Expression>> elements
-               , BlsType literal = std::monostate())
-               : elements(std::move(elements))
-               , literal(literal) {}
-            List(std::initializer_list<AstNode::Expression*> elements
-               , BlsType literal = std::monostate())
-               : literal(literal)
-            {
-                for (auto&& element : elements) {
-                    this->elements.push_back(std::unique_ptr<AstNode::Expression>(element));
-                }
-            }
+            List(std::vector<std::unique_ptr<AstNode::Expression>> elements, BlsType literal = std::monostate());
+            List(std::initializer_list<AstNode::Expression*> elements, BlsType literal = std::monostate());
+            List(const List& other);
+            List& operator=(const List& rhs);
 
             BlsObject accept(Visitor& v) override;
+            std::unique_ptr<AstNode> clone() const override;
+            std::unique_ptr<AstNode::Expression> cloneBase() const override;
 
             auto& getElements() { return elements; }
             auto& getLiteral() { return literal; }
@@ -123,16 +152,14 @@ namespace BlsLang {
     class AstNode::Expression::Set : public AstNode::Expression {
         public:
             Set() = default;
-            Set(std::vector<std::unique_ptr<AstNode::Expression>> elements)
-               : elements(std::move(elements)) {}
-            Set(std::initializer_list<AstNode::Expression*> elements)
-            {
-                for (auto&& element : elements) {
-                    this->elements.push_back(std::unique_ptr<AstNode::Expression>(element));
-                }
-            }
+            Set(std::vector<std::unique_ptr<AstNode::Expression>> elements);
+            Set(std::initializer_list<AstNode::Expression*> elements);
+            Set(const Set& other);
+            Set& operator=(const Set& rhs);
 
             BlsObject accept(Visitor& v) override;
+            std::unique_ptr<AstNode> clone() const override;
+            std::unique_ptr<AstNode::Expression> cloneBase() const override;
 
             auto& getElements() { return elements; }
 
@@ -143,26 +170,14 @@ namespace BlsLang {
     class AstNode::Expression::Map : public AstNode::Expression {
         public:
             Map() = default;
-            Map(std::vector<std::pair<std::unique_ptr<AstNode::Expression>, std::unique_ptr<AstNode::Expression>>> elements
-              , BlsType literal = std::monostate())
-              : elements(std::move(elements))
-              , literal(literal) {}
-            Map(std::initializer_list<std::initializer_list<AstNode::Expression*>> elements
-              , BlsType literal = std::monostate())
-              : literal(literal)
-            {
-                for (const auto& pair : elements) {
-                    if (pair.size() != 2) {
-                        throw std::invalid_argument("Initializer list must consist only of pairs.");
-                    }
-                    auto it = pair.begin();
-                    auto key = std::unique_ptr<AstNode::Expression>(*it);
-                    auto value = std::unique_ptr<AstNode::Expression>(*(++it));
-                    this->elements.push_back(std::make_pair(std::move(key), std::move(value)));
-                }
-            }
+            Map(std::vector<std::pair<std::unique_ptr<AstNode::Expression>, std::unique_ptr<AstNode::Expression>>> elements, BlsType literal = std::monostate());
+            Map(std::initializer_list<std::initializer_list<AstNode::Expression*>> elements, BlsType literal = std::monostate());
+            Map(const Map& other);
+            Map& operator=(const Map& rhs);
 
             BlsObject accept(Visitor& v) override;
+            std::unique_ptr<AstNode> clone() const override;
+            std::unique_ptr<AstNode::Expression> cloneBase() const override;
 
             auto& getElements() { return elements; }
             auto& getLiteral() { return literal; }
@@ -175,35 +190,16 @@ namespace BlsLang {
     class AstNode::Expression::Access : public AstNode::Expression {
         public:
             Access() = default;
-            Access(std::string object
-                 , uint8_t localIndex = 0)
-                 : object(std::move(object))
-                 , subscript(std::move(std::nullopt))
-                 , member(std::move(std::nullopt))
-                 , localIndex(localIndex) {}
-            Access(std::string object
-                 , std::unique_ptr<AstNode::Expression> subscript
-                 , uint8_t localIndex = 0)
-                 : object(std::move(object))
-                 , subscript(std::move(subscript))
-                 , member(std::move(std::nullopt))
-                 , localIndex(localIndex) {}
-            Access(std::string object
-                 , AstNode::Expression* subscript
-                 , uint8_t localIndex = 0)
-                 : object(std::move(object))
-                 , subscript(std::move(subscript))
-                 , member(std::move(std::nullopt))
-                 , localIndex(localIndex) {}
-            Access(std::string object
-                 , std::string member
-                 , uint8_t localIndex = 0)
-                 : object(std::move(object))
-                 , subscript(std::move(std::nullopt))
-                 , member(std::move(member))
-                 , localIndex(localIndex) {}
+            Access(std::string object, uint8_t localIndex = 0);
+            Access(std::string object, std::unique_ptr<AstNode::Expression> subscript, uint8_t localIndex = 0);
+            Access(std::string object, AstNode::Expression* subscript, uint8_t localIndex = 0);
+            Access(std::string object, std::string member, uint8_t localIndex = 0);
+            Access(const Access& other);
+            Access& operator=(const Access& rhs);
             
             BlsObject accept(Visitor& v) override;
+            std::unique_ptr<AstNode> clone() const override;
+            std::unique_ptr<AstNode::Expression> cloneBase() const override;
 
             auto& getObject() { return object; }
             auto& getSubscript() { return subscript; }
@@ -220,20 +216,14 @@ namespace BlsLang {
     class AstNode::Expression::Function : public AstNode::Expression {
         public:
             Function() = default;
-            Function(std::string name
-                   , std::vector<std::unique_ptr<AstNode::Expression>> arguments)
-                   : name(std::move(name))
-                   , arguments(std::move(arguments)) {}
-            Function(std::string name
-                   , std::initializer_list<AstNode::Expression*> arguments)
-                   : name(std::move(name))
-            {
-                for (auto&& arg : arguments) {
-                    this->arguments.push_back(std::unique_ptr<AstNode::Expression>(arg));
-                }
-            }
+            Function(std::string name, std::vector<std::unique_ptr<AstNode::Expression>> arguments);
+            Function(std::string name, std::initializer_list<AstNode::Expression*> arguments);
+            Function(const Function& other);
+            Function& operator=(const Function& rhs);
 
             BlsObject accept(Visitor& v) override;
+            std::unique_ptr<AstNode> clone() const override;
+            std::unique_ptr<AstNode::Expression> cloneBase() const override;
 
             auto& getName() { return name; }
             auto& getArguments() { return arguments; }
@@ -249,25 +239,17 @@ namespace BlsLang {
             Method(std::string object
                  , std::string methodName
                  , std::vector<std::unique_ptr<AstNode::Expression>> arguments
-                 , uint8_t localIndex = 0)
-                 : object(std::move(object))
-                 , methodName(std::move(methodName))
-                 , arguments(std::move(arguments))
-                 , localIndex(localIndex) {}
+                 , uint8_t localIndex = 0);
             Method(std::string object
                  , std::string methodName
                  , std::initializer_list<AstNode::Expression*> arguments
-                 , uint8_t localIndex = 0)
-                 : object(std::move(object))
-                 , methodName(std::move(methodName))
-                 , localIndex(localIndex)
-            {
-                for (auto&& arg : arguments) {
-                    this->arguments.push_back(std::unique_ptr<AstNode::Expression>(arg));
-                }
-            }
+                 , uint8_t localIndex = 0);
+            Method(const Method& other);
+            Method& operator=(const Method& rhs);
 
             BlsObject accept(Visitor& v) override;
+            std::unique_ptr<AstNode> clone() const override;
+            std::unique_ptr<AstNode::Expression> cloneBase() const override;
 
             auto& getObject() { return object; }
             auto& getMethodName() { return methodName; }
@@ -284,12 +266,14 @@ namespace BlsLang {
     class AstNode::Expression::Group : public AstNode::Expression {
         public:
             Group() = default;
-            Group(std::unique_ptr<AstNode::Expression> expression)
-                : expression(std::move(expression)) {}
-            Group(AstNode::Expression* expression)
-                : expression(expression) {}
+            Group(std::unique_ptr<AstNode::Expression> expression);
+            Group(AstNode::Expression* expression);
+            Group(const Group& other);
+            Group& operator=(const Group& rhs);
             
             BlsObject accept(Visitor& v) override;
+            std::unique_ptr<AstNode> clone() const override;
+            std::unique_ptr<AstNode::Expression> cloneBase() const override;
 
             auto& getExpression() { return expression; }
 
@@ -307,18 +291,16 @@ namespace BlsLang {
             Unary() = default;
             Unary(std::string op
                 , std::unique_ptr<AstNode::Expression> expression
-                , OPERATOR_POSITION position = OPERATOR_POSITION::PREFIX)
-                : op(std::move(op))
-                , expression(std::move(expression))
-                , position(std::move(position)) {}
+                , OPERATOR_POSITION position = OPERATOR_POSITION::PREFIX);
             Unary(std::string op
                 , AstNode::Expression* expression
-                , OPERATOR_POSITION position = OPERATOR_POSITION::PREFIX)
-                : op(std::move(op))
-                , expression(expression)
-                , position(position) {}
+                , OPERATOR_POSITION position = OPERATOR_POSITION::PREFIX);
+            Unary(const Unary& other);
+            Unary& operator=(const Unary& rhs);
         
             BlsObject accept(Visitor& v) override;
+            std::unique_ptr<AstNode> clone() const override;
+            std::unique_ptr<AstNode::Expression> cloneBase() const override;
 
             auto& getOp() { return op; }
             auto& getExpression() { return expression; }
@@ -335,18 +317,16 @@ namespace BlsLang {
             Binary() = default;
             Binary(std::string op
                  , std::unique_ptr<AstNode::Expression> left
-                 , std::unique_ptr<AstNode::Expression> right)
-                 : op(std::move(op))
-                 , left(std::move(left))
-                 , right(std::move(right)) {}
+                 , std::unique_ptr<AstNode::Expression> right);
             Binary(std::string op
                  , AstNode::Expression* left
-                 , AstNode::Expression* right)
-                 : op(std::move(op))
-                 , left(left)
-                 , right(right) {}
+                 , AstNode::Expression* right);
+            Binary(const Binary& other);
+            Binary& operator=(const Binary& rhs);
             
             BlsObject accept(Visitor& v) override;
+            std::unique_ptr<AstNode> clone() const override;
+            std::unique_ptr<AstNode::Expression> cloneBase() const override;
 
             auto& getOp() { return op; }
             auto& getLeft() { return left; }
@@ -370,17 +350,20 @@ namespace BlsLang {
             class If;
 
             virtual ~Statement() = default;
+            virtual std::unique_ptr<AstNode::Statement> cloneBase() const = 0;
     };
 
     class AstNode::Statement::Expression : public AstNode::Statement {
         public:
             Expression() = default;
-            Expression(std::unique_ptr<AstNode::Expression> expression)
-                     : expression(std::move(expression)) {}
-            Expression(AstNode::Expression* expression)
-                     : expression(expression) {}
+            Expression(std::unique_ptr<AstNode::Expression> expression);
+            Expression(AstNode::Expression* expression);
+            Expression(const Expression& other);
+            Expression& operator=(const Expression& rhs);
 
             BlsObject accept(Visitor& v) override;
+            std::unique_ptr<AstNode> clone() const override;
+            std::unique_ptr<AstNode::Statement> cloneBase() const override;
 
             auto& getExpression() { return expression; }
 
@@ -392,31 +375,31 @@ namespace BlsLang {
         public:
             Declaration() = default;
             Declaration(std::string name
+                      , std::unordered_set<std::string> modifiers
                       , std::unique_ptr<AstNode::Specifier::Type> type
                       , std::optional<std::unique_ptr<AstNode::Expression>> value
-                      , uint8_t localIndex = 0)
-                      : name(std::move(name))
-                      , type(std::move(type))
-                      , value(std::move(value))
-                      , localIndex(localIndex) {}
+                      , uint8_t localIndex = 0);
             Declaration(std::string name
+                      , std::unordered_set<std::string> modifiers
                       , AstNode::Specifier::Type* type
                       , std::optional<AstNode::Expression*> value
-                      , uint8_t localIndex = 0)
-                      : name(std::move(name))
-                      , type(type)
-                      , value(value)
-                      , localIndex(localIndex) {}
+                      , uint8_t localIndex = 0);
+            Declaration(const Declaration& other);
+            Declaration& operator=(const Declaration& rhs);
 
             BlsObject accept(Visitor& v) override;
+            std::unique_ptr<AstNode> clone() const override;
+            std::unique_ptr<AstNode::Statement> cloneBase() const override;
 
             auto& getName() { return name; }
+            auto& getModifiers() { return modifiers; }
             auto& getType() { return type; }
             auto& getValue() { return value; }
             auto& getLocalIndex() { return localIndex; }
 
         private:
             std::string name;
+            std::unordered_set<std::string> modifiers;
             std::unique_ptr<AstNode::Specifier::Type> type;
             std::optional<std::unique_ptr<AstNode::Expression>> value;
             uint8_t localIndex;
@@ -425,26 +408,36 @@ namespace BlsLang {
     class AstNode::Statement::Continue : public AstNode::Statement {
         public:
             Continue() = default;
+            Continue(const Continue& other) = default;
+            Continue& operator=(const Continue& rhs);
 
             BlsObject accept(Visitor& v) override;
+            std::unique_ptr<AstNode> clone() const override;
+            std::unique_ptr<AstNode::Statement> cloneBase() const override;
     };
 
     class AstNode::Statement::Break : public AstNode::Statement {
         public:
             Break() = default;
+            Break(const Break& other) = default;
+            Break& operator=(const Break& rhs);
 
             BlsObject accept(Visitor& v) override;
+            std::unique_ptr<AstNode> clone() const override;
+            std::unique_ptr<AstNode::Statement> cloneBase() const override;
     };
 
     class AstNode::Statement::Return : public AstNode::Statement {
         public:
             Return() = default;
-            Return(std::optional<std::unique_ptr<AstNode::Expression>> value)
-                 : value(std::move(value)) {}
-            Return(AstNode::Expression* value = nullptr)
-                 : value(value) {}
+            Return(std::optional<std::unique_ptr<AstNode::Expression>> value);
+            Return(AstNode::Expression* value);
+            Return(const Return& other);
+            Return& operator=(const Return& rhs);
 
             BlsObject accept(Visitor& v) override;
+            std::unique_ptr<AstNode> clone() const override;
+            std::unique_ptr<AstNode::Statement> cloneBase() const override;
 
             auto& getValue() { return value; }
 
@@ -462,23 +455,16 @@ namespace BlsLang {
             While() = default;
             While(std::unique_ptr<AstNode::Expression> condition
                 , std::vector<std::unique_ptr<AstNode::Statement>> block
-                , LOOP_TYPE type = LOOP_TYPE::WHILE)
-                : condition(std::move(condition))
-                , block(std::move(block))
-                , type(type) {}
+                , LOOP_TYPE type = LOOP_TYPE::WHILE);
             While(AstNode::Expression* condition
                 , std::initializer_list<AstNode::Statement*> block
-                , LOOP_TYPE type = LOOP_TYPE::WHILE)
-                : condition(condition)
-                , block()
-                , type(type)
-            {
-                for (auto stmt : block){
-                    this->block.push_back(std::unique_ptr<AstNode::Statement>(stmt));
-                }
-            }
+                , LOOP_TYPE type = LOOP_TYPE::WHILE);
+            While(const While& other);
+            While& operator=(const While& rhs);
 
             BlsObject accept(Visitor& v) override;
+            std::unique_ptr<AstNode> clone() const override;
+            std::unique_ptr<AstNode::Statement> cloneBase() const override;
 
             auto& getCondition() { return condition; }
             auto& getBlock() { return block; }
@@ -496,25 +482,17 @@ namespace BlsLang {
             For(std::optional<std::unique_ptr<AstNode::Statement>> initStatement
               , std::optional<std::unique_ptr<AstNode::Statement>> condition
               , std::optional<std::unique_ptr<AstNode::Expression>> incrementExpression
-              , std::vector<std::unique_ptr<AstNode::Statement>> block)
-              : initStatement(std::move(initStatement))
-              , condition(std::move(condition))
-              , incrementExpression(std::move(incrementExpression))
-              , block(std::move(block)) {}
+              , std::vector<std::unique_ptr<AstNode::Statement>> block);
             For(std::optional<AstNode::Statement*> initStatement
               , std::optional<AstNode::Statement*> condition
               , std::optional<AstNode::Expression*> incrementExpression
-              , std::initializer_list<AstNode::Statement*> block)
-              : initStatement(initStatement)
-              , condition(condition)
-              , incrementExpression(incrementExpression)
-            {
-                for (auto stmt : block) {
-                    this->block.push_back(std::unique_ptr<AstNode::Statement>(stmt));
-                }
-            }
+              , std::initializer_list<AstNode::Statement*> block);
+            For(const For& other);
+            For& operator=(const For& rhs);
             
             BlsObject accept(Visitor& v) override;
+            std::unique_ptr<AstNode> clone() const override;
+            std::unique_ptr<AstNode::Statement> cloneBase() const override;
 
             auto& getInitStatement() { return initStatement; }
             auto& getCondition() { return condition; }
@@ -534,29 +512,17 @@ namespace BlsLang {
             If(std::unique_ptr<AstNode::Expression> condition
              , std::vector<std::unique_ptr<AstNode::Statement>> block
              , std::vector<std::unique_ptr<AstNode::Statement::If>> elseIfStatements
-             , std::vector<std::unique_ptr<AstNode::Statement>> elseBlock)
-             : condition(std::move(condition))
-             , block(std::move(block))
-             , elseIfStatements(std::move(elseIfStatements))
-             , elseBlock(std::move(elseBlock)) {}
+             , std::vector<std::unique_ptr<AstNode::Statement>> elseBlock);
             If(AstNode::Expression* condition
              , std::initializer_list<AstNode::Statement*> block
              , std::initializer_list<AstNode::Statement::If*> elseIfStatements
-             , std::initializer_list<AstNode::Statement*> elseBlock)
-             : condition(condition)
-            {
-                for (auto stmt : block) {
-                    this->block.push_back(std::unique_ptr<AstNode::Statement>(stmt));
-                }
-                for (auto stmt : elseIfStatements) {
-                    this->elseIfStatements.push_back(std::unique_ptr<AstNode::Statement::If>(stmt));
-                }
-                for (auto stmt : elseBlock) {
-                    this->elseBlock.push_back(std::unique_ptr<AstNode::Statement>(stmt));
-                }
-            }
+             , std::initializer_list<AstNode::Statement*> elseBlock);
+            If(const If& other);
+            If& operator=(const If& rhs);
             
             BlsObject accept(Visitor& v) override;
+            std::unique_ptr<AstNode> clone() const override;
+            std::unique_ptr<AstNode::Statement> cloneBase() const override;
 
             auto& getCondition() { return condition; }
             auto& getBlock() { return block; }
@@ -577,44 +543,23 @@ namespace BlsLang {
 
             Function() = default;
             Function(std::string name
-                   , std::optional<std::unique_ptr<AstNode::Specifier::Type>> returnType
                    , std::vector<std::unique_ptr<AstNode::Specifier::Type>> parameterTypes
                    , std::vector<std::string> parameters
-                   , std::vector<std::unique_ptr<AstNode::Statement>> statements)
-                   : name(std::move(name))
-                   , returnType(std::move(returnType))
-                   , parameterTypes(std::move(parameterTypes))
-                   , parameters(std::move(parameters))
-                   , statements(std::move(statements)) {}
+                   , std::vector<std::unique_ptr<AstNode::Statement>> statements);
             Function(std::string name
-                   , std::optional<AstNode::Specifier::Type*> returnType
                    , std::initializer_list<AstNode::Specifier::Type*> parameterTypes
                    , std::vector<std::string> parameters
-                   , std::initializer_list<AstNode::Statement*> statements)
-                   : name(std::move(name))
-                   , returnType(std::move(returnType))
-                   , parameterTypes()
-                   , parameters(std::move(parameters))
-                   , statements()
-            {
-                for (auto pt : parameterTypes) {
-                    this->parameterTypes.push_back(std::unique_ptr<AstNode::Specifier::Type>(pt));
-                }
-                for (auto stmt : statements) {
-                    this->statements.push_back(std::unique_ptr<AstNode::Statement>(stmt));
-                }
-            }
+                   , std::initializer_list<AstNode::Statement*> statements);
             virtual ~Function() = default;
+            virtual std::unique_ptr<AstNode::Function> cloneBase() const = 0;
 
             auto& getName() { return name; }
-            auto& getReturnType() { return returnType; }
             auto& getParameterTypes() { return parameterTypes; }
             auto& getParameters() { return parameters; }
             auto& getStatements() { return statements; }
         
         private:
             std::string name;
-            std::optional<std::unique_ptr<AstNode::Specifier::Type>> returnType;
             std::vector<std::unique_ptr<AstNode::Specifier::Type>> parameterTypes;
             std::vector<std::string> parameters;
             std::vector<std::unique_ptr<AstNode::Statement>> statements;
@@ -624,29 +569,27 @@ namespace BlsLang {
         public:
             Procedure() = default;
             Procedure(std::string name
-                    , std::optional<std::unique_ptr<AstNode::Specifier::Type>> returnType
+                    , std::unique_ptr<AstNode::Specifier::Type> returnType
                     , std::vector<std::unique_ptr<AstNode::Specifier::Type>> parameterTypes
                     , std::vector<std::string> parameters
-                    , std::vector<std::unique_ptr<AstNode::Statement>> statements)
-            :
-            Function(std::move(name)
-                   , std::move(returnType)
-                   , std::move(parameterTypes)
-                   , std::move(parameters)
-                   , std::move(statements)) {}
+                    , std::vector<std::unique_ptr<AstNode::Statement>> statements);
             Procedure(std::string name
                     , AstNode::Specifier::Type* returnType
                     , std::initializer_list<AstNode::Specifier::Type*> parameterTypes
                     , std::vector<std::string> parameters
-                    , std::initializer_list<AstNode::Statement*> statements)
-            : 
-            Function(std::move(name)
-                   , std::move(returnType)
-                   , std::move(parameterTypes)
-                   , std::move(parameters)
-                   , std::move(statements)) {}
+                    , std::initializer_list<AstNode::Statement*> statements);
+            Procedure(const Procedure& other);
+            Procedure& operator=(const Procedure& rhs);
             
             BlsObject accept(Visitor& v) override;
+            std::unique_ptr<AstNode> clone() const override;
+            std::unique_ptr<AstNode::Function> cloneBase() const override;
+            
+            auto& getReturnType() { return returnType; }
+
+        private:
+            std::unique_ptr<AstNode::Specifier::Type> returnType;
+
     };
 
     class AstNode::Function::Oblock : public AstNode::Function {
@@ -655,40 +598,37 @@ namespace BlsLang {
             Oblock(std::string name
                  , std::vector<std::unique_ptr<AstNode::Specifier::Type>> parameterTypes
                  , std::vector<std::string> parameters
-                 , std::vector<std::unique_ptr<AstNode::Statement>> statements)
-            : 
-            Function(std::move(name)
-                   , std::move(std::nullopt)
-                   , std::move(parameterTypes)
-                   , std::move(parameters)
-                   , std::move(statements)) {}
+                 , std::vector<std::unique_ptr<AstNode::Initializer::Oblock>> configOptions
+                 , std::vector<std::unique_ptr<AstNode::Statement>> statements);
             Oblock(std::string name
                  , std::initializer_list<AstNode::Specifier::Type*> parameterTypes
                  , std::vector<std::string> parameters
-                 , std::initializer_list<AstNode::Statement*> statements)
-            : 
-            Function(std::move(name)
-                   , std::move(std::nullopt)
-                   , std::move(parameterTypes)
-                   , std::move(parameters)
-                   , std::move(statements)) {}
+                 , std::initializer_list<AstNode::Initializer::Oblock*> configOptions
+                 , std::initializer_list<AstNode::Statement*> statements);
+            Oblock(const Oblock& other);
+            Oblock& operator=(const Oblock& rhs);
 
             BlsObject accept(Visitor& v) override;
+            std::unique_ptr<AstNode> clone() const override;
+            std::unique_ptr<AstNode::Function> cloneBase() const override;
+
+            auto& getConfigOptions() { return configOptions; }
+
+        private:
+            std::vector<std::unique_ptr<AstNode::Initializer::Oblock>> configOptions;
     };
 
     class AstNode::Setup : public AstNode {
         public:
             Setup() = default;
-            Setup(std::vector<std::unique_ptr<AstNode::Statement>> statements)
-                : statements(std::move(statements)) {}
-            Setup(std::initializer_list<AstNode::Statement*> statements)
-            {
-                for (auto stmt : statements) {
-                    this->statements.push_back(std::unique_ptr<AstNode::Statement>(stmt));
-                }
-            }
+            Setup(std::vector<std::unique_ptr<AstNode::Statement>> statements);
+            Setup(std::initializer_list<AstNode::Statement*> statements);
+            Setup(const Setup& other);
+            Setup& operator=(const Setup& rhs);
 
             BlsObject accept(Visitor& v) override;
+            std::unique_ptr<AstNode> clone() const override;
+            virtual std::unique_ptr<AstNode> cloneBase() const;
 
             auto& getStatements() { return statements; }
                     
@@ -701,24 +641,16 @@ namespace BlsLang {
             Source() = default;
             Source(std::vector<std::unique_ptr<AstNode::Function>> procedures
                  , std::vector<std::unique_ptr<AstNode::Function>> oblocks
-                 , std::unique_ptr<AstNode::Setup> setup)
-                 : procedures(std::move(procedures))
-                 , oblocks(std::move(oblocks))
-                 , setup(std::move(setup)) {}
+                 , std::unique_ptr<AstNode::Setup> setup);
             Source(std::initializer_list<AstNode::Function*> procedures
                  , std::initializer_list<AstNode::Function*> oblocks
-                 , AstNode::Setup* setup)
-            {
-                for (auto proc : procedures) {
-                    this->procedures.push_back(std::unique_ptr<AstNode::Function>(proc));
-                }
-                for (auto obl : oblocks) {
-                    this->oblocks.push_back(std::unique_ptr<AstNode::Function>(obl));
-                }
-                this->setup.reset(setup);
-            }
+                 , AstNode::Setup* setup);
+            Source(const Source& other);
+            Source& operator=(const Source& rhs);
 
             BlsObject accept(Visitor& v) override;
+            std::unique_ptr<AstNode> clone() const override;
+            std::unique_ptr<AstNode> cloneBase() const;
 
             auto& getProcedures() { return procedures; }
             auto& getOblocks() { return oblocks; }

@@ -7,10 +7,10 @@
 template<class... Ts>
 struct overloads : Ts... { using Ts::operator()...; };
 
-AbstractDevice::AbstractDevice(DEVTYPE dtype, std::unordered_map<std::string, std::string> &port_nums) {
+AbstractDevice::AbstractDevice(TYPE dtype, std::unordered_map<std::string, std::string> &port_nums) {
     switch(dtype){
         #define DEVTYPE_BEGIN(name) \
-        case DEVTYPE::name: { \
+        case TYPE::name: { \
             this->device.emplace<Device<TypeDef::name>>(); \
             this->init(port_nums); \
             break; \

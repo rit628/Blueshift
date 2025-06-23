@@ -61,7 +61,7 @@ class AbstractDevice {
         bool processing = false;
         bool watchersPaused = false;
 
-        AbstractDevice(DEVTYPE dtype, std::unordered_map<std::string, std::string> &port_nums);
+        AbstractDevice(TYPE dtype, std::unordered_map<std::string, std::string> &port_nums);
         void processStates(DynamicMessage input);
         void init(std::unordered_map<std::string, std::string> &config);
         void transmitStates(DynamicMessage &dmsg);

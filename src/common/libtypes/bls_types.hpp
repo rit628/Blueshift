@@ -1,4 +1,5 @@
 #pragma once
+#include "typedefs.hpp"
 #include <cmath>
 #include <cstddef>
 #include <functional>
@@ -18,23 +19,40 @@
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/unordered_map.hpp>
 
+/* define reserved words for types in lang */
+namespace BlsLang {
+
+  constexpr auto PRIMITIVE_VOID                       ("void");
+  constexpr auto PRIMITIVE_BOOL                       ("bool");
+  constexpr auto PRIMITIVE_INT                        ("int");
+  constexpr auto PRIMITIVE_FLOAT                      ("float");
+  constexpr auto PRIMITIVE_STRING                     ("string");
+
+  constexpr auto CONTAINER_LIST                       ("list");
+  constexpr auto CONTAINER_MAP                        ("map");
+
+  #define DEVTYPE_BEGIN(name) \
+  constexpr auto DEVTYPE_##name                                          (#name);
+  #define ATTRIBUTE(...)
+  #define DEVTYPE_END
+  #include "DEVTYPES.LIST"
+  #undef DEVTYPE_BEGIN
+  #undef ATTRIBUTE
+  #undef DEVTYPE_END
+
+};
+
 enum class TYPE : uint32_t {
     void_t
   , bool_t
   , int_t
   , float_t
   , string_t
-  , PRIMITIVE_COUNT
+  , PRIMITIVES_END
 
-  #define CONTAINER_BEGIN(name, ...) \
-  , name##_t
-  #define METHOD(...)
-  #define CONTAINER_END
-  #include "CONTAINER_TYPES.LIST"
-  #undef CONTAINER_BEGIN
-  #undef METHOD
-  #undef CONTAINER_END
-  , CONTAINER_COUNT
+  , list_t
+  , map_t
+  , CONTAINERS_END
 
   #define DEVTYPE_BEGIN(name) \
   , name
@@ -44,22 +62,11 @@ enum class TYPE : uint32_t {
   #undef DEVTYPE_BEGIN
   #undef ATTRIBUTE
   #undef DEVTYPE_END
-  , DEVTYPE_COUNT
+  , DEVTYPES_END
 
   , ANY
   , NONE
   , COUNT
-};
-
-enum class DEVTYPE : uint32_t {
-  #define DEVTYPE_BEGIN(name) \
-  name = static_cast<uint32_t>(TYPE::name),
-  #define ATTRIBUTE(...)
-  #define DEVTYPE_END 
-  #include "DEVTYPES.LIST"
-  #undef DEVTYPE_BEGIN
-  #undef ATTRIBUTE
-  #undef DEVTYPE_END
 };
 
 struct TypeIdentifier {
@@ -72,6 +79,9 @@ class HeapDescriptor;
 struct BlsType : std::variant<std::monostate, bool, int64_t, double, std::string, std::shared_ptr<HeapDescriptor>> {
   using std::variant<std::monostate, bool, int64_t, double, std::string, std::shared_ptr<HeapDescriptor>>::variant;
   explicit operator bool() const;
+  explicit operator double() const;
+  explicit operator int64_t() const;
+  explicit operator std::string() const;
   friend BlsType operator-(const BlsType& operand);
   friend bool operator<(const BlsType& lhs, const BlsType& rhs);
   friend bool operator<=(const BlsType& lhs, const BlsType& rhs);
@@ -170,28 +180,44 @@ class VectorDescriptor : public HeapDescriptor, std::enable_shared_from_this<Vec
     void serialize(Archive& ar, const unsigned int version);
 };
 
+template<typename T>
+BlsType createDevtype(T states) {
+    auto devtype = std::make_shared<MapDescriptor>(TYPE::ANY);
+    using namespace TypeDef;
+    #define DEVTYPE_BEGIN(name) \
+    if constexpr (std::same_as<T, name>) { 
+    #define ATTRIBUTE(name, ...) \
+        BlsType name##_key = #name; \
+        BlsType name##_val = states.name; \
+        devtype->emplace(name##_key, name##_val);
+    #define DEVTYPE_END \
+    }
+    #include "DEVTYPES.LIST"
+    #undef DEVTYPE_BEGIN
+    #undef ATTRIBUTE
+    #undef DEVTYPE_END
+    return devtype;
+}
+
 constexpr TYPE getTypeFromName(const std::string& type) {
-  if (type == "void") return TYPE::void_t;
-  if (type == "bool") return TYPE::bool_t;
-  if (type == "int") return TYPE::int_t;
-  if (type == "float") return TYPE::float_t;
-  if (type == "string") return TYPE::string_t;
-  #define CONTAINER_BEGIN(name, ...) \
-  if (type == #name) return TYPE::name##_t;
-  #define METHOD(...)
-  #define CONTAINER_END
-  #include "CONTAINER_TYPES.LIST"
-  #undef CONTAINER_BEGIN
-  #undef METHOD
-  #undef CONTAINER_END
+  if (type == BlsLang::PRIMITIVE_VOID) return TYPE::void_t;
+  if (type == BlsLang::PRIMITIVE_BOOL) return TYPE::bool_t;
+  if (type == BlsLang::PRIMITIVE_INT) return TYPE::int_t;
+  if (type == BlsLang::PRIMITIVE_FLOAT) return TYPE::float_t;
+  if (type == BlsLang::PRIMITIVE_STRING) return TYPE::string_t;
+
+  if (type == BlsLang::CONTAINER_LIST) return TYPE::list_t;
+  if (type == BlsLang::CONTAINER_MAP) return TYPE::map_t;
+
   #define DEVTYPE_BEGIN(name) \
-  if (type == #name) return TYPE::name;
+  if (type == BlsLang::DEVTYPE_##name) return TYPE::name;
   #define ATTRIBUTE(...)
   #define DEVTYPE_END 
   #include "DEVTYPES.LIST"
   #undef DEVTYPE_BEGIN
   #undef ATTRIBUTE
   #undef DEVTYPE_END
+
   if (type == "ANY") return TYPE::ANY;
   return TYPE::COUNT;
 }
@@ -206,48 +232,55 @@ inline void BlsType::serialize(Archive& ar, const unsigned int version) {
     case TYPE::void_t:
       *this = std::monostate();
     break;
+    
     case TYPE::bool_t:
       if (std::holds_alternative<std::monostate>(*this)) {
         *this = bool();
       }
       ar & std::get<bool>(*this);
     break;
+    
     case TYPE::int_t:
       if (std::holds_alternative<std::monostate>(*this)) {
         *this = int64_t();
       }
       ar & std::get<int64_t>(*this);
     break;
+    
     case TYPE::float_t:
       if (std::holds_alternative<std::monostate>(*this)) {
         *this = double();
       }
       ar & std::get<double>(*this);
     break;
+    
     case TYPE::string_t:
       if (std::holds_alternative<std::monostate>(*this)) {
         *this = std::string();
       }
       ar & std::get<std::string>(*this);
     break;
+
     case TYPE::list_t: {
       if (std::holds_alternative<std::monostate>(*this)) {
-        *this = std::make_shared<VectorDescriptor>(TYPE::ANY);;
+        *this = std::make_shared<VectorDescriptor>(TYPE::ANY);
       }
       auto heapDesc = std::get<std::shared_ptr<HeapDescriptor>>(*this);
       auto resolvedDesc = std::dynamic_pointer_cast<VectorDescriptor>(heapDesc);
       ar & *resolvedDesc.get();
-      break;
     }
+    break;
+
     case TYPE::map_t: {
       if (std::holds_alternative<std::monostate>(*this)) {
-        *this = std::make_shared<MapDescriptor>(TYPE::ANY);;
+        *this = std::make_shared<MapDescriptor>(TYPE::ANY);
       }
       auto heapDesc = std::get<std::shared_ptr<HeapDescriptor>>(*this);
       auto resolvedDesc = std::dynamic_pointer_cast<MapDescriptor>(heapDesc);
       ar & *resolvedDesc.get();
-      break;
     }
+    break;
+
     default:
       throw std::runtime_error("Non serializable type");
     break;

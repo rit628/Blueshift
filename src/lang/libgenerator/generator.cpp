@@ -88,7 +88,7 @@ BlsObject Generator::visit(AstNode::Function::Procedure& ast) {
     
     // add default return statement at end of function to account for non-returning control paths
     // will only be necessary for void once control path checking is implemented
-    switch (getTypeFromName(ast.getReturnType()->get()->getName())) {
+    switch (getTypeFromName(ast.getReturnType()->getName())) {
         case TYPE::void_t:
             instructions.push_back(createPUSH(literalPool.at(std::monostate())));
         break;
@@ -597,6 +597,10 @@ BlsObject Generator::visit(AstNode::Expression::Map& ast) {
 
 BlsObject Generator::visit(AstNode::Specifier::Type& ast) {
     return 0; // type declarations dont need to be visited in generator
+}
+
+BlsObject Generator::visit(AstNode::Initializer::Oblock& ast) {
+    return 0; // oblock configs dont need to be visited in generator
 }
 
 #define OPCODE_BEGIN(code) \

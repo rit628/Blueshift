@@ -32,25 +32,6 @@ namespace BlsLang {
                 std::cout.rdbuf(oldBuffer);
             }
 
-            template<typename T>
-            static BlsType createDevtype(T states) {
-                auto devtype = std::make_shared<MapDescriptor>(TYPE::ANY);
-                using namespace TypeDef;
-                #define DEVTYPE_BEGIN(name) \
-                if constexpr (std::same_as<T, name>) { 
-                #define ATTRIBUTE(name, ...) \
-                    BlsType name##_key = #name; \
-                    BlsType name##_val = states.name; \
-                    devtype->emplace(name##_key, name##_val);
-                #define DEVTYPE_END \
-                }
-                #include "DEVTYPES.LIST"
-                #undef DEVTYPE_BEGIN
-                #undef ATTRIBUTE
-                #undef DEVTYPE_END
-                return devtype;
-            }
-
         private:
             std::unique_ptr<AstNode> ast;
             Compiler compiler;
