@@ -2,9 +2,13 @@
 #include <concepts>
 #include <string>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 namespace TypeDef {
+
+    template<typename T>
+    concept Void = std::same_as<T, void> || std::same_as<T, std::monostate>;
 
     template<typename T>
     concept Boolean = std::same_as<std::remove_cv_t<std::remove_reference_t<T>>, bool>;
@@ -37,11 +41,15 @@ namespace TypeDef {
     concept Map = is_map<T>::value;
     
     template<typename T>
-    concept BlueshiftType = Boolean<T> || Integer<T> || Float<T> || String<T> || List<T> || Map<T>;
+    concept BlueshiftBuiltin = Void<T> || Boolean<T> || Integer<T> || Float<T> || String<T> || List<T> || Map<T>;
 
     // primary template; retain type
-    template<BlueshiftType T>
+    template<BlueshiftBuiltin T>
     struct Convert { using type = T; };
+
+    // partial specialization for void types; convert to std::monostate
+    template<Void T>
+    struct Convert<T> { using type = std::monostate; };
 
     // partial specialization for integer types; convert to int64_t
     template<Integer T>
@@ -96,5 +104,23 @@ namespace TypeDef {
     #undef DEVTYPE_BEGIN
     #undef ATTRIBUTE
     #undef DEVTYPE_END
+
+    template<typename T, typename... U>
+    concept OneOf = (std::same_as<T, U> || ...);
+
+    template<typename T>
+    concept DEVTYPE = OneOf<T
+    #define DEVTYPE_BEGIN(name) \
+    , name
+    #define ATTRIBUTE(...)
+    #define DEVTYPE_END
+    #include "DEVTYPES.LIST"
+    #undef DEVTYPE_BEGIN
+    #undef ATTRIBUTE
+    #undef DEVTYPE_END
+    >;
+
+    template<typename T>
+    concept BlueshiftType = BlueshiftBuiltin<T> || DEVTYPE<T>;
 
 }

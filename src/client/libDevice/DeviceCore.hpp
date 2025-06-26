@@ -1,6 +1,7 @@
 #pragma once
 
 #include "libDM/DynamicMessage.hpp"
+#include "libtypes/typedefs.hpp"
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -33,20 +34,8 @@ class DeviceCore {
         friend class AbstractDevice;
 };
 
-template<typename T, typename... U>
-concept OneOf = (std::same_as<T, U> || ...);
-
 template<typename T>
-concept Driveable = OneOf<T
-#define DEVTYPE_BEGIN(name) \
-, TypeDef::name
-#define ATTRIBUTE(...)
-#define DEVTYPE_END
-#include "DEVTYPES.LIST"
-#undef DEVTYPE_BEGIN
-#undef ATTRIBUTE
-#undef DEVTYPE_END
->;
+concept Driveable = TypeDef::DEVTYPE<T>;
 
 template <Driveable T>
 class Device : public DeviceCore {

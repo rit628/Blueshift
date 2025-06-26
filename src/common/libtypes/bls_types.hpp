@@ -180,15 +180,51 @@ class VectorDescriptor : public HeapDescriptor, std::enable_shared_from_this<Vec
     void serialize(Archive& ar, const unsigned int version);
 };
 
-template<typename T>
-BlsType createDevtype(T states) {
+template<TypeDef::BlueshiftType T>
+BlsType createBlsType(T value) {
+  using namespace TypeDef;
+  if constexpr (Void<T>) {
+    return std::monostate();
+  }
+  if constexpr (Boolean<T>) {
+    return bool(value);
+  }
+  if constexpr (Integer<T>) {
+    return int64_t(value);
+  }
+  if constexpr (Float<T>) {
+    return double(value);
+  }
+  if constexpr (String<T>) {
+    return std::string(value);
+  }
+  if constexpr (List<T>) {
+    auto list = std::make_shared<VectorDescriptor>(TYPE::ANY);
+    typename T::value_type sampleElement;
+    list->getSampleElement() = createBlsType(sampleElement);
+    for (auto&& element : value) {
+      list->append(createBlsType(element));
+    }
+    return list;
+  }
+  if constexpr (Map<T>) {
+    auto map = std::make_shared<MapDescriptor>(TYPE::ANY);
+    typename T::key_type sampleKey;
+    map->getKey() = getType(createBlsType(sampleKey));
+    typename T::value_type sampleElement;
+    map->getSampleElement() = createBlsType(sampleElement);
+    for (auto&& [key, element] : value) {
+      map->emplace(createBlsType(key), createBlsType(element));
+    }
+    return map;
+  }
+  else {
     auto devtype = std::make_shared<MapDescriptor>(TYPE::ANY);
-    using namespace TypeDef;
     #define DEVTYPE_BEGIN(name) \
     if constexpr (std::same_as<T, name>) { 
     #define ATTRIBUTE(name, ...) \
         BlsType name##_key = #name; \
-        BlsType name##_val = states.name; \
+        BlsType name##_val = value.name; \
         devtype->emplace(name##_key, name##_val);
     #define DEVTYPE_END \
     }
@@ -197,6 +233,7 @@ BlsType createDevtype(T states) {
     #undef ATTRIBUTE
     #undef DEVTYPE_END
     return devtype;
+  }
 }
 
 constexpr TYPE getTypeFromName(const std::string& type) {

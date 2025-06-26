@@ -13,7 +13,7 @@ namespace BlsLang {
         std::string fileName = "print_string.blu";
         TEST_E2E_SOURCE(fileName);
         TypeDef::TIMER_TEST states;
-        auto T1 = createDevtype(states);
+        auto T1 = createBlsType(states);
         std::string expectedStdout = "A string.\n";
         TEST_E2E_OBLOCK("printString", {T1}, {T1}, expectedStdout);
         expectedStdout = "A string. Another string.\n";
