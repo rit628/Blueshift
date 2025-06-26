@@ -1,6 +1,6 @@
 #include "virtual_machine.hpp"
 #include "libbytecode/bytecode_processor.hpp"
-#include "libtypes/bls_types.hpp"
+#include "libtype/bls_types.hpp"
 #include "libtrap/include/traps.hpp"
 #include <cstdint>
 #include <iostream>

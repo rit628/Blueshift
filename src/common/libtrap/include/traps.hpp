@@ -1,6 +1,6 @@
 #pragma once
-#include "libtypes/bls_types.hpp"
-#include "libtypes/typedefs.hpp"
+#include "libtype/bls_types.hpp"
+#include "libtype/typedefs.hpp"
 #include <cstdint>
 #include <string>
 #include <type_traits>

@@ -2,7 +2,7 @@
 #include "ast.hpp"
 #include "libbytecode/bytecode_processor.hpp"
 #include "libbytecode/include/opcodes.hpp"
-#include "libtypes/bls_types.hpp"
+#include "libtype/bls_types.hpp"
 #include "libtrap/include/traps.hpp"
 #include <algorithm>
 #include <cstddef>

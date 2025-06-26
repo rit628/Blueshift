@@ -1,6 +1,6 @@
 #pragma once
 #include "libDM/DynamicMessage.hpp"
-#include "libtypes/bls_types.hpp"
+#include "libtype/bls_types.hpp"
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/unordered_map.hpp>
 #include <optional>

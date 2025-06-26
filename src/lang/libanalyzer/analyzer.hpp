@@ -1,7 +1,7 @@
 #pragma once
 #include "ast.hpp"
 #include "include/Common.hpp"
-#include "libtypes/bls_types.hpp"
+#include "libtype/bls_types.hpp"
 #include "libtrap/include/traps.hpp"
 #include "call_stack.hpp"
 #include "include/reserved_tokens.hpp"

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "libDM/DynamicMessage.hpp"
-#include "libtypes/typedefs.hpp"
+#include "libtype/typedefs.hpp"
 #include <cstdint>
 #include <functional>
 #include <string>

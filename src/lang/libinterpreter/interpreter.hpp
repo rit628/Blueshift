@@ -4,7 +4,7 @@
 #include "error_types.hpp"
 #include "include/Common.hpp"
 #include "call_stack.hpp"
-#include "libtypes/bls_types.hpp"
+#include "libtype/bls_types.hpp"
 #include "visitor.hpp"
 #include "include/reserved_tokens.hpp"
 #include <cstdint>

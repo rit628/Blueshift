@@ -1,6 +1,6 @@
 #include "bytecode_printer.hpp"
 #include "include/Common.hpp"
-#include "libtypes/bls_types.hpp"
+#include "libtype/bls_types.hpp"
 #include <algorithm>
 #include <cstdint>
 #include <iostream>

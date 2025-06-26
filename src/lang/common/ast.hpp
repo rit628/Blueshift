@@ -1,5 +1,5 @@
 #pragma once
-#include "libtypes/bls_types.hpp"
+#include "libtype/bls_types.hpp"
 #include <unordered_set>
 #include <variant>
 #include <cstddef>

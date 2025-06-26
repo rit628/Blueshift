@@ -1,7 +1,7 @@
 #include "bytecode_writer.hpp"
 #include "include/Common.hpp"
 #include "libDM/DynamicMessage.hpp"
-#include "libtypes/bls_types.hpp"
+#include "libtype/bls_types.hpp"
 #include "libbytecode/include/opcodes.hpp"
 #include <cstdint>
 #include <functional>

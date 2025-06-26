@@ -1,5 +1,5 @@
 #include "include/traps.hpp"
-#include "libtypes/bls_types.hpp"
+#include "libtype/bls_types.hpp"
 #include <variant>
 #include <vector>
 #include <boost/range/iterator_range_core.hpp>

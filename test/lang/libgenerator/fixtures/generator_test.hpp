@@ -12,7 +12,7 @@
 #include <vector>
 #include <boost/range/combine.hpp>
 #include "generator.hpp"
-#include "libtypes/bls_types.hpp"
+#include "libtype/bls_types.hpp"
 
 namespace BlsLang {
     class GeneratorTest : public testing::Test {

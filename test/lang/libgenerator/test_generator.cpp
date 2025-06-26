@@ -5,7 +5,7 @@
 #include "libbytecode/bytecode_processor.hpp"
 #include "libbytecode/include/opcodes.hpp"
 #include "libtrap/include/traps.hpp"
-#include "libtypes/bls_types.hpp"
+#include "libtype/bls_types.hpp"
 #include "test_macros.hpp"
 #include <cstdint>
 #include <initializer_list>

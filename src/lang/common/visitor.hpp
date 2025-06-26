@@ -1,7 +1,7 @@
 #pragma once
 #include "ast.hpp"
 #include "include/reserved_tokens.hpp"
-#include "libtypes/bls_types.hpp"
+#include "libtype/bls_types.hpp"
 #include <functional>
 #include <variant>
 

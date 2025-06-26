@@ -3,8 +3,8 @@
 #include "fixtures/analyzer_test.hpp"
 #include "include/Common.hpp"
 #include "include/reserved_tokens.hpp"
-#include "libtypes/bls_types.hpp"
-#include "libtypes/typedefs.hpp"
+#include "libtype/bls_types.hpp"
+#include "libtype/typedefs.hpp"
 #include "test_macros.hpp"
 #include <cstdint>
 #include <gtest/gtest.h>
