@@ -6,7 +6,7 @@ enum class OPCODE : uint8_t {
     code,
     #define ARGUMENT(...)
     #define OPCODE_END(...)
-    #include "OPCODES.LIST"
+    #include "include/OPCODES.LIST"
     #undef OPCODE_BEGIN
     #undef ARGUMENT
     #undef OPCODE_END
@@ -18,7 +18,7 @@ struct INSTRUCTION {
     struct code;
     #define ARGUMENT(...)
     #define OPCODE_END(...)
-    #include "OPCODES.LIST"
+    #include "include/OPCODES.LIST"
     #undef OPCODE_BEGIN
     #undef ARGUMENT
     #undef OPCODE_END
@@ -31,7 +31,7 @@ struct INSTRUCTION::code : public INSTRUCTION {
     type arg;
 #define OPCODE_END(...) \
 };
-#include "OPCODES.LIST"
+#include "include/OPCODES.LIST"
 #undef OPCODE_BEGIN
 #undef ARGUMENT
 #undef OPCODE_END

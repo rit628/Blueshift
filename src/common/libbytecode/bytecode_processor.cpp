@@ -1,6 +1,6 @@
 #include "bytecode_processor.hpp"
 #include "include/Common.hpp"
-#include "include/opcodes.hpp"
+#include "opcodes.hpp"
 #include "libDM/DynamicMessage.hpp"
 #include "libtype/bls_types.hpp"
 #include <cstddef>

@@ -1,7 +1,7 @@
 #pragma once
 #include "ast.hpp"
 #include "include/Common.hpp"
-#include "libbytecode/include/opcodes.hpp"
+#include "libbytecode/opcodes.hpp"
 #include <concepts>
 #include <cstdint>
 #include <gtest/gtest.h>
