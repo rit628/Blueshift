@@ -121,7 +121,7 @@ target_link_libraries(interpreter lang_common types ${BOOST_LIB_DEPS})
 file(GLOB_RECURSE LIBANALYZER_SRC ${LANG_SRC_DIR}/libanalyzer/*.cpp)
 add_library(analyzer STATIC ${LIBANALYZER_SRC})
 target_include_directories(analyzer PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
-target_link_libraries(analyzer lang_common types ${BOOST_LIB_DEPS})
+target_link_libraries(analyzer lang_common types trap ${BOOST_LIB_DEPS})
 
 file(GLOB_RECURSE LIBGENERATOR_SRC ${LANG_SRC_DIR}/libgenerator/*.cpp)
 add_library(generator STATIC ${LIBGENERATOR_SRC})

@@ -2,6 +2,7 @@
 #include "ast.hpp"
 #include "include/Common.hpp"
 #include "libtypes/bls_types.hpp"
+#include "libtrap/include/traps.hpp"
 #include "call_stack.hpp"
 #include "include/reserved_tokens.hpp"
 #include "visitor.hpp"
@@ -40,8 +41,21 @@ namespace BlsLang {
 
             CallStack<std::string> cs;
             std::unordered_map<std::string, FunctionSignature> procedures = {
-                {"println", {"println", std::monostate(), {}, {}, true}},
-                {"print", {"print", std::monostate(), {}, {}, true}}
+                #define TRAP_BEGIN(trapName, ...) \
+                { #trapName, \
+                FunctionSignature{ .name = #trapName, \
+                    .returnType = BlsTrap::Detail::trapName::returnType, \
+                    .parameterTypes = BlsTrap::Detail::trapName::parameterTypes, \
+                    .parameterIndices = BlsTrap::Detail::trapName::parameterIndices, \
+                    .variadic = BlsTrap::Detail::trapName::variadic
+                    #define VARIADIC(...)
+                    #define ARGUMENT(...)
+                    #define TRAP_END \
+                }},
+                #include "libtrap/include/TRAPS.LIST"
+                #undef TRAP_BEGIN
+                #undef ARGUMENT
+                #undef TRAP_END
             };
             std::unordered_map<std::string, FunctionSignature> oblocks;
             std::unordered_map<std::string, DeviceDescriptor> deviceDescriptors;

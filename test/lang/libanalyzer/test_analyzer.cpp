@@ -241,6 +241,31 @@ namespace BlsLang {
         EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
     }
 
+    GROUP_TEST_F(AnalyzerTest, TypeTests, InvalidReturnValueFunction) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
+            "f",
+            new AstNode::Specifier::Type(
+                PRIMITIVE_STRING,
+                {}
+            ),
+            {},
+            {},
+            {
+                new AstNode::Statement::Return(
+                    new AstNode::Expression::Function(
+                        "print",
+                        {
+                            new AstNode::Expression::Literal(
+                                int64_t(12)
+                            )
+                        }
+                    )
+                )
+            }
+        ));
+        EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    }
+
     GROUP_TEST_F(AnalyzerTest, TypeTests, InvalidVoidReturn) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
             "f",
@@ -377,6 +402,30 @@ namespace BlsLang {
         expectedMetadata.literalPool = {
             {0, 0},
             {10.23, 1}
+        };
+
+        TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, TypeTests, ValidTrapCall) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Expression::Function(
+            "print",
+            {
+                new AstNode::Expression::Literal(
+                    std::string("arg1")
+                ),
+                new AstNode::Expression::Literal(
+                    int64_t(2)
+                )
+            }
+        ));
+
+        auto decoratedAst = ast->clone();
+
+        Metadata expectedMetadata;
+        expectedMetadata.literalPool = {
+            {"arg1", 0},
+            {2, 1}
         };
 
         TEST_ANALYZE(ast, decoratedAst, expectedMetadata);

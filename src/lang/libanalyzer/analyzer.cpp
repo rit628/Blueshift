@@ -751,7 +751,6 @@ BlsObject Analyzer::visit(AstNode::Specifier::Type& ast) {
             auto argType = getTypeFromName(typeArgs.at(0)->getName());
             auto list = std::make_shared<VectorDescriptor>(argType);
             auto arg = resolve(typeArgs.at(0)->accept(*this));
-            list->append(arg);
             list->getSampleElement() = arg;
             return list;
         }
@@ -770,7 +769,6 @@ BlsObject Analyzer::visit(AstNode::Specifier::Type& ast) {
             auto map = std::make_shared<MapDescriptor>(TYPE::map_t, keyType, valType);
             auto key = resolve(typeArgs.at(0)->accept(*this));
             auto value = resolve(typeArgs.at(1)->accept(*this));
-            map->emplace(key, value);
             map->getSampleElement() = value;
             return BlsType(map);
         }
