@@ -1,6 +1,7 @@
 #include "virtual_machine.hpp"
 #include "libbytecode/bytecode_processor.hpp"
 #include "libtypes/bls_types.hpp"
+#include "libtrap/include/traps.hpp"
 #include <cstdint>
 #include <iostream>
 #include <memory>
@@ -223,59 +224,28 @@ void VirtualMachine::SIZE(int) {
     cs.pushOperand(size);
 }
 
-void VirtualMachine::PRINT(uint8_t argc, int) {
+void VirtualMachine::TRAP(uint16_t callnum, uint8_t argc, int) {
     std::vector<BlsType> args;
     for (uint8_t i = 0; i < argc; i++) {
         args.push_back(cs.popOperand());
     }
-    if (args.size() > 0) {
-        if (std::holds_alternative<int64_t>(args.at(0))) {
-            std::cout << std::get<int64_t>(args.at(0)) << std::flush;
-        }
-        else if (std::holds_alternative<double>(args.at(0))) {
-            std::cout << std::get<double>(args.at(0)) << std::flush;
-        }
-        else if (std::holds_alternative<bool>(args.at(0))) {
-            std::cout << ((std::get<bool>(args.at(0))) ? "true" : "false") << std::flush;
-        }
-        else if (std::holds_alternative<std::string>(args.at(0))) {
-            std::cout << std::get<std::string>(args.at(0)) << std::flush;
-        }
-        for (auto&& arg : boost::make_iterator_range(args.begin()+1, args.end())) {
-            if (std::holds_alternative<int64_t>(arg)) {
-                std::cout << " " << std::get<int64_t>(arg) << std::flush;
-            }
-            else if (std::holds_alternative<double>(arg)) {
-                std::cout << " " << std::get<double>(arg) << std::flush;
-            }
-            else if (std::holds_alternative<bool>(arg)) {
-                std::cout << " " << ((std::get<bool>(arg)) ? "true" : "false") << std::flush;
-            }
-            else if (std::holds_alternative<std::string>(arg)) {
-                std::cout << " " << std::get<std::string>(arg) << std::flush;
-            }
-        }
-        std::cout << std::endl;
-    }
-}
 
-void VirtualMachine::PRINTLN(uint8_t argc, int) {
-    std::vector<BlsType> args;
-    for (uint8_t i = 0; i < argc; i++) {
-        args.push_back(cs.popOperand());
-    }
-    for (auto&& arg : args) {
-        if (std::holds_alternative<int64_t>(arg)) {
-            std::cout << std::get<int64_t>(arg) << std::endl;
+    BlsTrap::CALLNUM trapnum = static_cast<BlsTrap::CALLNUM>(callnum);
+    switch (trapnum) {
+        #define TRAP_BEGIN(name, ...) \
+        case BlsTrap::CALLNUM::name: { \
+            BlsTrap::exec__##name(args);
+            #define VARIADIC(...)
+            #define ARGUMENT(argName, argType...)
+            #define TRAP_END \
+            break; \
         }
-        else if (std::holds_alternative<double>(arg)) {
-            std::cout << std::get<double>(arg) << std::endl;
-        }
-        else if (std::holds_alternative<bool>(arg)) {
-            std::cout << ((std::get<bool>(arg)) ? "true" : "false") << std::endl;
-        }
-        else if (std::holds_alternative<std::string>(arg)) {
-            std::cout << std::get<std::string>(arg) << std::endl;
-        }
+        #include "libtrap/include/TRAPS.LIST"
+        #undef TRAP_BEGIN
+        #undef VARIADIC
+        #undef ARGUMENT
+        #undef TRAP_END
+        default:
+        break;
     }
 }

@@ -3,6 +3,7 @@
 #include "libbytecode/bytecode_processor.hpp"
 #include "libbytecode/include/opcodes.hpp"
 #include "libtypes/bls_types.hpp"
+#include "libtrap/include/traps.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -499,12 +500,19 @@ BlsObject Generator::visit(AstNode::Expression::Function& ast) {
         arg->accept(*this);
     }
     auto& name = ast.getName();
-    if (name == "println") {
-        instructions.push_back(createPRINTLN(args.size()));
+    if (false) { } // hack to force short circuiting
+    #define TRAP_BEGIN(trapName, ...) \
+    else if (name == #trapName) { \
+        instructions.push_back(createTRAP(static_cast<uint16_t>(BlsTrap::CALLNUM::trapName), args.size()));
+        #define VARIADIC(...)
+        #define ARGUMENT(argName, argType...)
+        #define TRAP_END \
     }
-    else if (name == "print") {
-        instructions.push_back(createPRINT(args.size()));
-    }
+    #include "libtrap/include/TRAPS.LIST"
+    #undef TRAP_BEGIN
+    #undef VARIADIC
+    #undef ARGUMENT
+    #undef TRAP_END
     else {
         auto address = procedureAddresses.at(name);
         instructions.push_back(createCALL(address, args.size()));

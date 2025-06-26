@@ -4,6 +4,7 @@
 #include "include/reserved_tokens.hpp"
 #include "libbytecode/bytecode_processor.hpp"
 #include "libbytecode/include/opcodes.hpp"
+#include "libtrap/include/traps.hpp"
 #include "libtypes/bls_types.hpp"
 #include "test_macros.hpp"
 #include <cstdint>
@@ -1382,7 +1383,7 @@ namespace BlsLang {
             createPUSH(0),
             createPUSH(1),
             createLOAD(0),
-            createPRINT(3)
+            createTRAP(static_cast<uint16_t>(BlsTrap::CALLNUM::print), 3)
         );
 
         TEST_GENERATE(ast, expectedInstructions);
