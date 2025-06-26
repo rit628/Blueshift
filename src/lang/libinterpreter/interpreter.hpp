@@ -1,6 +1,6 @@
 #pragma once
 #include "ast.hpp"
-#include "libtrap/include/traps.hpp"
+#include "libtrap/traps.hpp"
 #include "error_types.hpp"
 #include "include/Common.hpp"
 #include "call_stack.hpp"

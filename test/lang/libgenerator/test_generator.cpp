@@ -4,7 +4,7 @@
 #include "include/reserved_tokens.hpp"
 #include "libbytecode/bytecode_processor.hpp"
 #include "libbytecode/opcodes.hpp"
-#include "libtrap/include/traps.hpp"
+#include "libtrap/traps.hpp"
 #include "libtype/bls_types.hpp"
 #include "test_macros.hpp"
 #include <cstdint>

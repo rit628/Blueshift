@@ -16,7 +16,7 @@ namespace BlsTrap {
         #define VARIADIC(...)
         #define ARGUMENT(...)
         #define TRAP_END
-        #include "TRAPS.LIST"
+        #include "include/TRAPS.LIST"
         #undef TRAP_BEGIN
         #undef VARIADIC
         #undef ARGUMENT
@@ -30,7 +30,7 @@ namespace BlsTrap {
         #define VARIADIC(...)
         #define ARGUMENT(...)
         #define TRAP_END
-        #include "TRAPS.LIST"
+        #include "include/TRAPS.LIST"
         #undef TRAP_BEGIN
         #undef VARIADIC
         #undef ARGUMENT
@@ -50,7 +50,7 @@ namespace BlsTrap {
                 COUNT \
             }; \
         }
-        #include "TRAPS.LIST"
+        #include "include/TRAPS.LIST"
         #undef TRAP_BEGIN
         #undef VARIADIC
         #undef ARGUMENT
@@ -66,7 +66,7 @@ namespace BlsTrap {
                 #define TRAP_END \
             }; \
         }
-        #include "TRAPS.LIST"
+        #include "include/TRAPS.LIST"
         #undef TRAP_BEGIN
         #undef VARIADIC
         #undef ARGUMENT
@@ -81,7 +81,7 @@ namespace BlsTrap {
                 #define TRAP_END \
             }; \
         }
-        #include "TRAPS.LIST"
+        #include "include/TRAPS.LIST"
         #undef TRAP_BEGIN
         #undef VARIADIC
         #undef ARGUMENT
@@ -101,7 +101,7 @@ namespace BlsTrap {
             #define TRAP_END \
             >::value; \
         }
-        #include "TRAPS.LIST"
+        #include "include/TRAPS.LIST"
         #undef TRAP_BEGIN
         #undef VARIADIC
         #undef ARGUMENT
@@ -117,7 +117,7 @@ namespace BlsTrap {
         converted_t<argType> argName,
     #define TRAP_END \
     int = 0);
-    #include "TRAPS.LIST"
+    #include "include/TRAPS.LIST"
     #undef TRAP_BEGIN
     #undef VARIADIC
     #undef ARGUMENT
@@ -128,7 +128,7 @@ namespace BlsTrap {
     #define VARIADIC(...)
     #define ARGUMENT(...)
     #define TRAP_END
-    #include "TRAPS.LIST"
+    #include "include/TRAPS.LIST"
     #undef TRAP_BEGIN
     #undef VARIADIC
     #undef ARGUMENT

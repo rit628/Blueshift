@@ -1,4 +1,4 @@
-#include "include/traps.hpp"
+#include "traps.hpp"
 #include "libtype/bls_types.hpp"
 #include <variant>
 #include <vector>

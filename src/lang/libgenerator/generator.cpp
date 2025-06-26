@@ -3,7 +3,7 @@
 #include "libbytecode/bytecode_processor.hpp"
 #include "libbytecode/opcodes.hpp"
 #include "libtype/bls_types.hpp"
-#include "libtrap/include/traps.hpp"
+#include "libtrap/traps.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
