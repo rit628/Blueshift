@@ -1,7 +1,7 @@
 TRAP_BEGIN(print, void)
-VARIADIC(values)
+    VARIADIC(values)
 TRAP_END
 
 TRAP_BEGIN(println, void)
-VARIADIC(values)
+    VARIADIC(values)
 TRAP_END
