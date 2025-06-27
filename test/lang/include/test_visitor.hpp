@@ -375,6 +375,7 @@ namespace BlsLang {
         }
 
         EXPECT_EQ(expectedMethod.getLocalIndex(), ast.getLocalIndex());
+        EXPECT_EQ(expectedMethod.getObjectType(), ast.getObjectType());
     
         return true;
     }

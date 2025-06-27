@@ -800,7 +800,197 @@ namespace BlsLang {
         EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
     }
 
-    /* TODO: Add tests checking proper argument adherence once new method system is established */
+    GROUP_TEST_F(AnalyzerTest, LogicTests, InvalidMethodArgumentCount) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
+            "f",
+            new AstNode::Specifier::Type(
+                PRIMITIVE_VOID,
+                {}
+            ),
+            {},
+            {},
+            {
+                new AstNode::Statement::Declaration(
+                    "x",
+                    {},
+                    new AstNode::Specifier::Type(
+                        CONTAINER_MAP,
+                        {
+                            new AstNode::Specifier::Type(
+                                PRIMITIVE_INT,
+                                {}
+                            ),
+                            new AstNode::Specifier::Type(
+                                PRIMITIVE_INT,
+                                {}
+                            )
+                        }
+                    ),
+                    std::nullopt
+                ),
+                new AstNode::Statement::Expression(
+                    new AstNode::Expression::Method(
+                        "x",
+                        "add",
+                        {
+                            new AstNode::Expression::Literal(
+                                int64_t(1)
+                            )
+                        }
+                    )
+                )
+            }
+        ));
+        EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, LogicTests, InvalidMethodArgument) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
+            "f",
+            new AstNode::Specifier::Type(
+                PRIMITIVE_VOID,
+                {}
+            ),
+            {},
+            {},
+            {
+                new AstNode::Statement::Declaration(
+                    "x",
+                    {},
+                    new AstNode::Specifier::Type(
+                        CONTAINER_MAP,
+                        {
+                            new AstNode::Specifier::Type(
+                                PRIMITIVE_INT,
+                                {}
+                            ),
+                            new AstNode::Specifier::Type(
+                                PRIMITIVE_INT,
+                                {}
+                            )
+                        }
+                    ),
+                    std::nullopt
+                ),
+                new AstNode::Statement::Expression(
+                    new AstNode::Expression::Method(
+                        "x",
+                        "add",
+                        {
+                            new AstNode::Expression::Literal(
+                                int64_t(1)
+                            ),
+                            new AstNode::Expression::Literal(
+                                std::string("not an int")
+                            )
+                        }
+                    )
+                )
+            }
+        ));
+        EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, LogicTests, ValidMethodInvocation) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
+            "f",
+            new AstNode::Specifier::Type(
+                PRIMITIVE_VOID,
+                {}
+            ),
+            {},
+            {},
+            {
+                new AstNode::Statement::Declaration(
+                    "x",
+                    {},
+                    new AstNode::Specifier::Type(
+                        CONTAINER_MAP,
+                        {
+                            new AstNode::Specifier::Type(
+                                PRIMITIVE_INT,
+                                {}
+                            ),
+                            new AstNode::Specifier::Type(
+                                PRIMITIVE_INT,
+                                {}
+                            )
+                        }
+                    ),
+                    std::nullopt
+                ),
+                new AstNode::Statement::Expression(
+                    new AstNode::Expression::Method(
+                        "x",
+                        "add",
+                        {
+                            new AstNode::Expression::Literal(
+                                int64_t(1)
+                            ),
+                            new AstNode::Expression::Literal(
+                                int64_t(6)
+                            )
+                        }
+                    )
+                )
+            }
+        ));
+
+        auto decoratedAst = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
+            "f",
+            new AstNode::Specifier::Type(
+                PRIMITIVE_VOID,
+                {}
+            ),
+            {},
+            {},
+            {
+                new AstNode::Statement::Declaration(
+                    "x",
+                    {},
+                    new AstNode::Specifier::Type(
+                        CONTAINER_MAP,
+                        {
+                            new AstNode::Specifier::Type(
+                                PRIMITIVE_INT,
+                                {}
+                            ),
+                            new AstNode::Specifier::Type(
+                                PRIMITIVE_INT,
+                                {}
+                            )
+                        }
+                    ),
+                    std::nullopt
+                ),
+                new AstNode::Statement::Expression(
+                    new AstNode::Expression::Method(
+                        "x",
+                        "add",
+                        {
+                            new AstNode::Expression::Literal(
+                                int64_t(1)
+                            ),
+                            new AstNode::Expression::Literal(
+                                int64_t(6)
+                            )
+                        },
+                        0,
+                        TYPE::map_t
+                    )
+                )
+            }
+        ));
+
+        Metadata expectedMetadata;
+        expectedMetadata.literalPool = {
+            {std::monostate(), 0},
+            {1, 1},
+            {6, 2}
+        };
+
+        TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
+    }
     
     GROUP_TEST_F(AnalyzerTest, LogicTests, UndefinedProcedureCall) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(

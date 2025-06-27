@@ -406,10 +406,10 @@ BlsObject Interpreter::visit(AstNode::Expression::Method& ast) {
         dynamic_cast<VectorDescriptor&>(*operable).append(resolvedArgs.at(0));
     }
     else if (methodName == "add") {
-        dynamic_cast<MapDescriptor&>(*operable).emplace(resolvedArgs.at(0), resolvedArgs.at(1));
+        dynamic_cast<MapDescriptor&>(*operable).add(resolvedArgs.at(0), resolvedArgs.at(1));
     }
     else if (methodName == "size") {
-        return BlsType(operable->getSize());
+        return 0;
     }
     return std::monostate();
 }
@@ -474,7 +474,7 @@ BlsObject Interpreter::visit(AstNode::Expression::Map& ast) {
     for (auto&& element : elements) {
         auto key = resolve(element.first->accept(*this));
         auto value = resolve(element.second->accept(*this));
-        map->emplace(key, value);
+        map->add(key, value);
     }
     return BlsType(map);
 }
@@ -519,7 +519,7 @@ BlsObject Interpreter::visit(AstNode::Specifier::Type& ast) {
         #define ATTRIBUTE(name, type) \
             attr = BlsType(#name); \
             attrVal = BlsType(type()); \
-            devtype->emplace(attr, attrVal);
+            devtype->add(attr, attrVal);
         #define DEVTYPE_END \
             return BlsType(devtype); \
         break; \

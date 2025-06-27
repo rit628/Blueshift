@@ -97,7 +97,7 @@ void BytecodeWriter::writeLiteralPool(std::ostream& stream) {
             for (auto&& [key, value] : literal.get_object()) {
                 auto convertedKey = BlsType(key);
                 auto convertedValue = convertToBlsType(value);
-                map->emplace(convertedKey, convertedValue);
+                map->add(convertedKey, convertedValue);
             }
             return map;
         }

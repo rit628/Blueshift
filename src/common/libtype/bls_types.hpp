@@ -107,25 +107,51 @@ struct std::hash<BlsType> {
 };
 
 class HeapDescriptor {
+  private:
+    /* helper structs */
+    template<int argNum, TypeDef::BlueshiftBuiltin T>
+    struct ArgConvert {
+      using type = BlsType;
+    };
+
+    template<TypeDef::BlueshiftBuiltin T>
+    struct ArgConvert<-1, T> {
+      using type = TypeDef::converted_t<T>;
+    };
+
   protected: 
     TYPE objType = TYPE::ANY;
-    TYPE keyType = TYPE::ANY;
     TYPE contType = TYPE::ANY;
-    BlsType sampleElement = std::monostate();
+    std::vector<BlsType> sampleElement = {};
+
 
   public:
+    template<int argNum, typename T>
+    using arg_t = ArgConvert<argNum, T>::type;
+
+    enum class METHODNUM : uint16_t {
+      #define METHOD_BEGIN(name, objType, ...) \
+      objType##_##name,
+      #define ARGUMENT(...)
+      #define METHOD_END
+      #include "include/LIST_METHODS.LIST"
+      #include "include/MAP_METHODS.LIST"
+      #undef METHOD_BEGIN
+      #undef ARGUMENT
+      #undef METHOD_END
+      COUNT
+    };
+
     HeapDescriptor() = default;
     virtual ~HeapDescriptor() = default;
-    void setKey(TYPE keyType) { this->keyType = keyType; }
     void setCont(TYPE contType) { this->contType = contType; }
     void setType(TYPE objType) { this->objType = objType; }
-    TYPE getKey() { return this->keyType; }
     TYPE getCont() { return this->contType; }
     TYPE getType() { return this->objType; }
-    BlsType& getSampleElement() { return this->sampleElement; }
+    // only used for type checking
+    auto& getSampleElement() { return this->sampleElement; }
     virtual BlsType& access(BlsType &obj) = 0;
     BlsType& access(BlsType &&obj) { return access(obj); };
-    virtual int getSize() { return 1; }
 
     template<typename Archive>
     void serialize(Archive& ar, const unsigned int version);
@@ -144,11 +170,20 @@ class MapDescriptor : public HeapDescriptor{
     MapDescriptor(std::initializer_list<std::pair<std::string, BlsType>> elements);
     // Add non-string handling later:
     BlsType& access(BlsType &obj) override;
-    // WE assume for now that all objects are of type string 
-    void emplace(BlsType& obj, BlsType& newDesc);
+
+    #define METHOD_BEGIN(name, objType, typeArgIdx, returnType...) \
+    arg_t<typeArgIdx, returnType> name(
+    #define ARGUMENT(name, typeArgIdx, type...) \
+    arg_t<typeArgIdx, type> name,
+    #define METHOD_END \
+    int = 0);
+    #include "include/MAP_METHODS.LIST"
+    #undef METHOD_BEGIN
+    #undef ARGUMENT
+    #undef METHOD_END
+
     // Also only used for debugging
     std::unordered_map<std::string, BlsType>& getMap() { return *this->map; }
-    int getSize() override { return this->map->size(); }
 
     friend class boost::serialization::access;
     template<typename Archive>
@@ -170,10 +205,20 @@ class VectorDescriptor : public HeapDescriptor, std::enable_shared_from_this<Vec
       return std::shared_ptr<VectorDescriptor>(new VectorDescriptor(cont_code));
     }
     BlsType& access(BlsType &int_acc) override;
-    void append(BlsType& newObj);
+
+    #define METHOD_BEGIN(name, objType, typeArgIdx, returnType...) \
+    arg_t<typeArgIdx, returnType> name(
+    #define ARGUMENT(name, typeArgIdx, type...) \
+    arg_t<typeArgIdx, type> name,
+    #define METHOD_END \
+    int = 0);
+    #include "include/LIST_METHODS.LIST"
+    #undef METHOD_BEGIN
+    #undef ARGUMENT
+    #undef METHOD_END
+
     // DEBUG FUNCTION ONLY (for now maybe): 
     std::vector<BlsType>& getVector() { return *this->vector; }
-    int getSize() override { return this->vector->size(); }
 
     friend class boost::serialization::access;
     template<typename Archive>
@@ -201,7 +246,7 @@ BlsType createBlsType(T value) {
   if constexpr (List<T>) {
     auto list = std::make_shared<VectorDescriptor>(TYPE::ANY);
     typename T::value_type sampleElement;
-    list->getSampleElement() = createBlsType(sampleElement);
+    list->getSampleElement().assign({createBlsType(sampleElement)});
     for (auto&& element : value) {
       list->append(createBlsType(element));
     }
@@ -210,11 +255,10 @@ BlsType createBlsType(T value) {
   if constexpr (Map<T>) {
     auto map = std::make_shared<MapDescriptor>(TYPE::ANY);
     typename T::key_type sampleKey;
-    map->getKey() = getType(createBlsType(sampleKey));
     typename T::value_type sampleElement;
-    map->getSampleElement() = createBlsType(sampleElement);
+    map->getSampleElement().assign({createBlsType(sampleKey), createBlsType(sampleElement)});
     for (auto&& [key, element] : value) {
-      map->emplace(createBlsType(key), createBlsType(element));
+      map->add(createBlsType(key), createBlsType(element));
     }
     return map;
   }
@@ -225,7 +269,7 @@ BlsType createBlsType(T value) {
     #define ATTRIBUTE(name, ...) \
         BlsType name##_key = #name; \
         BlsType name##_val = value.name; \
-        devtype->emplace(name##_key, name##_val);
+        devtype->add(name##_key, name##_val);
     #define DEVTYPE_END \
     }
     #include "DEVTYPES.LIST"
@@ -235,6 +279,8 @@ BlsType createBlsType(T value) {
     return devtype;
   }
 }
+
+inline BlsType createBlsType(BlsType value) { return value; }
 
 constexpr TYPE getTypeFromName(const std::string& type) {
   if (type == BlsLang::PRIMITIVE_VOID) return TYPE::void_t;
@@ -258,6 +304,48 @@ constexpr TYPE getTypeFromName(const std::string& type) {
   if (type == "ANY") return TYPE::ANY;
   return TYPE::COUNT;
 }
+
+constexpr const std::string getTypeName(TYPE type) {
+  switch (type) {
+    case TYPE::void_t:
+      return BlsLang::PRIMITIVE_VOID;
+    break;
+    case TYPE::bool_t:
+      return BlsLang::PRIMITIVE_BOOL;
+    break;
+    case TYPE::int_t:
+      return BlsLang::PRIMITIVE_INT;
+    break;
+    case TYPE::float_t:
+      return BlsLang::PRIMITIVE_FLOAT;
+    break;
+    case TYPE::string_t:
+      return BlsLang::PRIMITIVE_STRING;
+    break;
+    case TYPE::list_t:
+      return BlsLang::CONTAINER_LIST;
+    break;
+    case TYPE::map_t:
+      return BlsLang::CONTAINER_MAP;
+    break;
+    
+    #define DEVTYPE_BEGIN(name) \
+    case TYPE::name: \
+      return BlsLang::DEVTYPE_##name; \
+    break;
+    #define ATTRIBUTE(...)
+    #define DEVTYPE_END 
+    #include "DEVTYPES.LIST"
+    #undef DEVTYPE_BEGIN
+    #undef ATTRIBUTE
+    #undef DEVTYPE_END
+
+    default:
+      return "ANY";
+    break;
+  }
+}
+
 TYPE getType(const BlsType& obj);
 std::string stringify(const BlsType& value);
 
@@ -327,7 +415,6 @@ inline void BlsType::serialize(Archive& ar, const unsigned int version) {
 template<typename Archive>
 void HeapDescriptor::serialize(Archive& ar, const unsigned int version) {
   ar & objType;
-  ar & keyType;
   ar & contType;
 }
 
