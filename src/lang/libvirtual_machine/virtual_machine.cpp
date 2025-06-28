@@ -2,6 +2,7 @@
 #include "libbytecode/bytecode_processor.hpp"
 #include "libtype/bls_types.hpp"
 #include "libtrap/traps.hpp"
+#include "libtype/typedefs.hpp"
 #include <cstdint>
 #include <iostream>
 #include <memory>
@@ -211,13 +212,17 @@ void VirtualMachine::TRAP(uint16_t callnum, uint8_t argc, int) {
 
     auto trapnum = static_cast<BlsTrap::CALLNUM>(callnum);
     switch (trapnum) {
-        #define TRAP_BEGIN(name, ...) \
+        #define TRAP_BEGIN(name, returnType...) \
         case BlsTrap::CALLNUM::name: { \
-            BlsTrap::executeTrap<BlsTrap::CALLNUM::name>(args);
+            constexpr bool pushReturn = !TypeDef::Void<returnType>; \
+            auto result [[ maybe_unused ]] = BlsTrap::executeTrap<BlsTrap::CALLNUM::name>(args);
             #define VARIADIC(...)
             #define ARGUMENT(argName, argType...)
             #define TRAP_END \
             break; \
+            if constexpr (pushReturn) { \
+                cs.pushOperand(result); \
+            } \
         }
         #include "libtrap/include/TRAPS.LIST"
         #undef TRAP_BEGIN
@@ -234,13 +239,17 @@ void VirtualMachine::MTRAP(uint16_t callnum, int) {
     auto object = cs.popOperand();
 
     switch (trapnum) {
-        #define METHOD_BEGIN(name, type, ...) \
+        #define METHOD_BEGIN(name, type, typeArgIdx, returnType...) \
         case BlsTrap::MCALLNUM::type##__##name: { \
-            BlsTrap::executeMTRAP<BlsTrap::MCALLNUM::type##__##name>(object, {
+            constexpr bool pushReturn = !TypeDef::Void<returnType>; \
+            auto result [[ maybe_unused ]] = BlsTrap::executeMTRAP<BlsTrap::MCALLNUM::type##__##name>(object, {
             #define ARGUMENT(argName, typeArgIdx, type...) \
                 cs.popOperand(),
             #define METHOD_END \
             }); \
+            if constexpr (pushReturn) { \
+                cs.pushOperand(result); \
+            } \
         }
         #include "libtype/include/LIST_METHODS.LIST"
         #include "libtype/include/MAP_METHODS.LIST"
