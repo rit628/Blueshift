@@ -3,7 +3,7 @@
 #include "libEM/EM.hpp"
 #include "libMM/MM.hpp"
 #include "libNM/MasterNM.hpp"
-#include "libtypes/bls_types.hpp"
+#include "libtype/bls_types.hpp"
 #include <functional>
 #include <unordered_map>
 
@@ -16,24 +16,24 @@ using DMM = DynamicMasterMessage;
     dependency graph. 
 */
 
-void modifyOblockDesc(std::vector<OBlockDesc> &oDescs){
-    std::unordered_map<DeviceID, DeviceDescriptor&> devDesc; 
-    for(auto& oblock : oDescs){
-        // Construct the device device desc map: 
-        std::unordered_map<DeviceID, DeviceDescriptor> devMap; 
-        for(auto& str : oblock.binded_devices){
-            devMap[str.device_name] = str; 
-        }
+// void modifyOblockDesc(std::vector<OBlockDesc> &oDescs){
+//     std::unordered_map<DeviceID, DeviceDescriptor&> devDesc; 
+//     for(auto& oblock : oDescs){
+//         // Construct the device device desc map: 
+//         std::unordered_map<DeviceID, DeviceDescriptor> devMap; 
+//         for(auto& str : oblock.binded_devices){
+//             devMap[str.device_name] = str; 
+//         }
         
-        // Remove the artifical oblock adder
-        if(oblock.name == "task"){
-            std::cout<<"Establishing trigger rules"<<std::endl; 
-            oblock.customTriggers = true; 
-            oblock.triggerRules = {{"lw", "rfp"}, {"lw"}}; 
-        }
+//         // Remove the artifical oblock adder
+//         if(oblock.name == "task"){
+//             std::cout<<"Establishing trigger rules"<<std::endl; 
+//             oblock.customTriggers = true; 
+//             oblock.triggerRules = {{"lw", "rfp"}, {"lw"}}; 
+//         }
 
-    }
-}
+//     }
+// }
 
 
 int main(int argc, char *argv[]){

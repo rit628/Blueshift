@@ -4,6 +4,7 @@
 #include "libTSQ/TSQ.hpp"
 #include "libDM/DynamicMessage.hpp"
 #include "libEM/EM.hpp"
+#include <algorithm>
 #include <bitset>
 #include <mutex>
 #include <unordered_map>
@@ -74,7 +75,9 @@ class TriggerManager{
             this->ruleset.insert(defaultOption); 
 
             // Loop through rules; 
-            for(auto& rule : OBlockDesc.triggerRules){
+            for(auto& data : OBlockDesc.triggers)
+            {
+                auto& rule = data.rule;
                 std::bitset<BITSET_SZ> king; 
                 for(auto& devName : rule){
                     king.set(this->stringMap[devName]); 

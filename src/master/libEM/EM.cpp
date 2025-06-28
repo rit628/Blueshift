@@ -1,7 +1,7 @@
 #include "EM.hpp"
 #include "include/Common.hpp"
 #include "libMM/MM.hpp"
-#include "libtypes/bls_types.hpp"
+#include "libtype/bls_types.hpp"
 #include <memory>
 
 // 
@@ -97,7 +97,7 @@ void ExecutionUnit::running(TSQ<DynamicMasterMessage> &sendMM)
                 transformableStates.push_back(HMMs.at(devName).heapTree); 
             }
             else{
-                auto defDevice = std::make_shared<MapDescriptor>(static_cast<TYPE>(deviceDesc.devtype), TYPE::string_t, TYPE::ANY); 
+                auto defDevice = std::make_shared<MapDescriptor>(static_cast<TYPE>(deviceDesc.type), TYPE::string_t, TYPE::ANY); 
                 transformableStates.push_back(defDevice); 
             }
         }

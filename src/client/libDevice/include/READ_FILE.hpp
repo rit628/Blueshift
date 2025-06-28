@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../DeviceCore.hpp"
-#include "libtypes/typedefs.hpp"
+#include "libtype/typedefs.hpp"
 
 namespace Device {
     class READ_FILE : public DeviceCore<TypeDef::READ_FILE> {

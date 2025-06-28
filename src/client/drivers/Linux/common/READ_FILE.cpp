@@ -2,7 +2,7 @@
 
 #include "libnetwork/Connection.hpp"
 #include "libnetwork/Protocol.hpp"
-#include "libtypes/typedefs.hpp"
+#include "libtype/typedefs.hpp"
 #include "include/READ_FILE.hpp"
 
 using namespace Device;

@@ -33,8 +33,8 @@ setup() {
     LINE_WRITER k2 = "blueshift-client-1::file-file1.txt"; 
     LINE_WRITER k3 = "blueshift-client-2::file-file2.txt"; 
     
-    printString(L1, L2, L3);
+    //printString(L1, L2, L3);
     //copyLine(k2, k3);
     //printLine(k2);
-    //printPoll(L1);
+    printPoll(L1);
 }
