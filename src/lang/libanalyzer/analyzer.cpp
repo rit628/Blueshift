@@ -182,6 +182,10 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
             if (!oblocks.contains(name)) {
                 throw SemanticError(name + " does not refer to an oblock");
             }
+            auto argc = oblocks.at(name).parameterTypes.size();
+            if (argc != args.size()) {
+                throw SemanticError("Invalid number of arguments supplied to " + name + " (received " + std::to_string(args.size()) + " expected " + std::to_string(argc) + " )");
+            }
             auto& desc = oblockDescriptors.at(name);
             desc.name = name;
             auto& devices = desc.binded_devices;
