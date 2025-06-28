@@ -486,7 +486,7 @@ BlsObject Generator::visit(AstNode::Expression::Method& ast) {
     if (false) { } // short circuit hack
     #define METHOD_BEGIN(name, objType, ...) \
     else if (objectType == TYPE::objType##_t && methodName == #name) { \
-        instructions.push_back(createMTRAP(static_cast<uint16_t>(HeapDescriptor::METHODNUM::objType##_##name))); \
+        instructions.push_back(createMTRAP(static_cast<uint16_t>(BlsTrap::MCALLNUM::objType##__##name))); \
     }
     #define ARGUMENT(...)
     #define METHOD_END
@@ -601,7 +601,7 @@ BlsObject Generator::visit(AstNode::Expression::Map& ast) {
             instructions.push_back(createPUSH(literalPool.at(literal)));
             key->accept(*this);
             value->accept(*this);
-            instructions.push_back(createMTRAP(static_cast<uint16_t>(HeapDescriptor::METHODNUM::map_add)));
+            instructions.push_back(createMTRAP(static_cast<uint16_t>(BlsTrap::MCALLNUM::map__add)));
         }
     }
     instructions.push_back(createPUSH(literalPool.at(literal)));

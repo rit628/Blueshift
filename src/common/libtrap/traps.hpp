@@ -24,19 +24,18 @@ namespace BlsTrap {
         COUNT
     };
 
-    constexpr CALLNUM getTrapCallNum(const std::string& name) {
-        #define TRAP_BEGIN(trapName, ...) \
-        if (name == #trapName) return CALLNUM::trapName;
-        #define VARIADIC(...)
+    enum class MCALLNUM : uint16_t {
+        #define METHOD_BEGIN(name, objType, ...) \
+        objType##__##name,
         #define ARGUMENT(...)
-        #define TRAP_END
-        #include "include/TRAPS.LIST"
-        #undef TRAP_BEGIN
-        #undef VARIADIC
+        #define METHOD_END
+        #include "libtype/include/LIST_METHODS.LIST"
+        #include "libtype/include/MAP_METHODS.LIST"
+        #undef METHOD_BEGIN
         #undef ARGUMENT
-        #undef TRAP_END
-        return CALLNUM::COUNT;
-    }
+        #undef METHOD_END
+        COUNT
+    };
 
     namespace Detail {
 
@@ -55,6 +54,21 @@ namespace BlsTrap {
         #undef VARIADIC
         #undef ARGUMENT
         #undef TRAP_END
+
+        #define METHOD_BEGIN(name, objType, ...) \
+        namespace objType##__##name { \
+            enum ARGNUM : uint8_t {
+            #define ARGUMENT(argName, ...) \
+                argName,
+            #define METHOD_END \
+                COUNT \
+            }; \
+        }
+        #include "libtype/include/LIST_METHODS.LIST"
+        #include "libtype/include/MAP_METHODS.LIST"
+        #undef METHOD_BEGIN
+        #undef ARGUMENT
+        #undef METHOD_END
 
         #define TRAP_BEGIN(trapName, retType...) \
         namespace trapName { \
@@ -142,6 +156,28 @@ namespace BlsTrap {
         #undef VARIADIC
         #undef ARGUMENT
         #undef TRAP_END
+    }
+
+    template<MCALLNUM T>
+    BlsType executeMTRAP(BlsType object, std::vector<BlsType> args) {
+        using list = VectorDescriptor;
+        using map = MapDescriptor;
+        
+        auto operable = std::get<std::shared_ptr<HeapDescriptor>>(object);
+        #define METHOD_BEGIN(name, type, ...) \
+        if constexpr (T == MCALLNUM::type##__##name) { \
+            using argnum [[ maybe_unused ]] = Detail::type##__##name::ARGNUM; \
+            return std::dynamic_pointer_cast<type>(operable)->name(
+            #define ARGUMENT(argName, typeArgIdx, type...) \
+                resolveBlsType<type>(std::move(args[argnum::argName])),
+            #define METHOD_END \
+            0); \
+        }
+        #include "libtype/include/LIST_METHODS.LIST"
+        #include "libtype/include/MAP_METHODS.LIST"
+        #undef METHOD_BEGIN
+        #undef ARGUMENT
+        #undef METHOD_END
     }
 
 }

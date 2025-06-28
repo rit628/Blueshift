@@ -394,24 +394,31 @@ BlsObject Interpreter::visit(AstNode::Expression::Group& ast) {
 
 BlsObject Interpreter::visit(AstNode::Expression::Method& ast) {
     auto& object = ast.getObject();
+    auto objType = getType(object);
     auto& args = ast.getArguments();
-    std::vector<BlsType> resolvedArgs;
-    for (auto&& arg : args) {
-        auto visited = resolve(arg->accept(*this));
-        resolvedArgs.push_back(visited);
-    }
     auto& methodName = ast.getMethodName();
-    auto& operable = std::get<std::shared_ptr<HeapDescriptor>>(cs.getLocal(object));
-    if (methodName == "append") {
-        dynamic_cast<VectorDescriptor&>(*operable).append(resolvedArgs.at(0));
+
+    if (false) { } // short circuit hack
+    #define METHOD_BEGIN(name, objectType, ...) \
+    else if (objType == TYPE::objectType##_t && methodName == #name) { \
+        using argnum [[ maybe_unused ]] = BlsTrap::Detail::objectType##__##name::ARGNUM; \
+        if (args.size() != argnum::COUNT) { \
+            throw RuntimeError("Invalid number of arguments provided to " + methodName + "."); \
+        } \
+        return BlsTrap::executeMTRAP<BlsTrap::MCALLNUM::objectType##__##name>(object, {
+        #define ARGUMENT(argName, typeArgIdx, type...) \
+            resolve(args.at(argnum::argName)->accept(*this)),
+        #define METHOD_END \
+        }); \
     }
-    else if (methodName == "add") {
-        dynamic_cast<MapDescriptor&>(*operable).add(resolvedArgs.at(0), resolvedArgs.at(1));
+    #include "libtype/include/LIST_METHODS.LIST"
+    #include "libtype/include/MAP_METHODS.LIST"
+    #undef METHOD_BEGIN
+    #undef ARGUMENT
+    #undef METHOD_END
+    else {
+        throw RuntimeError("Invalid method " + methodName + " for " + getTypeName(objType));
     }
-    else if (methodName == "size") {
-        return 0;
-    }
-    return std::monostate();
 }
 
 BlsObject Interpreter::visit(AstNode::Expression::Function& ast) {

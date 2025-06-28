@@ -533,13 +533,13 @@ BlsObject Analyzer::visit(AstNode::Expression::Method& ast) {
     #define METHOD_BEGIN(name, objectType, typeArgIdx, returnType...) \
     else if (objType == TYPE::objectType##_t && methodName == #name) { \
         using namespace TypeDef; \
-        uint8_t argnum = 0; \
+        using argnum [[ maybe_unused ]] = BlsTrap::Detail::objectType##__##name::ARGNUM; \
         BlsType result = deduceType.operator()<typeArgIdx, returnType>(operable);
         #define ARGUMENT(argName, typeArgIdx, type...) \
-        if (argnum >= methodArgs.size()) { \
+        if (methodArgs.size() != argnum::COUNT) { \
             throw SemanticError("Invalid number of arguments provided to " + methodName + "."); \
         } \
-        auto argName = resolve(methodArgs.at(argnum++)->accept(*this)); \
+        auto argName = resolve(methodArgs.at(argnum::argName)->accept(*this)); \
         BlsType expected_##argName = deduceType.operator()<typeArgIdx, type>(operable); \
         if (!typeCompatible(argName, expected_##argName)) { \
             throw SemanticError("Invalid type for argument " #argName "."); \

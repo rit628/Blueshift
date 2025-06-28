@@ -230,20 +230,17 @@ void VirtualMachine::TRAP(uint16_t callnum, uint8_t argc, int) {
 }
 
 void VirtualMachine::MTRAP(uint16_t callnum, int) {
-    using list = VectorDescriptor;
-    using map = MapDescriptor;
-
-    auto trapnum = static_cast<HeapDescriptor::METHODNUM>(callnum);
-    auto object = std::get<std::shared_ptr<HeapDescriptor>>(cs.popOperand());
+    auto trapnum = static_cast<BlsTrap::MCALLNUM>(callnum);
+    auto object = cs.popOperand();
 
     switch (trapnum) {
         #define METHOD_BEGIN(name, type, ...) \
-        case HeapDescriptor::METHODNUM::type##_##name: { \
-            std::dynamic_pointer_cast<type>(object)->name(
+        case BlsTrap::MCALLNUM::type##__##name: { \
+            BlsTrap::executeMTRAP<BlsTrap::MCALLNUM::type##__##name>(object, {
             #define ARGUMENT(argName, typeArgIdx, type...) \
-                resolveBlsType<type>(cs.popOperand()),
+                cs.popOperand(),
             #define METHOD_END \
-            0); \
+            }); \
         }
         #include "libtype/include/LIST_METHODS.LIST"
         #include "libtype/include/MAP_METHODS.LIST"

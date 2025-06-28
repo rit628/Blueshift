@@ -642,7 +642,7 @@ namespace BlsLang {
             createPUSH(3), // push map
             createPUSH(2), // push key "k2" (index 2)
             createLOAD(0), // push value of x (index 0)
-            createMTRAP(static_cast<uint16_t>(HeapDescriptor::METHODNUM::map_add)),
+            createMTRAP(static_cast<uint16_t>(BlsTrap::MCALLNUM::map__add)),
             createPUSH(3)
         );
 
@@ -691,7 +691,7 @@ namespace BlsLang {
             createPUSH(3), // push map
             createLOAD(0), // push value of key x (index 0)
             createPUSH(2), // push value 14 (index 2)
-            createMTRAP(static_cast<uint16_t>(HeapDescriptor::METHODNUM::map_add)),
+            createMTRAP(static_cast<uint16_t>(BlsTrap::MCALLNUM::map__add)),
             createPUSH(3)
         );
 
@@ -740,7 +740,7 @@ namespace BlsLang {
             createPUSH(2), // push map
             createLOAD(0), // push value of key x (index 0)
             createLOAD(1), // push value of y (index 1)
-            createMTRAP(static_cast<uint16_t>(HeapDescriptor::METHODNUM::map_add)),
+            createMTRAP(static_cast<uint16_t>(BlsTrap::MCALLNUM::map__add)),
             createPUSH(2)
         );
 
@@ -1417,7 +1417,7 @@ namespace BlsLang {
             createLOAD(0),
             createPUSH(0),
             createLOAD(1),
-            createMTRAP(static_cast<uint16_t>(HeapDescriptor::METHODNUM::map_add))
+            createMTRAP(static_cast<uint16_t>(BlsTrap::MCALLNUM::map__add))
         );
 
         TEST_GENERATE(ast, expectedInstructions);

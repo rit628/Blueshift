@@ -146,19 +146,6 @@ class HeapDescriptor {
 
 
   public:
-    enum class METHODNUM : uint16_t {
-      #define METHOD_BEGIN(name, objType, ...) \
-      objType##_##name,
-      #define ARGUMENT(...)
-      #define METHOD_END
-      #include "include/LIST_METHODS.LIST"
-      #include "include/MAP_METHODS.LIST"
-      #undef METHOD_BEGIN
-      #undef ARGUMENT
-      #undef METHOD_END
-      COUNT
-    };
-
     HeapDescriptor() = default;
     virtual ~HeapDescriptor() = default;
     void setCont(TYPE contType) { this->contType = contType; }

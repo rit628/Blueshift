@@ -41,7 +41,7 @@ namespace BlsLang {
                     constexpr auto callnum = CALLNUM::trapName; \
                     constexpr auto variadic = Detail::trapName::variadic; \
                     if constexpr (!variadic) { \
-                        if (argnum::COUNT >= 0 && args.size() != argnum::COUNT) { \
+                        if (args.size() != argnum::COUNT) { \
                             throw RuntimeError("Invalid number of arguments provided to " #trapName "."); \
                         } \
                     }
