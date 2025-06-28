@@ -12,6 +12,7 @@
 #include <memory>
 #include <string>
 #include <tuple>
+#include <unordered_set>
 #include <variant>
 #include <vector>
 #include <boost/range/iterator_range.hpp>
@@ -132,6 +133,7 @@ BlsObject Analyzer::visit(AstNode::Function::Oblock& ast) {
 
 BlsObject Analyzer::visit(AstNode::Setup& ast) {
     auto completedLiteralPool = std::move(literalPool); // save initial literal pool as setup values arent necessary at runtime
+    std::unordered_set<std::string> boundOblocks;
 
     for (auto&& statement : ast.getStatements()) {
         if (auto* deviceBinding = dynamic_cast<AstNode::Statement::Declaration*>(statement.get())) {
@@ -207,12 +209,16 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
                     parameter = desc.binded_devices.at(std::stoi(parameter)).device_name;
                 }
             }
+            boundOblocks.emplace(name);
         }
         else {
             throw SemanticError("Statement within setup() must be an oblock binding expression or device binding declaration");
         }
     }
 
+    std::erase_if(oblockDescriptors, [&boundOblocks](const auto& element) {
+        return !boundOblocks.contains(element.first);
+    }); // get rid of unbound oblocks
     literalPool = std::move(completedLiteralPool);
     return std::monostate();
 }

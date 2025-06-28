@@ -128,8 +128,10 @@ BlsObject Generator::visit(AstNode::Function::Procedure& ast) {
 }
 
 BlsObject Generator::visit(AstNode::Function::Oblock& ast) {
+    auto& name = ast.getName();
+    if (!oblockDescriptors.contains(name)) return 0; // skip generating code for unbound oblocks
     uint16_t address = instructions.size();
-    oblockDescriptors.at(ast.getName()).bytecode_offset = address;
+    oblockDescriptors.at(name).bytecode_offset = address;
     for (auto&& statement : ast.getStatements()) {
         statement->accept(*this);
     }
