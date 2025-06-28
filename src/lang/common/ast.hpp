@@ -1,5 +1,5 @@
 #pragma once
-#include "libtypes/bls_types.hpp"
+#include "libtype/bls_types.hpp"
 #include <unordered_set>
 #include <variant>
 #include <cstddef>
@@ -239,11 +239,13 @@ namespace BlsLang {
             Method(std::string object
                  , std::string methodName
                  , std::vector<std::unique_ptr<AstNode::Expression>> arguments
-                 , uint8_t localIndex = 0);
+                 , uint8_t localIndex = 0
+                 , TYPE objectType = TYPE::NONE);
             Method(std::string object
                  , std::string methodName
                  , std::initializer_list<AstNode::Expression*> arguments
-                 , uint8_t localIndex = 0);
+                 , uint8_t localIndex = 0
+                 , TYPE objectType = TYPE::NONE);
             Method(const Method& other);
             Method& operator=(const Method& rhs);
 
@@ -255,12 +257,14 @@ namespace BlsLang {
             auto& getMethodName() { return methodName; }
             auto& getArguments() { return arguments; }
             auto& getLocalIndex() { return localIndex; }
+            auto& getObjectType() { return objectType; }
 
         private:
             std::string object;
             std::string methodName;
             std::vector<std::unique_ptr<AstNode::Expression>> arguments;
             uint8_t localIndex;
+            TYPE objectType;
     };
 
     class AstNode::Expression::Group : public AstNode::Expression {

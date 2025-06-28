@@ -1,7 +1,7 @@
 #pragma once
 #include "ast.hpp"
 #include "include/Common.hpp"
-#include "libbytecode/include/opcodes.hpp"
+#include "libbytecode/opcodes.hpp"
 #include <concepts>
 #include <cstdint>
 #include <gtest/gtest.h>
@@ -12,7 +12,7 @@
 #include <vector>
 #include <boost/range/combine.hpp>
 #include "generator.hpp"
-#include "libtypes/bls_types.hpp"
+#include "libtype/bls_types.hpp"
 
 namespace BlsLang {
     class GeneratorTest : public testing::Test {
@@ -31,8 +31,8 @@ namespace BlsLang {
                     switch (instruction->opcode) {
                         #define OPCODE_BEGIN(code) \
                         case OPCODE::code: { \
-                            auto& resolvedInstruction = static_cast<INSTRUCTION::code&>(*instruction); \
-                            auto& resolvedExpected = static_cast<INSTRUCTION::code&>(*expectedInstruction);
+                            auto& resolvedInstruction [[ maybe_unused ]] = static_cast<INSTRUCTION::code&>(*instruction); \
+                            auto& resolvedExpected [[ maybe_unused ]] = static_cast<INSTRUCTION::code&>(*expectedInstruction);
                         #define ARGUMENT(arg, ...) \
                             EXPECT_EQ(resolvedInstruction.arg, resolvedExpected.arg);
                         #define OPCODE_END(...) \

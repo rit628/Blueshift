@@ -206,20 +206,24 @@ AstNode::Expression::Function::Function(const Function& other) {
 AstNode::Expression::Method::Method(std::string object
                                   , std::string methodName
                                   , std::vector<std::unique_ptr<AstNode::Expression>> arguments
-                                  , uint8_t localIndex)
+                                  , uint8_t localIndex
+                                  , TYPE objectType)
                                   : object(std::move(object))
                                   , methodName(std::move(methodName))
                                   , arguments(std::move(arguments))
                                   , localIndex(localIndex)
+                                  , objectType(objectType)
                                   {}
 
 AstNode::Expression::Method::Method(std::string object
                                   , std::string methodName
                                   , std::initializer_list<AstNode::Expression*> arguments
-                                  , uint8_t localIndex)
+                                  , uint8_t localIndex
+                                  , TYPE objectType)
                                   : object(std::move(object))
                                   , methodName(std::move(methodName))
                                   , localIndex(localIndex)
+                                  , objectType(objectType)
 {
     for (auto&& arg : arguments) {
         this->arguments.push_back(std::unique_ptr<AstNode::Expression>(arg));
@@ -233,6 +237,7 @@ AstNode::Expression::Method::Method(const Method& other) {
         this->arguments.push_back(arg->cloneBase());
     }
     this->localIndex = other.localIndex;
+    this->objectType = other.objectType;
 }
 
 /* AstNode::Expression::Group */

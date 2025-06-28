@@ -9,6 +9,7 @@
 #include <variant>
 #include <boost/functional/hash.hpp>
 #include <boost/range/iterator_range_core.hpp>
+#include <boost/range/combine.hpp>
 #include <vector>
 
 template<class... Ts>
@@ -290,16 +291,17 @@ bool typeCompatible(const BlsType& lhs, const BlsType& rhs) {
             if (a->getType() != b->getType()) {
                 return false;
             }
-            // key types must match or be implicitly convertible
-            else if (!compareTypes(a->getKey(), b->getKey())) {
-                return false;
-            }
-            else if (!compareTypes(a->getCont(), b->getCont())) {
-                return false;
+
+            auto& aInner = a->getSampleElement();
+            auto& bInner = b->getSampleElement();
+
+            for (auto&& [a, b] : boost::combine(aInner, bInner)) {
+                if (!typeCompatible(a, b)) {
+                    return false;
+                }
             }
 
-            BlsType aInner = a->getSampleElement(), bInner = b->getSampleElement();
-            return typeCompatible(aInner, bInner);
+            return true;
         },
         [](const auto& a, const auto& b) {
             return compareTypes(getType(a), getType(b));
@@ -315,7 +317,7 @@ std::ostream& operator<<(std::ostream& os, const BlsType& obj) {
                     auto list = std::dynamic_pointer_cast<VectorDescriptor>(x);
                     auto& internalVector = list->getVector();
                     os << "[";
-                    if (list->getSize() > 0) {
+                    if (list->size() > 0) {
                         os << internalVector.front();
                     }
                     for (auto&& element : boost::make_iterator_range(internalVector.begin() + 1, internalVector.end())) {
@@ -330,7 +332,7 @@ std::ostream& operator<<(std::ostream& os, const BlsType& obj) {
                     auto& internalMap = map->getMap();
                     auto beginIt = internalMap.begin();
                     os << "{";
-                    if (map->getSize() > 0) {
+                    if (map->size() > 0) {
                         auto& [key, val] = *beginIt;
                         os << key << " : " << val;
                         beginIt++;
@@ -390,21 +392,18 @@ size_t std::hash<BlsType>::operator()(const BlsType& obj) const {
 
 MapDescriptor::MapDescriptor(TYPE contType) {
     this->objType = TYPE::map_t;
-    this->keyType = TYPE::string_t;
     this->contType = contType;
     this->map = std::make_shared<std::unordered_map<std::string, BlsType>>(); 
 }
 
 MapDescriptor::MapDescriptor(TYPE objType, TYPE keyType, TYPE contType) {
     this->objType = objType;
-    this->keyType = keyType;
     this->contType = contType;
     this->map = std::make_shared<std::unordered_map<std::string, BlsType>>(); 
 }
 
 MapDescriptor::MapDescriptor(std::initializer_list<std::pair<std::string, BlsType>> elements) {
     this->objType = TYPE::map_t;
-    this->keyType = TYPE::string_t;
     this->contType = TYPE::ANY;
     this->map = std::make_shared<std::unordered_map<std::string, BlsType>>();
     this->map->insert(elements.begin(), elements.end());
@@ -422,10 +421,14 @@ BlsType& MapDescriptor::access(BlsType &obj) {
     } 
 }
 
-void MapDescriptor::emplace(BlsType& obj, BlsType& newDesc) {
+std::monostate MapDescriptor::add(BlsType key, BlsType value, int) {
     std::scoped_lock bob(mux); 
-    std::string newKey = stringify(obj); 
-    this->map->emplace(newKey, newDesc);
+    this->map->emplace(stringify(key), value);
+    return std::monostate();
+}
+
+int64_t MapDescriptor::size(int) {
+    return this->map->size();
 }
 
 VectorDescriptor::VectorDescriptor(std::string cont_code) {
@@ -459,9 +462,14 @@ BlsType& VectorDescriptor::access(BlsType &int_acc) {
     }
 }
 
-void VectorDescriptor::append(BlsType& newObj){
+std::monostate VectorDescriptor::append(BlsType value, int){
     std::scoped_lock bob(mux);
-    this->vector->push_back(newObj);
+    this->vector->push_back(value);
+    return std::monostate();
+}
+
+int64_t VectorDescriptor::size(int) {
+    return this->vector->size();
 }
 
 TYPE getType(const BlsType& obj) {

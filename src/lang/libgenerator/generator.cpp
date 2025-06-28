@@ -1,8 +1,9 @@
 #include "generator.hpp"
 #include "ast.hpp"
 #include "libbytecode/bytecode_processor.hpp"
-#include "libbytecode/include/opcodes.hpp"
-#include "libtypes/bls_types.hpp"
+#include "libbytecode/opcodes.hpp"
+#include "libtype/bls_types.hpp"
+#include "libtrap/traps.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -47,7 +48,7 @@ void Generator::writeBytecode(std::ostream& outputStream) {
         switch (instruction->opcode) {
             #define OPCODE_BEGIN(code) \
             case OPCODE::code: { \
-                auto& resolvedInstruction = reinterpret_cast<INSTRUCTION::code&>(*instruction); \
+                auto& resolvedInstruction [[ maybe_unused ]] = reinterpret_cast<INSTRUCTION::code&>(*instruction); \
                 outputStream.write(reinterpret_cast<const char *>(&instruction->opcode), sizeof(OPCODE));
             #define ARGUMENT(arg, type) \
                 type& arg = resolvedInstruction.arg; \
@@ -477,19 +478,24 @@ BlsObject Generator::visit(AstNode::Expression::Group& ast) {
 
 BlsObject Generator::visit(AstNode::Expression::Method& ast) {
     instructions.push_back(createLOAD(ast.getLocalIndex()));
+    auto& objectType = ast.getObjectType();
     auto& methodName = ast.getMethodName();
     for (auto&& arg : ast.getArguments()) {
         arg->accept(*this);
     }
-    if (methodName == "append") {
-        instructions.push_back(createAPPEND());
+    if (false) { } // short circuit hack
+    #define METHOD_BEGIN(name, objType, ...) \
+    else if (objectType == TYPE::objType##_t && methodName == #name) { \
+        instructions.push_back(createMTRAP(static_cast<uint16_t>(BlsTrap::MCALLNUM::objType##__##name))); \
     }
-    else if (methodName == "emplace") {
-        instructions.push_back(createEMPLACE());
-    }
-    else if (methodName == "size") {
-        instructions.push_back(createSIZE());
-    }
+    #define ARGUMENT(...)
+    #define METHOD_END
+    #include "libtype/include/LIST_METHODS.LIST"
+    #include "libtype/include/MAP_METHODS.LIST"
+    #undef METHOD_BEGIN
+    #undef ARGUMENT
+    #undef METHOD_END
+
     return 0;
 }
 
@@ -499,12 +505,19 @@ BlsObject Generator::visit(AstNode::Expression::Function& ast) {
         arg->accept(*this);
     }
     auto& name = ast.getName();
-    if (name == "println") {
-        instructions.push_back(createPRINTLN(args.size()));
+    if (false) { } // hack to force short circuiting
+    #define TRAP_BEGIN(trapName, ...) \
+    else if (name == #trapName) { \
+        instructions.push_back(createTRAP(static_cast<uint16_t>(BlsTrap::CALLNUM::trapName), args.size()));
+        #define VARIADIC(...)
+        #define ARGUMENT(argName, argType...)
+        #define TRAP_END \
     }
-    else if (name == "print") {
-        instructions.push_back(createPRINT(args.size()));
-    }
+    #include "libtrap/include/TRAPS.LIST"
+    #undef TRAP_BEGIN
+    #undef VARIADIC
+    #undef ARGUMENT
+    #undef TRAP_END
     else {
         auto address = procedureAddresses.at(name);
         instructions.push_back(createCALL(address, args.size()));
@@ -588,7 +601,7 @@ BlsObject Generator::visit(AstNode::Expression::Map& ast) {
             instructions.push_back(createPUSH(literalPool.at(literal)));
             key->accept(*this);
             value->accept(*this);
-            instructions.push_back(createEMPLACE());
+            instructions.push_back(createMTRAP(static_cast<uint16_t>(BlsTrap::MCALLNUM::map__add)));
         }
     }
     instructions.push_back(createPUSH(literalPool.at(literal)));

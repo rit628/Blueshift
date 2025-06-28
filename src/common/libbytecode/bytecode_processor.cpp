@@ -1,8 +1,8 @@
 #include "bytecode_processor.hpp"
 #include "include/Common.hpp"
-#include "include/opcodes.hpp"
+#include "opcodes.hpp"
 #include "libDM/DynamicMessage.hpp"
-#include "libtypes/bls_types.hpp"
+#include "libtype/bls_types.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -32,7 +32,7 @@ void BytecodeProcessor::dispatch() {
         switch (instructionStruct->opcode) {
             #define OPCODE_BEGIN(code) \
             case OPCODE::code: { \
-                auto& resolvedInstruction = reinterpret_cast<INSTRUCTION::code&>(*instructionStruct);
+                auto& resolvedInstruction [[ maybe_unused ]] = reinterpret_cast<INSTRUCTION::code&>(*instructionStruct);
             #define ARGUMENT(arg, type) \
                 type& arg = resolvedInstruction.arg;
             #define OPCODE_END(code, args...) \

@@ -1,6 +1,6 @@
 #pragma once
 #include "ast.hpp"
-#include "libtypes/bls_types.hpp"
+#include "libtype/bls_types.hpp"
 #include "libcompiler/compiler.hpp"
 #include <fstream>
 #include <gtest/gtest.h>

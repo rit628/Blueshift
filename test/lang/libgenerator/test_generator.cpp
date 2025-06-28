@@ -3,8 +3,9 @@
 #include "include/Common.hpp"
 #include "include/reserved_tokens.hpp"
 #include "libbytecode/bytecode_processor.hpp"
-#include "libbytecode/include/opcodes.hpp"
-#include "libtypes/bls_types.hpp"
+#include "libbytecode/opcodes.hpp"
+#include "libtrap/traps.hpp"
+#include "libtype/bls_types.hpp"
 #include "test_macros.hpp"
 #include <cstdint>
 #include <initializer_list>
@@ -641,7 +642,7 @@ namespace BlsLang {
             createPUSH(3), // push map
             createPUSH(2), // push key "k2" (index 2)
             createLOAD(0), // push value of x (index 0)
-            createEMPLACE(),
+            createMTRAP(static_cast<uint16_t>(BlsTrap::MCALLNUM::map__add)),
             createPUSH(3)
         );
 
@@ -690,7 +691,7 @@ namespace BlsLang {
             createPUSH(3), // push map
             createLOAD(0), // push value of key x (index 0)
             createPUSH(2), // push value 14 (index 2)
-            createEMPLACE(),
+            createMTRAP(static_cast<uint16_t>(BlsTrap::MCALLNUM::map__add)),
             createPUSH(3)
         );
 
@@ -739,7 +740,7 @@ namespace BlsLang {
             createPUSH(2), // push map
             createLOAD(0), // push value of key x (index 0)
             createLOAD(1), // push value of y (index 1)
-            createEMPLACE(),
+            createMTRAP(static_cast<uint16_t>(BlsTrap::MCALLNUM::map__add)),
             createPUSH(2)
         );
 
@@ -1382,7 +1383,7 @@ namespace BlsLang {
             createPUSH(0),
             createPUSH(1),
             createLOAD(0),
-            createPRINT(3)
+            createTRAP(static_cast<uint16_t>(BlsTrap::CALLNUM::print), 3)
         );
 
         TEST_GENERATE(ast, expectedInstructions);
@@ -1391,7 +1392,7 @@ namespace BlsLang {
     GROUP_TEST_F(GeneratorTest, FunctionTests, MethodCall) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Expression::Method(
             "a",
-            "emplace",
+            "add",
             {
                 new AstNode::Expression::Literal(
                     std::string("key")
@@ -1401,7 +1402,8 @@ namespace BlsLang {
                     uint8_t(1)
                 )
             },
-            uint8_t(0)
+            uint8_t(0),
+            TYPE::map_t
         ));
 
         std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
@@ -1415,7 +1417,7 @@ namespace BlsLang {
             createLOAD(0),
             createPUSH(0),
             createLOAD(1),
-            createEMPLACE()
+            createMTRAP(static_cast<uint16_t>(BlsTrap::MCALLNUM::map__add))
         );
 
         TEST_GENERATE(ast, expectedInstructions);

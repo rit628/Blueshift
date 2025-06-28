@@ -1,5 +1,5 @@
 #pragma once
-#include "libtypes/bls_types.hpp"
+#include "libtype/bls_types.hpp"
 #include "call_stack.hpp"
 #include "libbytecode/bytecode_processor.hpp"
 #include <cstddef>

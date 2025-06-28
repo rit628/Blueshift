@@ -3,9 +3,9 @@
 #include "error_types.hpp"
 #include "include/Common.hpp"
 #include "include/reserved_tokens.hpp"
-#include "libtypes/typedefs.hpp"
+#include "libtype/typedefs.hpp"
 #include "analyzer.hpp"
-#include "libtypes/bls_types.hpp"
+#include "libtype/bls_types.hpp"
 #include "call_stack.hpp"
 #include <cstdint>
 #include <functional>
@@ -517,30 +517,45 @@ BlsObject Analyzer::visit(AstNode::Expression::Method& ast) {
     if (objType < TYPE::PRIMITIVES_END || objType > TYPE::CONTAINERS_END) {
         throw SemanticError("Methods may only be applied on container type objects.");
     }
-    std::vector<BlsType> resolvedArgs;
-    for (auto&& arg : methodArgs) {
-        auto visited = resolve(arg->accept(*this));
-        resolvedArgs.push_back(visited);
-    }
     auto& operable = std::get<std::shared_ptr<HeapDescriptor>>(object);
-    // temporary solution for method type checking; not scalable with arbitrary number of methods
-    if (methodName == "append") {
-        if (operable->getType() != TYPE::list_t) {
-            throw SemanticError("append may only be used on list type objects");
+
+    static auto deduceType = []<int typeArgIdx, typename T>(std::shared_ptr<HeapDescriptor>& operable) -> BlsType {
+        using namespace TypeDef;
+        if constexpr (TypeDef::BlueshiftType<T>) {
+            return createBlsType(converted_t<T>());
         }
-    }
-    else if (methodName == "add") {
-        if (operable->getType() != TYPE::map_t) {
-            throw SemanticError("add may only be used on map type objects");
+        else {
+            return operable->getSampleElement().at(typeArgIdx);
         }
+    };
+
+    if (false) { } // short circuit hack
+    #define METHOD_BEGIN(name, objectType, typeArgIdx, returnType...) \
+    else if (objType == TYPE::objectType##_t && methodName == #name) { \
+        using namespace TypeDef; \
+        using argnum [[ maybe_unused ]] = BlsTrap::Detail::objectType##__##name::ARGNUM; \
+        BlsType result = deduceType.operator()<typeArgIdx, returnType>(operable);
+        #define ARGUMENT(argName, typeArgIdx, type...) \
+        if (methodArgs.size() != argnum::COUNT) { \
+            throw SemanticError("Invalid number of arguments provided to " + methodName + "."); \
+        } \
+        auto argName = resolve(methodArgs.at(argnum::argName)->accept(*this)); \
+        BlsType expected_##argName = deduceType.operator()<typeArgIdx, type>(operable); \
+        if (!typeCompatible(argName, expected_##argName)) { \
+            throw SemanticError("Invalid type for argument " #argName "."); \
+        }
+        #define METHOD_END \
+        ast.getObjectType() = objType; \
+        return result; \
     }
-    else if (methodName == "size") {
-        return BlsType(operable->getSize());
-    }
+    #include "libtype/include/LIST_METHODS.LIST"
+    #include "libtype/include/MAP_METHODS.LIST"
+    #undef METHOD_BEGIN
+    #undef ARGUMENT
+    #undef METHOD_END
     else {
-        throw SemanticError("invalid method");
+        throw SemanticError("Invalid method " + methodName + " for " + getTypeName(objType));
     }
-    return std::monostate();
 }
 
 BlsObject Analyzer::visit(AstNode::Expression::Function& ast) {
@@ -650,7 +665,7 @@ BlsObject Analyzer::visit(AstNode::Expression::List& ast) {
     if (elements.size() > 0) {
         addElement(0, elements.at(0));
         list->setCont(getType(list->access(initIdx)));
-        list->getSampleElement() = list->access(initIdx);
+        list->getSampleElement().assign({list->access(initIdx)});
         for (size_t i = 1; i < elements.size(); i++) {
             auto value = addElement(i, elements.at(i));
             if (!typeCompatible(list->access(initIdx), value)) {
@@ -680,18 +695,17 @@ BlsObject Analyzer::visit(AstNode::Expression::Map& ast) {
             throw SemanticError("Invalid key type for map");
         }
         auto value = resolve(element.second->accept(*this));
-        map->emplace(key, value);
+        map->add(key, value);
         auto& keyExpressionType = typeid(*element.first);
         if (keyExpressionType == typeid(AstNode::Expression::Literal)) { // key can be added at compile time
             auto& valExpressionType = typeid(*element.second);
             if (valExpressionType == typeid(AstNode::Expression::Literal)
              || valExpressionType == typeid(AstNode::Expression::List)
              || valExpressionType == typeid(AstNode::Expression::Map)) { // value can be added at compile time
-                mapLiteral->emplace(key, value);
+                mapLiteral->add(key, value);
             }
             else {
-                BlsType null = std::monostate();
-                mapLiteral->emplace(key, null);
+                mapLiteral->add(key, std::monostate());
             }
         }
         return std::pair(key, value);
@@ -700,7 +714,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Map& ast) {
     if (elements.size() > 0) {
         std::tie(initKey, initVal) = addElement(elements.at(0));
         map->setCont(getType(initVal));
-        map->getSampleElement() = initVal;
+        map->getSampleElement().assign({initKey, initVal});
         for (auto&& element : boost::make_iterator_range(elements.begin() + 1, elements.end())) {
             auto&& [key, value] = addElement(element);
             if (!typeCompatible(initKey, key)
@@ -751,8 +765,7 @@ BlsObject Analyzer::visit(AstNode::Specifier::Type& ast) {
             auto argType = getTypeFromName(typeArgs.at(0)->getName());
             auto list = std::make_shared<VectorDescriptor>(argType);
             auto arg = resolve(typeArgs.at(0)->accept(*this));
-            list->append(arg);
-            list->getSampleElement() = arg;
+            list->getSampleElement().assign({arg});
             return list;
         }
         break;
@@ -770,8 +783,7 @@ BlsObject Analyzer::visit(AstNode::Specifier::Type& ast) {
             auto map = std::make_shared<MapDescriptor>(TYPE::map_t, keyType, valType);
             auto key = resolve(typeArgs.at(0)->accept(*this));
             auto value = resolve(typeArgs.at(1)->accept(*this));
-            map->emplace(key, value);
-            map->getSampleElement() = value;
+            map->getSampleElement().assign({key, value});
             return BlsType(map);
         }
         break;
@@ -784,7 +796,7 @@ BlsObject Analyzer::visit(AstNode::Specifier::Type& ast) {
         #define ATTRIBUTE(name, type) \
             attr = BlsType(#name); \
             attrVal = BlsType(type()); \
-            devtype->emplace(attr, attrVal);
+            devtype->add(attr, attrVal);
         #define DEVTYPE_END \
             return BlsType(devtype); \
         } \

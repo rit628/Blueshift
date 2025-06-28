@@ -11,8 +11,8 @@
 #include <unordered_map> 
 #include <map>
 #include <iostream> 
-#include "libtypes/bls_types.hpp"
-#include "libtypes/typedefs.hpp"
+#include "libtype/bls_types.hpp"
+#include "libtype/typedefs.hpp"
 //#include "../libCommon/Common.hpp"
 
 

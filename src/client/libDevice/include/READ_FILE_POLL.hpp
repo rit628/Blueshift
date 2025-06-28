@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../DeviceCore.hpp"
-#include "libtypes/typedefs.hpp"
+#include "libtype/typedefs.hpp"
 #include <fstream>
 
 template<>

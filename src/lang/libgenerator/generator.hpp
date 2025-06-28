@@ -1,7 +1,7 @@
 #pragma once
 #include "include/Common.hpp"
-#include "libbytecode/include/opcodes.hpp"
-#include "libtypes/bls_types.hpp"
+#include "libbytecode/opcodes.hpp"
+#include "libtype/bls_types.hpp"
 #include "visitor.hpp"
 #include <cstdint>
 #include <ostream>

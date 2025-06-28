@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../DeviceCore.hpp"
-#include "libtypes/typedefs.hpp"
+#include "libtype/typedefs.hpp"
 
 template<>
 class Device<TypeDef::LIGHT> : public DeviceCore {
