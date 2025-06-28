@@ -31,8 +31,8 @@ namespace BlsLang {
                     switch (instruction->opcode) {
                         #define OPCODE_BEGIN(code) \
                         case OPCODE::code: { \
-                            auto& resolvedInstruction = static_cast<INSTRUCTION::code&>(*instruction); \
-                            auto& resolvedExpected = static_cast<INSTRUCTION::code&>(*expectedInstruction);
+                            auto& resolvedInstruction [[ maybe_unused ]] = static_cast<INSTRUCTION::code&>(*instruction); \
+                            auto& resolvedExpected [[ maybe_unused ]] = static_cast<INSTRUCTION::code&>(*expectedInstruction);
                         #define ARGUMENT(arg, ...) \
                             EXPECT_EQ(resolvedInstruction.arg, resolvedExpected.arg);
                         #define OPCODE_END(...) \

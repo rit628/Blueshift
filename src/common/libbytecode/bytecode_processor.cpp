@@ -32,7 +32,7 @@ void BytecodeProcessor::dispatch() {
         switch (instructionStruct->opcode) {
             #define OPCODE_BEGIN(code) \
             case OPCODE::code: { \
-                auto& resolvedInstruction = reinterpret_cast<INSTRUCTION::code&>(*instructionStruct);
+                auto& resolvedInstruction [[ maybe_unused ]] = reinterpret_cast<INSTRUCTION::code&>(*instructionStruct);
             #define ARGUMENT(arg, type) \
                 type& arg = resolvedInstruction.arg;
             #define OPCODE_END(code, args...) \
