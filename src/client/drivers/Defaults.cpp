@@ -6,7 +6,7 @@
 using namespace Device;
 
 #define DEVTYPE_BEGIN(name) \
-__attribute__ ((weak)) void name::init(std::unordered_map<std::string, std::string> &config) { \
+[[ gnu::weak ]] void name::init(std::unordered_map<std::string, std::string> &config) { \
     throw std::runtime_error("DEVTYPE " #name " NOT SUPPORTED ON " CONTROLLER_TARGET " CONTROLLERS"); \
 }
 #define ATTRIBUTE(...)
@@ -17,7 +17,7 @@ __attribute__ ((weak)) void name::init(std::unordered_map<std::string, std::stri
 #undef DEVTYPE_END
 
 #define DEVTYPE_BEGIN(name) \
-__attribute__ ((weak)) void name::processStates(DynamicMessage &dmsg) { \
+[[ gnu::weak ]] void name::processStates(DynamicMessage &dmsg) { \
     throw std::runtime_error("DEVTYPE " #name " NOT SUPPORTED ON " CONTROLLER_TARGET " CONTROLLERS"); \
 }
 #define ATTRIBUTE(...)
@@ -28,7 +28,7 @@ __attribute__ ((weak)) void name::processStates(DynamicMessage &dmsg) { \
 #undef DEVTYPE_END
 
 #define DEVTYPE_BEGIN(name) \
-__attribute__ ((weak)) void name::transmitStates(DynamicMessage &dmsg) { \
+[[ gnu::weak ]] void name::transmitStates(DynamicMessage &dmsg) { \
     throw std::runtime_error("DEVTYPE " #name " NOT SUPPORTED ON " CONTROLLER_TARGET " CONTROLLERS"); \
 }
 #define ATTRIBUTE(...)
@@ -39,7 +39,7 @@ __attribute__ ((weak)) void name::transmitStates(DynamicMessage &dmsg) { \
 #undef DEVTYPE_END
 
 #define DEVTYPE_BEGIN(name) \
-__attribute__ ((weak)) name::~name() { }
+[[ gnu::weak ]] name::~name() { }
 #define ATTRIBUTE(...)
 #define DEVTYPE_END
 #include "DEVTYPES.LIST"
