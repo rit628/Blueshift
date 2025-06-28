@@ -123,15 +123,25 @@ namespace BlsTrap {
     #undef ARGUMENT
     #undef TRAP_END
 
-    #define TRAP_BEGIN(name, ...) \
-    BlsType exec__##name(std::vector<BlsType> args);
-    #define VARIADIC(...)
-    #define ARGUMENT(...)
-    #define TRAP_END
-    #include "include/TRAPS.LIST"
-    #undef TRAP_BEGIN
-    #undef VARIADIC
-    #undef ARGUMENT
-    #undef TRAP_END
+    template<CALLNUM T>
+    BlsType executeTrap(std::vector<BlsType> args) {
+        #define TRAP_BEGIN(name, ...) \
+        if constexpr (T == CALLNUM::name) { \
+            using argnum [[ maybe_unused ]] = Detail::name::ARGNUM; \
+            return name(
+                #define VARIADIC(...) \
+                args,
+                #define ARGUMENT(argName, argType) \
+                resolveBlsType<argType>(std::move(args[argnum::argName])),
+                #define TRAP_END \
+                0 \
+            ); \
+        }
+        #include "include/TRAPS.LIST"
+        #undef TRAP_BEGIN
+        #undef VARIADIC
+        #undef ARGUMENT
+        #undef TRAP_END
+    }
 
 }

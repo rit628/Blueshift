@@ -1,8 +1,11 @@
 #include "traps.hpp"
 #include "libtype/bls_types.hpp"
+#include <concepts>
 #include <variant>
 #include <vector>
 #include <boost/range/iterator_range_core.hpp>
+
+using namespace BlsTrap;
 
 std::monostate BlsTrap::print(std::vector<BlsType> values, int) {
     if (values.size() > 0) {
@@ -21,21 +24,3 @@ std::monostate BlsTrap::println(std::vector<BlsType> values, int) {
     }
     return std::monostate();
 }
-
-#define TRAP_BEGIN(name, ...) \
-    BlsType BlsTrap::exec__##name(std::vector<BlsType> args) { \
-        using argnum [[ maybe_unused ]] = Detail::name::ARGNUM; \
-        return BlsTrap::name(
-            #define VARIADIC(...) \
-            args,
-            #define ARGUMENT(argName, argType) \
-            std::get<converted_t<argType>>(args[argnum::argName]),
-            #define TRAP_END \
-            0 \
-        ); \
-    }
-#include "include/TRAPS.LIST"
-#undef TRAP_BEGIN
-#undef VARIADIC
-#undef ARGUMENT
-#undef TRAP_END

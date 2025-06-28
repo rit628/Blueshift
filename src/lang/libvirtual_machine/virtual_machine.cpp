@@ -213,7 +213,7 @@ void VirtualMachine::TRAP(uint16_t callnum, uint8_t argc, int) {
     switch (trapnum) {
         #define TRAP_BEGIN(name, ...) \
         case BlsTrap::CALLNUM::name: { \
-            BlsTrap::exec__##name(args);
+            BlsTrap::executeTrap<BlsTrap::CALLNUM::name>(args);
             #define VARIADIC(...)
             #define ARGUMENT(argName, argType...)
             #define TRAP_END \

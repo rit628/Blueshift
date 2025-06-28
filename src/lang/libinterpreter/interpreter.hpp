@@ -38,7 +38,7 @@ namespace BlsLang {
                 [](Interpreter&, std::vector<BlsType> args) { \
                     using namespace BlsTrap; \
                     using argnum [[ maybe_unused ]] = Detail::trapName::ARGNUM; \
-                    auto fn = exec__##trapName; \
+                    constexpr auto callnum = CALLNUM::trapName; \
                     constexpr auto variadic = Detail::trapName::variadic; \
                     if constexpr (!variadic) { \
                         if (argnum::COUNT >= 0 && args.size() != argnum::COUNT) { \
@@ -51,7 +51,7 @@ namespace BlsLang {
                         throw RuntimeError("Invalid type for argument " #argName "."); \
                     }
                     #define TRAP_END \
-                    return fn(args); \
+                    return executeTrap<callnum>(args); \
                 }},
                 #include "libtrap/include/TRAPS.LIST"
                 #undef TRAP_BEGIN
