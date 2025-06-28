@@ -1,5 +1,5 @@
 METHOD_BEGIN(append, list, -1, void)
-    ARGUMENT(value, 0, void)
+    ARGUMENT(value, 0, BlsType)
 METHOD_END
 
 METHOD_BEGIN(size, list, -1, int)

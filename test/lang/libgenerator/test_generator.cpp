@@ -642,7 +642,7 @@ namespace BlsLang {
             createPUSH(3), // push map
             createPUSH(2), // push key "k2" (index 2)
             createLOAD(0), // push value of x (index 0)
-            createEMPLACE(),
+            createMTRAP(static_cast<uint16_t>(HeapDescriptor::METHODNUM::map_add)),
             createPUSH(3)
         );
 
@@ -691,7 +691,7 @@ namespace BlsLang {
             createPUSH(3), // push map
             createLOAD(0), // push value of key x (index 0)
             createPUSH(2), // push value 14 (index 2)
-            createEMPLACE(),
+            createMTRAP(static_cast<uint16_t>(HeapDescriptor::METHODNUM::map_add)),
             createPUSH(3)
         );
 
@@ -740,7 +740,7 @@ namespace BlsLang {
             createPUSH(2), // push map
             createLOAD(0), // push value of key x (index 0)
             createLOAD(1), // push value of y (index 1)
-            createEMPLACE(),
+            createMTRAP(static_cast<uint16_t>(HeapDescriptor::METHODNUM::map_add)),
             createPUSH(2)
         );
 
@@ -1392,7 +1392,7 @@ namespace BlsLang {
     GROUP_TEST_F(GeneratorTest, FunctionTests, MethodCall) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Expression::Method(
             "a",
-            "emplace",
+            "add",
             {
                 new AstNode::Expression::Literal(
                     std::string("key")
@@ -1402,7 +1402,8 @@ namespace BlsLang {
                     uint8_t(1)
                 )
             },
-            uint8_t(0)
+            uint8_t(0),
+            TYPE::map_t
         ));
 
         std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
@@ -1416,7 +1417,7 @@ namespace BlsLang {
             createLOAD(0),
             createPUSH(0),
             createLOAD(1),
-            createEMPLACE()
+            createMTRAP(static_cast<uint16_t>(HeapDescriptor::METHODNUM::map_add))
         );
 
         TEST_GENERATE(ast, expectedInstructions);

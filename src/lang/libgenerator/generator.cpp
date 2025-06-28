@@ -478,19 +478,24 @@ BlsObject Generator::visit(AstNode::Expression::Group& ast) {
 
 BlsObject Generator::visit(AstNode::Expression::Method& ast) {
     instructions.push_back(createLOAD(ast.getLocalIndex()));
+    auto& objectType = ast.getObjectType();
     auto& methodName = ast.getMethodName();
     for (auto&& arg : ast.getArguments()) {
         arg->accept(*this);
     }
-    if (methodName == "append") {
-        instructions.push_back(createAPPEND());
+    if (false) { } // short circuit hack
+    #define METHOD_BEGIN(name, objType, ...) \
+    else if (objectType == TYPE::objType##_t && methodName == #name) { \
+        instructions.push_back(createMTRAP(static_cast<uint16_t>(HeapDescriptor::METHODNUM::objType##_##name))); \
     }
-    else if (methodName == "emplace") {
-        instructions.push_back(createEMPLACE());
-    }
-    else if (methodName == "size") {
-        instructions.push_back(createSIZE());
-    }
+    #define ARGUMENT(...)
+    #define METHOD_END
+    #include "libtype/include/LIST_METHODS.LIST"
+    #include "libtype/include/MAP_METHODS.LIST"
+    #undef METHOD_BEGIN
+    #undef ARGUMENT
+    #undef METHOD_END
+
     return 0;
 }
 
@@ -596,7 +601,7 @@ BlsObject Generator::visit(AstNode::Expression::Map& ast) {
             instructions.push_back(createPUSH(literalPool.at(literal)));
             key->accept(*this);
             value->accept(*this);
-            instructions.push_back(createEMPLACE());
+            instructions.push_back(createMTRAP(static_cast<uint16_t>(HeapDescriptor::METHODNUM::map_add)));
         }
     }
     instructions.push_back(createPUSH(literalPool.at(literal)));

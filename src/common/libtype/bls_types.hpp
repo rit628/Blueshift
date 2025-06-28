@@ -1,6 +1,7 @@
 #pragma once
 #include "typedefs.hpp"
 #include <cmath>
+#include <concepts>
 #include <cstddef>
 #include <functional>
 #include <initializer_list>
@@ -75,6 +76,8 @@ struct TypeIdentifier {
 };
 
 class HeapDescriptor;
+class VectorDescriptor;
+class MapDescriptor;
 
 struct BlsType : std::variant<std::monostate, bool, int64_t, double, std::string, std::shared_ptr<HeapDescriptor>> {
   using std::variant<std::monostate, bool, int64_t, double, std::string, std::shared_ptr<HeapDescriptor>>::variant;
@@ -101,24 +104,41 @@ struct BlsType : std::variant<std::monostate, bool, int64_t, double, std::string
   void serialize(Archive& ar, const unsigned int version);
 };
 
+namespace TypeDef {
+  template<typename T>
+  concept BlueshiftConstructible = BlueshiftType<T> || std::same_as<std::remove_cv_t<std::remove_reference_t<T>>, BlsType>;
+
+  template<BlueshiftConstructible T>
+  struct Resolve {
+    using type = T;
+  };
+
+  template<BlueshiftType T>
+  struct Resolve<T> {
+    using type = converted_t<T>;
+  };
+
+  template<List T>
+  struct Resolve<T> {
+    using type = std::shared_ptr<VectorDescriptor>;
+  };
+
+  template<Map T>
+  struct Resolve<T> {
+    using type = std::shared_ptr<MapDescriptor>;
+  };
+
+  template<typename T>
+  using resolved_t = Resolve<T>::type;
+
+}
+
 template<>
 struct std::hash<BlsType> {
     size_t operator()(const BlsType& obj) const;
 };
 
 class HeapDescriptor {
-  private:
-    /* helper structs */
-    template<int argNum, TypeDef::BlueshiftBuiltin T>
-    struct ArgConvert {
-      using type = BlsType;
-    };
-
-    template<TypeDef::BlueshiftBuiltin T>
-    struct ArgConvert<-1, T> {
-      using type = TypeDef::converted_t<T>;
-    };
-
   protected: 
     TYPE objType = TYPE::ANY;
     TYPE contType = TYPE::ANY;
@@ -126,9 +146,6 @@ class HeapDescriptor {
 
 
   public:
-    template<int argNum, typename T>
-    using arg_t = ArgConvert<argNum, T>::type;
-
     enum class METHODNUM : uint16_t {
       #define METHOD_BEGIN(name, objType, ...) \
       objType##_##name,
@@ -172,9 +189,9 @@ class MapDescriptor : public HeapDescriptor{
     BlsType& access(BlsType &obj) override;
 
     #define METHOD_BEGIN(name, objType, typeArgIdx, returnType...) \
-    arg_t<typeArgIdx, returnType> name(
+    TypeDef::resolved_t<returnType> name(
     #define ARGUMENT(name, typeArgIdx, type...) \
-    arg_t<typeArgIdx, type> name,
+    TypeDef::resolved_t<type> name,
     #define METHOD_END \
     int = 0);
     #include "include/MAP_METHODS.LIST"
@@ -207,9 +224,9 @@ class VectorDescriptor : public HeapDescriptor, std::enable_shared_from_this<Vec
     BlsType& access(BlsType &int_acc) override;
 
     #define METHOD_BEGIN(name, objType, typeArgIdx, returnType...) \
-    arg_t<typeArgIdx, returnType> name(
+    TypeDef::resolved_t<returnType> name(
     #define ARGUMENT(name, typeArgIdx, type...) \
-    arg_t<typeArgIdx, type> name,
+    TypeDef::resolved_t<type> name,
     #define METHOD_END \
     int = 0);
     #include "include/LIST_METHODS.LIST"
@@ -225,25 +242,25 @@ class VectorDescriptor : public HeapDescriptor, std::enable_shared_from_this<Vec
     void serialize(Archive& ar, const unsigned int version);
 };
 
-template<TypeDef::BlueshiftType T>
-BlsType createBlsType(T value) {
+template<TypeDef::BlueshiftConstructible T>
+BlsType createBlsType(const T& value) {
   using namespace TypeDef;
   if constexpr (Void<T>) {
     return std::monostate();
   }
-  if constexpr (Boolean<T>) {
+  else if constexpr (Boolean<T>) {
     return bool(value);
   }
-  if constexpr (Integer<T>) {
+  else if constexpr (Integer<T>) {
     return int64_t(value);
   }
-  if constexpr (Float<T>) {
+  else if constexpr (Float<T>) {
     return double(value);
   }
-  if constexpr (String<T>) {
+  else if constexpr (String<T>) {
     return std::string(value);
   }
-  if constexpr (List<T>) {
+  else if constexpr (List<T>) {
     auto list = std::make_shared<VectorDescriptor>(TYPE::ANY);
     typename T::value_type sampleElement;
     list->getSampleElement().assign({createBlsType(sampleElement)});
@@ -252,7 +269,7 @@ BlsType createBlsType(T value) {
     }
     return list;
   }
-  if constexpr (Map<T>) {
+  else if constexpr (Map<T>) {
     auto map = std::make_shared<MapDescriptor>(TYPE::ANY);
     typename T::key_type sampleKey;
     typename T::value_type sampleElement;
@@ -262,25 +279,78 @@ BlsType createBlsType(T value) {
     }
     return map;
   }
+  #define DEVTYPE_BEGIN(name) \
+  else if constexpr (std::same_as<T, name>) {  \
+      auto devtype = std::make_shared<MapDescriptor>(TYPE::ANY);
+  #define ATTRIBUTE(name, ...) \
+      BlsType name##_key = #name; \
+      BlsType name##_val = value.name; \
+      devtype->add(name##_key, name##_val);
+  #define DEVTYPE_END \
+    return devtype; \
+  }
+  #include "DEVTYPES.LIST"
+  #undef DEVTYPE_BEGIN
+  #undef ATTRIBUTE
+  #undef DEVTYPE_END
   else {
-    auto devtype = std::make_shared<MapDescriptor>(TYPE::ANY);
-    #define DEVTYPE_BEGIN(name) \
-    if constexpr (std::same_as<T, name>) { 
-    #define ATTRIBUTE(name, ...) \
-        BlsType name##_key = #name; \
-        BlsType name##_val = value.name; \
-        devtype->add(name##_key, name##_val);
-    #define DEVTYPE_END \
-    }
-    #include "DEVTYPES.LIST"
-    #undef DEVTYPE_BEGIN
-    #undef ATTRIBUTE
-    #undef DEVTYPE_END
-    return devtype;
+    return value;
   }
 }
 
-inline BlsType createBlsType(BlsType value) { return value; }
+template<TypeDef::BlueshiftConstructible T>
+T createFromBlsType(const BlsType& value) {
+  using namespace TypeDef;
+  if constexpr (Void<T> || Boolean<T> || Integer<T> || Float<T> || String<T>) {
+    return std::get<converted_t<T>>(value);
+  }
+  else if constexpr (List<T>) {
+    T result;
+    auto& list = std::dynamic_pointer_cast<VectorDescriptor>(std::get<std::shared_ptr<HeapDescriptor>>(value))->getVector();
+    for (auto&& element : list) {
+      result.push_back(createFromBlsType<T::value_type>(element));
+    }
+    return result;
+  }
+  else if constexpr (Map<T>) {
+    T result;
+    auto& map = std::dynamic_pointer_cast<MapDescriptor>(std::get<std::shared_ptr<HeapDescriptor>>(value))->getMap();
+    for (auto&& [key, value] : map) {
+      result.emplace({createFromBlsType<T::key_type>(key), createFromBlsType<T::value_type>(value)});
+    }
+    return result;
+  }
+  #define DEVTYPE_BEGIN(name) \
+  else if constexpr (std::same_as<T, name>) {  \
+    T devtype; \
+    auto& map = std::dynamic_pointer_cast<MapDescriptor>(std::get<std::shared_ptr<HeapDescriptor>>(value))->getMap();
+    #define ATTRIBUTE(name, ...) \
+    devtype.name = map.at(#name);
+    #define DEVTYPE_END \
+    return devtype; \
+  }
+  #include "DEVTYPES.LIST"
+  #undef DEVTYPE_BEGIN
+  #undef ATTRIBUTE
+  #undef DEVTYPE_END
+  else {
+    return value;
+  }
+}
+
+template<TypeDef::BlueshiftConstructible T>
+constexpr T resolveBlsType(const BlsType& value) {
+  using namespace TypeDef;
+  if constexpr (Void<T> || Boolean<T> || Integer<T> || Float<T> || String<T>) {
+    return std::get<resolved_t<T>>(value);
+  }
+  else if constexpr (List<T> || Map<T>) {
+    return std::dynamic_pointer_cast<resolved_t<T>>(std::get<std::shared_ptr<HeapDescriptor>>(value));
+  }
+  else {
+    return value;
+  }
+}
 
 constexpr TYPE getTypeFromName(const std::string& type) {
   if (type == BlsLang::PRIMITIVE_VOID) return TYPE::void_t;

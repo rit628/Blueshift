@@ -1,6 +1,6 @@
 METHOD_BEGIN(add, map, -1, void)
-    ARGUMENT(key, 0, void)
-    ARGUMENT(value, 1, void)
+    ARGUMENT(key, 0, BlsType)
+    ARGUMENT(value, 1, BlsType)
 METHOD_END
 
 METHOD_BEGIN(size, map, -1, int)

@@ -203,34 +203,13 @@ void VirtualMachine::RETURN(int) {
     }
 }
 
-void VirtualMachine::EMPLACE(int) {
-    auto value = cs.popOperand();
-    auto key = cs.popOperand();
-    auto object = cs.popOperand();
-    auto map = std::dynamic_pointer_cast<MapDescriptor>(std::get<std::shared_ptr<HeapDescriptor>>(object));
-    map->emplace(key, value);
-}
-
-void VirtualMachine::APPEND(int) {
-    auto value = cs.popOperand();
-    auto object = cs.popOperand();
-    auto list = std::dynamic_pointer_cast<VectorDescriptor>(std::get<std::shared_ptr<HeapDescriptor>>(object));
-    list->append(value);
-}
-
-void VirtualMachine::SIZE(int) {
-    auto object = cs.popOperand();
-    auto size = std::get<std::shared_ptr<HeapDescriptor>>(object)->getSize();
-    cs.pushOperand(size);
-}
-
 void VirtualMachine::TRAP(uint16_t callnum, uint8_t argc, int) {
     std::vector<BlsType> args;
     for (uint8_t i = 0; i < argc; i++) {
         args.push_back(cs.popOperand());
     }
 
-    BlsTrap::CALLNUM trapnum = static_cast<BlsTrap::CALLNUM>(callnum);
+    auto trapnum = static_cast<BlsTrap::CALLNUM>(callnum);
     switch (trapnum) {
         #define TRAP_BEGIN(name, ...) \
         case BlsTrap::CALLNUM::name: { \
@@ -245,6 +224,32 @@ void VirtualMachine::TRAP(uint16_t callnum, uint8_t argc, int) {
         #undef VARIADIC
         #undef ARGUMENT
         #undef TRAP_END
+        default:
+        break;
+    }
+}
+
+void VirtualMachine::MTRAP(uint16_t callnum, int) {
+    using list = VectorDescriptor;
+    using map = MapDescriptor;
+
+    auto trapnum = static_cast<HeapDescriptor::METHODNUM>(callnum);
+    auto object = std::get<std::shared_ptr<HeapDescriptor>>(cs.popOperand());
+
+    switch (trapnum) {
+        #define METHOD_BEGIN(name, type, ...) \
+        case HeapDescriptor::METHODNUM::type##_##name: { \
+            std::dynamic_pointer_cast<type>(object)->name(
+            #define ARGUMENT(argName, typeArgIdx, type...) \
+                resolveBlsType<type>(cs.popOperand()),
+            #define METHOD_END \
+            0); \
+        }
+        #include "libtype/include/LIST_METHODS.LIST"
+        #include "libtype/include/MAP_METHODS.LIST"
+        #undef METHOD_BEGIN
+        #undef ARGUMENT
+        #undef METHOD_END
         default:
         break;
     }

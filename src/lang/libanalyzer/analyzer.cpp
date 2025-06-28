@@ -519,17 +519,28 @@ BlsObject Analyzer::visit(AstNode::Expression::Method& ast) {
     }
     auto& operable = std::get<std::shared_ptr<HeapDescriptor>>(object);
 
+    static auto deduceType = []<int typeArgIdx, typename T>(std::shared_ptr<HeapDescriptor>& operable) -> BlsType {
+        using namespace TypeDef;
+        if constexpr (TypeDef::BlueshiftType<T>) {
+            return createBlsType(converted_t<T>());
+        }
+        else {
+            return operable->getSampleElement().at(typeArgIdx);
+        }
+    };
+
     if (false) { } // short circuit hack
-    #define METHOD_BEGIN(name, type, typeArgIdx, returnType...) \
-    else if (objType == TYPE::type##_t && methodName == #name) { \
+    #define METHOD_BEGIN(name, objectType, typeArgIdx, returnType...) \
+    else if (objType == TYPE::objectType##_t && methodName == #name) { \
+        using namespace TypeDef; \
         uint8_t argnum = 0; \
-        BlsType result = (typeArgIdx == -1) ? createBlsType(HeapDescriptor::arg_t<typeArgIdx, returnType>()) : operable->getSampleElement().at(typeArgIdx);
+        BlsType result = deduceType.operator()<typeArgIdx, returnType>(operable);
         #define ARGUMENT(argName, typeArgIdx, type...) \
         if (argnum >= methodArgs.size()) { \
             throw SemanticError("Invalid number of arguments provided to " + methodName + "."); \
         } \
         auto argName = resolve(methodArgs.at(argnum++)->accept(*this)); \
-        BlsType expected_##argName = (typeArgIdx == -1) ? createBlsType(HeapDescriptor::arg_t<typeArgIdx, type>()) : operable->getSampleElement().at(typeArgIdx); \
+        BlsType expected_##argName = deduceType.operator()<typeArgIdx, type>(operable); \
         if (!typeCompatible(argName, expected_##argName)) { \
             throw SemanticError("Invalid type for argument " #argName "."); \
         }

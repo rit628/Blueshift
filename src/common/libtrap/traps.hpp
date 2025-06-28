@@ -110,11 +110,11 @@ namespace BlsTrap {
     }
     
     #define TRAP_BEGIN(name, returnType...) \
-    converted_t<returnType> name(
+    resolved_t<returnType> name(
     #define VARIADIC(argName) \
         std::vector<BlsType> argName,
     #define ARGUMENT(argName, argType...) \
-        converted_t<argType> argName,
+        resolved_t<argType> argName,
     #define TRAP_END \
     int = 0);
     #include "include/TRAPS.LIST"
