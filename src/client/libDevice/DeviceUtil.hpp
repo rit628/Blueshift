@@ -98,9 +98,7 @@ class DeviceTimer{
         std::chrono::milliseconds getRemainingTime();
 
     public: 
-        DeviceTimer(boost::asio::io_context &in_ctx, DeviceHandle& device, std::shared_ptr<Connection> cc, int ctl, int dev, int id)
-        : device(device), ctl_code(ctl), device_code(dev), timer_id(id), conex(cc), ctx(in_ctx), timer(ctx) {}
-
+        DeviceTimer(boost::asio::io_context &in_ctx, DeviceHandle& device, std::shared_ptr<Connection> cc, int ctl, int dev, int id);
         ~DeviceTimer();
 
         void timerCallback();
@@ -134,18 +132,11 @@ class DeviceInterruptor{
         void IGpioWatcher(std::stop_token stoken, int portNum, std::function<bool(int, int , uint32_t)> interruptHandle);
         
     public: 
-        // Device Interruptor
-        DeviceInterruptor(DeviceHandle& targDev, std::shared_ptr<Connection> conex, int ctl, int dd)
-        : device(targDev), client_connection(conex), ctl_code(ctl), device_code(dd) {}
-        DeviceInterruptor(DeviceInterruptor&& other)
-        : device(other.device)
-        , client_connection(other.client_connection)
-        , watcherManagerThread(std::move(other.watcherManagerThread))
-        , globalWatcherThreads(std::move(other.globalWatcherThreads))
-        , watchDescriptors(std::move(other.watchDescriptors))
-        , ctl_code(other.ctl_code)
-        , device_code(other.device_code) {}
+        DeviceInterruptor(DeviceHandle& targDev, std::shared_ptr<Connection> conex, int ctl, int dd);
+        DeviceInterruptor(DeviceInterruptor&& other);
         ~DeviceInterruptor();
         // Setup Watcher Thread
         void setupThreads();
+        void stopThreads();
+
 }; 

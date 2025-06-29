@@ -1,6 +1,7 @@
 #include "DeviceUtil.hpp"
 #include <stdexcept>
 #include <stop_token>
+#include <utility>
 #include <variant>
 #ifdef __RPI64__
 #include <pigpio.h>
@@ -111,6 +112,9 @@ std::chrono::milliseconds DeviceTimer::getRemainingTime() {
     return std::chrono::milliseconds(0); 
 }
 
+DeviceTimer::DeviceTimer(boost::asio::io_context &in_ctx, DeviceHandle& device, std::shared_ptr<Connection> cc, int ctl, int dev, int id)
+                        : device(device), ctl_code(ctl), device_code(dev), timer_id(id), conex(cc), ctx(in_ctx), timer(ctx) {}
+
 DeviceTimer::~DeviceTimer() {
     this->timer.cancel();
 }
@@ -200,6 +204,30 @@ void DeviceTimer::sendData() {
     smsg.header.fromInterrupt = false; 
 
     Send(smsg); 
+}
+
+DeviceInterruptor::DeviceInterruptor(DeviceHandle& targDev, std::shared_ptr<Connection> conex, int ctl, int dd)
+                                    : device(targDev), client_connection(conex), ctl_code(ctl), device_code(dd) {}
+
+DeviceInterruptor::DeviceInterruptor(DeviceInterruptor&& other)
+                                    : device(other.device)
+                                    , client_connection(other.client_connection)
+                                    , watcherManagerThread(std::move(other.watcherManagerThread))
+                                    , globalWatcherThreads(std::move(other.globalWatcherThreads))
+                                    , watchDescriptors(std::move(other.watchDescriptors))
+                                    , ctl_code(other.ctl_code)
+                                    , device_code(other.device_code)
+{
+    bool wasRunning = this->watcherManagerThread.joinable();
+    this->stopThreads(); // cleanup old threads that reference other
+    watchDescriptors.clear(); // remove old watch descriptors
+    if (wasRunning) { // restart threads
+        this->setupThreads();
+    }
+}
+
+DeviceInterruptor::~DeviceInterruptor() {
+    this->stopThreads();
 }
 
 void DeviceInterruptor::sendMessage() {
@@ -341,13 +369,6 @@ void DeviceInterruptor::IGpioWatcher(std::stop_token stoken, int portNum, std::f
     }
 }
 
-DeviceInterruptor::~DeviceInterruptor() {
-    for (auto&& watcher : globalWatcherThreads) {
-        watcher.request_stop();
-    }
-    watcherManagerThread.request_stop();
-}
-
 void DeviceInterruptor::setupThreads() {
     // Create the threads
     auto iFileWatcher = std::bind(&DeviceInterruptor::IFileWatcher, std::ref(*this), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
@@ -371,4 +392,11 @@ void DeviceInterruptor::setupThreads() {
         }
     }
     watcherManagerThread = std::jthread(manageWatchers);
+}
+
+void DeviceInterruptor::stopThreads() {
+    for (auto&& watcher : globalWatcherThreads) {
+        watcher.request_stop();
+    }
+    watcherManagerThread.request_stop();
 }

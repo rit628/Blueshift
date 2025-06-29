@@ -194,16 +194,12 @@ void Client::listener(std::stop_token stoken){
             }
 
              // populate the Device interruptors; 
-            for(auto& pair : this->deviceList){
+            for(auto&& [dev_id, dev] : this->deviceList){
                 
-                auto& dev = pair.second;
-                auto dev_id = pair.first;  
-             
                 if(dev.hasInterrupt()){
                     // Organizes the device interrupts
                     std::cout<<"Interrupt created!"<<std::endl;
-                    auto& omar = this->interruptors.emplace_back(dev, this->client_connection, this->controller_alias, dev_id);
-                    // omar.setupThreads();
+                    this->interruptors.emplace_back(dev, this->client_connection, this->controller_alias, dev_id);
                     std::cout<<"Sending Initial State"<<std::endl; 
                     sendMessage(dev_id, Protocol::SEND_STATE_INIT, true); 
                 }   

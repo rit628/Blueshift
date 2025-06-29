@@ -21,7 +21,17 @@ oblock printLine(LINE_WRITER lw) {
     println(lw.msg);
 }
 
+oblock printLine2(LINE_WRITER lw) {
+    println(lw.msg);
+}
+
+
 oblock printPoll(TIMER_TEST tt) {
+    println(tt.test_val);
+    tt.test_val += 445;
+}
+
+oblock printPoll2(TIMER_TEST tt) {
     println(tt.test_val);
     tt.test_val += 445;
 }
@@ -30,11 +40,15 @@ setup() {
     TIMER_TEST L1 = "blueshift-client-1::file-omar.txt";
     TIMER_TEST L2 = "blueshift-client-2::file-omar2.txt";
     TIMER_TEST L3 = "blueshift-client-3::file-omar3.txt";
+
     LINE_WRITER k2 = "blueshift-client-1::file-file1.txt"; 
+    LINE_WRITER k4 = "blueshift-client-1::file-file2.txt"; 
+    
     LINE_WRITER k3 = "blueshift-client-2::file-file2.txt"; 
     
     //printString(L1, L2, L3);
     //copyLine(k2, k3);
-    //printLine(k2);
-    printPoll(L1);
+    printLine(k2);
+    printLine2(k4);
+    //printPoll(L1);
 }
