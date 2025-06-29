@@ -15,6 +15,7 @@
 #include <sys/inotify.h>
 #include <tuple>
 #include <unistd.h> 
+#include <utility>
 #include <variant>
 #include <vector>
 #include <thread>
@@ -136,8 +137,14 @@ class DeviceInterruptor{
         // Device Interruptor
         DeviceInterruptor(DeviceHandle& targDev, std::shared_ptr<Connection> conex, int ctl, int dd)
         : device(targDev), client_connection(conex), ctl_code(ctl), device_code(dd) {}
-        DeviceInterruptor(const DeviceInterruptor& other)
-        : device(other.device), client_connection(other.client_connection), ctl_code(other.ctl_code), device_code(other.device_code) {}
+        DeviceInterruptor(DeviceInterruptor&& other)
+        : device(other.device)
+        , client_connection(other.client_connection)
+        , watcherManagerThread(std::move(other.watcherManagerThread))
+        , globalWatcherThreads(std::move(other.globalWatcherThreads))
+        , watchDescriptors(std::move(other.watchDescriptors))
+        , ctl_code(other.ctl_code)
+        , device_code(other.device_code) {}
         ~DeviceInterruptor();
         // Setup Watcher Thread
         void setupThreads();

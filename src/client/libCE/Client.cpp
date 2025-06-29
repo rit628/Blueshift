@@ -203,10 +203,13 @@ void Client::listener(std::stop_token stoken){
                     // Organizes the device interrupts
                     std::cout<<"Interrupt created!"<<std::endl;
                     auto& omar = this->interruptors.emplace_back(dev, this->client_connection, this->controller_alias, dev_id);
-                    omar.setupThreads();
+                    // omar.setupThreads();
                     std::cout<<"Sending Initial State"<<std::endl; 
                     sendMessage(dev_id, Protocol::SEND_STATE_INIT, true); 
                 }   
+            }
+            for (auto&& interruptor : this->interruptors) {
+                interruptor.setupThreads();
             }
         }
         else if(ptype == Protocol::CONNECTION_LOST){
