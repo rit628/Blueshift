@@ -57,8 +57,8 @@ int main(int argc, char *argv[]){
     auto oblocks = compiler.getOblocks();  
 
     // EM and MM
-    TSQ<DMM> EM_MM_queue; 
-    TSQ<std::vector<DMM>> MM_EM_queue; 
+    TSQ<HeapMasterMessage> EM_MM_queue; 
+    TSQ<std::vector<HeapMasterMessage>> MM_EM_queue; 
     
     // NM and MM
     TSQ<DMM> NM_MM_queue; 

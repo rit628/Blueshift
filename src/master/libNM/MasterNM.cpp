@@ -50,9 +50,11 @@ void MasterNM::writeConfig(std::vector<OBlockDesc> &desc_list){
 
     int i = 0; 
     for(auto &name : c_list){
-        this->controller_alias_map[name] = i; 
-        this->controller_list.push_back(name); 
-        i++; 
+        if(name != "MASTER"){
+            this->controller_alias_map[name] = i; 
+            this->controller_list.push_back(name); 
+            i++; 
+        }
     }
 
     i = 0;

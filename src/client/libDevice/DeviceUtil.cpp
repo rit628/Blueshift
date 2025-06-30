@@ -185,7 +185,7 @@ void DeviceTimer::sendData() {
     DynamicMessage dmsg; 
     this->device.transmitStates(dmsg); 
 
-    // Extract numerical data about the fields and add to the src: 
+    // Extract numerical data out the fields and add to the src: 
     dmsg.getFieldVolatility(this->attr_history, VOLATILITY_LIST_SIZE); 
 
     if(this->attr_history.size() > 0){

@@ -37,6 +37,8 @@ bool LINE_WRITER::handleInterrupt(){
 
     auto getL = bool(std::getline(this->file_stream, line));
 
+    std::cout<<"HANDLING INTERRUPT: "<<this->filename<<std::endl; 
+
     if(getL){
         this->states.msg = line;
         return true; 

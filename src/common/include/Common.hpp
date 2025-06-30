@@ -154,6 +154,7 @@ struct DynamicMasterMessage
     PROTOCOLS protocol;
     DynamicMasterMessage() = default;
     DynamicMasterMessage(DynamicMessage DM, O_Info info, PROTOCOLS protocol, bool isInterrupt);
+    
     ~DynamicMasterMessage() = default;
 };
 
@@ -163,11 +164,17 @@ struct HeapMasterMessage
     O_Info info;
     PROTOCOLS protocol;
     bool isInterrupt;
-    std::shared_ptr<HeapDescriptor> heapTree;
-
+    BlsType heapTree;
 
     HeapMasterMessage() = default;
     HeapMasterMessage(std::shared_ptr<HeapDescriptor> heapTree, O_Info info, PROTOCOLS protocol, bool isInterrupt);
+    HeapMasterMessage(DynamicMasterMessage &DMM){
+        this->heapTree = DMM.DM.toTree();
+        this->info = DMM.info; 
+        this->isInterrupt = DMM.isInterrupt; 
+        this->protocol = DMM.protocol; 
+    }
+
     ~HeapMasterMessage() = default;
 };
 

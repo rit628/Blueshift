@@ -6,8 +6,8 @@
 
 // 
 
-ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<vector<DynamicMasterMessage>> &readMM, 
-    TSQ<DynamicMasterMessage> &sendMM, 
+ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<vector<HeapMasterMessage>> &readMM, 
+    TSQ<HeapMasterMessage> &sendMM, 
     std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks)
     : readMM(readMM), sendMM(sendMM)
 {
@@ -31,7 +31,7 @@ ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<vector<Dyn
 }
 
 ExecutionUnit::ExecutionUnit(OBlockDesc oblock, vector<string> devices, vector<bool> isVtype, vector<string> controllers,
-    TSQ<DynamicMasterMessage> &sendMM, function<vector<BlsType>(vector<BlsType>)>  transform_function)
+    TSQ<HeapMasterMessage> &sendMM, function<vector<BlsType>(vector<BlsType>)>  transform_function)
 {
     this->Oblock = oblock;
     this->devices = devices;
@@ -72,20 +72,17 @@ DynamicMasterMessage::DynamicMasterMessage(DynamicMessage DM, O_Info info, PROTO
     this->isInterrupt = isInterrupt;
 }
 
-void ExecutionUnit::running(TSQ<DynamicMasterMessage> &sendMM)
+void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
 {
     while(true)
     {
 
-        vector<DynamicMasterMessage> currentDMMs = EUcache.read();
+        vector<HeapMasterMessage> currentHMMs = EUcache.read();
         std::unordered_map<DeviceID, HeapMasterMessage> HMMs;
         
         // Fill in the known data into the stack 
-        for(auto &dmm : currentDMMs)
+        for(auto &HMM : currentHMMs)
         {   
-            HeapMasterMessage HMM(dmm.DM.toTree(), dmm.info, 
-            dmm.protocol, dmm.isInterrupt);
-
             HMMs[HMM.info.device] = HMM; 
         }
         
@@ -125,15 +122,12 @@ void ExecutionUnit::running(TSQ<DynamicMasterMessage> &sendMM)
 
         for(HeapMasterMessage& hmm : outGoingStates)
         {
-            DynamicMessage DM; 
-            DM.makeFromRoot(hmm.heapTree);    
-            DynamicMasterMessage DMM(DM, hmm.info,  hmm.protocol, hmm.isInterrupt);
-            sendMM.write(DMM);
+            sendMM.write(hmm);
         }
     }
 }
 
-ExecutionUnit &ExecutionManager::assign(DynamicMasterMessage DMM)
+ExecutionUnit &ExecutionManager::assign(HeapMasterMessage DMM)
 {   
     
     std::cout<<"Searching Oblock for: "<<DMM.info.oblock<<std::endl; 
@@ -148,38 +142,31 @@ void ExecutionManager::running()
     bool started = true; 
     while(1)
     {
-
         // Send an initial request for data to be stored int the queues
         if(started){
             for(auto& pair : EU_map)
             {
                 O_Info info = pair.second->info;
                 std::cout<<"Requesting States for : "<<info.oblock<<std::endl;
-                DynamicMessage dm;
-                DynamicMasterMessage requestDMM(dm, info, PROTOCOLS::REQUESTINGSTATES, false);
-                this->sendMM.write(requestDMM);
+                HeapMasterMessage requestHMM(nullptr, info, PROTOCOLS::REQUESTINGSTATES, false);
+                this->sendMM.write(requestHMM);
 
             }
             started = false; 
         }
         
-        vector<DynamicMasterMessage> currentDMMs = this->readMM.read();
-
-        std::cout<<"RM Recieved States"<<std::endl;
+        vector<HeapMasterMessage> currentHMMs = this->readMM.read();
        
-        ExecutionUnit &assignedUnit = assign(currentDMMs.at(0));
+        ExecutionUnit &assignedUnit = assign(currentHMMs.at(0));
 
-        std::cout<<"Post assignment "<<std::endl; 
-
-        assignedUnit.EUcache.write(currentDMMs);
+        assignedUnit.EUcache.write(currentHMMs);
     
         if(assignedUnit.EUcache.getSize() < 3)
         {   
             std::cout<<"Requesting States"<<std::endl;
-            DynamicMessage dm;
             O_Info info = assignedUnit.info;
-            DynamicMasterMessage requestDMM(dm, info, PROTOCOLS::REQUESTINGSTATES, false);
-            this->sendMM.write(requestDMM);
+            HeapMasterMessage requestHMM(nullptr, info, PROTOCOLS::REQUESTINGSTATES, false);
+            this->sendMM.write(requestHMM);
         }
     
     }

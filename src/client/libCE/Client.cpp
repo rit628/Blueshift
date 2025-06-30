@@ -5,6 +5,7 @@
 #include "libnetwork/Protocol.hpp"
 #include <functional>
 #include <exception>
+#include <ostream>
 #include <stdexcept>
 
 Client::Client(std::string c_name): bc_socket(client_ctx, udp::endpoint(udp::v4(), BROADCAST_PORT)), client_socket(client_ctx){
@@ -29,9 +30,6 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt){
     }
     catch(BlsExceptionClass& bec){
         this->genBlsException->SendGenericException(bec.what(), bec.type());
-        //if(bec.isFatal()){
-          //  throw bec; 
-        //}
     }
 
     // make message
@@ -95,17 +93,11 @@ void Client::listener(std::stop_token stoken){
             }
 
             for(int i = 0; i < size; i++){
-                try{
-                    std::cout<<"Device a: "<<device_alias[i]<<" trigger value: "<<triggerList[i]<<std::endl; 
+                try{      
                     deviceList.try_emplace(device_alias[i], device_types[i], srcs[i], triggerList[i]);
                 }
                 catch(BlsExceptionClass& bec){
                     this->genBlsException->SendGenericException(bec.what(), bec.type()); 
-                    /*
-                    if(bec.isFatal()){
-                        throw bec;  
-                    }
-                    */ 
                 }
             } 
 
@@ -265,7 +257,6 @@ bool Client::attemptConnection(boost::asio::ip::address master_address){
 
         //this->start(); 
 
-    
         std::cout<<this->client_name + " Connection successful!"<<std::endl; 
 
         return true; 

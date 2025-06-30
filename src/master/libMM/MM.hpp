@@ -4,11 +4,12 @@
 #include "libTSQ/TSQ.hpp"
 #include "libDM/DynamicMessage.hpp"
 #include "libEM/EM.hpp"
+#include "libtype/bls_types.hpp"
 #include <algorithm>
 #include <bitset>
 #include <mutex>
 #include <unordered_map>
-#include <map>
+#include <unordered_set>
 #include <memory>
 #include <string>
 #include <vector>
@@ -27,18 +28,18 @@ using DeviceID = std::string;
 */
 struct AtomicDMMContainer{
     private: 
-        DynamicMasterMessage dmsg; 
+        HeapMasterMessage dmsg; 
         bool hasItem = false; 
         std::mutex mux; 
     
     public: 
-        void replace(DynamicMasterMessage new_dmsg){
+        void replace(HeapMasterMessage new_dmsg){
             std::scoped_lock<std::mutex> lock(mux); 
             hasItem = true; 
             this->dmsg = new_dmsg; 
         }
 
-        DynamicMasterMessage get(){
+        HeapMasterMessage get(){
             std::scoped_lock<std::mutex> lock(mux); 
             return this->dmsg; 
         }
@@ -100,21 +101,16 @@ class TriggerManager{
             // Returns true if the new device corresponds to a trigger 
             bool processDevice(std::string &object){
                 // Pretty much check if the bitmap is filled
-                std::cout<<"What the hell boy"<<std::endl; 
                 int filledMap = pow(2, stringMap.size()) - 1; 
-                std::cout<<"map value: "<<filledMap<<std::endl; 
                 if(this->initBitmap.to_ulong() != filledMap){
                     this->initBitmap.set(this->stringMap[object]); 
-                    std::cout<<"init bitmap: "<<this->initBitmap<<std::endl; 
                     return false; 
                 }
 
                 this->currentBitmap.set(this->stringMap[object]);         
                 bool found = this->testBit(); 
-                std::cout<<"KING KING KING"<<std::endl; 
                 if(found){
                     this->currentBitmap.reset(); 
-                    std::cout<<"I LOVE KIIIIIIDS"<<std::endl; 
                     return true; 
                 }
                 return false; 
@@ -133,7 +129,7 @@ class TriggerManager{
 
 
 struct DeviceBox{
-    std::shared_ptr<TSQ<DynamicMasterMessage>> stateQueues;
+    std::shared_ptr<TSQ<HeapMasterMessage>> stateQueues;
     AtomicDMMContainer lastMessage; 
     bool isTrigger = false;  
     bool devDropRead = false; 
@@ -150,7 +146,7 @@ struct ReaderBox
             Consists of the ordered list of all triggered events 
             to be queued up and sent to the execution manager
         */ 
-        std::vector<std::vector<DynamicMasterMessage>> triggerCache; 
+        std::vector<std::vector<HeapMasterMessage>> triggerCache; 
         TriggerManager triggerMan; 
 
         bool callbackRecived;
@@ -164,7 +160,7 @@ struct ReaderBox
     
         // Inserts the state into the object: 
         // the bool initEvent determines if the event is an initial event or not
-        void insertState(DynamicMasterMessage newDMM){
+        void insertState(HeapMasterMessage newDMM){
             if(!this->waitingQs.contains(newDMM.info.device)){
                 return; 
             }
@@ -179,20 +175,24 @@ struct ReaderBox
             // Begin Trigger Analysis: 
             bool writeTrig = this->triggerMan.processDevice(newDMM.info.device); 
             if(writeTrig){
-                std::vector<DynamicMasterMessage> trigEvent; 
+                std::vector<HeapMasterMessage> trigEvent; 
                 for(auto& [name, devBox] : this->waitingQs){
                     if(devBox.stateQueues->isEmpty()){
-                        trigEvent.push_back(devBox.stateQueues->read()); 
+                        auto newHmm = devBox.stateQueues->read(); 
+                        newHmm.info.oblock = this->OblockName; 
+                        trigEvent.push_back(newHmm); 
                     }
                     else{
-                        trigEvent.push_back(devBox.lastMessage.get());
+                        auto newHmm = devBox.lastMessage.get(); 
+                        newHmm.info.oblock = this->OblockName; 
+                        trigEvent.push_back(newHmm);
                     }
                 }
                 this->triggerCache.push_back(trigEvent); 
             }
         }
 
-        void handleRequest(TSQ<vector<DynamicMasterMessage>>& sendEM){
+        void handleRequest(TSQ<vector<HeapMasterMessage>>& sendEM){
             // write for loop to handle requests
             if(pending_requests){
                 int maxQueueSz = this->triggerCache.size() < MAX_EM_QUEUE_FILL?  triggerCache.size() : MAX_EM_QUEUE_FILL;     
@@ -225,25 +225,21 @@ class MasterMailbox
 {
     public:
     TSQ<DynamicMasterMessage> &readNM;
-    TSQ<DynamicMasterMessage> &readEM;
+    TSQ<HeapMasterMessage> &readEM;
+    TSQ<vector<HeapMasterMessage>> &sendEM;
     TSQ<DynamicMasterMessage> &sendNM;
-    TSQ<vector<DynamicMasterMessage>> &sendEM;
-    MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMessage> &readNM, TSQ<DynamicMasterMessage> &readEM,
-         TSQ<DynamicMasterMessage> &sendNM, TSQ<vector<DynamicMasterMessage>> &sendEM);
+    MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMessage> &readNM, TSQ<HeapMasterMessage> &readEM,
+         TSQ<DynamicMasterMessage> &sendNM, TSQ<vector<HeapMasterMessage>> &sendEM);
     vector<OBlockDesc> OBlockList;
 
     unordered_map<OblockID, unique_ptr<ReaderBox>> oblockReadMap;
     unordered_map<DeviceID, unique_ptr<WriterBox>> deviceWriteMap;
     unordered_map<DeviceID, std::vector<OblockID>> interruptName_map;
 
-
-    
     TSQ<std::string> readRequest; 
 
-
-
     void assignNM(DynamicMasterMessage DMM);
-    void assignEM(DynamicMasterMessage DMM);
+    void assignEM(HeapMasterMessage DMM);
     void runningNM();
     void runningEM();
 }; 
