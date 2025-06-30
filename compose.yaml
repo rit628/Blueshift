@@ -5,10 +5,22 @@ networks:
     name: ${NETWORK_NAME}
 
 services:
+  display:
+    hostname: ${DISPLAY_CONTAINER_NAME}
+    container_name: ${DISPLAY_CONTAINER_NAME}
+    network_mode: ${NETWORK_MODE}
+    image: theasp/novnc:latest
+    environment:
+      - DISPLAY_WIDTH=${DISPLAY_WIDTH}
+      - DISPLAY_HEIGHT=${DISPLAY_HEIGHT}
+      - RUN_XTERM=no
+    ports:
+      - ${DISPLAY_PORT}:8080
+
   builder:
     hostname: ${BUILD_CONTAINER_NAME}
-    network_mode: ${NETWORK_MODE}
     container_name: ${BUILD_CONTAINER_NAME}
+    network_mode: ${NETWORK_MODE}
     user: ${CONTAINER_UID}:${CONTAINER_GID}
     command: ["build", "-l", "-b", "${BUILD_TYPE}"]
     group_add:
@@ -26,6 +38,9 @@ services:
       - .:${CONTAINER_MOUNT_DIRECTORY}
       - ./${REMOTE_OUTPUT_DIRECTORY}:${CONTAINER_MOUNT_DIRECTORY}/build
       - venv:${CONTAINER_MOUNT_DIRECTORY}/.venv
+    environment:
+      - DISPLAY=${DISPLAY_CONTAINER_NAME}:0.0
+      - XDG_RUNTIME_DIR=/run/user/${CONTAINER_UID}
     env_file:
       - .env
 

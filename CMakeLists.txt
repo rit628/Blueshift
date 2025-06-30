@@ -33,7 +33,14 @@ FetchContent_Declare(
 )
 set(BOOST_INCLUDE_LIBRARIES ${REQUIRED_BOOST_LIBS})
 
-FetchContent_MakeAvailable(googletest Boost)
+# SDL 3
+FetchContent_Declare(
+    SDL3
+    URL https://github.com/libsdl-org/SDL/archive/refs/tags/release-3.2.16.zip
+)
+# set(SDL_UNIX_CONSOLE_BUILD ON) # disable window graphics libraries
+
+FetchContent_MakeAvailable(googletest Boost SDL3)
 
 project($ENV{PROJECT_NAME})
     
@@ -206,6 +213,11 @@ file(GLOB_RECURSE BSMW_SRC ${UTIL_SRC_DIR}/bsmw/*.cpp)
 add_executable(bsmw ${BSMW_SRC})
 target_include_directories(bsmw PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
 target_link_libraries(bsmw bytecode type ${BOOST_LIB_DEPS})
+
+file(GLOB_RECURSE KBDLOG_SRC ${UTIL_SRC_DIR}/kbdlog/*.cpp)
+add_executable(kbdlog ${KBDLOG_SRC})
+target_include_directories(kbdlog PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
+target_link_libraries(kbdlog SDL3::SDL3)
 
 # TESTS
 if(NOT CMAKE_CROSSCOMPILING)
