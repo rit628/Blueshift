@@ -160,14 +160,18 @@ def make_sysroot(target, local):
             tar.extractall(sysroot_path, filter="fully_trusted")
         os.remove(archive_path)
 
-def start_display():
-    print("intializing display...")
-    run_cmd(["docker", "compose", "run", "--name", "display", "-qdP", "--rm", "display"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+def open_display():
     wait_for_container_server(DISPLAY_PORT)
-    atexit.register(run_cmd, ["docker", "stop", "-t", "1", "display"], exit_on_failure=False, stderr=subprocess.DEVNULL)
     time.sleep(1.5) # wait for all X subsystems to be ready
     print("opening display in browser...")
     webbrowser.open(f"http://127.0.0.1:{DISPLAY_PORT}/vnc.html")
+
+def initialize_display():
+    print("intializing display...")
+    os.environ["NETWORK_MODE"] = NETWORK_NAME
+    run_cmd(["docker", "compose", "up", "-d", "display"])
+    atexit.register(run_cmd, ["docker", "compose", "down", "display"], exit_on_failure=False, stderr=subprocess.DEVNULL)
+    open_display()
 
 def run(args):
     if args.local:
@@ -175,7 +179,7 @@ def run(args):
         run_cmd([executable, *args.binary_args])
     else:
         if args.gui_forward:
-            start_display()
+            initialize_display()
         if args.packet_forward:
             context = subprocess.check_output(["docker", "context", "show"], text=True).strip()
             if context == "rootless":
@@ -223,7 +227,7 @@ def debug(args):
             run_cmd([args.debugger, args_command, executable, *args.binary_args])
     else: # debug on container gdbserver
         if args.gui_forward:
-            start_display()
+            initialize_display()
         initialize_host()
         DEBUG_SERVER_PORT = get_free_port()
         remote_binary = Path(REMOTE_OUTPUT_DIRECTORY, debug_target_path, RUNTIME_OUTPUT_DIRECTORY, args.binary)
@@ -293,7 +297,9 @@ def deploy(args):
         Thread(target=attach_debugger, args=("master", master_binary, DEBUG_SERVER_PORT), daemon=True).start()
         for i in range(num_clients): 
             Thread(target=attach_debugger, args=(f"blueshift-client-{i + 1}", client_binary, DEBUG_SERVER_PORT), daemon=True).start()
-
+    
+    if args.gui_forward: # automatically open display window
+        Thread(target=open_display, daemon=True).start()
     run_cmd(command)
 
 def build(args):
@@ -493,6 +499,9 @@ deploy_parser.add_argument("-d", "--debug",
 deploy_parser.add_argument("-r", "--release-debug",
                            help="use release build with limited debug symbols in debug mode",
                            action="store_true")
+deploy_parser.add_argument("-g", "--gui-forward",
+                            help="start a novnc display server to forward container GUI applications",
+                            action="store_true")
 deploy_parser.set_defaults(fn=deploy)
 
 build_parser = subparsers.add_parser("build", help=f"build {PROJECT_NAME} binaries or deployment images")
