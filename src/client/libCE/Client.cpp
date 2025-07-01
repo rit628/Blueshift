@@ -37,7 +37,7 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
         default: {
             // Get the latest state from the dmsg
             try{
-                this->deviceList.at(deviceCode).deviceHandle.transmitStates(dmsg); 
+                this->deviceList.at(deviceCode).device.transmitStates(dmsg); 
             }
             catch(BlsExceptionClass& bec){
                 this->genBlsException->SendGenericException(bec.what(), bec.type());
@@ -150,7 +150,7 @@ void Client::listener(std::stop_token stoken){
                 auto state_change = std::jthread([dev_index, dmsg = std::move(dmsg), this](){
                 try{
                     // std::cout << "processStates begin" << std::endl;
-                    this->deviceList.at(dev_index).deviceHandle.processStates(dmsg);
+                    this->deviceList.at(dev_index).device.processStates(dmsg);
                     //Translation of the callback happens at the network manage
                     this->sendMessage(dev_index, Protocol::CALLBACK, false); 
                 }
@@ -200,7 +200,7 @@ void Client::listener(std::stop_token stoken){
 
             // Begin the timers only when the call is made
             for(Timer &timer : this->start_timers){
-                auto& device = this->deviceList.at(timer.device_num).deviceHandle; 
+                auto& device = this->deviceList.at(timer.device_num).device; 
 
                 if(!device.hasInterrupt()) {
                     std::cout<<"build timer with period: "<<timer.period<<std::endl;
@@ -212,7 +212,7 @@ void Client::listener(std::stop_token stoken){
 
              // populate the Device interruptors; 
             for(auto&& [dev_id, dev] : this->deviceList) {
-                auto& device = dev.deviceHandle;
+                auto& device = dev.device;
                 if(device.hasInterrupt()){
                     // Organizes the device interrupts
                     std::cout<<"Interrupt created!"<<std::endl;

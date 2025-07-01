@@ -87,11 +87,11 @@ struct ControllerQueue{
 }; 
 
 
-struct DeviceHandleContainer {
-    DeviceHandle deviceHandle;
+struct ManagedDevice {
+    DeviceHandle device;
     ControllerQueue pendingRequests;
-    DeviceHandleContainer(TYPE dtype, std::unordered_map<std::string, std::string> &config, uint16_t sendInterrupt)
-                        : deviceHandle(dtype, config, sendInterrupt) {}
+    ManagedDevice(TYPE dtype, std::unordered_map<std::string, std::string> &config, uint16_t sendInterrupt)
+                        : device(dtype, config, sendInterrupt) {}
 }; 
 
 class Client{
@@ -123,7 +123,7 @@ class Client{
        // Ticker Mutex; 
         std::shared_mutex ticker_mutex; 
         // Contains the list of known devices
-        std::unordered_map<int, DeviceHandleContainer> deviceList;     
+        std::unordered_map<int, ManagedDevice> deviceList;     
         // client name used to identify controller
         std::string client_name; 
         // Listens for incoming message and places it into the spot
