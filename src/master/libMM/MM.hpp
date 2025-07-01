@@ -229,7 +229,6 @@ struct ReaderBox
         }   
 
         ReaderBox(bool dropRead, bool dropWrite, string name,  OBlockDesc& odesc);
-        ReaderBox() = default;
     
 };
 

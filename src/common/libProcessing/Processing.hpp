@@ -38,7 +38,6 @@ struct AtomicDMMContainer{
 }; 
 
 
-
 class TriggerManager{
     private:   
         std::bitset<BITSET_SZ> currentBitmap;  
@@ -46,8 +45,6 @@ class TriggerManager{
         std::unordered_map<std::string, int> stringMap; 
         std::unordered_set<std::bitset<BITSET_SZ>> ruleset; 
         
-
-
     public: 
         // Device Constructor (created rules)
         TriggerManager(OBlockDesc& OBlockDesc){
@@ -133,9 +130,6 @@ struct DeviceBox{
         this->lastMessage.replace(dmm); 
     }
 }; 
-
-
-
 
 
 struct ReaderBox

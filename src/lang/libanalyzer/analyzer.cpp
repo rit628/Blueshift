@@ -9,6 +9,7 @@
 #include "call_stack.hpp"
 #include <cstdint>
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <string>
 #include <tuple>

@@ -118,10 +118,7 @@ namespace BlsLang{
             }
 
             void clearContext(); 
-            DividerMetadata getDivisionData(); 
-
-
-
+    
         public: 
             Symgraph() : 
             Printer(std::cout), p(std::cout){}
@@ -157,6 +154,7 @@ namespace BlsLang{
             void exhaustiveSymbolFillH(const SymbolID &originSymbol, std::unordered_set<SymbolID>& visitedSymbols, ControllerID &ctl, std::unordered_set<AstNode::Statement*> &visitedStatements); 
             void exhaustiveStatementFillH(std::shared_ptr<StatementData> st, std::unordered_set<SymbolID>& visitedSymbols, ControllerID &ctl, std::unordered_set<AstNode::Statement*> &visitedStatements);
             void annotateControllerDivide(); 
+            DividerMetadata getDivisionData(); 
             
          
     }; 

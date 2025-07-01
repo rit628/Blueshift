@@ -223,9 +223,6 @@ void MasterNM::masterRead(){
         // Send the normal message:
 
         auto new_state = this->EMM_in_queue.read(); 
-
-        std::cout<<"MASTER NM MESSAGE RECEIVED"<<std::endl; 
-
         SentMessage sm_main;
 
         std::string cont = new_state.info.controller; 
@@ -233,32 +230,42 @@ void MasterNM::masterRead(){
         sm_main.header.device_code = this->device_alias_map[new_state.info.device]; 
         sm_main.header.ctl_code = this->controller_alias_map[new_state.info.controller]; 
 
+        bool scheduling = true; 
+
         // Add other communication MASERT_PROTOCOLS
         switch(new_state.protocol){
-            case PROTOCOLS::SENDSTATES : {
-                sm_main.header.prot = Protocol::SEND_STATE; 
-                break; 
-            }
             case PROTOCOLS::OWNER_CANDIDATE_REQUEST : {
+                std::cout<<"Pushing owner candidate request"<<std::endl; 
                 sm_main.header.prot = Protocol::OWNER_CANDIDATE_REQUEST ;
                 break; 
             }
             case PROTOCOLS::OWNER_CONFIRM : {
+                std::cout<<"Pushing Confirm"<<std::endl; 
                 sm_main.header.prot = Protocol::OWNER_CONFIRM; 
                 break; 
             }
             case PROTOCOLS::OWNER_RELEASE : {  
+                std::cout<<"Pushing Release"<<std::endl; 
                 sm_main.header.prot = Protocol::OWNER_RELEASE; 
                 break; 
             }
+            default : {
+                sm_main.header.prot = Protocol::STATE_CHANGE;
+                scheduling = false; 
+                sm_main.body = new_state.DM.Serialize(); 
+                sm_main.header.body_size = sm_main.body.size(); 
+            }
+        }
+   
+   
+        sm_main.header.oblock_priority = new_state.info.priority; 
+    
+        messageClient(cont, sm_main); 
+
+        if(scheduling){
+            continue; 
         }
         
-        sm_main.header.prot = Protocol::STATE_CHANGE;
-        sm_main.body = new_state.DM.Serialize(); 
-        sm_main.header.body_size = sm_main.body.size(); 
-    
-
-        messageClient(cont, sm_main); 
 
         // Send the Ticker Update Message (idk maybe)
 
@@ -286,7 +293,6 @@ void MasterNM::masterRead(){
 void MasterNM::update(){
     while(true){
         auto omar = this->in_queue.read();
-        std::cout<<"Recieved the message MASTER Network Manager"<<std::endl; 
         this->handleMessage(omar);
     }
 }

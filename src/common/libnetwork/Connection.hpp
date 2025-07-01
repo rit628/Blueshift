@@ -16,8 +16,6 @@ enum class Owner{
     MASTER, 
 }; 
 
-
-
 struct OwnedSentMessage; 
 
 class Connection : public enable_shared_from_this<Connection>{

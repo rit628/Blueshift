@@ -18,18 +18,24 @@ DynamicMasterMessage DeviceScheduler::makeMessage(OblockID& oName, DeviceID& dev
 }
 
 
-DeviceScheduler::DeviceScheduler(std::vector<OBlockDesc> &oblockDescList, TSQ<DynamicMasterMessage> &inSendMM)
-: sendMM(inSendMM) 
+DeviceScheduler::DeviceScheduler(std::vector<OBlockDesc> &oblockDescList, std::function<void(DynamicMasterMessage)> msgHandler)
 {
     for(auto& odesc : oblockDescList){
         auto& oblockName = odesc.name;
         for(DeviceDescriptor& dev : odesc.outDevices){
             if(!dev.isCursor){
+                if(this->scheduledProcessMap.contains(dev.device_name)){
+                    this->scheduledProcessMap[dev.device_name]; 
+                }
+
+
                 this->oblockWaitMap[oblockName].mustOwn.insert(dev.device_name); 
                 this->devControllerMap[dev.device_name] = dev.controller; 
             }
         }
     }
+
+    this->handleMessage = msgHandler; 
 }
 
 
@@ -42,6 +48,13 @@ void DeviceScheduler::request(OblockID& requestor, int priority){
     // get the out devices from the oblock: 
     auto& jamar = this->oblockWaitMap[requestor]; 
     auto& ownDevs = jamar.mustOwn;
+    jamar.executeFlag = false; 
+
+    if(ownDevs.empty()){
+        std::cout<<"No devices left to own"<<std::endl; 
+        return; 
+    }
+
     for(auto dev : ownDevs){
         auto& scheData = this->scheduledProcessMap[dev]; 
 
@@ -54,14 +67,14 @@ void DeviceScheduler::request(OblockID& requestor, int priority){
         if(scheData.loadedRequest.ps == PROCSTATE::EXECUTED){
             loadRequest.ps = PROCSTATE::LOADED; 
             scheData.loadedRequest = loadRequest; 
-            this->sendMM.write(this->makeMessage(loadRequest.requestorOblock, dev, PROTOCOLS::OWNER_CANDIDATE_REQUEST)); 
+            this->handleMessage(this->makeMessage(loadRequest.requestorOblock, dev, PROTOCOLS::OWNER_CANDIDATE_REQUEST)); 
         }
         else if(priority > scheData.loadedRequest.priority){
             // Candidate replacement
             scheData.QueuePush(scheData.loadedRequest);
             loadRequest.ps = PROCSTATE::LOADED; 
             scheData.loadedRequest = loadRequest;  
-            this->sendMM.write(this->makeMessage(loadRequest.requestorOblock, dev, PROTOCOLS::OWNER_CANDIDATE_REQUEST)); 
+            this->handleMessage(this->makeMessage(loadRequest.requestorOblock, dev, PROTOCOLS::OWNER_CANDIDATE_REQUEST)); 
         }
         else{
             loadRequest.ps = PROCSTATE::WAITING; 
@@ -85,7 +98,7 @@ void DeviceScheduler::receive(DynamicMasterMessage &recvMsg){
 
               for(auto dev : devList){
                 DynamicMasterMessage confirmMsg = makeMessage(targOblock, dev, PROTOCOLS::OWNER_CONFIRM); 
-                this->sendMM.write(confirmMsg); 
+                this->handleMessage(confirmMsg); 
                 auto& devProc = this->scheduledProcessMap[dev];  
                 
                 // Perform any time based schdueling algorithms etc
@@ -110,10 +123,11 @@ void DeviceScheduler::receive(DynamicMasterMessage &recvMsg){
 }
 
 void DeviceScheduler::release(OblockID& reqOblock){
+    std::cout<<"Releasing device "<<std::endl; 
     auto& deviceList = this->oblockWaitMap[reqOblock].mustOwn;
     for(auto dev : deviceList){
         // Send each device that the oblock in question has ended its ownership
         DynamicMasterMessage newDMM = makeMessage(reqOblock, dev,PROTOCOLS::OWNER_RELEASE); 
-        this->sendMM.write(newDMM); 
+        this->handleMessage(newDMM); 
     }
 }

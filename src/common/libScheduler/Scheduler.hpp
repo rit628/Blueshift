@@ -85,15 +85,15 @@ class DeviceScheduler{
         // Returns what each oblock is waiting on
         std::unordered_map<OblockID, PendingStateInfo> oblockWaitMap; 
 
-        // sendMM (for sending messages)
-        TSQ<DynamicMasterMessage> &sendMM; 
-
         // Utility Functions: 
         DynamicMasterMessage makeMessage(OblockID& oName, DeviceID& devName, PROTOCOLS pmsg); 
+
+        // Function
+        function<void(DynamicMasterMessage)> handleMessage; 
         
 
     public: 
-        DeviceScheduler(std::vector<OBlockDesc> &oblockDescList, TSQ<DynamicMasterMessage> &sendMM); 
+        DeviceScheduler(std::vector<OBlockDesc> &oblockDescList, function<void(DynamicMasterMessage)> dmm_message); 
         void request(OblockID& oblockName, int priority); 
         void receive(DynamicMasterMessage &DMM); 
         void release(OblockID &reqOblock); 

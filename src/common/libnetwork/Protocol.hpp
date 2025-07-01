@@ -93,8 +93,8 @@ struct SentHeader{
     ERROR_T ec = ERROR_T::BAD_DEV_CONFIG; 
 
     // Used to communicate about oblock ownership between master and client
-    uint16_t oblock_id;
-    uint8_t oblock_priority; 
+    uint16_t oblock_id = 0;
+    uint8_t oblock_priority = 0; 
 
     bool fromInterrupt = false; 
 

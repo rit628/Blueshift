@@ -13,8 +13,11 @@ namespace BlsLang{
     // Controller Source 
     struct ControllerSource{
         std::unique_ptr<AstNode::Source> ctlSource; 
+        std::unordered_map<OblockID, OBlockDesc> oblockDesc; 
+        
         std::vector<std::unique_ptr<AstNode::Statement>> setup_statements; 
-        std::vector<std::unique_ptr<AstNode::Function>> oblock_list;  
+        std::vector<std::unique_ptr<AstNode::Function>> oblock_list;
+        
     }; 
 
 
@@ -58,7 +61,9 @@ namespace BlsLang{
         
         
     public: 
-        Divider(DividerMetadata& newData):Printer(std::cout) {
+        Divider():Printer(std::cout) {}
+
+        void setMetadata(DividerMetadata& newData){
             this->DivMeta = newData; 
         }
 
@@ -68,19 +73,11 @@ namespace BlsLang{
         BlsObject visit(AstNode::Statement::Declaration& ast) override;
         BlsObject visit(AstNode::Statement::Expression& ast) override; 
         BlsObject visit(AstNode::Statement::If &ast) override; 
-        BlsObject visit(AstNode::Statement::For &ast) override; 
-        BlsObject visit(AstNode::Statement::While &ast) override; 
-        BlsObject visit(AstNode::Expression::Binary &ast) override;
-        BlsObject visit(AstNode::Expression::Function &ast) override; 
-        
 
         // Final Product
         std::unordered_map<ControllerID, ControllerSource>& getControllerSplit(){
             return this->ctlSourceMap; 
         } 
-    
-    
-
 
     }; 
 

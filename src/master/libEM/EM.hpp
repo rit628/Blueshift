@@ -3,7 +3,7 @@
 #include "libTSQ/TSQ.hpp"
 #include "include/Common.hpp"
 #include "../../lang/libinterpreter/interpreter.hpp"
-#include "libScheduler/scheduler.hpp"
+#include "libScheduler/Scheduler.hpp"
 #include "../../lang/common/ast.hpp"
 #include "libtypes/bls_types.hpp"
 #include <unordered_map>

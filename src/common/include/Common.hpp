@@ -67,7 +67,7 @@ struct DeviceDescriptor{
 
     /* Driver Configuration Attributes */
     bool isInterrupt = false;
-    bool isCursor = true;
+    bool isCursor = false;
 
     template<typename Archive>
     void serialize(Archive& ar, const unsigned int version) {
@@ -158,7 +158,9 @@ struct O_Info
     std::string device;
     std::string controller;
     bool isVtype = false;
+    int priority; 
 };
+
 
 struct DynamicMasterMessage
 {
@@ -166,7 +168,7 @@ struct DynamicMasterMessage
     O_Info info;
     DynamicMessage DM;
     bool isInterrupt;
-   PROTOCOLS protocol;
+    PROTOCOLS protocol;
     DynamicMasterMessage() = default;
     DynamicMasterMessage(DynamicMessage DM, O_Info info, PROTOCOLS protocol, bool isInterrupt);
     

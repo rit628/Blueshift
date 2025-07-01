@@ -141,8 +141,9 @@ void Client::listener(std::stop_token stoken){
                         std::cout<<"CTL: "<<inMsg.header.ctl_code<<std::endl; 
                         std::cout<<"OBLOCK: "<<inMsg.header.device_code<<std::endl;
                         std::cout<<"Tried to access a preowned device"<<std::endl; 
-                        return; 
+                        continue; 
                     }
+                    std::cout<<"Valid owner"<<std::endl; 
                 }
 
     
@@ -229,23 +230,28 @@ void Client::listener(std::stop_token stoken){
             this->disconnect(); 
         }
         else if(ptype == Protocol::OWNER_CANDIDATE_REQUEST){
+            std::cout<<"Received REquest"<<std::endl; 
             dev_int targDevice = inMsg.header.device_code;
             if(!this->deviceList[targDevice].pendingRequests.currOwned){
                 // Add the code to send the device grant here: 
+                std::cout<<"Sending the grant message"<<std::endl; 
                 sendMessage(targDevice, Protocol::OWNER_GRANT, false, inMsg.header.oblock_id); 
                 this->deviceList[targDevice].pendingRequests.currOwned = true; 
-                return; 
             }
-
+           
             ClientSideReq csReq; 
             csReq.ctl = inMsg.header.ctl_code; 
             csReq.targetDevice = targDevice; 
             csReq.requestorOblock = inMsg.header.oblock_id;  
             csReq.priority = inMsg.header.oblock_priority; 
+            std::cout<<"before device add"<<std::endl; 
             this->deviceList[csReq.targetDevice].pendingRequests.addRequest(csReq);
+            std::cout<<"after device add"<<std::endl; 
+            
         }
         // Confirms the owner (all non owner attempts to access a device are blocked)
         else if(ptype == Protocol::OWNER_CONFIRM){
+            std::cout<<"Received confirmation"<<std::endl; 
             dev_int dev_id= inMsg.header.device_code; 
             auto& devicePending = this->deviceList[dev_id].pendingRequests; 
             
@@ -256,14 +262,17 @@ void Client::listener(std::stop_token stoken){
                 devicePending.currOwned = true;
                 auto& devPair = this->deviceList[dev_id].pendingRequests.owner; 
                 devPair = {inMsg.header.ctl_code, inMsg.header.oblock_id}; 
+                std::cout<<"Confrm Before Erasure"<<std::endl; 
                 pendingSet.erase(pendingSet.begin()); 
+                std::cout<<"Confirm After Erasure"<<std::endl; 
             }
             else{
                 std::cerr<<"PROTOCOL ERROR: INVALID OWNER CONFIRM FOR PROCESS THAT IS NOT A PRIME CANDIDATE"<<std::endl; 
             }         
         }
         else if(ptype == Protocol::OWNER_RELEASE){
-            auto devPendStruct = this->deviceList[inMsg.header.device_code].pendingRequests; 
+            std::cout<<"Received device release"<<std::endl; 
+            auto& devPendStruct = this->deviceList[inMsg.header.device_code].pendingRequests; 
             if(!devPendStruct.getSet().empty()){
                 auto& scheduleOrder = devPendStruct.getSet();
                 auto nextProcess = *scheduleOrder.begin();

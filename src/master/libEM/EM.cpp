@@ -10,13 +10,13 @@
 ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<vector<HeapMasterMessage>> &readMM, 
     TSQ<HeapMasterMessage> &sendMM, 
     std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks)
-    : readMM(readMM), sendMM(sendMM), scheduler(OblockList, sendMM)
+    : readMM(readMM), sendMM(sendMM), scheduler(OblockList, [this](DynamicMasterMessage dmm){this->sendMM.write(dmm);})
 {
     this->OblockList = OblockList;
     for(auto &oblock : OblockList)
     {
         string OblockName = oblock.name;
-        vector<string> devices;
+         vector<string> devices;
         vector<bool> isVtype;
         vector<string> controllers;
         for(int j = 0; j < oblock.binded_devices.size(); j++)
@@ -108,7 +108,6 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
         this->globalScheduler.request(this->Oblock.name, currentDMMs.priority); 
 
         replaceCachedStates(HMMs); 
-
         
         vector<BlsType> transformableStates;
 
@@ -122,9 +121,6 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
                 transformableStates.push_back(defDevice); 
             }
         }
-            
-
-
 
         transformableStates = transform_function(transformableStates);
 
@@ -151,9 +147,10 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
         {
             sendMM.write(hmm);
         }
-    }
 
-    this->globalScheduler.release(this->Oblock.name); 
+        std::cout<<"Eu Release Request"<<std::endl; 
+        this->globalScheduler.release(this->Oblock.name); 
+    }
 }
 
 ExecutionUnit &ExecutionManager::assign(HeapMasterMessage DMM)
