@@ -18,7 +18,7 @@ int main() {
 
     // sample engine
     BlsLang::Compiler compiler;
-    compiler.compileFile("samples/src/rpi.blu");
+    // compiler.compileFile("samples/src/rpi.blu");
 
 
     /*
@@ -99,7 +99,6 @@ int main() {
     std::cout<<"omar1: "<<omar1<<std::endl; 
     */ 
 
-    BlsLang::Compiler compiler;
     compiler.compileFile("samples/src/main3.blu");
      
     return 0;

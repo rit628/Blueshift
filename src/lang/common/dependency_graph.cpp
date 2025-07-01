@@ -132,12 +132,14 @@ BlsObject DependencyGraph::visit(AstNode::Setup& ast) {
         if (auto* deviceBinding = dynamic_cast<AstNode::Statement::Declaration*>(statement.get())) {
             auto& name = deviceBinding->getName();
             auto devtypeObj = resolve(deviceBinding->getType()->accept(*this));
-            auto devtype = static_cast<DEVTYPE>(getType(devtypeObj));
+            auto devtype = static_cast<TYPE>(getType(devtypeObj));
 
             auto& value = deviceBinding->getValue();
             auto binding = dynamic_cast<AstNode::Expression::Literal*>(value->get())->getLiteral();
             auto& bindStr = std::get<std::string>(binding);
-            auto devDesc = parseDeviceBinding(name, devtype, bindStr);
+            auto devDesc = parseDeviceBinding(bindStr);
+            devDesc.device_name = name;
+            devDesc.type = devtype;
             deviceDescriptors.emplace(name, devDesc);
         }
         else if (auto* statementExpression = dynamic_cast<AstNode::Statement::Expression*>(statement.get())) {

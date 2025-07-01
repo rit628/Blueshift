@@ -166,3 +166,7 @@ BlsObject Symbolicator::visit(AstNode::Source& ast) {
     ast.getSetup()->accept(*this);
     return std::monostate();
 }
+
+BlsObject Symbolicator::visit(AstNode::Initializer::Oblock& ast) {
+    return std::monostate();
+}

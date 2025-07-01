@@ -1,7 +1,7 @@
 #include "EM.hpp"
 #include "include/Common.hpp"
 #include "libMM/MM.hpp"
-#include "libScheduler/scheduler.hpp"
+#include "libScheduler/Scheduler.hpp"
 #include "libtype/bls_types.hpp"
 #include <memory>
 

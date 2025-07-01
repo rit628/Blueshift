@@ -5,7 +5,8 @@
 #include "../../lang/libinterpreter/interpreter.hpp"
 #include "libScheduler/Scheduler.hpp"
 #include "../../lang/common/ast.hpp"
-#include "libtypes/bls_types.hpp"
+#include "libtype/bls_types.hpp"
+#include "libTSM/TSM.hpp"
 #include <unordered_map>
 #include <thread>
 #include <memory>

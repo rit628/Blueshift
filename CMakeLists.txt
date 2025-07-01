@@ -146,7 +146,7 @@ target_link_libraries(symgraph depgraph lang_common type ${BOOST_LIB_DEPS})
 file(GLOB_RECURSE LIBDIVIDER_SRC ${LANG_SRC_DIR}/libdivider/*.cpp)
 add_library(divider STATIC ${LIBDIVIDER_SRC})
 target_include_directories(divider PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
-target_link_libraries(divider symgraph depgraph lang_common types ${BOOST_LIB_DEPS})
+target_link_libraries(divider symgraph depgraph lang_common type ${BOOST_LIB_DEPS})
 
 file(GLOB_RECURSE LIBVIRTUALMACHINE_SRC ${LANG_SRC_DIR}/libvirtual_machine/*.cpp)
 add_library(virtual_machine STATIC ${LIBVIRTUALMACHINE_SRC})

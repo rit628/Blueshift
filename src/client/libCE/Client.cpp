@@ -134,7 +134,7 @@ void Client::listener(std::stop_token stoken){
                 auto dev_index = inMsg.header.device_code; 
 
                 // Check if the writer is the valid owner of the device (if applies)
-                auto& pendingReq = this->deviceList[dev_index].pendingRequests; 
+                auto& pendingReq = this->deviceList.at(dev_index).pendingRequests; 
                 if(pendingReq.currOwned){
                     if((inMsg.header.ctl_code != pendingReq.owner.first) || (inMsg.header.oblock_id != pendingReq.owner.second)){
                         std::cout<<"OWNERSHIP WARNING: "<<std::endl; 
@@ -232,11 +232,11 @@ void Client::listener(std::stop_token stoken){
         else if(ptype == Protocol::OWNER_CANDIDATE_REQUEST){
             std::cout<<"Received REquest"<<std::endl; 
             dev_int targDevice = inMsg.header.device_code;
-            if(!this->deviceList[targDevice].pendingRequests.currOwned){
+            if(!this->deviceList.at(targDevice).pendingRequests.currOwned){
                 // Add the code to send the device grant here: 
                 std::cout<<"Sending the grant message"<<std::endl; 
                 sendMessage(targDevice, Protocol::OWNER_GRANT, false, inMsg.header.oblock_id); 
-                this->deviceList[targDevice].pendingRequests.currOwned = true; 
+                this->deviceList.at(targDevice).pendingRequests.currOwned = true; 
             }
            
             ClientSideReq csReq; 
@@ -245,7 +245,7 @@ void Client::listener(std::stop_token stoken){
             csReq.requestorOblock = inMsg.header.oblock_id;  
             csReq.priority = inMsg.header.oblock_priority; 
             std::cout<<"before device add"<<std::endl; 
-            this->deviceList[csReq.targetDevice].pendingRequests.addRequest(csReq);
+            this->deviceList.at(csReq.targetDevice).pendingRequests.addRequest(csReq);
             std::cout<<"after device add"<<std::endl; 
             
         }
@@ -253,14 +253,14 @@ void Client::listener(std::stop_token stoken){
         else if(ptype == Protocol::OWNER_CONFIRM){
             std::cout<<"Received confirmation"<<std::endl; 
             dev_int dev_id= inMsg.header.device_code; 
-            auto& devicePending = this->deviceList[dev_id].pendingRequests; 
+            auto& devicePending = this->deviceList.at(dev_id).pendingRequests; 
             
             // Check if the top value matches the confirmation: 
             auto& pendingSet = devicePending.getSet(); 
             auto loadedProcess = *pendingSet.begin(); 
             if((loadedProcess.ctl == inMsg.header.ctl_code) && (loadedProcess.requestorOblock == inMsg.header.oblock_id)){
                 devicePending.currOwned = true;
-                auto& devPair = this->deviceList[dev_id].pendingRequests.owner; 
+                auto& devPair = this->deviceList.at(dev_id).pendingRequests.owner; 
                 devPair = {inMsg.header.ctl_code, inMsg.header.oblock_id}; 
                 std::cout<<"Confrm Before Erasure"<<std::endl; 
                 pendingSet.erase(pendingSet.begin()); 
@@ -272,7 +272,7 @@ void Client::listener(std::stop_token stoken){
         }
         else if(ptype == Protocol::OWNER_RELEASE){
             std::cout<<"Received device release"<<std::endl; 
-            auto& devPendStruct = this->deviceList[inMsg.header.device_code].pendingRequests; 
+            auto& devPendStruct = this->deviceList.at(inMsg.header.device_code).pendingRequests; 
             if(!devPendStruct.getSet().empty()){
                 auto& scheduleOrder = devPendStruct.getSet();
                 auto nextProcess = *scheduleOrder.begin();
