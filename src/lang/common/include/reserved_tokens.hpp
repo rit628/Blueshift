@@ -20,6 +20,7 @@ namespace BlsLang {
     constexpr auto RESERVED_VIRTUAL                     ("virtual");
     
     constexpr auto RESERVED_OBLOCK                      ("oblock");
+    constexpr auto RESERVED_MASTER                      ("MASTER"); 
     constexpr auto RESERVED_SETUP                       ("setup");
 
     constexpr auto BRACE_OPEN                           ("{");

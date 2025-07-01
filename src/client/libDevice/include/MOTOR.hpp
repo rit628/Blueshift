@@ -3,18 +3,18 @@
 #include "../DeviceCore.hpp"
 #include "libtype/typedefs.hpp"
 
-template<>
-class Device<TypeDef::MOTOR> : public DeviceCore {
-    private:
-        TypeDef::MOTOR states;
-        int speed;
-        int in1_pin, in2_pin, pwm_pin;
-        unsigned pwm_range;
-        
-    public:
-        ~Device();
-        void processStates(DynamicMessage &dmsg);
-        void init(std::unordered_map<std::string, std::string> &config);
-        void transmitStates(DynamicMessage &dmsg);
-        void apply_speed(int speed);
-};
+namespace Device {
+    class MOTOR : public DeviceCore<TypeDef::MOTOR> {
+        private:
+            int speed;
+            int in1_pin, in2_pin, pwm_pin;
+            unsigned pwm_range;
+            
+        public:
+            ~MOTOR();
+            void processStates(DynamicMessage &dmsg);
+            void init(std::unordered_map<std::string, std::string> &config);
+            void transmitStates(DynamicMessage &dmsg);
+            void apply_speed(int speed);
+    };
+}

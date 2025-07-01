@@ -3,6 +3,8 @@
 #include "libtype/bls_types.hpp"
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/unordered_map.hpp>
+#include <exception>
+#include <stdexcept>
 #include <optional>
 #include <string>
 #include <variant>
@@ -28,6 +30,7 @@ enum class PORTTYPE{
     SPI
 }; 
 
+
 struct DeviceDescriptor{
     /* Binding/Declaration Attributes */
     std::string device_name = "";
@@ -42,6 +45,11 @@ struct DeviceDescriptor{
     bool dropWrite = false;
     int polling_period = 1000;
     bool isConst = true;
+    /* 
+        If the device is registered as a trigger then the exeuction of 
+        the oblock is binded to the arrival of the devices state. 
+    */ 
+    bool isTrigger = true; 
 
     /* Driver Configuration Attributes */
     bool isInterrupt = false;
@@ -86,13 +94,11 @@ struct TriggerData {
 
 struct OBlockDesc{
 
-    /*
-        Normal State
-    */
-
     std::string name; 
     std::vector<DeviceDescriptor> binded_devices; 
     int bytecode_offset = 0; 
+    //std::vector<DeviceDescriptor> inDevices; 
+    //std::vector<DeviceDescriptor> outDevices; 
 
     // Reading Config
 
@@ -110,7 +116,12 @@ struct OBlockDesc{
     /*
         Synchronize State: Block until all states of refreshed (true for now)
     */
-    bool synchronize_states = true;
+    bool synchronize_states = false;
+    /* 
+    If custom descriptor is false then all incoming device states are 
+    triggers
+    */ 
+    bool customTriggers = false; 
 
     template<typename Archive>
     void serialize(Archive& ar, const unsigned int version) {
@@ -143,6 +154,7 @@ struct DynamicMasterMessage
     PROTOCOLS protocol;
     DynamicMasterMessage() = default;
     DynamicMasterMessage(DynamicMessage DM, O_Info info, PROTOCOLS protocol, bool isInterrupt);
+    
     ~DynamicMasterMessage() = default;
 };
 
@@ -152,10 +164,25 @@ struct HeapMasterMessage
     O_Info info;
     PROTOCOLS protocol;
     bool isInterrupt;
-    std::shared_ptr<HeapDescriptor> heapTree;
-
+    BlsType heapTree;
 
     HeapMasterMessage() = default;
     HeapMasterMessage(std::shared_ptr<HeapDescriptor> heapTree, O_Info info, PROTOCOLS protocol, bool isInterrupt);
+    HeapMasterMessage(DynamicMasterMessage &DMM){
+        this->heapTree = DMM.DM.toTree();
+        this->info = DMM.info; 
+        this->isInterrupt = DMM.isInterrupt; 
+        this->protocol = DMM.protocol; 
+    }
+
     ~HeapMasterMessage() = default;
 };
+
+/*
+    The GenericException class automatically disables 
+    
+*/ 
+
+
+
+

@@ -45,7 +45,6 @@ class MasterNM{
         tcp::acceptor master_acceptor; 
         std::thread bcast_thread; 
         TSQ<OwnedSentMessage> in_queue; 
-        
 
         // Ticker 
         MTicker tickerTable; 
@@ -60,7 +59,7 @@ class MasterNM{
         // Reader thread (writer thread not necessary as its done by boost asio)
         std::thread readerThread; 
         std::thread updateThread; 
-        bool in_operation; 
+        bool in_operation = false; 
 
         void writeConfig(std::vector<OBlockDesc> &descs); 
 

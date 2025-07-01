@@ -86,7 +86,7 @@ std::string& Connection::getIP(){
     return this->ip; 
 }
 
-void Connection::send(const SentMessage &sm){
+void Connection::send(SentMessage sm){
     boost::asio::post(this->ctx, [this, sm](){
         boost::asio::async_write(this->socket, std::array{
             boost::asio::buffer(&sm.header, sizeof(SentHeader)),
@@ -119,7 +119,19 @@ void Connection::readHeader(){
         }
         else{
             std::cerr<<"READ HEADER ERROR: "<<ec.message()<<std::endl; 
-            this->socket.close(); 
+            if(this->own == Owner::CLIENT){
+                std::cout<<"Client Connection detected, reverting to search mode!"<<std::endl; 
+                /* Create the new send message */
+                SentMessage error_sm; 
+                error_sm.header.prot = Protocol::CONNECTION_LOST;
+                this->in_messageBuffer = {};
+                this->in_queue.write({.connection = nullptr, .sm = error_sm}); 
+            }
+            else{
+                std::cout<<"Master system disconnect, reverting to search mode!"<<std::endl; 
+            }
+
+            //this->socket.close(); 
         }
     }); 
 }
@@ -149,4 +161,7 @@ void Connection::addToQueue(int val){
     this->in_tickets.push_front(val); 
     this->readHeader(); 
 }
+
+
+
 

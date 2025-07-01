@@ -1,5 +1,8 @@
 #include "MasterNM.hpp"
+#include "include/Common.hpp"
+#include "libDM/DynamicMessage.hpp"
 #include <algorithm>
+#include <exception>
 
 
 MasterNM::MasterNM(std::vector<OBlockDesc> &desc_list, TSQ<DMM> &in_msg, TSQ<DMM> &out_q)
@@ -47,9 +50,11 @@ void MasterNM::writeConfig(std::vector<OBlockDesc> &desc_list){
 
     int i = 0; 
     for(auto &name : c_list){
-        this->controller_alias_map[name] = i; 
-        this->controller_list.push_back(name); 
-        i++; 
+        if(name != "MASTER"){
+            this->controller_alias_map[name] = i; 
+            this->controller_list.push_back(name); 
+            i++; 
+        }
     }
 
     i = 0;
@@ -71,7 +76,9 @@ void MasterNM::writeConfig(std::vector<OBlockDesc> &desc_list){
             this->ctl_configs[dev.controller].device_alias.push_back(this->device_alias_map[dev.device_name]); 
             this->ctl_configs[dev.controller].type.push_back(dev.type); 
             this->ctl_configs[dev.controller].srcs.push_back(dev.port_maps); 
-
+            std::cout<<"MASTER - Is Trigger: "<<dev.isTrigger<<std::endl; 
+            this->ctl_configs[dev.controller].triggers.push_back(dev.isTrigger); 
+            
             dev_list.insert(dev.device_name); 
             c_list.insert(dev.controller);
         }
@@ -87,6 +94,7 @@ bool MasterNM::start(){
         // Start the context thread
         listenForConnections(); 
         this->ctx_thread = std::thread([this](){this->master_ctx.run();}); 
+        // This is bad (its wasting a lot of CPU cycles)
         this->updateThread = std::thread([this](){this->update();});
      
         if(this->bcast_thread.joinable()){
@@ -94,8 +102,6 @@ bool MasterNM::start(){
         }
     
         this->readerThread = std::thread([this](){this->masterRead();}); 
-
-       
 
         return true; 
 
@@ -207,7 +213,7 @@ void MasterNM::messageAllClients(const SentMessage &sm){
 // Reads a state and write it to the queue
 void MasterNM::masterRead(){
 
-    while(1){
+    while(true){
 
         // Send the normal message:
 
@@ -251,12 +257,10 @@ void MasterNM::masterRead(){
 }
 
 void MasterNM::update(){
-    while(1){
-        while(!this->in_queue.isEmpty()){
-            auto omar = this->in_queue.read();
-            std::cout<<"Recieved the message"<<std::endl; 
-            this->handleMessage(omar);
-        }
+    while(true){
+        auto omar = this->in_queue.read();
+        std::cout<<"Recieved the message MASTER Network Manager"<<std::endl; 
+        this->handleMessage(omar);
     }
 }
 
@@ -293,15 +297,20 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
 
             break; 
         }
-        case(Protocol::CONFIG_ERROR): {
+        case(Protocol::CLIENT_ERROR): {
+            // For now throw tht g
+            
             std::string error_msg; 
-            dmsg.unpack("__ERROR_MSG__", error_msg); 
-            throw std::runtime_error(error_msg); 
-
+            dmsg.unpack("message", error_msg); 
+            std::cout<<error_msg<<std::endl;  
+           
+            
             break; 
         }
+        case(Protocol::SEND_STATE_INIT) :
         case(Protocol::SEND_STATE) : {
             if(this->remConnections == 0){
+                //std::cout<<"SEND STATE DEVICE RECEIVED"<<std::endl; 
 
                 // Get the timer id: 
                 TimerID id = in_msg.sm.header.timer_id; 
@@ -322,6 +331,7 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
                         this->tickerTable.updateVolH(device_name, vol_map); 
                     }
 
+                    //std::cout<<"Not Interrupt?"<<std::endl; 
                     for(auto &o_name : oblock_list){
                         DMM new_msg; 
                         new_msg.info.controller = this->controller_list[in_msg.sm.header.ctl_code]; 
@@ -330,6 +340,7 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
                         new_msg.DM = dmsg; 
                         new_msg.isInterrupt = false; 
                         new_msg.protocol = PROTOCOLS::SENDSTATES; 
+                        //std::cout<<"Write to queue"<<std::endl; 
                         
                         this->EMM_out_queue.write(new_msg); 
                     }
@@ -343,6 +354,7 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
                     new_msg.DM = dmsg; 
                     new_msg.isInterrupt = true;
                     new_msg.protocol = PROTOCOLS::SENDSTATES;
+                    //std::cout<<"Write to queue"<<std::endl; 
 
                     this->EMM_out_queue.write(new_msg); 
                 }
@@ -358,10 +370,12 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
             std::string device_name = this->device_list[in_msg.sm.header.device_code];
 
             DMM new_msg; 
+
             new_msg.info.controller = this->controller_list[in_msg.sm.header.ctl_code]; 
             new_msg.info.device = device_name;         
             new_msg.protocol = PROTOCOLS::CALLBACKRECIEVED; 
-
+            new_msg.DM = dmsg; 
+            new_msg.isInterrupt = in_msg.sm.header.fromInterrupt;
             this->EMM_out_queue.write(new_msg);
 
             break; 
@@ -389,6 +403,7 @@ bool MasterNM::confirmClient(std::shared_ptr<Connection> &con_obj){
     dmsg.createField("__DEV_ALIAS__" ,this->ctl_configs[c_name].device_alias); 
     dmsg.createField("__DEV_TYPES__" ,this->ctl_configs[c_name].type);
     dmsg.createField("__DEV_PORTS__" ,this->ctl_configs[c_name].srcs);  
+    dmsg.createField("__DEV_INIT__", this->ctl_configs[c_name].triggers);
 
     dev_sm.body = dmsg.Serialize(); 
     dev_sm.header.body_size = dev_sm.body.size(); 

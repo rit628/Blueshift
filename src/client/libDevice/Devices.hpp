@@ -6,13 +6,27 @@
 #include <sys/fcntl.h>
 #include <unordered_map>
 
+namespace Device {
+    #define DEVTYPE_BEGIN(name) \
+    class name;
+    #define ATTRIBUTE(...)
+    #define DEVTYPE_END
+    #include "DEVTYPES.LIST"
+    #undef DEVTYPE_BEGIN
+    #undef ATTRIBUTE
+    #undef DEVTYPE_END
+}
+
 /* 
     enforces driver api adherence and collects all declarations for variant AbstractDevice creation
     might be possible to automate with modules but for now this will suffice
-    until support for modules improves in clang
+    until support for modules improves in clang and cmake
 */
+
 #include "include/TIMER_TEST.hpp"
 #include "include/LINE_WRITER.hpp"
+#include "include/READ_FILE.hpp"
+#include "include/FILE_LOG.hpp"
 #include "include/LIGHT.hpp"
 #include "include/BUTTON.hpp"
 #include "include/MOTOR.hpp"
@@ -26,8 +40,9 @@ concept DeviceDriver = requires (T device, std::unordered_map<std::string, std::
 };
 
 #define DEVTYPE_BEGIN(name) \
-static_assert(std::derived_from<Device<TypeDef::name>, DeviceCore>, "Device<TypeDef::" #name "> must inherit from DeviceCore"); \
-static_assert(DeviceDriver<Device<TypeDef::name>>, "Device<TypeDef::" #name "> must implement init(), processStates(), and transmitStates()");
+static_assert(boost::is_complete<Device::name>::value, "Device::" #name " must have a complete class definition (perhaps you made a typo or forgot to include the header here?)."); \
+static_assert(std::derived_from<Device::name, DeviceCore<TypeDef::name>>, "Device::" #name " must inherit from DeviceCore<TypeDef::" #name ">"); \
+static_assert(DeviceDriver<Device::name>, "Device::" #name " must implement init(), processStates(), and transmitStates()");
 #define ATTRIBUTE(...)
 #define DEVTYPE_END
 #include "DEVTYPES.LIST"

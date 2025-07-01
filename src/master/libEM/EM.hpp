@@ -1,11 +1,8 @@
 #pragma once
 
 #include "libTSQ/TSQ.hpp"
-#include "libTSM/TSM.hpp"
-#include "libDM/DynamicMessage.hpp"
 #include "include/Common.hpp"
-#include "../../lang/libinterpreter/interpreter.hpp"
-#include "../../lang/common/ast.hpp"
+#include "libtype/bls_types.hpp"
 #include <unordered_map>
 #include <thread>
 #include <memory>
@@ -18,20 +15,20 @@ using namespace std;
 class ExecutionUnit
 {
     public:
-    string OblockName;
+    OBlockDesc Oblock;
     O_Info info;
-    unordered_map<string, DynamicMasterMessage> stateMap;
+    unordered_map<string, HeapMasterMessage> stateMap;
     vector<string> devices;
     vector<bool> isVtype;
     vector<string> controllers;
-    TSQ<vector<DynamicMasterMessage>> EUcache;
+    TSQ<vector<HeapMasterMessage>> EUcache;
     thread executionThread;
     bool stop = false;
-    ExecutionUnit(string OblockName, vector<string> devices, vector<bool> isVtype, vector<string> controllers, 
-        TSM<string, vector<HeapMasterMessage>> &vtypeHMMsMap, TSQ<DynamicMasterMessage> &sendMM, 
-        function<vector<BlsType>(vector<BlsType>)>  transform_function);
-    void running( TSM<string, vector<HeapMasterMessage>> &vtypeHMMsMap, TSQ<DynamicMasterMessage> &sendMM);
-    //vector<shared_ptr<HeapDescriptor>> transformState(vector<shared_ptr<HeapDescriptor>> HMM_List);
+    std::unordered_map<std::string, int> devicePositionMap; 
+
+    ExecutionUnit(OBlockDesc OblockData, vector<string> devices, vector<bool> isVtype, vector<string> controllers, TSQ<HeapMasterMessage> &sendMM, function<vector<BlsType>(vector<BlsType>)>  transform_function);
+    void running( TSQ<HeapMasterMessage> &sendMM);
+   
     function<vector<BlsType>(vector<BlsType>)>  transform_function;
     ~ExecutionUnit();
 };
@@ -40,16 +37,17 @@ class ExecutionManager
 {
     public:
     //ExecutionManager() = default;
-    ExecutionManager(vector<OBlockDesc> OblockList, TSQ<vector<DynamicMasterMessage>> &readMM, 
-        TSQ<DynamicMasterMessage> &sendMM, 
+    ExecutionManager(vector<OBlockDesc> OblockList, TSQ<vector<HeapMasterMessage>> &readMM, 
+        TSQ<HeapMasterMessage> &sendMM, 
         std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks);
-    ExecutionUnit &assign(DynamicMasterMessage DMM);
+
+    ExecutionUnit &assign(HeapMasterMessage DMM);
+
     void running();
-    TSQ<vector<DynamicMasterMessage>> &readMM;
-    TSQ<DynamicMasterMessage> &sendMM;
+
+    TSQ<vector<HeapMasterMessage>> &readMM;
+    TSQ<HeapMasterMessage> &sendMM;
     unordered_map<string, unique_ptr<ExecutionUnit>> EU_map;
     vector<OBlockDesc> OblockList;
-    //vector<HeapMasterMessage> vtypeHMMs;
-    TSM<string, vector<HeapMasterMessage>> vtypeHMMsMap;
 };
 

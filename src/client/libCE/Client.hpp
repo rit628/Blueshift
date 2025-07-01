@@ -1,6 +1,8 @@
 #pragma once
 
+#include "include/Common.hpp"
 #include "libDevice/DeviceUtil.hpp"
+#include <memory>
 #include <thread>
 #include <shared_mutex>
 #include <unordered_map>
@@ -10,9 +12,7 @@
 using boost::asio::ip::tcp; 
 using boost::asio::ip::udp; 
 
-
 using TimePoint = std::chrono::time_point<std::chrono::high_resolution_clock>; 
-
 
 enum class ClientState{
     // Waiting for broadcast message from the master
@@ -23,8 +23,7 @@ enum class ClientState{
     IN_OPERATION, 
     // The client is in shutdown mode, so its going to sleep
     SHUTDOWN, 
-}; 
-
+};
 
 class Client{
     private: 
@@ -36,7 +35,7 @@ class Client{
         // Sets up the boost asio context: 
         boost::asio::io_context client_ctx; 
         // Context must run in its own thread
-        std::thread ctxThread; 
+        std::jthread ctxThread; 
         // Socket that listens for broadcast: 
         boost::asio::ip::udp::socket bc_socket; 
         // Socket that is connected to server
@@ -55,24 +54,23 @@ class Client{
        // Ticker Mutex; 
         std::shared_mutex ticker_mutex; 
         // Contains the list of known devices
-        std::unordered_map<int, AbstractDevice> deviceList;     
+        std::unordered_map<int, DeviceHandle> deviceList;     
         // client name used to identify controller
         std::string client_name; 
         // Listens for incoming message and places it into the spot
-        std::thread listenerThread; 
-        // Runs the reader thread and the
-        std::thread readerThread; 
+        std::jthread listenerThread; 
         // use to keep track of the state 
         ClientState curr_state; 
         // sends a callback for a device
-        void sendCallback(uint16_t device);  
+        void sendMessage(uint16_t device, Protocol prot, bool );  
         // Send a message
         void send(SentMessage &msg); 
         // Updates the ticker table
         void updateTicker(); 
         // Temp timers 
         std::vector<Timer> start_timers; 
-
+        // Error Sender: 
+        std::unique_ptr<GenericBlsException> genBlsException; 
 
         /*
             State management information
@@ -81,7 +79,6 @@ class Client{
         // Ticker table
         std::unordered_map<uint16_t, DeviceTimer> client_ticker;
         std::vector<DeviceInterruptor> interruptors;
-        std::vector<std::thread> global_interrupts;  
 
 
     public: 
@@ -91,7 +88,7 @@ class Client{
         void start(); 
 
         // Dispatches messages to jobs when recieved 
-        void listener();
+        void listener(std::stop_token stoken);
 
         // shutdown
         void shutdown();

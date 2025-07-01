@@ -1,5 +1,8 @@
 #include "DeviceUtil.hpp"
 #include <stdexcept>
+#include <stop_token>
+#include <utility>
+#include <variant>
 #ifdef __RPI64__
 #include <pigpio.h>
 #endif
@@ -7,12 +10,13 @@
 template<class... Ts>
 struct overloads : Ts... { using Ts::operator()...; };
 
-AbstractDevice::AbstractDevice(TYPE dtype, std::unordered_map<std::string, std::string> &port_nums) {
+DeviceHandle::DeviceHandle(TYPE dtype, std::unordered_map<std::string, std::string> &config, uint16_t sendInterrupt) {
     switch(dtype){
         #define DEVTYPE_BEGIN(name) \
         case TYPE::name: { \
-            this->device.emplace<Device<TypeDef::name>>(); \
-            this->init(port_nums); \
+            this->device.emplace<Device::name>(); \
+            this->init(config); \
+            this->isTrigger = sendInterrupt; \
             break; \
         }
         #define ATTRIBUTE(...)
@@ -27,14 +31,14 @@ AbstractDevice::AbstractDevice(TYPE dtype, std::unordered_map<std::string, std::
     }
 }
 
-void AbstractDevice::processStatesImpl(DynamicMessage& input) {
+void DeviceHandle::processStatesImpl(DynamicMessage& input) {
     std::visit(overloads {
         [](std::monostate&) {},
         [&input](auto& dev) { dev.processStates(input); }
     }, device);
 }
 
-void AbstractDevice::processStates(DynamicMessage dmsg) {
+void DeviceHandle::processStates(DynamicMessage dmsg) {
     if (!hasInterrupt()) {
         processStatesImpl(dmsg);
         return;
@@ -69,28 +73,28 @@ void AbstractDevice::processStates(DynamicMessage dmsg) {
     cv.notify_one();
 }
 
-void AbstractDevice::init(std::unordered_map<std::string, std::string> &config) {
+void DeviceHandle::init(std::unordered_map<std::string, std::string> &config) {
     std::visit(overloads {
         [](std::monostate&) {},
         [&config](auto& dev) { dev.init(config); }
     }, device);
 }
 
-void AbstractDevice::transmitStates(DynamicMessage &dmsg) {
+void DeviceHandle::transmitStates(DynamicMessage &dmsg) {
     std::visit(overloads {
         [](std::monostate&) {},
         [&dmsg](auto& dev) { dev.transmitStates(dmsg); }
     }, device);
 }
 
-bool AbstractDevice::hasInterrupt() {
+bool DeviceHandle::hasInterrupt() {
     return std::visit(overloads {
         [](std::monostate&) { return false; },
         [](auto& dev) { return dev.hasInterrupt; }
     }, device);
 }
 
-std::vector<Interrupt_Desc>& AbstractDevice::getIdescList() {
+std::vector<Interrupt_Desc>& DeviceHandle::getIdescList() {
     return std::visit(overloads {
         [](std::monostate&) -> std::vector<Interrupt_Desc>& { /* never called */ },
         [](auto& dev) -> std::vector<Interrupt_Desc>& { return dev.Idesc_list; }
@@ -106,6 +110,13 @@ std::chrono::milliseconds DeviceTimer::getRemainingTime() {
         return std::chrono::duration_cast<std::chrono::milliseconds>(difference);
     }   
     return std::chrono::milliseconds(0); 
+}
+
+DeviceTimer::DeviceTimer(boost::asio::io_context &in_ctx, DeviceHandle& device, std::shared_ptr<Connection> cc, int ctl, int dev, int id)
+                        : device(device), ctl_code(ctl), device_code(dev), timer_id(id), conex(cc), ctx(in_ctx), timer(ctx) {}
+
+DeviceTimer::~DeviceTimer() {
+    this->timer.cancel();
 }
 
 void DeviceTimer::timerCallback() {
@@ -174,7 +185,7 @@ void DeviceTimer::sendData() {
     DynamicMessage dmsg; 
     this->device.transmitStates(dmsg); 
 
-    // Extract numerical data about the fields and add to the src: 
+    // Extract numerical data out the fields and add to the src: 
     dmsg.getFieldVolatility(this->attr_history, VOLATILITY_LIST_SIZE); 
 
     if(this->attr_history.size() > 0){
@@ -195,6 +206,30 @@ void DeviceTimer::sendData() {
     Send(smsg); 
 }
 
+DeviceInterruptor::DeviceInterruptor(DeviceHandle& targDev, std::shared_ptr<Connection> conex, int ctl, int dd)
+                                    : device(targDev), client_connection(conex), ctl_code(ctl), device_code(dd) {}
+
+DeviceInterruptor::DeviceInterruptor(DeviceInterruptor&& other)
+                                    : device(other.device)
+                                    , client_connection(other.client_connection)
+                                    , watcherManagerThread(std::move(other.watcherManagerThread))
+                                    , globalWatcherThreads(std::move(other.globalWatcherThreads))
+                                    , watchDescriptors(std::move(other.watchDescriptors))
+                                    , ctl_code(other.ctl_code)
+                                    , device_code(other.device_code)
+{
+    bool wasRunning = this->watcherManagerThread.joinable();
+    this->stopThreads(); // cleanup old threads that reference other
+    watchDescriptors.clear(); // remove old watch descriptors
+    if (wasRunning) { // restart threads
+        this->setupThreads();
+    }
+}
+
+DeviceInterruptor::~DeviceInterruptor() {
+    this->stopThreads();
+}
+
 void DeviceInterruptor::sendMessage() {
     // Configure sent message header: 
     SentMessage sm; 
@@ -210,7 +245,7 @@ void DeviceInterruptor::sendMessage() {
     sm.header.volatility = 0; 
 
     DynamicMessage dmsg; 
-    this->abs_device.transmitStates(dmsg); 
+    this->device.transmitStates(dmsg); 
     sm.body = dmsg.Serialize(); 
 
     sm.header.body_size = sm.body.size() ; 
@@ -234,80 +269,81 @@ void DeviceInterruptor::enableWatchers() {
     }
 }
 
-void DeviceInterruptor::manageWatchers() {
-    while (true) {
-        auto& m = this->abs_device.m;
-        auto& cv = this->abs_device.cv;
-        auto& processing = this->abs_device.processing;
-        auto& watchersPaused = this->abs_device.watchersPaused;
+void DeviceInterruptor::manageWatchers(std::stop_token stoken) {
+    auto& m = this->device.m;
+    auto& cv = this->device.cv;
+    auto& processing = this->device.processing;
+    auto& watchersPaused = this->device.watchersPaused;
+    while (!stoken.stop_requested()) {
+        // wait for device to receive a new message to process or for device reset
         {
             std::unique_lock lk(m);
-            cv.wait(lk, [&processing] { return processing; });
+            if (!cv.wait(lk, stoken, [&processing] { return processing; })) {
+                break; // break early to avoid unnecessary lock aquisition overhead
+            }
         }
-        // std::cout << "step 3: aquired lock from processStates after init" << std::endl;
 
+        // disable watchers before message processing
         {
             std::lock_guard lk(m);
             disableWatchers();
             watchersPaused = true;
         }
-        // std::cout << "step 4: watchersPaused to true, notify processStates" << std::endl;
         cv.notify_one();
 
+        // wait for message to process
         {
             std::unique_lock lk(m);
             cv.wait(lk, [&processing] { return !processing; });
         }
-        // std::cout << "step 7: aquired lock from processStates after processing" << std::endl;
 
+        // re-enable watchers
         {
             std::lock_guard lk(m);
             enableWatchers();
             watchersPaused = false;
         }
-        // std::cout << "step 8: watchersPaused to false, notify processStates" << std::endl;
         cv.notify_one();
     }
+    disableWatchers();
 }
 
-void DeviceInterruptor::IFileWatcher(std::string fname, std::function<bool()> handler) {
+void DeviceInterruptor::IFileWatcher(std::stop_token stoken, std::string fname, std::function<bool()> handler){
     // Check if the file exists relative to the deviceCore; 
-    
+
     int fd = inotify_init(); 
     if(fd < 0){
         std::cerr<<"Could not make Inotify object"<<std::endl; 
         close(fd); 
     }
-
     // The IFileWatcher makes the call when the file is modified
     int wd = inotify_add_watch(fd, fname.c_str(), IN_CLOSE_WRITE); 
     if(wd < 0){
         std::cerr<<"Could not perform an inotify event"<<std::endl; 
         close(fd); 
     }
-
     watchDescriptors.push_back({fd, wd, fname});
 
     // For now we can bypass the metadata and store data for the filesize and stuff;
     char event_buffer[sizeof(inotify_event) + 256]; 
-    while(true){
+    while(!stoken.stop_requested()){
         std::cout<<"Waiting for event"<<std::endl;
         int read_length = read(fd, event_buffer, sizeof(event_buffer)); 
+
         struct inotify_event* event = (struct inotify_event*)event_buffer; 
         if (event->mask == IN_IGNORED) {
             std::cout << "drop removed watch event" << std::endl;
             continue;
         }
-
         bool ret_val = handler(); 
-        if(ret_val && !this->abs_device.processing){
+        if(ret_val && !this->device.processing){
             std::cerr<<"Sending message"<<std::endl;
             this->sendMessage();  
         }
     }
 }
 
-void DeviceInterruptor::IGpioWatcher(int portNum, std::function<bool(int, int , uint32_t)> interruptHandle) {
+void DeviceInterruptor::IGpioWatcher(std::stop_token stoken, int portNum, std::function<bool(int, int , uint32_t)> interruptHandle) {
     std::pair<bool, std::tuple<int, int, uint32_t>> data; 
 
     auto popArgs = [](int gpio, int level, unsigned int tick, void* data) -> void{
@@ -320,7 +356,7 @@ void DeviceInterruptor::IGpioWatcher(int portNum, std::function<bool(int, int , 
         gpioSetAlertFuncEx(portNum, popArgs, &data);
     #endif
 
-    while (true) {
+    while (!stoken.stop_requested()) {
         auto& [signaler, args] = data;
         if(signaler){
             bool ret = std::apply(interruptHandle, args); 
@@ -335,19 +371,18 @@ void DeviceInterruptor::IGpioWatcher(int portNum, std::function<bool(int, int , 
 
 void DeviceInterruptor::setupThreads() {
     // Create the threads
-    for(auto& idesc : this->abs_device.getIdescList()){
+    auto iFileWatcher = std::bind(&DeviceInterruptor::IFileWatcher, std::ref(*this), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    auto iGpioWatcher = std::bind(&DeviceInterruptor::IGpioWatcher, std::ref(*this), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    auto manageWatchers = std::bind(&DeviceInterruptor::manageWatchers, std::ref(*this), std::placeholders::_1);
+    for(auto& idesc : this->device.getIdescList()){
         switch(idesc.src_type){
             case(SrcType::UNIX_FILE) : {
-                this->globalWatcherThreads.emplace_back([idesc, this](){
-                    this->IFileWatcher(idesc.file_src, std::get<std::function<bool()>>(idesc.interruptHandle)); 
-                }); 
+                this->globalWatcherThreads.emplace_back(iFileWatcher, idesc.file_src, std::get<std::function<bool()>>(idesc.interruptHandle)); 
                 break; 
             }
 
             case(SrcType::GPIO): {
-                this->globalWatcherThreads.emplace_back([&, this](){
-                    this->IGpioWatcher(idesc.port_num, std::get<std::function<bool(int, int, uint32_t)>>(idesc.interruptHandle));         
-                });
+                this->globalWatcherThreads.emplace_back(iGpioWatcher, idesc.port_num, std::get<std::function<bool(int, int, uint32_t)>>(idesc.interruptHandle));
                 break; 
             }
 
@@ -356,5 +391,12 @@ void DeviceInterruptor::setupThreads() {
             }
         }
     }
-    watcherManagerThread = std::thread([this] { this->manageWatchers(); });
+    watcherManagerThread = std::jthread(manageWatchers);
+}
+
+void DeviceInterruptor::stopThreads() {
+    for (auto&& watcher : globalWatcherThreads) {
+        watcher.request_stop();
+    }
+    watcherManagerThread.request_stop();
 }

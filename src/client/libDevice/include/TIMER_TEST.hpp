@@ -4,16 +4,16 @@
 #include "libtype/typedefs.hpp"
 #include <fstream>
 
-template<>
-class Device<TypeDef::TIMER_TEST> : public DeviceCore {
-    private: 
-        TypeDef::TIMER_TEST states;
+namespace Device {
+    class TIMER_TEST : public DeviceCore<TypeDef::TIMER_TEST> {
+        private: 
         std::string filename;
         std::ofstream write_file; 
         
-    public:
-        ~Device();
+        public:
+        ~TIMER_TEST();
         void processStates(DynamicMessage& dmsg);
         void init(std::unordered_map<std::string, std::string> &config);
         void transmitStates(DynamicMessage &dmsg);
-};
+    };
+}

@@ -1,14 +1,32 @@
-oblock printString(LIGHT L, LIGHT K) {
-    int a = 0B101;
-    /*list<int> l;
-    for (int i = 0; i < 999; i++) {
-        l.append(a + i);
-        println(l[i]);
-    }*/
+
+oblock fun2(LINE_WRITER lw1, LIGHT king)
+: triggerOn(lw1)
+{
+    if(lw1.msg == "right "){
+        print("PROGMESSAGE: from line writer 1"); 
+    }
+
+    king.on = !king.on;
 }
 
-setup() {
-    LIGHT L1 = "blueshift-client-1::PWR-0";
-    LIGHT L2 = "blueshift-client-2::PWR-0";
-    printString(L1, L2);
+
+oblock fun1(LINE_WRITER lw2, LINE_WRITER lw3, LIGHT king)
+: triggerOn(lw2, [king, lw3])
+{   
+    if(king.on){
+        print("PROGMESSAGE: The light is on"); 
+    }
+    else{
+        print("PROGMESSAGE: This light is off");
+    }
+}
+
+setup(){   
+    virtual LIGHT king = "MASTER::GPIO-192"; 
+    LINE_WRITER lw1 = "CTL1::file-file1.txt";
+    LINE_WRITER lw2 = "CTL1::file-file2.txt"; 
+    LINE_WRITER lw3 = "CTL1::file-omar.txt"; 
+
+    fun2(lw1, king);
+    fun1(lw2, lw3, king); 
 }

@@ -3,9 +3,37 @@
 #include "libEM/EM.hpp"
 #include "libMM/MM.hpp"
 #include "libNM/MasterNM.hpp"
+#include "libtype/bls_types.hpp"
 #include <functional>
+#include <unordered_map>
 
 using DMM = DynamicMasterMessage;
+
+
+
+/*
+    Modifies the Oblock Descriptor with the data derived from the 
+    dependency graph. 
+*/
+
+// void modifyOblockDesc(std::vector<OBlockDesc> &oDescs){
+//     std::unordered_map<DeviceID, DeviceDescriptor&> devDesc; 
+//     for(auto& oblock : oDescs){
+//         // Construct the device device desc map: 
+//         std::unordered_map<DeviceID, DeviceDescriptor> devMap; 
+//         for(auto& str : oblock.binded_devices){
+//             devMap[str.device_name] = str; 
+//         }
+        
+//         // Remove the artifical oblock adder
+//         if(oblock.name == "task"){
+//             std::cout<<"Establishing trigger rules"<<std::endl; 
+//             oblock.customTriggers = true; 
+//             oblock.triggerRules = {{"lw", "rfp"}, {"lw"}}; 
+//         }
+
+//     }
+// }
 
 
 int main(int argc, char *argv[]){
@@ -25,15 +53,12 @@ int main(int argc, char *argv[]){
     compiler.compileFile(filename); 
     printf("past compilation\n");
 
-    //auto oblocks = interpreter.getOblockDescriptors();
     std::vector<OBlockDesc> oblockDescriptors = compiler.getOblockDescriptors(); 
     auto oblocks = compiler.getOblocks();  
 
     // EM and MM
-    TSQ<DMM> EM_MM_queue; 
-    TSQ<std::vector<DMM>> MM_EM_queue; 
-
-    DMM light_dmm;
+    TSQ<HeapMasterMessage> EM_MM_queue; 
+    TSQ<std::vector<HeapMasterMessage>> MM_EM_queue; 
     
     // NM and MM
     TSQ<DMM> NM_MM_queue; 
@@ -57,8 +82,5 @@ int main(int argc, char *argv[]){
     t1.join(); 
     t2.join(); 
     t3.join(); 
-
-
-    
     
 }
