@@ -1,7 +1,6 @@
 #include "EM.hpp"
 #include "include/Common.hpp"
 #include "libMM/MM.hpp"
-#include "libScheduler/scheduler.hpp"
 #include "libtypes/bls_types.hpp"
 #include <memory>
 
@@ -10,13 +9,13 @@
 ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<EMStateMessage> &readMM, 
     TSQ<DynamicMasterMessage> &sendMM, 
     std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks)
-    : readMM(readMM), sendMM(sendMM), scheduler(OblockList, sendMM)
+    : readMM(readMM), sendMM(sendMM), scheduler(OblockList, [this](DynamicMasterMessage dmm){this->sendMM.write(dmm);})
 {
     this->OblockList = OblockList;
     for(auto &oblock : OblockList)
     {
         string OblockName = oblock.name;
-        vector<string> devices;
+         vector<string> devices;
         vector<bool> isVtype;
         vector<string> controllers;
         for(int j = 0; j < oblock.binded_devices.size(); j++)
@@ -92,10 +91,7 @@ void ExecutionUnit::running(TSQ<DynamicMasterMessage> &sendMM)
     while(true)
     {
         //if(EUcache.isEmpty()) {continue;}
-       EMStateMessage currentDMMs = EUcache.read();
-
-
-
+        EMStateMessage currentDMMs = EUcache.read();
 
         std::unordered_map<DeviceID, HeapMasterMessage> HMMs;
         
@@ -111,7 +107,6 @@ void ExecutionUnit::running(TSQ<DynamicMasterMessage> &sendMM)
         this->globalScheduler.request(this->Oblock.name, currentDMMs.priority); 
 
         replaceCachedStates(HMMs); 
-
         
         vector<BlsType> transformableStates;
 
@@ -125,9 +120,6 @@ void ExecutionUnit::running(TSQ<DynamicMasterMessage> &sendMM)
                 transformableStates.push_back(defDevice); 
             }
         }
-            
-
-
 
         transformableStates = transform_function(transformableStates);
 
@@ -157,9 +149,10 @@ void ExecutionUnit::running(TSQ<DynamicMasterMessage> &sendMM)
             DynamicMasterMessage DMM(DM, hmm.info,  hmm.protocol, hmm.isInterrupt);
             sendMM.write(DMM);
         }
-    }
 
-    this->globalScheduler.release(this->Oblock.name); 
+        std::cout<<"Eu Release Request"<<std::endl; 
+        this->globalScheduler.release(this->Oblock.name); 
+    }
 }
 
 ExecutionUnit &ExecutionManager::assign(DynamicMasterMessage DMM)

@@ -58,7 +58,7 @@ struct DeviceDescriptor{
     bool isInterrupt = false; 
     bool isVtype = false; 
     bool isConst = true; 
-    bool isCursor = true; 
+    bool isCursor = false; 
     
     /* 
         If the device is registered as a trigger then the exeuction of 
@@ -120,7 +120,9 @@ struct O_Info
     std::string device;
     std::string controller;
     bool isVtype = false;
+    int priority; 
 };
+
 
 struct DynamicMasterMessage
 {
@@ -128,7 +130,7 @@ struct DynamicMasterMessage
     O_Info info;
     DynamicMessage DM;
     bool isInterrupt;
-   PROTOCOLS protocol;
+    PROTOCOLS protocol;
     DynamicMasterMessage() = default;
     DynamicMasterMessage(DynamicMessage DM, O_Info info, PROTOCOLS protocol, bool isInterrupt);
     ~DynamicMasterMessage() = default;

@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include "include/Common.hpp"
+#include "libScheduler/scheduler.hpp"
 #include "libTSQ/TSQ.hpp"
 #include "libProcessing/Processing.hpp"
 #include "libScheduler/Scheduler.hpp"
@@ -36,7 +37,7 @@ class ClientEUCache{
             }; 
         }
 
-               // EMS state message
+        // EMS state message
         EMStateMessage grabStates(int priority)
         {
             EMStateMessage ems; 
@@ -60,7 +61,6 @@ class ClientEUCache{
             return ems; 
         }
 
-    
         int insertState(DynamicMasterMessage &dmm){
             DeviceID devName = dmm.info.device; 
             this->deviceInfo[devName].insertState(dmm); 
@@ -73,26 +73,27 @@ class ClientEUCache{
             }
             return -1; 
         }
-        
-
 }; 
+
+
+
 
 
 // Exec unit processor (with mailbox and EU combined)
 class ClientEU{
     private: 
         ClientEUCache dataQueue; 
-        // Queue connecting the gateway to the client
         TSQ<OwnedSentMessage>& clientTransfer; 
-        
 
         // FINISH
         void transform(EMStateMessage &ems){
             if(ems.protocol == PROTOCOLS::SENDSTATES){
+                auto& dmmList = ems.dmm_list; 
+                
+
                 
             }
         }
-        
         
     public: 
         ClientEU(OBlockDesc &odesc, TSQ<OwnedSentMessage> &inMsg)
@@ -114,13 +115,36 @@ class ClientEU{
 }; 
 
 
+// Kind of the exeuction manager of the client
 class ClientGateway{
     
     private: 
+        std::unordered_map<OblockID, ClientEU> execUnits; 
+        DeviceScheduler scheduler; 
+        TSQ<OwnedSentMessage> &inMsg; 
+        int controllerID; 
         
+
+        void convSendMessage(DynamicMasterMessage dmm){
+            OwnedSentMessage osm;
+            // Fix this later
+            osm.connection = nullptr; 
+        
+            osm.sm.prot = Protocol::BEGIN; 
+            osm.sm.ctl_code = dmm.info.controller; 
+            osm.sm.oblock_id = dmm.info.oblock;    
+        } 
 
 
     public: 
+        ClientGateway(std::vector<OBlockDesc>& oDescList, TSQ<OwnedSentMessage>& inMsgA, int selfID)
+        : scheduler(oDescList, [this](DynamicMasterMessage dmm){}), inMsg(inMsgA)
+        {
+            this->controllerID = selfID; 
+            for(auto& desc: oDescList){
+                this->execUnits.emplace(desc, ClientEU(desc, inMsg)); 
+            }
+        }
 
 
 }; 

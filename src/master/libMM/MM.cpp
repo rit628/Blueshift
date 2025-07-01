@@ -118,7 +118,7 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
         }
         // Add handlers for any other stated
         case PROTOCOLS::OWNER_GRANT: {
-            std::cout<<"Grant received from Client for device: "<<DMM.info.device<<std::endl; 
+            std::cout<<"Mailbox: Grant received from Client for device: "<<DMM.info.device<<std::endl; 
             EMStateMessage ems; 
             ems.dmm_list = {DMM}; 
             ems.priority = -1; 
@@ -182,7 +182,7 @@ void MasterMailbox::assignEM(DynamicMasterMessage DMM)
             break;
         }
         case PROTOCOLS::OWNER_CANDIDATE_REQUEST:{
-            std::cout<<"Ownership request for the device: "<<DMM.info.device<<std::endl; 
+            std::cout<<"Mailbox Ownership request for the device: "<<DMM.info.device<<std::endl; 
             auto oblockName = DMM.info.oblock; 
             this->oblockReadMap[oblockName]->forwardPackets = true; 
             this->sendNM.write(DMM); 
@@ -190,14 +190,14 @@ void MasterMailbox::assignEM(DynamicMasterMessage DMM)
         }
         case PROTOCOLS::OWNER_CONFIRM: {
             // If confirms this means the oblock is not waiting for state and the readerbox can close
-            std::cout<<"Owner Confirmation for the device: "<<DMM.info.device<<std::endl; 
+            std::cout<<"Mailbox Owner Confirmation for the device: "<<DMM.info.device<<std::endl; 
             auto oblockName = DMM.info.oblock; 
             this->oblockReadMap[oblockName]->forwardPackets = false; 
             this->sendNM.write(DMM); 
             break; 
         }
         case PROTOCOLS::OWNER_RELEASE:{
-            std::cout<<"Release request for the device: "<<DMM.info.device<<std::endl;
+            std::cout<<"Mailbox Release request for the device: "<<DMM.info.device<<std::endl;
             auto oblockName = DMM.info.oblock; 
             this->oblockReadMap[oblockName]->forwardPackets = false; 
             this->sendNM.write(DMM); 

@@ -6,6 +6,7 @@
 #include "libtypes/bls_types.hpp"
 #include "call_stack.hpp"
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <string>
 #include <tuple>

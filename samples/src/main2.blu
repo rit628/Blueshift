@@ -2,6 +2,7 @@ oblock task(LINE_WRITER lw, READ_FILE rfp, FILE_LOG log){
     string textMessage = lw.msg; 
     list<string> availNames = ["ROHAN ", "COLIN ", "TOMAS ", "THOMAS "]; 
     int k = 0; 
+    print("This ran!"); 
 
     for(int i = 0 ; i < 4; i++){
         string omar = rfp.msg; 

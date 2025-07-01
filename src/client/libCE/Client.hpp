@@ -70,7 +70,9 @@ struct ControllerQueue{
                 // Replace if higher priority
                 if(ls.priority <= newReq.priority){
                     auto it = newSet.find(ls); 
-                    newSet.erase(it); 
+                    if(it != newSet.end()){
+                        newSet.erase(it); 
+                    }
                     newSet.insert(newReq); 
                     latestState[newReq.ctl] = newReq; 
                 }

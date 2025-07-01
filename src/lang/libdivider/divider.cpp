@@ -11,16 +11,14 @@ using namespace BlsLang;
 BlsObject Divider::visit(AstNode::Source &ast){
     // Open the blockStacks for the setup functions
     for(auto& pair : this->DivMeta.ctlMetaData){
-        auto& ctlData = pair.second; 
         auto srcCtl = std::make_unique<AstNode::Source>(); 
         ControllerSource ControllerCarrier; 
         ControllerCarrier.ctlSource = std::move(srcCtl); 
         this->ctlSourceMap[pair.first] = std::move(ControllerCarrier); 
-    }
- 
-    ast.getSetup()->accept(*this); 
 
-  
+
+    }
+   
     for(auto& OblockPtr : ast.getOblocks()){
         this->inOblock = true; 
         OblockPtr->accept(*this); 
@@ -33,10 +31,11 @@ BlsObject Divider::visit(AstNode::Source &ast){
         auto& ctlData = pair.second; 
         auto& srcObj = this->ctlSourceMap[ctlData.ctlName];
         auto& srcPtr = srcObj.ctlSource; 
-        srcPtr->getOblocks() = std::move(srcObj.oblock_list); 
-        
-        auto srcCtl = std::make_unique<AstNode::Source>(); 
-        srcCtl->getSetup()->getStatements() = std::move(srcObj.setup_statements); 
+        srcPtr->getOblocks() = std::move(srcObj.oblock_list);   
+
+        for(auto& item : ctlData.oblockData){
+            srcObj.oblockDesc[item.second.oblockDesc.name] =  item.second.oblockDesc; 
+        }
     }
 
     return std::monostate(); 
