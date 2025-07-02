@@ -7,10 +7,10 @@
 
 // 
 
-ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<vector<HeapMasterMessage>> &readMM, 
+ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<EMStateMessage> &readMM, 
     TSQ<HeapMasterMessage> &sendMM, 
     std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks)
-    : readMM(readMM), sendMM(sendMM), scheduler(OblockList, [this](DynamicMasterMessage dmm){this->sendMM.write(dmm);})
+    : readMM(readMM), sendMM(sendMM), scheduler(OblockList, [this](HeapMasterMessage dmm){this->sendMM.write(dmm);})
 {
     this->OblockList = OblockList;
     for(auto &oblock : OblockList)
@@ -80,9 +80,8 @@ void ExecutionUnit::replaceCachedStates(std::unordered_map<DeviceID, HeapMasterM
    auto replacementItems = this->replacementCache.getMap(); 
    for(auto& item : replacementItems){
         auto devState = item.first;
-        DynamicMasterMessage replaceDMM = item.second;; 
-        HeapMasterMessage convMessage(replaceDMM.DM.toTree(), replaceDMM.info, replaceDMM.protocol, replaceDMM.isInterrupt); 
-        cachedHMMs[devState] = convMessage; 
+        HeapMasterMessage replaceHMM = item.second;; 
+        cachedHMMs[devState] = replaceHMM; 
    }
 }
 
@@ -92,20 +91,17 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
     while(true)
     {
 
-        vector<HeapMasterMessage> currentHMMs = EUcache.read();
-
-
-
+        EMStateMessage currentHMMs = EUcache.read();
 
         std::unordered_map<DeviceID, HeapMasterMessage> HMMs;
         
         // Fill in the known data into the stack 
-        for(auto &HMM : currentHMMs)
+        for(auto &HMM : currentHMMs.dmm_list)
         {   
             HMMs[HMM.info.device] = HMM; 
         }
 
-        this->globalScheduler.request(this->Oblock.name, currentDMMs.priority); 
+        this->globalScheduler.request(this->Oblock.name, currentHMMs.priority); 
 
         replaceCachedStates(HMMs); 
         
@@ -147,8 +143,7 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
         {
             sendMM.write(hmm);
         }
-
-        std::cout<<"Eu Release Request"<<std::endl; 
+        
         this->globalScheduler.release(this->Oblock.name); 
     }
 }
@@ -156,8 +151,6 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
 ExecutionUnit &ExecutionManager::assign(HeapMasterMessage DMM)
 {   
     
-    std::cout<<"Searching Oblock for: "<<DMM.info.oblock<<std::endl; 
-    std::cout<<"Place into device: "<<DMM.info.device<<std::endl; 
     ExecutionUnit &assignedUnit = *EU_map.at(DMM.info.oblock); 
     assignedUnit.stateMap.emplace(DMM.info.device, DMM);
     return assignedUnit;
@@ -189,8 +182,12 @@ void ExecutionManager::running()
                 this->scheduler.receive(currentDMMs.dmm_list[0]); 
                 break;
             }
+            case(PROTOCOLS::OWNER_CONFIRM_OK):{
+                this->scheduler.receive(currentDMMs.dmm_list[0]); 
+                break; 
+            }
             case(PROTOCOLS::WAIT_STATE_FORWARD):{
-                DynamicMasterMessage dmm = currentDMMs.dmm_list[0]; 
+                HeapMasterMessage dmm = currentDMMs.dmm_list[0]; 
                 assignedUnit.replacementCache.insert(dmm.info.device, dmm); 
                 break; 
             }
@@ -201,11 +198,8 @@ void ExecutionManager::running()
 
         }   
         
-
-    
         if(assignedUnit.EUcache.getSize() < 3)
         {   
-            std::cout<<"Requesting States"<<std::endl;
             O_Info info = assignedUnit.info;
             HeapMasterMessage requestHMM(nullptr, info, PROTOCOLS::REQUESTINGSTATES, false);
             this->sendMM.write(requestHMM);

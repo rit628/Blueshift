@@ -53,7 +53,9 @@ struct DeviceQueue{
 struct PendingStateInfo{
     std::unordered_set<DeviceID> mustOwn; 
     int ownedCounter = 0; 
+    int confirmedCounter = 0; 
     bool executeFlag = false; 
+
 
     std::mutex mtx; 
     std::condition_variable cv; 
@@ -62,14 +64,26 @@ struct PendingStateInfo{
         if(mustOwn.contains(dev)){
            if(mustOwn.size() == ++this->ownedCounter){
             ownedCounter = 0;  
-            {
-                std::lock_guard<std::mutex> lock(mtx); 
-                executeFlag = true;
-            }
-            cv.notify_one(); 
             return true;    
            } 
         }
+        return false; 
+    }
+
+    // Used when device confirmation is received
+    bool confirmDevice(DeviceID &dev){
+        if(mustOwn.contains(dev)){
+            if(mustOwn.size() == ++this->confirmedCounter){
+                this->confirmedCounter = 0; 
+                {
+                    std::lock_guard<std::mutex> lock(mtx); 
+                    executeFlag = true;
+                }
+                cv.notify_one(); 
+                return true; 
+            }
+        }
+
         return false; 
     }
 }; 
@@ -87,16 +101,16 @@ class DeviceScheduler{
         std::unordered_map<OblockID, PendingStateInfo> oblockWaitMap; 
 
         // Utility Functions: 
-        DynamicMasterMessage makeMessage(OblockID& oName, DeviceID& devName, PROTOCOLS pmsg); 
+        HeapMasterMessage makeMessage(OblockID& oName, DeviceID& devName, PROTOCOLS pmsg); 
 
         // Function
-        function<void(DynamicMasterMessage)> handleMessage; 
+        function<void(HeapMasterMessage)> handleMessage; 
         
 
     public: 
-        DeviceScheduler(std::vector<OBlockDesc> &oblockDescList, function<void(DynamicMasterMessage)> dmm_message); 
+        DeviceScheduler(std::vector<OBlockDesc> &oblockDescList, function<void(HeapMasterMessage)> dmm_message); 
         void request(OblockID& oblockName, int priority); 
-        void receive(DynamicMasterMessage &DMM); 
+        void receive(HeapMasterMessage &DMM); 
         void release(OblockID &reqOblock); 
 }; 
 

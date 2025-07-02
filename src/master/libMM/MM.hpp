@@ -209,7 +209,7 @@ struct ReaderBox
             }
         }
 
-        void handleRequest(TSQ<vector<HeapMasterMessage>>& sendEM){
+        void handleRequest(TSQ<EMStateMessage>& sendEM){
             // write for loop to handle requests
             if(pending_requests){
                 int maxQueueSz = this->triggerCache.size() < MAX_EM_QUEUE_FILL?  triggerCache.size() : MAX_EM_QUEUE_FILL;     
@@ -249,11 +249,12 @@ class MasterMailbox
     public:
     TSQ<DynamicMasterMessage> &readNM;
     TSQ<HeapMasterMessage> &readEM;
-    TSQ<vector<HeapMasterMessage>> &sendEM;
+    TSQ<EMStateMessage> &sendEM;
     TSQ<DynamicMasterMessage> &sendNM;
     MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMessage> &readNM, TSQ<HeapMasterMessage> &readEM,
-         TSQ<DynamicMasterMessage> &sendNM, TSQ<vector<HeapMasterMessage>> &sendEM);
+         TSQ<DynamicMasterMessage> &sendNM, TSQ<EMStateMessage> &sendEM);
     vector<OBlockDesc> OBlockList;
+    static DynamicMasterMessage buildDMM(HeapMasterMessage &hmm); 
 
     unordered_map<OblockID, unique_ptr<ReaderBox>> oblockReadMap;
     unordered_map<DeviceID, unique_ptr<WriterBox>> deviceWriteMap;

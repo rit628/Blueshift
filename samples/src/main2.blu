@@ -1,4 +1,6 @@
-oblock task(LINE_WRITER lw, READ_FILE rfp, FILE_LOG log){
+oblock task(LINE_WRITER lw, READ_FILE rfp, FILE_LOG log)
+: triggerOn(lw)
+{
     string textMessage = lw.msg; 
     list<string> availNames = ["ROHAN ", "COLIN ", "TOMAS ", "THOMAS "]; 
     int k = 0; 

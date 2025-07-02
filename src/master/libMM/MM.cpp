@@ -1,6 +1,7 @@
 #include "MM.hpp"
 #include "include/Common.hpp"
 #include "libDM/DynamicMessage.hpp"
+#include "libEM/EM.hpp"
 #include "libtype/bls_types.hpp"
 #include <exception>
 #include <memory>
@@ -8,8 +9,9 @@
 #include <unordered_set>
 #include <variant>
 
+
 MasterMailbox::MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMessage> &readNM, 
-    TSQ<HeapMasterMessage> &readEM, TSQ<DynamicMasterMessage> &sendNM, TSQ<vector<HeapMasterMessage>> &sendEM)
+    TSQ<HeapMasterMessage> &readEM, TSQ<DynamicMasterMessage> &sendNM, TSQ<EMStateMessage> &sendEM)
 : readNM(readNM), readEM(readEM), sendNM(sendNM), sendEM(sendEM)
 {
     this->OBlockList = OBlockList;
@@ -40,12 +42,9 @@ MasterMailbox::MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMes
                 hmm.info.isVtype = true; 
                 hmm.info.device = devDesc.device_name; 
                 hmm.info.controller = "MASTER"; 
-                oblockReadMap[oblock.name]->insertState(hmm); 
+                oblockReadMap[oblock.name]->insertState(hmm, this->sendEM); 
             } 
         }
-
-
-
 
         // Write the out devics
         for(auto& devDesc : oblock.binded_devices){
@@ -68,6 +67,21 @@ MasterMailbox::MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMes
             interruptName_map[deviceName].push_back(oblock.name);   
         }
     }
+}
+
+DynamicMasterMessage MasterMailbox::buildDMM(HeapMasterMessage &hmm){
+    DynamicMasterMessage dmm; 
+    dmm.info = hmm.info; 
+    dmm.isInterrupt = hmm.isInterrupt; 
+    dmm.protocol = hmm.protocol; 
+    if(std::holds_alternative<std::shared_ptr<HeapDescriptor>>(hmm.heapTree)){
+        auto omar = std::get<std::shared_ptr<HeapDescriptor>>(hmm.heapTree); 
+        dmm.DM.makeFromRoot(omar); 
+    }
+    else{
+        //std::cerr<<"Failed to convert HMM to DMM"<<std::endl; 
+    }
+    return dmm;
 }
 
 ReaderBox::ReaderBox(bool dropRead, bool dropWrite, string name, OBlockDesc& oDesc)
@@ -126,7 +140,8 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
                     DMM.info.oblock = oid; 
 
                     HeapMasterMessage newHMM(DMM); 
-                    targReadBox->insertState(newHMM); 
+                    std::cout<<"inserting states"<<std::endl; 
+                    targReadBox->insertState(newHMM, this->sendEM); 
                     targReadBox->handleRequest(sendEM); 
                 } 
             }
@@ -134,19 +149,27 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
                 OblockID targId = DMM.info.oblock; 
                 if(!this->oblockReadMap.contains(targId)){break;}
                 auto& rBox = this->oblockReadMap.at(targId); 
-                rBox->insertState(DMM, sendEM);
+                rBox->insertState(DMM, this->sendEM);
                 rBox->handleRequest(sendEM); 
             }
          
             break;
         }
         // Add handlers for any other stated
+        case PROTOCOLS::OWNER_CONFIRM_OK: 
         case PROTOCOLS::OWNER_GRANT: {
-            std::cout<<"Mailbox: Grant received from Client for device: "<<DMM.info.device<<std::endl; 
+
+            if(DMM.protocol == PROTOCOLS::OWNER_CONFIRM_OK){
+                std::cout<<"Mailbox: Received Owner confirmation for device "<<DMM.info.device<<std::endl; 
+            }
+            else{
+                std::cout<<"Mailbox: Grant received from Client for device: "<<DMM.info.device<<std::endl; 
+            }
+            
             EMStateMessage ems; 
             ems.dmm_list = {DMM}; 
             ems.priority = -1; 
-            ems.protocol = PROTOCOLS::OWNER_GRANT; 
+            ems.protocol = DMM.protocol; 
             ems.TriggerName = ""; 
             ems.oblockName = DMM.info.oblock; 
             this->sendEM.write(ems); 
@@ -178,7 +201,7 @@ void MasterMailbox::assignEM(HeapMasterMessage DMM)
                     std::unique_ptr<ReaderBox>& reader = this->oblockReadMap[name]; 
                     std::cout<<"Inserting vtype into state:"<<std::endl; 
                     
-                    reader->insertState(DMM); 
+                    reader->insertState(DMM, this->sendEM); 
                     reader->handleRequest(this->sendEM);
                 }   
                 break; 
@@ -227,7 +250,7 @@ void MasterMailbox::assignEM(HeapMasterMessage DMM)
             std::cout<<"Mailbox Ownership request for the device: "<<DMM.info.device<<std::endl; 
             auto oblockName = DMM.info.oblock; 
             this->oblockReadMap[oblockName]->forwardPackets = true; 
-            this->sendNM.write(DMM); 
+            this->sendNM.write(MasterMailbox::buildDMM(DMM)); 
             break; 
         }
         case PROTOCOLS::OWNER_CONFIRM: {
@@ -235,14 +258,14 @@ void MasterMailbox::assignEM(HeapMasterMessage DMM)
             std::cout<<"Mailbox Owner Confirmation for the device: "<<DMM.info.device<<std::endl; 
             auto oblockName = DMM.info.oblock; 
             this->oblockReadMap[oblockName]->forwardPackets = false; 
-            this->sendNM.write(DMM); 
+            this->sendNM.write(MasterMailbox::buildDMM(DMM)); 
             break; 
         }
         case PROTOCOLS::OWNER_RELEASE:{
             std::cout<<"Mailbox Release request for the device: "<<DMM.info.device<<std::endl;
             auto oblockName = DMM.info.oblock; 
             this->oblockReadMap[oblockName]->forwardPackets = false; 
-            this->sendNM.write(DMM); 
+            this->sendNM.write(MasterMailbox::buildDMM(DMM)); 
             break; 
         }
 

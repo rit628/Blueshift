@@ -154,7 +154,6 @@ BlsObject Divider::visit(AstNode::Statement::Declaration &ast){
         auto OblockName = this->currOblock + "_" + ctlName;
         auto splitDecl = std::make_unique<AstNode::Statement::Declaration>();
 
-        //*splitDecl = *ast; 
         splitDecl->getName() = ast.getName(); 
 
         auto& typeObj = ast.getType(); 
@@ -180,7 +179,6 @@ BlsObject Divider::visit(AstNode::Statement::Expression &ast){
         
         return std::monostate(); 
     }
-
 
     auto ctlList = ast.getControllerSplit(); 
     for(auto& ctlName : ctlList){

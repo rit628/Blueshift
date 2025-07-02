@@ -6,19 +6,19 @@
     HELPER FUNCTIONS\
 */
 
-DynamicMasterMessage DeviceScheduler::makeMessage(OblockID& oName, DeviceID& devName, PROTOCOLS pmsg){
-    DynamicMasterMessage dmm; 
-    dmm.info.device = devName; 
-    dmm.info.oblock = oName; 
-    dmm.info.controller = this->devControllerMap[devName]; 
-    dmm.info.isVtype = false; // Idk this doesn't matter
-    dmm.protocol = pmsg; 
+HeapMasterMessage DeviceScheduler::makeMessage(OblockID& oName, DeviceID& devName, PROTOCOLS pmsg){
+    HeapMasterMessage hmm; 
+    hmm.info.device = devName; 
+    hmm.info.oblock = oName; 
+    hmm.info.controller = this->devControllerMap[devName]; 
+    hmm.info.isVtype = false; // Idk this doesn't matter
+    hmm.protocol = pmsg; 
 
-    return dmm; 
+    return hmm; 
 }
 
 
-DeviceScheduler::DeviceScheduler(std::vector<OBlockDesc> &oblockDescList, std::function<void(DynamicMasterMessage)> msgHandler)
+DeviceScheduler::DeviceScheduler(std::vector<OBlockDesc> &oblockDescList, std::function<void(HeapMasterMessage)> msgHandler)
 {
     for(auto& odesc : oblockDescList){
         auto& oblockName = odesc.name;
@@ -27,8 +27,6 @@ DeviceScheduler::DeviceScheduler(std::vector<OBlockDesc> &oblockDescList, std::f
                 if(this->scheduledProcessMap.contains(dev.device_name)){
                     this->scheduledProcessMap[dev.device_name]; 
                 }
-
-
                 this->oblockWaitMap[oblockName].mustOwn.insert(dev.device_name); 
                 this->devControllerMap[dev.device_name] = dev.controller; 
             }
@@ -37,12 +35,9 @@ DeviceScheduler::DeviceScheduler(std::vector<OBlockDesc> &oblockDescList, std::f
 
     this->handleMessage = msgHandler; 
 }
-
-
 /*
     May need to add a now owns 
 */
-
 // Sends a request message for each device stae
 void DeviceScheduler::request(OblockID& requestor, int priority){
     // get the out devices from the oblock: 
@@ -87,7 +82,7 @@ void DeviceScheduler::request(OblockID& requestor, int priority){
     jamar.cv.wait(lock, [&jamar](){return jamar.executeFlag;});   
 }
 
-void DeviceScheduler::receive(DynamicMasterMessage &recvMsg){
+void DeviceScheduler::receive(HeapMasterMessage &recvMsg){
     switch(recvMsg.protocol){
         case PROTOCOLS::OWNER_GRANT :  {
             auto& targOblock = recvMsg.info.oblock; 
@@ -95,24 +90,36 @@ void DeviceScheduler::receive(DynamicMasterMessage &recvMsg){
             bool result = this->oblockWaitMap[targOblock].addDevice(targDevice); 
             if(result){
               auto& devList = this->oblockWaitMap[targOblock].mustOwn;
-
               for(auto dev : devList){
-                DynamicMasterMessage confirmMsg = makeMessage(targOblock, dev, PROTOCOLS::OWNER_CONFIRM); 
+                HeapMasterMessage confirmMsg = makeMessage(targOblock, dev, PROTOCOLS::OWNER_CONFIRM); 
                 this->handleMessage(confirmMsg); 
-                auto& devProc = this->scheduledProcessMap[dev];  
-                
-                // Perform any time based schdueling algorithms etc
-
-                if(!devProc.QueueEmpty()){
-                    auto nextReq = devProc.QueuePop(); 
-                    nextReq.ps = PROCSTATE::LOADED; 
-                    devProc.loadedRequest = nextReq;  
-                }
-                else{
-                    devProc.loadedRequest.ps = PROCSTATE::EXECUTED; 
-                }
               } 
             }
+            break; 
+        }
+        case PROTOCOLS::OWNER_CONFIRM_OK:{
+
+            auto& targOblock = recvMsg.info.oblock; 
+            auto& targDevice = recvMsg.info.device; 
+            bool result = this->oblockWaitMap[targOblock].confirmDevice(targDevice); 
+            if(result){
+                auto& devList = this->oblockWaitMap[targOblock].mustOwn;
+                for(auto dev : devList){
+                    auto& devProc = this->scheduledProcessMap[dev];  
+                    
+                    // Perform any time based schdueling algorithms etc
+
+                    if(!devProc.QueueEmpty()){
+                        auto nextReq = devProc.QueuePop(); 
+                        nextReq.ps = PROCSTATE::LOADED; 
+                        devProc.loadedRequest = nextReq;  
+                    }
+                    else{
+                        devProc.loadedRequest.ps = PROCSTATE::EXECUTED; 
+                    }
+                }
+            }
+
             break; 
         }
         default : {
@@ -123,11 +130,11 @@ void DeviceScheduler::receive(DynamicMasterMessage &recvMsg){
 }
 
 void DeviceScheduler::release(OblockID& reqOblock){
-    std::cout<<"Releasing device "<<std::endl; 
+    std::cout<<"Releasing devices for "<<reqOblock<<std::endl; 
     auto& deviceList = this->oblockWaitMap[reqOblock].mustOwn;
     for(auto dev : deviceList){
         // Send each device that the oblock in question has ended its ownership
-        DynamicMasterMessage newDMM = makeMessage(reqOblock, dev,PROTOCOLS::OWNER_RELEASE); 
+        HeapMasterMessage newDMM = makeMessage(reqOblock, dev,PROTOCOLS::OWNER_RELEASE); 
         this->handleMessage(newDMM); 
     }
 }

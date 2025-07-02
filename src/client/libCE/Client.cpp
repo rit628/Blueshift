@@ -259,6 +259,7 @@ void Client::listener(std::stop_token stoken){
             auto& pendingSet = devicePending.getSet(); 
             auto loadedProcess = *pendingSet.begin(); 
             if((loadedProcess.ctl == inMsg.header.ctl_code) && (loadedProcess.requestorOblock == inMsg.header.oblock_id)){
+                sendMessage(dev_id, Protocol::OWNER_CONFIRM_OK, false, inMsg.header.oblock_id);
                 devicePending.currOwned = true;
                 auto& devPair = this->deviceList.at(dev_id).pendingRequests.owner; 
                 devPair = {inMsg.header.ctl_code, inMsg.header.oblock_id}; 

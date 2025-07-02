@@ -28,6 +28,8 @@ namespace BlsLang {
             auto& getOblocks() { return oblocks; }
             auto& getOblockDescriptors() { return oblockDescriptors; }
             auto getOblockContexts(){return depGraph.getOblockMap();}
+            auto getGlobalContext() {return depGraph.getGlobalContext();}
+            
         private:
             std::ostream& outputStream;
             std::vector<Token> tokens;

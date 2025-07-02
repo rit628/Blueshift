@@ -31,6 +31,8 @@ enum class PROTOCOLS
 
     //MM -> EM
     OWNER_GRANT, 
+    OWNER_CONFIRM_OK, 
+
     // MM->EM (Forward data to a waiting device)
     WAIT_STATE_FORWARD
    
@@ -175,16 +177,6 @@ struct DynamicMasterMessage
     ~DynamicMasterMessage() = default;
 };
 
-struct EMStateMessage{
-    std::string TriggerName; 
-    OblockID oblockName; 
-    std::vector<DynamicMasterMessage> dmm_list; 
-    int priority; 
-    PROTOCOLS protocol; 
-
-
-}; 
-
 
 struct HeapMasterMessage
 {
@@ -205,6 +197,14 @@ struct HeapMasterMessage
 
     ~HeapMasterMessage() = default;
 };
+
+struct EMStateMessage{
+    std::string TriggerName; 
+    OblockID oblockName; 
+    std::vector<HeapMasterMessage> dmm_list; 
+    int priority; 
+    PROTOCOLS protocol; 
+}; 
 
 
 /*

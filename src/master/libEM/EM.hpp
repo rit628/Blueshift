@@ -25,13 +25,13 @@ class ExecutionUnit
     vector<string> devices;
     vector<bool> isVtype;
     vector<string> controllers;
-    TSQ<vector<HeapMasterMessage>> EUcache;
+    TSQ<EMStateMessage> EUcache;
     thread executionThread;
     bool stop = false;
     std::unordered_map<std::string, int> devicePositionMap; 
     DeviceScheduler& globalScheduler; 
     // Contains the states to be replaced whikle the device is waiting for write access
-    TSM<DeviceID, DynamicMasterMessage> replacementCache; 
+    TSM<DeviceID, HeapMasterMessage> replacementCache; 
 
     ExecutionUnit(OBlockDesc OblockData, 
     vector<string> devices, 
@@ -55,7 +55,7 @@ class ExecutionManager
 {
     public:
     //ExecutionManager() = default;
-    ExecutionManager(vector<OBlockDesc> OblockList, TSQ<vector<HeapMasterMessage>> &readMM, 
+    ExecutionManager(vector<OBlockDesc> OblockList, TSQ<EMStateMessage> &readMM, 
         TSQ<HeapMasterMessage> &sendMM, 
         std::unordered_map<std::string, 
         std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks);
@@ -64,7 +64,7 @@ class ExecutionManager
 
     void running();
 
-    TSQ<vector<HeapMasterMessage>> &readMM;
+    TSQ<EMStateMessage> &readMM;
     TSQ<HeapMasterMessage> &sendMM;
     unordered_map<string, unique_ptr<ExecutionUnit>> EU_map;
     vector<OBlockDesc> OblockList;

@@ -41,6 +41,7 @@ enum class Protocol : uint8_t{
     CALLBACK, 
     CLIENT_ERROR, 
     OWNER_GRANT, 
+    OWNER_CONFIRM_OK,
 
 
     // Client Loop back
