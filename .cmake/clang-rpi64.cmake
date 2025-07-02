@@ -31,5 +31,8 @@ set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 add_compile_definitions(CONTROLLER_TARGET="RPI64")
 add_compile_definitions(__RPI64__)
 
+# DISABLED LIBS
+set(DISABLE_SDL true)
+
 # REQUIRED LIBS
 set(SYSTEM_LINK_LIBRARIES pigpio)

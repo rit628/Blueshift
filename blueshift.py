@@ -323,16 +323,19 @@ def build(args):
         cpp_compiler = "-DCMAKE_CXX_COMPILER="
         c_compiler = "-DCMAKE_C_COMPILER="
         linker = "-DCMAKE_LINKER_TYPE="
+        archiver = "-DCMAKE_AR="
         build_type = f"-DCMAKE_BUILD_TYPE={args.build_type}"
         toolchain_file = "-DCMAKE_TOOLCHAIN_FILE=" + (str(Path(os.getcwd(), ".cmake", f"{args.compiler}-{TARGET_PLATFORM}.cmake")) if TARGET_PLATFORM else "")
         if args.compiler == 'clang':
             c_compiler += "clang"
             cpp_compiler += "clang++"
             linker += "LLD"
+            archiver += "llvm-ar"
         else:
             c_compiler += "gcc"
             cpp_compiler += "g++"
             linker += "BFD"
+            archiver += "ar"
         cmake_args = [c_compiler, cpp_compiler, linker, build_type, toolchain_file, "-Wno-dev"]
         run_cmd(["cmake", *cmake_args, "-S", ".", "-B", ARTIFACT_DIR])
         symlink(COMPILE_DB_PATH, Path(".", TARGET_PLATFORM, ARTIFACT_TYPE, "compile_commands.json"))
