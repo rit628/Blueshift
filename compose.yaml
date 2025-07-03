@@ -5,16 +5,18 @@ networks:
     name: ${NETWORK_NAME}
 
 services:
-  display:
-    hostname: ${DISPLAY_CONTAINER_NAME}
-    container_name: ${DISPLAY_CONTAINER_NAME}
+  vnc:
+    profiles:
+      - vnc
+    hostname: ${VNC_CONTAINER_NAME}
+    container_name: ${VNC_CONTAINER_NAME}
     image: theasp/novnc:latest
     environment:
-      - DISPLAY_WIDTH=${DISPLAY_WIDTH}
-      - DISPLAY_HEIGHT=${DISPLAY_HEIGHT}
+      - VNC_WIDTH=${VNC_WIDTH}
+      - VNC_HEIGHT=${VNC_HEIGHT}
       - RUN_XTERM=no
     ports:
-      - ${DISPLAY_PORT}:8080
+      - ${VNC_PORT}:8080
     attach: false
 
   builder:
@@ -38,8 +40,9 @@ services:
       - .:${CONTAINER_MOUNT_DIRECTORY}
       - ./${REMOTE_OUTPUT_DIRECTORY}:${CONTAINER_MOUNT_DIRECTORY}/build
       - venv:${CONTAINER_MOUNT_DIRECTORY}/.venv
+      - ${DISPLAY_MOUNT}:/tmp/.X11-unix
     environment:
-      - DISPLAY=${DISPLAY_CONTAINER_NAME}:0.0
+      - DISPLAY=${DISPLAY_NAME}
       - XDG_RUNTIME_DIR=/run/user/${CONTAINER_UID}
     env_file:
       - .env
@@ -75,9 +78,6 @@ services:
       args:
         - WORKDIR=${CONTAINER_MOUNT_DIRECTORY}
     image: ${MASTER_IMAGE_NAME}
-    volumes:
-      - ./${REMOTE_OUTPUT_DIRECTORY}:${CONTAINER_MOUNT_DIRECTORY}/build
-      - ./samples/src:${CONTAINER_MOUNT_DIRECTORY}/samples/src
     develop:
       watch:
         - action: sync+restart
@@ -86,6 +86,9 @@ services:
     expose:
       - ${MASTER_PORT}
     pid: ${DEPLOY_NAMESPACE}
+    volumes:
+      - ./${REMOTE_OUTPUT_DIRECTORY}:${CONTAINER_MOUNT_DIRECTORY}/build
+      - ./samples/src:${CONTAINER_MOUNT_DIRECTORY}/samples/src
     environment:
       - DEPLOY_NAMESPACE=${DEPLOY_NAMESPACE}
     env_file:
@@ -103,9 +106,7 @@ services:
       args:
         - WORKDIR=${CONTAINER_MOUNT_DIRECTORY}
     image: ${CLIENT_IMAGE_NAME}
-    volumes:
-      - ./${REMOTE_OUTPUT_DIRECTORY}:${CONTAINER_MOUNT_DIRECTORY}/build
-      - ./samples/client:${CONTAINER_MOUNT_DIRECTORY}/samples/client
+
     deploy:
       mode: replicated
       replicas: ${NUM_CLIENTS}
@@ -117,8 +118,14 @@ services:
     expose:
       - ${BROADCAST_PORT}
     pid: ${DEPLOY_NAMESPACE}
+    volumes:
+      - ./${REMOTE_OUTPUT_DIRECTORY}:${CONTAINER_MOUNT_DIRECTORY}/build
+      - ./samples/client:${CONTAINER_MOUNT_DIRECTORY}/samples/client
+      - ${DISPLAY_MOUNT}:/tmp/.X11-unix
     environment:
       - DEPLOY_NAMESPACE=${DEPLOY_NAMESPACE}
+      - DISPLAY=${DISPLAY_NAME}
+      - XDG_RUNTIME_DIR=/run/user/${CONTAINER_UID}
     env_file:
       - .env
     depends_on:
@@ -128,3 +135,4 @@ services:
 volumes:
   venv:
     name: ${PROJECT_PREFIX}_venv
+  nullvolume:

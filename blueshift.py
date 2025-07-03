@@ -9,6 +9,7 @@ import atexit
 import time
 import tarfile
 import webbrowser
+import platform
 import multiprocessing as mp
 from dotenv import load_dotenv
 from scapy.all import sniff, conf, sendp
@@ -31,9 +32,14 @@ DEBUG_SERVER_PORT_MIN = os.getenv("DEBUG_SERVER_PORT_MIN")
 DEBUG_SERVER_PORT_MAX = os.getenv("DEBUG_SERVER_PORT_MAX")
 MASTER_PORT = os.getenv("MASTER_PORT")
 BROADCAST_PORT = os.getenv("BROADCAST_PORT")
-DISPLAY_PORT = os.getenv("DISPLAY_PORT")
+VNC_CONTAINER_NAME = os.getenv("VNC_CONTAINER_NAME")
+VNC_PORT = os.getenv("VNC_PORT")
 NUM_CORES = mp.cpu_count()
 CODELLDB_ADDRESS = ("127.0.0.1", 7349)
+
+if platform.system() == "Linux": # allow x11 forwarding through docker
+    os.environ["DISPLAY_NAME"] = os.getenv("DISPLAY")
+    os.environ["DISPLAY_MOUNT"] = "/tmp/.X11-unix"
 
 def run_cmd(cmd, exit_on_failure=True, **kwargs) -> subprocess.CompletedProcess:
     try:
@@ -69,6 +75,8 @@ def initialize_host():
     Path(REMOTE_OUTPUT_DIRECTORY, "release").mkdir(parents=True, exist_ok=True)
     Path(REMOTE_OUTPUT_DIRECTORY, "minsizerel").mkdir(parents=True, exist_ok=True)
     Path(REMOTE_OUTPUT_DIRECTORY, "relwithdebinfo").mkdir(parents=True, exist_ok=True)
+    run_cmd(["docker", "network", "create", NETWORK_NAME, "--label", "com.docker.compose.network=default", "--label", f"com.docker.compose.project={PROJECT_NAME}"],
+            exit_on_failure=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     context = get_output(["docker", "context", "show"])
     if context == "rootless" or context == "desktop-linux":
         os.environ["CONTAINER_UID"] = str(0)
@@ -93,10 +101,9 @@ def broadcast_sniffer():
           store=False, iface=source_iface)
 
 def wait_for_container_server(port, wait_for_exit=False):
-    pattern = re.compile(f"{port}->\\d+/tcp")
     while(True):
-        out = get_output(["docker",  "ps"])
-        stop = bool(pattern.search(out)) != wait_for_exit
+        container_running = len(get_output(["docker", "ps", "--filter", f"publish={port}", "--format", "{{.Ports}}"])) > 0
+        stop = container_running != wait_for_exit # container_running XOR wait_for_exit
         if stop:
             return
         time.sleep(.25)
@@ -160,26 +167,26 @@ def make_sysroot(target, local):
             tar.extractall(sysroot_path, filter="fully_trusted")
         os.remove(archive_path)
 
-def open_display():
-    wait_for_container_server(DISPLAY_PORT)
+def open_vnc_display():
+    os.environ["DISPLAY_NAME"] = f"{VNC_CONTAINER_NAME}:0.0"
+    wait_for_container_server(VNC_PORT)
     time.sleep(1.5) # wait for all X subsystems to be ready
-    print("opening display in browser...")
-    webbrowser.open(f"http://127.0.0.1:{DISPLAY_PORT}/vnc.html")
+    print("opening vnc display in browser...")
+    webbrowser.open(f"http://127.0.0.1:{VNC_PORT}/vnc.html")
 
-def initialize_display():
-    print("intializing display...")
-    os.environ["NETWORK_MODE"] = NETWORK_NAME
-    run_cmd(["docker", "compose", "up", "-d", "display"])
-    atexit.register(run_cmd, ["docker", "compose", "down", "display"], exit_on_failure=False, stderr=subprocess.DEVNULL)
-    open_display()
+def initialize_vnc_display():
+    print("intializing vnc display...")
+    run_cmd(["docker", "compose", "up", "-d", VNC_CONTAINER_NAME])
+    atexit.register(run_cmd, ["docker", "compose", "down", "-t", "1", VNC_CONTAINER_NAME], exit_on_failure=False, stderr=subprocess.DEVNULL)
+    open_vnc_display()
 
 def run(args):
     if args.local:
         executable = Path(".", TARGET_OUTPUT_DIRECTORY, RUNTIME_OUTPUT_DIRECTORY, args.binary)
         run_cmd([executable, *args.binary_args])
     else:
-        if args.gui_forward:
-            initialize_display()
+        if args.vnc:
+            initialize_vnc_display()
         if args.packet_forward:
             context = subprocess.check_output(["docker", "context", "show"], text=True).strip()
             if context == "rootless":
@@ -226,8 +233,8 @@ def debug(args):
             args_command = "--" if args.debugger == "lldb" else "--args"
             run_cmd([args.debugger, args_command, executable, *args.binary_args])
     else: # debug on container gdbserver
-        if args.gui_forward:
-            initialize_display()
+        if args.vnc:
+            initialize_vnc_display()
         initialize_host()
         DEBUG_SERVER_PORT = get_free_port()
         remote_binary = Path(REMOTE_OUTPUT_DIRECTORY, debug_target_path, RUNTIME_OUTPUT_DIRECTORY, args.binary)
@@ -268,7 +275,14 @@ def debug(args):
 def deploy(args):
     # container never issues deploy command
     initialize_host()
-    profiles = ["--profile", "debug"] if args.debug else []
+
+    profiles = []
+    if args.debug:
+        profiles += ["--profile", "debug"]
+    if args.vnc:
+        profiles += ["--profile", "vnc"]
+        Thread(target=open_vnc_display, daemon=True).start()
+        
     base_cmd = ["docker", "compose", *profiles]
 
     # ensure containers are properly destroyed
@@ -298,8 +312,6 @@ def deploy(args):
         for i in range(num_clients): 
             Thread(target=attach_debugger, args=(f"blueshift-client-{i + 1}", client_binary, DEBUG_SERVER_PORT), daemon=True).start()
     
-    if args.gui_forward: # automatically open display window
-        Thread(target=open_display, daemon=True).start()
     run_cmd(command)
 
 def build(args):
@@ -436,7 +448,7 @@ run_parser.add_argument("-u", "--udp-broadcast-forward",
                         help="""start a listener that received udp broadcasts on 127.0.0.1 and forwards them to host LAN
                                 (necessary if running with -p on OSX)""",
                         action="store_true")
-run_parser.add_argument("-g", "--gui-forward",
+run_parser.add_argument("--vnc",
                         help="start a novnc display server to forward container GUI applications",
                         action="store_true")
 run_parser.set_defaults(fn=run)
@@ -461,7 +473,7 @@ debug_parser.add_argument("-d", "--debugger",
                         help="choose a specific debugger (note that the VSCode visual debugger is only supported with lldb)",
                         choices=["lldb", "gdb"],
                         default="lldb")
-debug_parser.add_argument("-g", "--gui-forward",
+debug_parser.add_argument("--vnc",
                         help="start a novnc display server to forward container GUI applications",
                         action="store_true")
 debug_parser.add_argument("--server",
@@ -502,7 +514,7 @@ deploy_parser.add_argument("-d", "--debug",
 deploy_parser.add_argument("-r", "--release-debug",
                            help="use release build with limited debug symbols in debug mode",
                            action="store_true")
-deploy_parser.add_argument("-g", "--gui-forward",
+deploy_parser.add_argument("--vnc",
                             help="start a novnc display server to forward container GUI applications",
                             action="store_true")
 deploy_parser.set_defaults(fn=deploy)
