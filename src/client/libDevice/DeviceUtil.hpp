@@ -19,6 +19,9 @@
 #include <variant>
 #include <vector>
 #include <thread>
+#ifdef SDL_ENABLED
+#include <SDL3/SDL.h>
+#endif
 
 #define VOLATILITY_LIST_SIZE 10
 
@@ -130,6 +133,9 @@ class DeviceInterruptor{
         // Add Inotify thread blocking code here
         void IFileWatcher(std::stop_token stoken, std::string fname, std::function<bool()> handler);
         void IGpioWatcher(std::stop_token stoken, int portNum, std::function<bool(int, int , uint32_t)> interruptHandle);
+        #ifdef SDL_ENABLED
+        void ISdlWatcher(std::stop_token stoken, std::function<bool(SDL_Event*)> handler);
+        #endif
         
     public: 
         DeviceInterruptor(DeviceHandle& targDev, std::shared_ptr<Connection> conex, int ctl, int dd);

@@ -218,11 +218,6 @@ add_executable(bsmw ${BSMW_SRC})
 target_include_directories(bsmw PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
 target_link_libraries(bsmw bytecode type ${BOOST_LIB_DEPS})
 
-file(GLOB_RECURSE KBDLOG_SRC ${UTIL_SRC_DIR}/kbdlog/*.cpp)
-add_executable(kbdlog ${KBDLOG_SRC})
-target_include_directories(kbdlog PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
-target_link_libraries(kbdlog ${SYSTEM_LINK_LIBRARIES})
-
 # TESTS
 if(NOT CMAKE_CROSSCOMPILING)
     enable_testing()

@@ -401,6 +401,7 @@ MapDescriptor::MapDescriptor(TYPE objType, TYPE keyType, TYPE contType) {
     this->contType = contType;
     this->map = std::make_shared<std::unordered_map<std::string, BlsType>>(); 
 
+    using namespace TypeDef;
     switch(this->objType){
         #define DEVTYPE_BEGIN(name) \
             case(TYPE::name) : { 

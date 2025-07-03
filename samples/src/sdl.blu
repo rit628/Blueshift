@@ -1,0 +1,8 @@
+oblock logKey(KEYBOARD kbd) {
+    print("Pressed the '", kbd.key, "' key.");
+}
+
+setup() {
+    KEYBOARD KBD = "ctl::mode-select";
+    logKey(KBD);
+}
