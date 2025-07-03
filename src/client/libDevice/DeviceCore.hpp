@@ -14,24 +14,29 @@
 
 inline bool sendState() { return true; }
 
-// Configuration information used in sending types
-enum class SrcType{
-    UNIX_FILE, 
-    GPIO,
-    SDL_IO
-}; 
-
-struct Interrupt_Desc {
-    SrcType src_type;
-    std::variant<std::function<bool()>
-                , std::function<bool(int, int, uint32_t)>
-                #ifdef SDL_ENABLED
-                , std::function<bool(SDL_Event*)>
-                #endif
-                > interruptHandle;
-    std::string file_src;
-    int port_num;
+struct UnixFileInterruptor {
+    std::string file;
+    std::function<bool()> interruptCallback;
 };
+
+struct GpioInterruptor {
+    uint8_t portNum;
+    std::function<bool(int, int, uint32_t)> interruptCallback;
+};
+
+#ifdef SDL_ENABLED
+struct SdlIoInterruptor {
+    std::function<bool(SDL_Event*)> interruptCallback;
+};
+#endif
+
+using InterruptDescriptor = std::variant<
+      UnixFileInterruptor
+    , GpioInterruptor
+    #ifdef SDL_ENABLED
+    , SdlIoInterruptor
+    #endif
+>;
 
 template<typename T>
 concept Driveable = TypeDef::DEVTYPE<T>;
@@ -39,7 +44,7 @@ concept Driveable = TypeDef::DEVTYPE<T>;
 template <Driveable T>
 class DeviceCore {
     private:
-        std::vector<Interrupt_Desc> Idesc_list;
+        std::vector<InterruptDescriptor> Idesc_list;
         bool hasInterrupt = false;
     
     protected:
@@ -47,7 +52,7 @@ class DeviceCore {
     
         // Interrupt watch
         void addFileIWatch(std::string &fileName, std::function<bool()> handler = sendState);
-        void addGPIOIWatch(int gpio_port, std::function<bool(int, int, uint32_t)> handler);
+        void addGPIOIWatch(uint8_t gpioPort, std::function<bool(int, int, uint32_t)> handler);
         #ifdef SDL_ENABLED
         void addSDLIWatch(std::function<bool(SDL_Event* event)> handler);
         #endif
