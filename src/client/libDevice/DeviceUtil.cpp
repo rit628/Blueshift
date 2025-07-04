@@ -1,6 +1,10 @@
 #include "DeviceUtil.hpp"
+#include "DeviceCore.hpp"
+#include <atomic>
+#include <functional>
 #include <stdexcept>
 #include <stop_token>
+#include <sys/inotify.h>
 #include <utility>
 #include <variant>
 #ifdef __RPI64__
@@ -94,10 +98,10 @@ bool DeviceHandle::hasInterrupt() {
     }, device);
 }
 
-std::vector<Interrupt_Desc>& DeviceHandle::getIdescList() {
+std::vector<InterruptDescriptor>& DeviceHandle::getIdescList() {
     return std::visit(overloads {
-        [](std::monostate&) -> std::vector<Interrupt_Desc>& { /* never called */ },
-        [](auto& dev) -> std::vector<Interrupt_Desc>& { return dev.Idesc_list; }
+        [](std::monostate&) -> std::vector<InterruptDescriptor>& { throw std::runtime_error("Attempt to access Idesc List for null device."); },
+        [](auto& dev) -> std::vector<InterruptDescriptor>& { return dev.Idesc_list; }
     }, device);
 }
 
@@ -330,7 +334,7 @@ void DeviceInterruptor::IFileWatcher(std::stop_token stoken, std::string fname, 
         std::cout<<"Waiting for event"<<std::endl;
         int read_length = read(fd, event_buffer, sizeof(event_buffer)); 
 
-        struct inotify_event* event = (struct inotify_event*)event_buffer; 
+        auto* event = reinterpret_cast<struct inotify_event*>(event_buffer);
         if (event->mask == IN_IGNORED) {
             std::cout << "drop removed watch event" << std::endl;
             continue;
@@ -343,55 +347,78 @@ void DeviceInterruptor::IFileWatcher(std::stop_token stoken, std::string fname, 
     }
 }
 
-void DeviceInterruptor::IGpioWatcher(std::stop_token stoken, int portNum, std::function<bool(int, int , uint32_t)> interruptHandle) {
-    std::pair<bool, std::tuple<int, int, uint32_t>> data; 
-
-    auto popArgs = [](int gpio, int level, unsigned int tick, void* data) -> void{
-        auto& [signaler, args] = *(std::pair<bool, std::tuple<int, int, uint32_t>> *)data;
-        args = std::make_tuple(gpio, level, tick); 
-        signaler = true; 
+void DeviceInterruptor::IGpioWatcher(std::stop_token stoken, int portNum, std::function<bool(int, int , uint32_t)> handler) {
+    std::atomic_bool signaler = false;
+    std::pair<decltype(signaler)&, decltype(handler)&> signalerAndHandler = {signaler, handler};
+    using callback_data = decltype(signalerAndHandler);
+    auto callback = [](int gpio, int level, unsigned int tick, void* data) -> void {
+        auto& [signaler, handler] = *reinterpret_cast<callback_data*>(data);
+        signaler = handler(gpio, level, tick);
     }; 
 
     #ifdef __RPI64__
-        gpioSetAlertFuncEx(portNum, popArgs, &data);
+    gpioSetAlertFuncEx(portNum, callback, &signalerAndHandler);
     #endif
 
     while (!stoken.stop_requested()) {
-        auto& [signaler, args] = data;
-        if(signaler){
-            bool ret = std::apply(interruptHandle, args); 
-            if(ret){
-                this->sendMessage();
-                std::this_thread::sleep_for(std::chrono::milliseconds(5));
-            }
+        if(signaler) {
+            this->sendMessage();
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
             signaler = false;
         }
     }
 }
 
-void DeviceInterruptor::setupThreads() {
-    // Create the threads
-    auto iFileWatcher = std::bind(&DeviceInterruptor::IFileWatcher, std::ref(*this), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-    auto iGpioWatcher = std::bind(&DeviceInterruptor::IGpioWatcher, std::ref(*this), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-    auto manageWatchers = std::bind(&DeviceInterruptor::manageWatchers, std::ref(*this), std::placeholders::_1);
-    for(auto& idesc : this->device.getIdescList()){
-        switch(idesc.src_type){
-            case(SrcType::UNIX_FILE) : {
-                this->globalWatcherThreads.emplace_back(iFileWatcher, idesc.file_src, std::get<std::function<bool()>>(idesc.interruptHandle)); 
-                break; 
-            }
+#ifdef SDL_ENABLED
+void DeviceInterruptor::ISdlWatcher(std::stop_token stoken, std::function<bool(SDL_Event*)> handler) {
+    std::atomic_bool signaler = false;
+    std::pair<decltype(signaler)&, decltype(handler)&> signalerAndHandler = {signaler, handler};
+    using filter_data = decltype(signalerAndHandler);
+    auto filter = [](void* signalerAndHandler, SDL_Event* event) -> bool {
+        auto& [signaler, handler] = *reinterpret_cast<filter_data*>(signalerAndHandler);
+        signaler = handler(event);
+        return signaler;
+    };
 
-            case(SrcType::GPIO): {
-                this->globalWatcherThreads.emplace_back(iGpioWatcher, idesc.port_num, std::get<std::function<bool(int, int, uint32_t)>>(idesc.interruptHandle));
-                break; 
-            }
+    if (!SDL_AddEventWatch(filter, &signalerAndHandler)) {
+        throw std::runtime_error("Failed to add SDL event watch: " + std::string(SDL_GetError()));
+    }
 
-            default :{
-                std::cout<<"Unimplemented interrupt watcher"<<std::endl; 
-            }
+    while (!stoken.stop_requested()) {
+        if (signaler) {
+            this->sendMessage();
+            signaler = false;
         }
     }
-    watcherManagerThread = std::jthread(manageWatchers);
+}
+#endif
+    
+void DeviceInterruptor::setupThreads() {
+    for(auto& idesc : this->device.getIdescList()){
+        std::visit(overloads {
+            [this](UnixFileInterruptor& idesc) {
+                this->globalWatcherThreads.emplace_back(
+                    std::bind(&DeviceInterruptor::IFileWatcher, std::ref(*this), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
+                    idesc.file, idesc.interruptCallback
+                );
+            },
+            [this](GpioInterruptor& idesc) {
+                this->globalWatcherThreads.emplace_back(
+                    std::bind(&DeviceInterruptor::IGpioWatcher, std::ref(*this), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
+                    idesc.portNum, idesc.interruptCallback
+                );
+            },
+            #ifdef SDL_ENABLED
+            [this](SdlIoInterruptor& idesc) {
+                this->globalWatcherThreads.emplace_back(
+                    std::bind(&DeviceInterruptor::ISdlWatcher, std::ref(*this), std::placeholders::_1, std::placeholders::_2),
+                    idesc.interruptCallback
+                );
+            },
+            #endif
+        }, idesc);
+    }
+    watcherManagerThread = std::jthread(std::bind(&DeviceInterruptor::manageWatchers, std::ref(*this), std::placeholders::_1));
 }
 
 void DeviceInterruptor::stopThreads() {

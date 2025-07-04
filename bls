@@ -21,13 +21,13 @@ def install_packages():
 
 def get_installed_packages():
     output = check_output([Path(VENV_DIR, BIN_DIR, "pip"), "--no-cache-dir", "freeze"], text=True)
-    return output.splitlines()
+    return output.splitlines(keepends=True)
 
 def get_required_packages():
     if not REQUIREMENTS_FILE.exists():
         return list()    
     with REQUIREMENTS_FILE.open() as reqs:
-        return reqs.read().splitlines()
+        return reqs.read().splitlines(keepends=True)
 
 def write_packages(packages):
     with REQUIREMENTS_FILE.open("w") as reqs:

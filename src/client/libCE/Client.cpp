@@ -199,6 +199,19 @@ void Client::listener(std::stop_token stoken){
             for (auto&& interruptor : this->interruptors) {
                 interruptor.setupThreads();
             }
+            #ifdef SDL_ENABLED
+            SDL_RunOnMainThread([](void*) -> void {
+                auto window = SDL_GL_GetCurrentWindow();
+                if (SDL_GetHintBoolean("SDL_HINT_INPUT_WINDOW_REQUIRED", false)) {
+                    SDL_ShowWindow(window);
+                }
+                else {
+                    SDL_Event event;
+                    event.type = SDL_EVENT_USER;
+                    SDL_PushEvent(&event);
+                }
+            }, nullptr, true);
+            #endif
         }
         else if(ptype == Protocol::CONNECTION_LOST){
             std::cout<<"Connection lost detected by Client"<<std::endl; 

@@ -19,6 +19,9 @@
 #include <variant>
 #include <vector>
 #include <thread>
+#ifdef SDL_ENABLED
+#include <SDL3/SDL.h>
+#endif
 
 #define VOLATILITY_LIST_SIZE 10
 
@@ -69,7 +72,7 @@ class DeviceHandle {
         void init(std::unordered_map<std::string, std::string> &config);
         void transmitStates(DynamicMessage &dmsg);
         bool hasInterrupt();
-        std::vector<Interrupt_Desc>& getIdescList();
+        std::vector<InterruptDescriptor>& getIdescList();
 };
 
 // Device Timer used for configuring polling rates dynamically; 
@@ -129,7 +132,10 @@ class DeviceInterruptor{
         void manageWatchers(std::stop_token stoken);
         // Add Inotify thread blocking code here
         void IFileWatcher(std::stop_token stoken, std::string fname, std::function<bool()> handler);
-        void IGpioWatcher(std::stop_token stoken, int portNum, std::function<bool(int, int , uint32_t)> interruptHandle);
+        void IGpioWatcher(std::stop_token stoken, int portNum, std::function<bool(int, int , uint32_t)> handler);
+        #ifdef SDL_ENABLED
+        void ISdlWatcher(std::stop_token stoken, std::function<bool(SDL_Event*)> handler);
+        #endif
         
     public: 
         DeviceInterruptor(DeviceHandle& targDev, std::shared_ptr<Connection> conex, int ctl, int dd);

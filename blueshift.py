@@ -8,12 +8,15 @@ import re
 import atexit
 import time
 import tarfile
+import webbrowser
+import platform
 import multiprocessing as mp
 from dotenv import load_dotenv
 from scapy.all import sniff, conf, sendp
 from pathlib import Path
 from threading import Thread
 from shutil import rmtree
+
 
 load_dotenv()
 PROJECT_NAME = os.getenv("PROJECT_NAME")
@@ -29,14 +32,21 @@ DEBUG_SERVER_PORT_MIN = os.getenv("DEBUG_SERVER_PORT_MIN")
 DEBUG_SERVER_PORT_MAX = os.getenv("DEBUG_SERVER_PORT_MAX")
 MASTER_PORT = os.getenv("MASTER_PORT")
 BROADCAST_PORT = os.getenv("BROADCAST_PORT")
+VNC_CONTAINER_NAME = os.getenv("VNC_CONTAINER_NAME")
+VNC_PORT = os.getenv("VNC_PORT")
 NUM_CORES = mp.cpu_count()
 CODELLDB_ADDRESS = ("127.0.0.1", 7349)
 
-def run_cmd(cmd, exit_on_failure=True, **kwargs) -> subprocess.CompletedProcess:
+def run_cmd(cmd, exit_on_failure=True, **kwargs) -> subprocess.CompletedProcess | None:
     try:
         process_result = subprocess.run(cmd, **kwargs)
     except KeyboardInterrupt:
         sys.exit(0)
+    except FileNotFoundError as e:
+        if exit_on_failure:
+            raise e
+        else: # ignore error
+            return None
     if process_result.returncode != 0 and exit_on_failure:
         sys.exit(process_result.returncode)
     return process_result
@@ -66,6 +76,10 @@ def initialize_host():
     Path(REMOTE_OUTPUT_DIRECTORY, "release").mkdir(parents=True, exist_ok=True)
     Path(REMOTE_OUTPUT_DIRECTORY, "minsizerel").mkdir(parents=True, exist_ok=True)
     Path(REMOTE_OUTPUT_DIRECTORY, "relwithdebinfo").mkdir(parents=True, exist_ok=True)
+
+    run_cmd(["docker", "network", "create", NETWORK_NAME, "--label", "com.docker.compose.network=default", "--label", f"com.docker.compose.project={PROJECT_NAME}"],
+            exit_on_failure=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    
     context = get_output(["docker", "context", "show"])
     if context == "rootless" or context == "desktop-linux":
         os.environ["CONTAINER_UID"] = str(0)
@@ -73,6 +87,12 @@ def initialize_host():
     else:
         os.environ["CONTAINER_UID"] = str(os.geteuid())
         os.environ["CONTAINER_GID"] = str(os.getegid())
+    
+    if platform.system() == "Linux" and os.getenv("DISPLAY_NAME") == "nullDisplay": # allow x11 forwarding through docker
+        run_cmd(["xhost", "+local:docker"], exit_on_failure=False, stdout=subprocess.DEVNULL)
+        os.environ["DISPLAY_NAME"] = os.getenv("DISPLAY", "")
+        os.environ["DISPLAY_MOUNT"] = "/tmp/.X11-unix"
+        atexit.register(run_cmd, ["xhost", "-local:docker"], exit_on_failure=False, stdout=subprocess.DEVNULL)
 
 def broadcast_sniffer():
     ifaces = list(conf.ifaces.keys())
@@ -89,11 +109,11 @@ def broadcast_sniffer():
     sniff(filter=broadcast_filter, prn=forward_broadcast,
           store=False, iface=source_iface)
 
-def wait_for_lldb_server(port):
-    pattern = re.compile(f"{port}/tcp")
+def wait_for_container_server(port, wait_for_exit=False):
     while(True):
-        out = get_output(["docker",  "ps"])
-        if pattern.search(out):
+        container_running = len(get_output(["docker", "ps", "--filter", f"publish={port}", "--format", "{{.Ports}}"])) > 0
+        stop = container_running != wait_for_exit # container_running XOR wait_for_exit
+        if stop:
             return
         time.sleep(.25)
 
@@ -156,11 +176,26 @@ def make_sysroot(target, local):
             tar.extractall(sysroot_path, filter="fully_trusted")
         os.remove(archive_path)
 
+def open_vnc_display():
+    os.environ["DISPLAY_NAME"] = f"{VNC_CONTAINER_NAME}:0.0"
+    wait_for_container_server(VNC_PORT)
+    time.sleep(1.5) # wait for all X subsystems to be ready
+    print("opening vnc display in browser...")
+    webbrowser.open(f"http://127.0.0.1:{VNC_PORT}/vnc.html")
+
+def initialize_vnc_display():
+    print("intializing vnc display...")
+    run_cmd(["docker", "compose", "up", "-d", VNC_CONTAINER_NAME])
+    atexit.register(run_cmd, ["docker", "compose", "down", "-t", "1", VNC_CONTAINER_NAME], exit_on_failure=False, stderr=subprocess.DEVNULL)
+    open_vnc_display()
+
 def run(args):
     if args.local:
         executable = Path(".", TARGET_OUTPUT_DIRECTORY, RUNTIME_OUTPUT_DIRECTORY, args.binary)
         run_cmd([executable, *args.binary_args])
     else:
+        if args.vnc:
+            initialize_vnc_display()
         if args.packet_forward:
             context = subprocess.check_output(["docker", "context", "show"], text=True).strip()
             if context == "rootless":
@@ -190,8 +225,9 @@ def debug(args):
         run_cmd(["lldb-server", "platform", "--listen", f"*:{args.listen}", "--server",
                  "--min-gdbserver-port", args.min_server_port, "--max-gdbserver-port", args.max_server_port])
     elif args.local:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            if allow_visual and s.connect_ex(CODELLDB_ADDRESS) == 0: # debug locally with codelldb
+        if allow_visual: # debug locally with codelldb
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.connect(CODELLDB_ADDRESS)
                 s.sendall(f"""
                 {{
                     name: {debug_name},
@@ -202,25 +238,27 @@ def debug(args):
                     args: {args.binary_args}
                 }}
                 """.encode())
-            else: # debug locally in terminal
-                args_command = "--" if args.debugger == "lldb" else "--args"
-                run_cmd([args.debugger, args_command, executable, *args.binary_args])
+        else: # debug locally in terminal
+            args_command = "--" if args.debugger == "lldb" else "--args"
+            run_cmd([args.debugger, args_command, executable, *args.binary_args])
     else: # debug on container gdbserver
+        if args.vnc:
+            initialize_vnc_display()
         initialize_host()
         DEBUG_SERVER_PORT = get_free_port()
         remote_binary = Path(REMOTE_OUTPUT_DIRECTORY, debug_target_path, RUNTIME_OUTPUT_DIRECTORY, args.binary)
         cwd = os.getcwd()
         # Initialize debug server
-        run_cmd(["docker", "container", "stop", "-t", "1", f"{debug_name}"], exit_on_failure=False, stderr=subprocess.DEVNULL)
         run_cmd(["docker", "compose", "--profile", "debug", "run", "-d", "--no-deps",
                         "-p", f"{DEBUG_SERVER_PORT}:{DEBUG_SERVER_PORT}", "--name", debug_name, "--rm",
                         "debugger", "debug", "--server", f"{DEBUG_SERVER_PORT}",
                         "--debugger", args.debugger, args.binary, *args.binary_args])
-        wait_for_lldb_server(DEBUG_SERVER_PORT)
+        wait_for_container_server(DEBUG_SERVER_PORT)
+        atexit.register(run_cmd, ["docker", "container", "stop", "-t", "1", debug_name], exit_on_failure=False, stderr=subprocess.DEVNULL)
 
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            time.sleep(.25) # externally extend gdb-remote connection timeout
-            if allow_visual and s.connect_ex(CODELLDB_ADDRESS) == 0: # debug remotely with codelldb
+        if allow_visual: # debug remotely with codelldb
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.connect(CODELLDB_ADDRESS) == 0
                 s.sendall(f"""
                 {{
                     name: {debug_name},
@@ -233,18 +271,27 @@ def debug(args):
                     processCreateCommands: [gdb-remote localhost:{DEBUG_SERVER_PORT}]
                 }}
                 """.encode())
-            elif args.debugger == "lldb": # debug remotely with lldb tui
-                run_cmd(["lldb", "-o", f"settings set target.source-map {CONTAINER_MOUNT_DIRECTORY} {cwd}",
-                                "-o", f"gdb-remote localhost:{DEBUG_SERVER_PORT}", "--", remote_binary, *args.binary_args])
-            else: # debug remotely with gdb tui
-                run_cmd(["gdb", "-ex", f"target remote localhost:{DEBUG_SERVER_PORT}",
-                                "-ex", f"set substitute-path {CONTAINER_MOUNT_DIRECTORY} {cwd}",
-                                "--args", remote_binary, *args.binary_args])
+                time.sleep(1) # externally extend gdb-remote connection timeout
+            wait_for_container_server(DEBUG_SERVER_PORT, wait_for_exit=True)
+        elif args.debugger == "lldb": # debug remotely with lldb tui
+            run_cmd(["lldb", "-o", f"settings set target.source-map {CONTAINER_MOUNT_DIRECTORY} {cwd}",
+                            "-o", f"gdb-remote localhost:{DEBUG_SERVER_PORT}", "--", remote_binary, *args.binary_args])
+        else: # debug remotely with gdb tui
+            run_cmd(["gdb", "-ex", f"target remote localhost:{DEBUG_SERVER_PORT}",
+                            "-ex", f"set substitute-path {CONTAINER_MOUNT_DIRECTORY} {cwd}",
+                            "--args", remote_binary, *args.binary_args])
 
 def deploy(args):
     # container never issues deploy command
     initialize_host()
-    profiles = ["--profile", "debug"] if args.debug else []
+
+    profiles = []
+    if args.debug:
+        profiles += ["--profile", "debug"]
+    if args.vnc:
+        profiles += ["--profile", "vnc"]
+        Thread(target=open_vnc_display, daemon=True).start()
+        
     base_cmd = ["docker", "compose", *profiles]
 
     # ensure containers are properly destroyed
@@ -273,7 +320,7 @@ def deploy(args):
         Thread(target=attach_debugger, args=("master", master_binary, DEBUG_SERVER_PORT), daemon=True).start()
         for i in range(num_clients): 
             Thread(target=attach_debugger, args=(f"blueshift-client-{i + 1}", client_binary, DEBUG_SERVER_PORT), daemon=True).start()
-
+    
     run_cmd(command)
 
 def build(args):
@@ -297,16 +344,19 @@ def build(args):
         cpp_compiler = "-DCMAKE_CXX_COMPILER="
         c_compiler = "-DCMAKE_C_COMPILER="
         linker = "-DCMAKE_LINKER_TYPE="
+        archiver = "-DCMAKE_AR="
         build_type = f"-DCMAKE_BUILD_TYPE={args.build_type}"
         toolchain_file = "-DCMAKE_TOOLCHAIN_FILE=" + (str(Path(os.getcwd(), ".cmake", f"{args.compiler}-{TARGET_PLATFORM}.cmake")) if TARGET_PLATFORM else "")
         if args.compiler == 'clang':
             c_compiler += "clang"
             cpp_compiler += "clang++"
             linker += "LLD"
+            archiver += "llvm-ar"
         else:
             c_compiler += "gcc"
             cpp_compiler += "g++"
             linker += "BFD"
+            archiver += "ar"
         cmake_args = [c_compiler, cpp_compiler, linker, build_type, toolchain_file, "-Wno-dev"]
         run_cmd(["cmake", *cmake_args, "-S", ".", "-B", ARTIFACT_DIR])
         symlink(COMPILE_DB_PATH, Path(".", TARGET_PLATFORM, ARTIFACT_TYPE, "compile_commands.json"))
@@ -407,6 +457,9 @@ run_parser.add_argument("-u", "--udp-broadcast-forward",
                         help="""start a listener that received udp broadcasts on 127.0.0.1 and forwards them to host LAN
                                 (necessary if running with -p on OSX)""",
                         action="store_true")
+run_parser.add_argument("--vnc",
+                        help="start a novnc display server to forward container GUI applications",
+                        action="store_true")
 run_parser.set_defaults(fn=run)
 
 debug_parser = subparsers.add_parser("debug", help=f"debug selected {PROJECT_NAME} binaries")
@@ -429,6 +482,9 @@ debug_parser.add_argument("-d", "--debugger",
                         help="choose a specific debugger (note that the VSCode visual debugger is only supported with lldb)",
                         choices=["lldb", "gdb"],
                         default="lldb")
+debug_parser.add_argument("--vnc",
+                        help="start a novnc display server to forward container GUI applications",
+                        action="store_true")
 debug_parser.add_argument("--server",
                         help="create a gdbserver instance to attach to remotely at the specified port",
                         metavar="PORT",
@@ -467,6 +523,9 @@ deploy_parser.add_argument("-d", "--debug",
 deploy_parser.add_argument("-r", "--release-debug",
                            help="use release build with limited debug symbols in debug mode",
                            action="store_true")
+deploy_parser.add_argument("--vnc",
+                            help="start a novnc display server to forward container GUI applications",
+                            action="store_true")
 deploy_parser.set_defaults(fn=deploy)
 
 build_parser = subparsers.add_parser("build", help=f"build {PROJECT_NAME} binaries or deployment images")

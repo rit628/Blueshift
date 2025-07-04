@@ -800,6 +800,7 @@ BlsObject Analyzer::visit(AstNode::Specifier::Type& ast) {
 
         #define DEVTYPE_BEGIN(name) \
         case TYPE::name: { \
+            using namespace TypeDef; \
             if (!typeArgs.empty()) throw SemanticError("Devtypes cannot include type arguments."); \
             auto devtype = std::make_shared<MapDescriptor>(TYPE::name, TYPE::string_t, TYPE::ANY); \
             BlsType attr, attrVal;

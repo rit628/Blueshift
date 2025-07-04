@@ -2,7 +2,7 @@ FROM debian:12
 
 ARG WORKDIR
 
-RUN apt-get update && apt-get install -y host procps
+RUN apt-get update && apt-get install -y host procps xorg
 
 WORKDIR ${WORKDIR}
 
