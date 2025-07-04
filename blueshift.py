@@ -37,10 +37,6 @@ VNC_PORT = os.getenv("VNC_PORT")
 NUM_CORES = mp.cpu_count()
 CODELLDB_ADDRESS = ("127.0.0.1", 7349)
 
-if platform.system() == "Linux": # allow x11 forwarding through docker
-    os.environ["DISPLAY_NAME"] = os.getenv("DISPLAY")
-    os.environ["DISPLAY_MOUNT"] = "/tmp/.X11-unix"
-
 def run_cmd(cmd, exit_on_failure=True, **kwargs) -> subprocess.CompletedProcess:
     try:
         process_result = subprocess.run(cmd, **kwargs)
@@ -75,8 +71,10 @@ def initialize_host():
     Path(REMOTE_OUTPUT_DIRECTORY, "release").mkdir(parents=True, exist_ok=True)
     Path(REMOTE_OUTPUT_DIRECTORY, "minsizerel").mkdir(parents=True, exist_ok=True)
     Path(REMOTE_OUTPUT_DIRECTORY, "relwithdebinfo").mkdir(parents=True, exist_ok=True)
+
     run_cmd(["docker", "network", "create", NETWORK_NAME, "--label", "com.docker.compose.network=default", "--label", f"com.docker.compose.project={PROJECT_NAME}"],
             exit_on_failure=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    
     context = get_output(["docker", "context", "show"])
     if context == "rootless" or context == "desktop-linux":
         os.environ["CONTAINER_UID"] = str(0)
@@ -84,6 +82,12 @@ def initialize_host():
     else:
         os.environ["CONTAINER_UID"] = str(os.geteuid())
         os.environ["CONTAINER_GID"] = str(os.getegid())
+    
+    if platform.system() == "Linux" and os.getenv("DISPLAY_NAME") == "nullDisplay": # allow x11 forwarding through docker
+        run_cmd(["xhost", "+local:docker"], stdout=subprocess.DEVNULL)
+        os.environ["DISPLAY_NAME"] = os.getenv("DISPLAY")
+        os.environ["DISPLAY_MOUNT"] = "/tmp/.X11-unix"
+        atexit.register(run_cmd, ["xhost", "-local:docker"], stdout=subprocess.DEVNULL)
 
 def broadcast_sniffer():
     ifaces = list(conf.ifaces.keys())
