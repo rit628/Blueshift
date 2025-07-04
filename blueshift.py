@@ -37,11 +37,16 @@ VNC_PORT = os.getenv("VNC_PORT")
 NUM_CORES = mp.cpu_count()
 CODELLDB_ADDRESS = ("127.0.0.1", 7349)
 
-def run_cmd(cmd, exit_on_failure=True, **kwargs) -> subprocess.CompletedProcess:
+def run_cmd(cmd, exit_on_failure=True, **kwargs) -> subprocess.CompletedProcess | None:
     try:
         process_result = subprocess.run(cmd, **kwargs)
     except KeyboardInterrupt:
         sys.exit(0)
+    except FileNotFoundError as e:
+        if exit_on_failure:
+            raise e
+        else: # ignore error
+            return None
     if process_result.returncode != 0 and exit_on_failure:
         sys.exit(process_result.returncode)
     return process_result
