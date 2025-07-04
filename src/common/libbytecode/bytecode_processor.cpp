@@ -6,23 +6,32 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <functional>
+#include <fstream>
+#include <ios>
 #include <iostream>
 #include <memory>
+#include <sstream>
 #include <stdexcept>
-#include <variant>
 #include <vector>
 #include <boost/archive/binary_iarchive.hpp>
 
+void BytecodeProcessor::loadBytecode(std::istream& bytecode) {
+    readHeader(bytecode);
+    loadLiterals(bytecode);
+    loadInstructions(bytecode);
+}
 
 void BytecodeProcessor::loadBytecode(const std::string& filename) {
-    bytecode.open(filename, std::ios::binary);
+    auto bytecode = std::ifstream(filename, std::ios::binary);
     if (!bytecode.is_open()) {
         throw std::runtime_error("Invalid Filename.");
     }
-    readHeader();
-    loadLiterals();
-    loadInstructions();
+    loadBytecode(bytecode);
+}
+
+void BytecodeProcessor::loadBytecode(const std::vector<char>& bytecode) {
+    auto bytecodeStream = std::istringstream({bytecode.data(), bytecode.size()}, std::ios::binary);
+    loadBytecode(bytecodeStream);
 }
 
 void BytecodeProcessor::dispatch() {
@@ -59,7 +68,7 @@ void BytecodeProcessor::dispatch() {
     exit: ;
 }
 
-void BytecodeProcessor::readHeader() {
+void BytecodeProcessor::readHeader(std::istream& bytecode) {
     uint16_t descriptorCount;
     bytecode.read(reinterpret_cast<char*>(&descriptorCount), sizeof(descriptorCount));
     boost::archive::binary_iarchive ia(bytecode, boost::archive::archive_flags::no_header);
@@ -70,7 +79,7 @@ void BytecodeProcessor::readHeader() {
     }
 }
 
-void BytecodeProcessor::loadLiterals() {
+void BytecodeProcessor::loadLiterals(std::istream& bytecode) {
     uint16_t poolSize;
     bytecode.read(reinterpret_cast<char*>(&poolSize), sizeof(poolSize));
     boost::archive::binary_iarchive ia(bytecode, boost::archive::archive_flags::no_header);
@@ -81,7 +90,7 @@ void BytecodeProcessor::loadLiterals() {
     }
 }
 
-void BytecodeProcessor::loadInstructions() {
+void BytecodeProcessor::loadInstructions(std::istream& bytecode) {
     OPCODE code;
     while (bytecode.read(reinterpret_cast<char*>(&code), sizeof(code))) {
         switch (code) {
