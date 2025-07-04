@@ -10,6 +10,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <sstream>
 #include <stdexcept>
 #include <boost/archive/binary_oarchive.hpp>
 #include <utility>
@@ -64,6 +65,13 @@ void Generator::writeBytecode(std::ostream& outputStream) {
             break;
         }
     }
+}
+
+void Generator::writeBytecode(std::vector<char>& outputVector) {
+    auto outputStream = std::ostringstream(std::ios::binary);
+    writeBytecode(outputStream);
+    auto bytecode = outputStream.view();
+    outputVector = {bytecode.begin(), bytecode.end()};
 }
 
 BlsObject Generator::visit(AstNode::Source& ast) {

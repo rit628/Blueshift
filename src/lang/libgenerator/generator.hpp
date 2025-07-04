@@ -26,6 +26,7 @@ namespace BlsLang {
             #undef AST_NODE
 
             void writeBytecode(std::ostream& outputStream);
+            void writeBytecode(std::vector<char>& outputVector);
         
         private:
             enum class ACCESS_CONTEXT : uint8_t {

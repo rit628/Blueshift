@@ -16,14 +16,16 @@ class BytecodeProcessor {
             COUNT
         };
 
+        void loadBytecode(std::istream& bytecode);
         void loadBytecode(const std::string& filename);
+        void loadBytecode(const std::vector<char>& bytecode);
         void dispatch();
         std::vector<OBlockDesc> getOblockDescriptors() { return oblockDescs; }
 
     private:
-        void readHeader();
-        void loadLiterals();
-        void loadInstructions();
+        void readHeader(std::istream& bytecode);
+        void loadLiterals(std::istream& bytecode);
+        void loadInstructions(std::istream& bytecode);
 
     protected:
         #define OPCODE_BEGIN(code) \
@@ -37,7 +39,6 @@ class BytecodeProcessor {
         #undef ARGUMENT
         #undef OPCODE_END
 
-        std::ifstream bytecode;
         size_t instruction = 0;
         std::vector<OBlockDesc> oblockDescs;
         std::vector<BlsType> literalPool;
