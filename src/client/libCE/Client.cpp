@@ -20,7 +20,7 @@ void Client::start(){
 }
 
 
-void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = false, oblock_int oint = 0){
+void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = false, oblock_int oint = 0, bool write_self = false){
     // Write code for a callback
     SentMessage sm; 
     DynamicMessage dmsg; 
@@ -31,7 +31,12 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
             sm.header.oblock_id = oint; 
             sm.header.prot = Protocol::OWNER_GRANT; 
             sm.header.device_code = deviceCode; 
-            this->client_connection->send(sm); 
+            break; 
+        }
+        case(Protocol::OWNER_CONFIRM_OK) : {
+            sm.header.oblock_id = oint; 
+            sm.header.prot = Protocol::OWNER_CONFIRM_OK; 
+            sm.header.device_code = deviceCode;
             break; 
         }
         default: {
@@ -54,14 +59,22 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
             sm.header.body_size = sm.body.size(); 
             sm.header.fromInterrupt = fromInt; 
             
-            this->client_connection->send(sm); 
             break; 
         }
-    
     }
+
+    if(write_self){
+        OwnedSentMessage osm; 
+        osm.sm = sm; 
+        osm.connection = nullptr; 
+        this->in_queue.write(osm); 
+    }
+    else{
+        this->client_connection->send(sm); 
+    }
+
+    this->client_connection->send(sm); 
 }
-
-
 
 void Client::listener(std::stop_token stoken){
     while(!stoken.stop_requested()){
@@ -335,8 +348,6 @@ bool Client::attemptConnection(boost::asio::ip::address master_address){
         if(this->ctxThread.joinable()){
             this->ctxThread.join(); 
         }
-
-        //this->start(); 
 
         std::cout<<this->client_name + " Connection successful!"<<std::endl; 
 

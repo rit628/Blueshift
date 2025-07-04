@@ -72,6 +72,10 @@ add_compile_definitions(MASTER_PORT=$ENV{MASTER_PORT})
 file(GLOB_RECURSE LIBTSQ_SRC ${COMMON_SRC_DIR}/libTSQ/*.cpp)
 add_library(TSQ STATIC ${LIBTSQ_SRC})
 
+file(GLOB_RECURSE LIBTSM_SRC ${COMMON_SRC_DIR}/libTSM/*.cpp)
+add_library(TSM STATIC ${LIBTSM_SRC})
+
+
 file(GLOB_RECURSE LIBTYPE_SRC ${COMMON_SRC_DIR}/libtype/*.cpp)
 add_library(type STATIC ${LIBTYPE_SRC})
 target_include_directories(type PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
@@ -162,9 +166,6 @@ add_executable(lang ${LANG_SRC_DIR}/main.cpp)
 target_link_libraries(lang symgraph compiler virtual_machine ${BOOST_LIB_DEPS})
 
 # MASTER LIBS AND EXECUTABLE
-file(GLOB_RECURSE LIBTSM_SRC ${MASTER_SRC_DIR}/libTSM/*.cpp)
-add_library(TSM STATIC ${LIBTSM_SRC})
-
 file(GLOB_RECURSE LIBTICKER_SRC ${MASTER_SRC_DIR}/libTicker/*.cpp)
 add_library(ticker STATIC ${LIBTICKER_SRC})
 target_include_directories(ticker PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
@@ -200,20 +201,15 @@ add_library(device STATIC ${LIBDEVICE_SRC} $<TARGET_OBJECTS:drivers>)
 target_include_directories(device PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
 target_link_libraries(device network dynamic_message ${BOOST_LIB_DEPS} ${SYSTEM_LINK_LIBRARIES})
 
+file(GLOB_RECURSE LIBCLIENTGATEWAY_SRC ${CLIENT_SRC_DIR}/libClientGateway/*.cpp)
+add_library(client_gateway STATIC ${LIBCLIENTGATEWAY_SRC})
+target_include_directories(client_gateway PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${CLIENT_SRC_DIR})
+target_link_libraries(client_gateway network device virtual_machine bytecode ${BOOST_LIB_DEPS})
+
 file(GLOB_RECURSE LIBCE_SRC ${CLIENT_SRC_DIR}/libCE/*.cpp)
 add_library(client_engine STATIC ${LIBCE_SRC})
 target_include_directories(client_engine PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${CLIENT_SRC_DIR})
-target_link_libraries(client_engine network device ${BOOST_LIB_DEPS})
-
-file(GLOB_RECURSE LIBCLIENTGATEWAY_SRC ${CLIENT_SRC_DIR}/libClientGateway/*.cpp)
-add_library(client_gateway STATIC ${LIBCE_SRC})
-target_include_directories(client_gateway PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${CLIENT_SRC_DIR})
-target_link_libraries(client_gateway network device ${BOOST_LIB_DEPS})
-
-file(GLOB_RECURSE LIBCLIENTROUTER_SRC ${CLIENT_SRC_DIR}/libClientRouter/*.cpp)
-add_library(client_router STATIC ${LIBCE_SRC})
-target_include_directories(client_router PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${CLIENT_SRC_DIR})
-target_link_libraries(client_router network device ${BOOST_LIB_DEPS})
+target_link_libraries(client_engine network device client_gateway ${BOOST_LIB_DEPS})
 
 add_executable(client ${CLIENT_SRC_DIR}/main.cpp)
 target_include_directories(client PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_SRC_DIR})

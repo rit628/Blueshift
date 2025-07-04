@@ -421,7 +421,7 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
             new_msg.info.device = this->device_list[in_msg.sm.header.device_code]; 
             new_msg.info.oblock =  this->oblock_list[in_msg.sm.header.oblock_id]; 
             this->EMM_out_queue.write(new_msg); 
-            break; 
+            break;  
         }
         case Protocol::OWNER_CONFIRM_OK : {
             DMM new_msg; 

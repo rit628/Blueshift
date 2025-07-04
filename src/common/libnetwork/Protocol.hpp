@@ -23,7 +23,7 @@ enum class Protocol : uint8_t{
     CONFIG_INFO, 
     CONFIG_OK, 
 
-    // (Master -> Client)
+    // (Master -> Client) or 
     STATE_CHANGE, 
     TICKER_UPDATE, 
     BEGIN, 
@@ -42,6 +42,11 @@ enum class Protocol : uint8_t{
     CLIENT_ERROR, 
     OWNER_GRANT, 
     OWNER_CONFIRM_OK,
+
+    // Controller to Controller (peer to peer) or self
+    SEND_ARGUMENT, 
+
+    
 
 
     // Client Loop back

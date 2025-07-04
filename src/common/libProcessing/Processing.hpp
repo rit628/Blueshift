@@ -6,6 +6,7 @@
 #include "include/Common.hpp"
 #include <string>
 #include "libTSQ/TSQ.hpp"
+#include "libtype/bls_types.hpp"
 
 
 #define BITSET_SZ 32
@@ -16,18 +17,18 @@
 */
 struct AtomicDMMContainer{
     private: 
-        DynamicMasterMessage dmsg; 
+        HeapMasterMessage dmsg; 
         bool hasItem = false; 
         std::mutex mux; 
     
     public: 
-        void replace(DynamicMasterMessage new_dmsg){
+        void replace(HeapMasterMessage new_dmsg){
             std::scoped_lock<std::mutex> lock(mux); 
             hasItem = true; 
             this->dmsg = new_dmsg; 
         }
 
-        DynamicMasterMessage get(){
+        HeapMasterMessage get(){
             std::scoped_lock<std::mutex> lock(mux); 
             return this->dmsg; 
         }
@@ -62,9 +63,9 @@ class TriggerManager{
             this->ruleset.insert(defaultOption); 
 
             // Loop through rules; 
-            for(auto& rule : OBlockDesc.triggerRules){
+            for(auto& rule : OBlockDesc.triggers){
                 std::bitset<BITSET_SZ> king; 
-                for(auto& devName : rule){
+                for(auto& devName : rule.rule){
                     king.set(this->stringMap[devName]); 
                 }       
                 ruleset.insert(king); 
@@ -117,12 +118,12 @@ class TriggerManager{
 
 
 struct DeviceBox{
-    std::shared_ptr<TSQ<DynamicMasterMessage>> stateQueues;
+    std::shared_ptr<TSQ<HeapMasterMessage>> stateQueues;
     AtomicDMMContainer lastMessage; 
     bool devDropRead = false;  
     std::string deviceName; 
 
-    void insertState(DynamicMasterMessage& dmm){
+    void insertState(HeapMasterMessage& dmm){
         if(this->devDropRead){
             this->stateQueues->clearQueue(); 
         } 
@@ -140,7 +141,7 @@ struct ReaderBox
             Consists of the ordered list of all triggered events 
             to be queued up and sent to the execution manager
         */ 
-        std::vector<std::vector<DynamicMasterMessage>> triggerCache; 
+        std::vector<std::vector<HeapMasterMessage>> triggerCache; 
         TriggerManager triggerMan; 
 
         bool callbackRecived;
@@ -155,7 +156,7 @@ struct ReaderBox
 
         // Inserts the state into the object: 
         // the bool initEvent determines if the event is an initial event or not
-        void insertState(DynamicMasterMessage newDMM, TSQ<EMStateMessage>& sendEM){
+        void insertState(HeapMasterMessage newDMM, TSQ<EMStateMessage>& sendEM){
             if(!this->waitingQs.contains(newDMM.info.device)){
                 return; 
             }
@@ -181,7 +182,7 @@ struct ReaderBox
             int triggerId = -1; 
             bool writeTrig = this->triggerMan.processDevice(newDMM.info.device, triggerId); 
             if(writeTrig){
-                std::vector<DynamicMasterMessage> trigEvent; 
+                std::vector<HeapMasterMessage> trigEvent; 
                 for(auto& [name, devBox] : this->waitingQs){
                     if(devBox.stateQueues->isEmpty()){
                         trigEvent.push_back(devBox.stateQueues->read()); 
@@ -214,6 +215,12 @@ struct ReaderBox
             }   
         }   
 
-        ReaderBox(bool dropRead, bool dropWrite, std::string name,  OBlockDesc& odesc);
+        ReaderBox(bool dropRead, bool dropWrite, std::string name,  OBlockDesc& odesc)
+        : triggerMan(odesc)
+        {
+            this->dropRead = dropRead;
+            this->dropWrite = dropWrite;
+            this->OblockName = name;
+        }
     
 };

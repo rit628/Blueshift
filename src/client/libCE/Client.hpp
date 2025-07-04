@@ -113,6 +113,9 @@ class Client{
         std::shared_ptr<Connection> client_connection; 
         // Input Thread safe queue
         TSQ<OwnedSentMessage> in_queue; 
+        // Input Thread 
+        TSQ<OwnedSentMessage>client_in_queue; 
+
 
         /*
             Blueshift Client Stuff
@@ -131,13 +134,15 @@ class Client{
         // use to keep track of the state 
         ClientState curr_state; 
         // sends a callback for a device
-        void sendMessage(uint16_t device, Protocol prot, bool fromint, oblock_int oint);  
+        void sendMessage(uint16_t device, Protocol prot, bool fromint, oblock_int oint, bool write_self);  
         // Send a message
         void send(SentMessage &msg); 
         // Updates the ticker table
         void updateTicker(); 
         // Temp timers 
         std::vector<Timer> start_timers; 
+        // Run the client listener
+        
         // Error Sender: 
         std::unique_ptr<GenericBlsException> genBlsException; 
 

@@ -1,29 +1,22 @@
 #include "include/Common.hpp"
-#include "libnetwork/Connection.hpp"
+# include "libnetwork/Connection.hpp"
 #include "libnetwork/Protocol.hpp"
 #include <unordered_map>
-#include <vector> 
-#include <string> 
 
-using OblockID = std::string; 
-using DeviceID = std::string; 
-using ControllerID = std::string; 
-
-struct RoutingInfo{
-    DeviceID originDev;
-    std::vector<shared_ptr<Connection>> connectionSources; 
-    bool routeToSelf = false; 
-}; 
+using cont_int = uint16_t; 
+using dev_int = uint16_t; 
+using oblock_int = uint16_t; 
 
 
-class Router{
-    private:
-        // Device Routing Map
-        std::unordered_map<DeviceID, RoutingInfo> routingMap; 
-        std::shared_ptr<Connection>& masterConnection; 
+// Routes objects to send them
+class ClientRouter{
+    private: 
+        std::unordered_map<ControllerID, std::shared_ptr<Connection>> connectionMap; 
+        TSQ<SentMessage> &loopbackQueue; 
+        std::unordered_map<uint16_t, std::vector<ControllerID>> pathing; 
     public: 
-        Router(std::shared_ptr<Connection> &masterCon)
-        : masterConnection(masterCon){}
-        void setRoutes(SentMessage &dmsg);
-
+        ClientRouter(TSQ<SentMessage> &loopBack); 
+        void setConnection(ControllerID& targCont, std::shared_ptr<Connection> conObj);  
+        void createRoute(uint16_t device, std::vector<ControllerID> &ctlGroup); 
+        void sendStates(uint16_t deviceCode, Protocol type, bool fromInt = false, oblock_int oint = 0);
 }; 

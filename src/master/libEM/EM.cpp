@@ -123,7 +123,7 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
         std::vector<HeapMasterMessage> outGoingStates;  
 
         // SHIP ALL OUTGOING DEVICES (EVEN ONCE NOT ALTERED)
-        for(auto& devDesc : this->Oblock.binded_devices)
+        for(auto& devDesc : this->Oblock.outDevices)
         {   
             int pos = this->devicePositionMap[devDesc.device_name]; 
             auto transformedState = std::get<shared_ptr<HeapDescriptor>>(transformableStates.at(pos));
@@ -143,7 +143,7 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
         {
             sendMM.write(hmm);
         }
-        
+
         this->globalScheduler.release(this->Oblock.name); 
     }
 }
