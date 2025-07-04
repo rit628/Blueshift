@@ -82,7 +82,7 @@ namespace BlsLang {
         , CONTAINER_LIST
         , CONTAINER_MAP
 
-        #define DEVTYPE_BEGIN(name) \
+        #define DEVTYPE_BEGIN(name, ...) \
         , DEVTYPE_##name
         #define ATTRIBUTE(...)
         #define DEVTYPE_END
