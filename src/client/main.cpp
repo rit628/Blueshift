@@ -1,5 +1,4 @@
 #include "libCE/Client.hpp"
-#include <climits>
 #include <functional>
 #include <string>
 #include <thread>
@@ -27,8 +26,9 @@ int main(int argc, char* argv[]) {
 
         SDL_Window* window = nullptr;
         SDL_Renderer* renderer = nullptr;
-        if (!SDL_CreateWindowAndRenderer("Input Window", 800, 600, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN, &window, &renderer)) {
-            throw std::runtime_error("Input window creation failed: " + std::string(SDL_GetError()));
+        auto windowName = name + " Input Window";
+        if (!SDL_CreateWindowAndRenderer(windowName.c_str(), 800, 600, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN, &window, &renderer)) {
+            std::cerr << "Input window creation failed: " << SDL_GetError() << ". Some devices may not work properly." << std::endl;
         }
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
