@@ -90,7 +90,7 @@ def initialize_host():
     
     if platform.system() == "Linux" and os.getenv("DISPLAY_NAME") == "nullDisplay": # allow x11 forwarding through docker
         run_cmd(["xhost", "+local:docker"], exit_on_failure=False, stdout=subprocess.DEVNULL)
-        os.environ["DISPLAY_NAME"] = os.getenv("DISPLAY")
+        os.environ["DISPLAY_NAME"] = os.getenv("DISPLAY", "")
         os.environ["DISPLAY_MOUNT"] = "/tmp/.X11-unix"
         atexit.register(run_cmd, ["xhost", "-local:docker"], exit_on_failure=False, stdout=subprocess.DEVNULL)
 
