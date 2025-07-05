@@ -132,6 +132,7 @@ class Client{
         // Ticker table
         std::unordered_map<uint16_t, DeviceTimer> client_ticker;
         std::vector<DeviceInterruptor> interruptors;
+        std::vector<DeviceCursor> cursors;
 
 
     public: 
