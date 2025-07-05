@@ -8,11 +8,15 @@
 
 using namespace Device;
 
-void Device::TEXT_FILE::processStates(DynamicMessage& dmsg) {
+void TEXT_FILE::processStates(DynamicMessage& dmsg) {
     TypeDef::TEXT_FILE query;
     dmsg.unpackStates(query);
     auto& operation = query.operation;
     std::fstream file(filename);
+    if(!file.is_open()){
+        std::cout << "File no longer available" << std::endl;
+        throw BlsExceptionClass("TEXT_FILE: " + this->filename, ERROR_T::DEVICE_FAILURE);
+    }
     file.seekg(query.index);
     if (operation.starts_with("READ")) {
         std::shared_lock readLock(m);
@@ -32,7 +36,7 @@ void Device::TEXT_FILE::processStates(DynamicMessage& dmsg) {
     queryResults.write(query);
 }
 
-void Device::TEXT_FILE::init(std::unordered_map<std::string, std::string> &config) {
+void TEXT_FILE::init(std::unordered_map<std::string, std::string> &config) {
     this->filename = "./samples/client/" + config["file"];
     std::fstream file(filename);
     if(!file.is_open()){
@@ -41,12 +45,12 @@ void Device::TEXT_FILE::init(std::unordered_map<std::string, std::string> &confi
     }
 }
 
-void Device::TEXT_FILE::transmitStates(DynamicMessage &dmsg) {
+void TEXT_FILE::transmitStates(DynamicMessage &dmsg) {
     auto result = this->queryResults.read();
     dmsg.packStates(result);
 }
 
-Device::TEXT_FILE::~TEXT_FILE() {
+TEXT_FILE::~TEXT_FILE() {
     queryResults.clearQueue();
 }
 
