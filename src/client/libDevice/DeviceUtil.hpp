@@ -15,10 +15,12 @@
 #include <sys/inotify.h>
 #include <tuple>
 #include <unistd.h> 
+#include <unordered_map>
 #include <utility>
 #include <variant>
 #include <vector>
 #include <thread>
+#include <boost/lockfree/queue.hpp>
 #ifdef SDL_ENABLED
 #include <SDL3/SDL.h>
 #endif
@@ -38,13 +40,17 @@ using boost::asio::ip::udp;
 
 using TimePoint = std::chrono::time_point<std::chrono::high_resolution_clock>;
 
-class DeviceInterruptor;
+enum class DeviceKind {
+    POLLING,
+    INTERRUPT,
+    CURSOR
+};
 
 class DeviceHandle {
     private:
         using device_t = std::variant<
         std::monostate
-        #define DEVTYPE_BEGIN(name) \
+        #define DEVTYPE_BEGIN(name, ...) \
         , Device::name
         #define ATTRIBUTE(...)
         #define DEVTYPE_END
@@ -66,34 +72,46 @@ class DeviceHandle {
         std::condition_variable_any cv;
         bool processing = false;
         bool watchersPaused = false;
+        boost::lockfree::queue<uint16_t> modifiedOblockIds;
 
         DeviceHandle(TYPE dtype, std::unordered_map<std::string, std::string> &config, uint16_t sendInterrupt);
-        void processStates(DynamicMessage input);
+        void processStates(DynamicMessage input, uint16_t oblockId = 0);
         void init(std::unordered_map<std::string, std::string> &config);
         void transmitStates(DynamicMessage &dmsg);
-        bool hasInterrupt();
+        DeviceKind getDeviceKind();
         std::vector<InterruptDescriptor>& getIdescList();
 };
 
+template<typename T>
+class DeviceControlInterface {
+    protected:
+        DeviceHandle& device;
+        std::shared_ptr<Connection> clientConnection;
+        int ctl_code;
+        int device_code;
+    
+    private:
+        DeviceControlInterface() = delete;
+        DeviceControlInterface(DeviceHandle& device, std::shared_ptr<Connection> clientConnection, int ctl_code, int device_code);
+    
+    public:
+        void sendMessage(uint16_t oblockId = 0);
+        
+        friend T;
+};
+
 // Device Timer used for configuring polling rates dynamically; 
-class DeviceTimer{
+class DeviceTimer : public DeviceControlInterface<DeviceTimer> {
     private: 
-        DeviceHandle& device; 
         std::unordered_map<std::string, std::deque<float>> attr_history;  
         std::unordered_map<std::string, float> vol_map; 
-        int ctl_code; 
-        int device_code; 
-        int timer_id; 
+        int timer_id;
         // checks if the ticker is initialized
         bool ticker_init; 
         std::chrono::milliseconds period_time; 
 
-
-        // Connection shard ptr
-        std::shared_ptr<Connection> conex; 
-
-        boost::asio::io_context &ctx; 
-        boost::asio::steady_timer timer; 
+        boost::asio::io_context &ctx;
+        boost::asio::steady_timer timer;
 
         int poll_period = -1; 
         bool is_set = false; 
@@ -101,32 +119,25 @@ class DeviceTimer{
         std::chrono::milliseconds getRemainingTime();
 
     public: 
-        DeviceTimer(boost::asio::io_context &in_ctx, DeviceHandle& device, std::shared_ptr<Connection> cc, int ctl, int dev, int id);
+        DeviceTimer(boost::asio::io_context &in_ctx, DeviceHandle& device, std::shared_ptr<Connection> clientConnection, int ctl_code, int device_code, int timer_id);
         ~DeviceTimer();
 
         void timerCallback();
         void setPeriod(int new_period);
-        void Send(SentMessage &msg);
         float calculateStd(std::deque<float> &data);
         void calcVolMap();
-        void sendData();
+        void sendMessage(uint16_t oblockId = 0);
 }; 
 
 /* 
     INTERRUPT STUFF
 */
-class DeviceInterruptor{
+class DeviceInterruptor : public DeviceControlInterface<DeviceInterruptor> {
     private: 
-        DeviceHandle& device; 
-        std::shared_ptr<Connection> client_connection; 
         std::jthread watcherManagerThread;
         std::vector<std::jthread> globalWatcherThreads; 
         std::vector<std::tuple<int, int, std::string>> watchDescriptors; 
-        int ctl_code; 
-        int device_code;
 
-
-        void sendMessage();
         void disableWatchers();
         void enableWatchers();
         void manageWatchers(std::stop_token stoken);
@@ -138,11 +149,27 @@ class DeviceInterruptor{
         #endif
         
     public: 
-        DeviceInterruptor(DeviceHandle& targDev, std::shared_ptr<Connection> conex, int ctl, int dd);
+        DeviceInterruptor(DeviceHandle& device, std::shared_ptr<Connection> clientConnection, int ctl_code, int device_code);
         DeviceInterruptor(DeviceInterruptor&& other);
         ~DeviceInterruptor();
         // Setup Watcher Thread
         void setupThreads();
         void stopThreads();
+        void sendMessage(uint16_t oblockId = 0);
 
-}; 
+};
+
+class DeviceCursor : public DeviceControlInterface<DeviceCursor> {
+    private:
+        std::jthread queryWatcherThread;
+
+        void queryWatcher(std::stop_token stoken);
+
+    public:
+        DeviceCursor(DeviceHandle& device, std::shared_ptr<Connection> clientConnection, int ctl_code, int device_code);
+        DeviceCursor(DeviceCursor&& other);
+        ~DeviceCursor();
+        void initialize();
+        void sendMessage(uint16_t oblockId);
+
+};

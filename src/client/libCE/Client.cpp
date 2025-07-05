@@ -119,7 +119,7 @@ void Client::listener(std::stop_token stoken){
     
                 auto state_change = std::jthread([dev_index, dmsg = std::move(dmsg), this](){
                 try{
-                    // std::cout << "processStates begin" << std::endl;
+                    // add oblock id here
                     this->deviceList.at(dev_index).processStates(dmsg);
                     //Translation of the callback happens at the network manage
                     this->sendMessage(dev_index, Protocol::CALLBACK, false); 
@@ -177,7 +177,7 @@ void Client::listener(std::stop_token stoken){
             for(Timer &timer : this->start_timers){
                 auto& device = this->deviceList.at(timer.device_num); 
 
-                if(!device.hasInterrupt()){
+                if(device.getDeviceKind() == DeviceKind::POLLING){
                     std::cout<<"build timer with period: "<<timer.period<<std::endl;
                     this->client_ticker.try_emplace(timer.id, this->client_ctx, device, this->client_connection, this->controller_alias, timer.device_num, timer.id);
                     this->client_ticker.at(timer.id).setPeriod(timer.period);
@@ -188,17 +188,25 @@ void Client::listener(std::stop_token stoken){
              // populate the Device interruptors; 
             for(auto&& [dev_id, dev] : this->deviceList){
                 
-                if(dev.hasInterrupt()){
+                if(dev.getDeviceKind() == DeviceKind::INTERRUPT){
                     // Organizes the device interrupts
                     std::cout<<"Interrupt created!"<<std::endl;
                     this->interruptors.emplace_back(dev, this->client_connection, this->controller_alias, dev_id);
                     std::cout<<"Sending Initial State"<<std::endl; 
                     sendMessage(dev_id, Protocol::SEND_STATE_INIT, true); 
-                }   
+                }
+                else if (dev.getDeviceKind() == DeviceKind::CURSOR) {
+                    this->cursors.emplace_back(dev, this->client_connection, this->controller_alias, dev_id);
+                    // cursors dont need to send initial state
+                }
             }
             for (auto&& interruptor : this->interruptors) {
                 interruptor.setupThreads();
             }
+            for (auto&& cursor : this->cursors) {
+                cursor.initialize();
+            }
+            
             #ifdef SDL_ENABLED
             SDL_RunOnMainThread([](void*) -> void {
                 auto window = SDL_GL_GetCurrentWindow();
@@ -292,16 +300,20 @@ bool Client::disconnect(){
         this->client_connection->disconnect(); 
     }   
 
-    std::cout<<"Socket Closed"<<std::endl; 
+    std::cout<<"Socket Closed"<<std::endl;
 
-    // Kills the device interruptor and timer threads
+    // Kills the device interruptor, timer, and cursor threads
     interruptors.clear();
 
     std::cout<<"Interrupt threads killed"<<std::endl; 
 
     client_ticker.clear();
 
-    std::cout<<"Timers listeners killed"<<std::endl; 
+    std::cout<<"Timer listeners killed"<<std::endl; 
+
+    cursors.clear();
+    
+    std::cout << "Cursor threads killed" << std::endl;
 
     // Stop the client and listener threads
     this->client_ctx.stop(); 

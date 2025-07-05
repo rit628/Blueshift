@@ -45,7 +45,6 @@ template <Driveable T>
 class DeviceCore {
     private:
         std::vector<InterruptDescriptor> Idesc_list;
-        bool hasInterrupt = false;
     
     protected:
         T states;
