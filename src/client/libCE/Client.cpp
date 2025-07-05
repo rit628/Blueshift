@@ -197,7 +197,8 @@ void Client::listener(std::stop_token stoken){
                 }
                 else if (dev.getDeviceKind() == DeviceKind::CURSOR) {
                     this->cursors.emplace_back(dev, this->client_connection, this->controller_alias, dev_id);
-                    // cursors dont need to send initial state
+                    // cursors dont need to send initial state but for now we do for trigger list
+                    sendMessage(dev_id, Protocol::SEND_STATE_INIT, true); 
                 }
             }
             for (auto&& interruptor : this->interruptors) {

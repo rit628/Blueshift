@@ -20,13 +20,13 @@ void TEXT_FILE::processStates(DynamicMessage& dmsg) {
     file.seekg(query.index);
     if (operation.starts_with("READ")) {
         std::shared_lock readLock(m);
-        for (int i = 0; i < std::stoi(operation.substr(5)); i++) {
-            file >> query.readResult;
-        }
+        auto numBytes = std::stoi(operation.substr(5));
+        query.readResult.resize(numBytes);
+        file.read(query.readResult.data(), numBytes);
     }
     else if (operation.starts_with("WRITE")) {
         std::unique_lock writeLock(m);
-        auto writeOp= operation.substr(7);
+        auto writeOp= operation.substr(6);
         file.write(writeOp.c_str(), writeOp.size());
         query.writeResult = true;
     }
@@ -43,6 +43,7 @@ void TEXT_FILE::init(std::unordered_map<std::string, std::string> &config) {
         std::cout << "Could not find file" << std::endl;
         throw BlsExceptionClass("TEXT_FILE: " + this->filename, ERROR_T::BAD_DEV_CONFIG);
     }
+    queryResults.write(states);
 }
 
 void TEXT_FILE::transmitStates(DynamicMessage &dmsg) {
@@ -51,7 +52,7 @@ void TEXT_FILE::transmitStates(DynamicMessage &dmsg) {
 }
 
 TEXT_FILE::~TEXT_FILE() {
-    queryResults.clearQueue();
+
 }
 
 #endif
