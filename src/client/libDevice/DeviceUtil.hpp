@@ -72,7 +72,7 @@ class DeviceHandle {
         std::condition_variable_any cv;
         bool processing = false;
         bool watchersPaused = false;
-        boost::lockfree::queue<uint16_t> modifiedOblockIds;
+        boost::lockfree::queue<uint16_t> modifiedOblockIds = boost::lockfree::queue<uint16_t>(0);
 
         DeviceHandle(TYPE dtype, std::unordered_map<std::string, std::string> &config, uint16_t sendInterrupt);
         void processStates(DynamicMessage input, uint16_t oblockId = 0);
