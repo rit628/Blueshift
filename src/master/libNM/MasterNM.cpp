@@ -46,7 +46,7 @@ void MasterNM::writeConfig(std::vector<OBlockDesc> &desc_list){
     for(auto &oblock : desc_list){
         this->oblock_list.push_back(oblock.name); 
         this->oblock_alias_map[oblock.name] = i;  
-
+        i++; 
         for(auto &dev : oblock.binded_devices){
             dev_list.insert(dev.device_name); 
             c_list.insert(dev.controller); 
@@ -81,9 +81,7 @@ void MasterNM::writeConfig(std::vector<OBlockDesc> &desc_list){
             this->ctl_configs[dev.controller].device_alias.push_back(this->device_alias_map[dev.device_name]); 
             this->ctl_configs[dev.controller].type.push_back(dev.type); 
             this->ctl_configs[dev.controller].srcs.push_back(dev.port_maps); 
-            std::cout<<"MASTER - Is Trigger: "<<dev.isTrigger<<std::endl; 
-            this->ctl_configs[dev.controller].triggers.push_back(dev.isTrigger); 
-            
+
             dev_list.insert(dev.device_name); 
             c_list.insert(dev.controller);
         }
@@ -229,13 +227,15 @@ void MasterNM::masterRead(){
 
         sm_main.header.device_code = this->device_alias_map[new_state.info.device]; 
         sm_main.header.ctl_code = this->controller_alias_map[new_state.info.controller]; 
+        sm_main.header.oblock_id = this->oblock_alias_map[new_state.info.oblock]; 
 
-        bool scheduling = true; 
+        bool scheduling = true;
+
 
         // Add other communication MASERT_PROTOCOLS
         switch(new_state.protocol){
             case PROTOCOLS::OWNER_CANDIDATE_REQUEST : {
-                std::cout<<"Pushing owner candidate request"<<std::endl; 
+                std::cout<<"Pushing owner candidate request for: "<<new_state.info.oblock<<" with id: "<<sm_main.header.oblock_id<<std::endl; 
                 sm_main.header.prot = Protocol::OWNER_CANDIDATE_REQUEST ;
                 break; 
             }
@@ -455,7 +455,6 @@ bool MasterNM::confirmClient(std::shared_ptr<Connection> &con_obj){
     dmsg.createField("__DEV_ALIAS__" ,this->ctl_configs[c_name].device_alias); 
     dmsg.createField("__DEV_TYPES__" ,this->ctl_configs[c_name].type);
     dmsg.createField("__DEV_PORTS__" ,this->ctl_configs[c_name].srcs);  
-    dmsg.createField("__DEV_INIT__", this->ctl_configs[c_name].triggers);
 
     dev_sm.body = dmsg.Serialize(); 
     dev_sm.header.body_size = dev_sm.body.size(); 

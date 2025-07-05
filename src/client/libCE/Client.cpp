@@ -70,10 +70,9 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
         this->in_queue.write(osm); 
     }
     else{
+        std::cout<<"State for device: "<<deviceCode<<std::endl; 
         this->client_connection->send(sm); 
     }
-
-    this->client_connection->send(sm); 
 }
 
 void Client::listener(std::stop_token stoken){
@@ -100,13 +99,11 @@ void Client::listener(std::stop_token stoken){
             std::vector<uint16_t> device_alias; 
             std::vector<TYPE> device_types; 
             std::vector<std::unordered_map<std::string, std::string>> srcs;  
-            std::vector<uint16_t> triggerList;
             uint8_t controller_alias = inMsg.header.ctl_code; 
 
             dmsg.unpack("__DEV_ALIAS__", device_alias);
             dmsg.unpack("__DEV_TYPES__", device_types); 
             dmsg.unpack("__DEV_PORTS__", srcs); 
-            dmsg.unpack("__DEV_INIT__", triggerList); 
 
             this->controller_alias = controller_alias; 
 
@@ -114,16 +111,15 @@ void Client::listener(std::stop_token stoken){
             int size = device_alias.size(); 
             bool b = device_types.size() == size; 
             bool c = srcs.size() == size; 
-            bool d = triggerList.size() == size; 
             
 
-            if(!(b && c  && d)){
+            if(!(b && c)){
                 throw std::invalid_argument("Config vectors of different sizes what!"); 
             }
 
             for(int i = 0; i < size; i++){
                 try{      
-                    deviceList.try_emplace(device_alias[i], device_types[i], srcs[i], triggerList[i]);
+                    deviceList.try_emplace(device_alias[i], device_types[i], srcs[i]);
                 }
                 catch(BlsExceptionClass& bec){
                     this->genBlsException->SendGenericException(bec.what(), bec.type()); 

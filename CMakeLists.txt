@@ -272,7 +272,7 @@ if(NOT CMAKE_CROSSCOMPILING)
     # MASTER TESTS
     file(GLOB_RECURSE LIBTSM_TESTS ${MASTER_TEST_DIR}/libTSM/*.cpp)
     add_executable(test_libTSM ${LIBTSM_TESTS})
-    target_include_directories(test_libTSM PUBLIC ${TEST_DEPS} ${MASTER_SRC_DIR}/libTSM)
+    target_include_directories(test_libTSM PUBLIC ${TEST_DEPS} ${COMMON_SRC_DIR}/libTSM)
     target_link_libraries(test_libTSM TSM GTest::gtest_main)
 
     file(GLOB_RECURSE LIBEM_TESTS ${MASTER_TEST_DIR}/libEM/*.cpp)

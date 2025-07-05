@@ -90,8 +90,8 @@ struct ControllerQueue{
 struct ManagedDevice {
     DeviceHandle device;
     ControllerQueue pendingRequests;
-    ManagedDevice(TYPE dtype, std::unordered_map<std::string, std::string> &config, uint16_t sendInterrupt)
-                        : device(dtype, config, sendInterrupt) {}
+    ManagedDevice(TYPE dtype, std::unordered_map<std::string, std::string> &config)
+                        : device(dtype, config) {}
 }; 
 
 class Client{

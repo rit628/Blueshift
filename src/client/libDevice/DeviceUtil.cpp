@@ -10,13 +10,12 @@
 template<class... Ts>
 struct overloads : Ts... { using Ts::operator()...; };
 
-DeviceHandle::DeviceHandle(TYPE dtype, std::unordered_map<std::string, std::string> &config, uint16_t sendInterrupt) {
+DeviceHandle::DeviceHandle(TYPE dtype, std::unordered_map<std::string, std::string> &config) {
     switch(dtype){
         #define DEVTYPE_BEGIN(name) \
         case TYPE::name: { \
             this->device.emplace<Device::name>(); \
             this->init(config); \
-            this->isTrigger = sendInterrupt; \
             break; \
         }
         #define ATTRIBUTE(...)

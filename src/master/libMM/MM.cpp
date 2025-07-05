@@ -27,7 +27,6 @@ MasterMailbox::MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMes
             string deviceName = devDesc.device_name;
             auto TSQPtr = make_shared<TSQ<HeapMasterMessage>>();
             auto& db =oblockReadMap[oblock.name]->waitingQs[deviceName];
-            db.isTrigger = devDesc.isTrigger;
             db.stateQueues = TSQPtr; 
             db.devDropRead = devDesc.dropRead; 
             db.devDropWrite = devDesc.dropWrite; 
@@ -140,7 +139,6 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
                     DMM.info.oblock = oid; 
 
                     HeapMasterMessage newHMM(DMM); 
-                    std::cout<<"inserting states"<<std::endl; 
                     targReadBox->insertState(newHMM, this->sendEM); 
                     targReadBox->handleRequest(sendEM); 
                 } 
@@ -160,10 +158,10 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
         case PROTOCOLS::OWNER_GRANT: {
 
             if(DMM.protocol == PROTOCOLS::OWNER_CONFIRM_OK){
-                std::cout<<"Mailbox: Received Owner confirmation for device "<<DMM.info.device<<std::endl; 
+                std::cout<<"Mailbox: Received Owner confirmation "<<DMM.info.oblock<<" for device "<<DMM.info.device<<std::endl; 
             }
             else{
-                std::cout<<"Mailbox: Grant received from Client for device: "<<DMM.info.device<<std::endl; 
+                std::cout<<"Mailbox: Grant received for oblock "<<DMM.info.oblock<<" for device: "<<DMM.info.device<<std::endl; 
             }
             
             EMStateMessage ems; 
@@ -247,28 +245,27 @@ void MasterMailbox::assignEM(HeapMasterMessage DMM)
             break;
         }
         case PROTOCOLS::OWNER_CANDIDATE_REQUEST:{
-            std::cout<<"Mailbox Ownership request for the device: "<<DMM.info.device<<std::endl; 
             auto oblockName = DMM.info.oblock; 
+            std::cout<<"Mailbox Ownership request for the device: "<<DMM.info.device<<" from oblock "<<oblockName<<std::endl; 
             this->oblockReadMap[oblockName]->forwardPackets = true; 
             this->sendNM.write(MasterMailbox::buildDMM(DMM)); 
             break; 
         }
         case PROTOCOLS::OWNER_CONFIRM: {
             // If confirms this means the oblock is not waiting for state and the readerbox can close
-            std::cout<<"Mailbox Owner Confirmation for the device: "<<DMM.info.device<<std::endl; 
             auto oblockName = DMM.info.oblock; 
+            std::cout<<"Mailbox Owner Confirmation for the device: "<<DMM.info.device<<" from oblock "<<oblockName<<std::endl; 
             this->oblockReadMap[oblockName]->forwardPackets = false; 
             this->sendNM.write(MasterMailbox::buildDMM(DMM)); 
             break; 
         }
         case PROTOCOLS::OWNER_RELEASE:{
-            std::cout<<"Mailbox Release request for the device: "<<DMM.info.device<<std::endl;
             auto oblockName = DMM.info.oblock; 
+            std::cout<<"Mailbox Owner Release for the device: "<<DMM.info.device<<" from oblock "<<oblockName<<std::endl; 
             this->oblockReadMap[oblockName]->forwardPackets = false; 
             this->sendNM.write(MasterMailbox::buildDMM(DMM)); 
             break; 
         }
-
         default:
         {
             break;
@@ -281,6 +278,7 @@ void MasterMailbox::runningNM()
     while(true)
     {
         DynamicMasterMessage currentDMM = this->readNM.read();  
+        std::cout<<"Recieved from NM: "<<currentDMM.info.device<<std::endl; 
         assignNM(currentDMM);
     }
 }

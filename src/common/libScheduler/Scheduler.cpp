@@ -44,6 +44,7 @@ void DeviceScheduler::request(OblockID& requestor, int priority){
     auto& jamar = this->oblockWaitMap[requestor]; 
     auto& ownDevs = jamar.mustOwn;
     jamar.executeFlag = false; 
+    std::cout<<"Request made from oblock: "<<requestor<<std::endl; 
 
     if(ownDevs.empty()){
         std::cout<<"No devices left to own"<<std::endl; 
@@ -87,10 +88,13 @@ void DeviceScheduler::receive(HeapMasterMessage &recvMsg){
         case PROTOCOLS::OWNER_GRANT :  {
             auto& targOblock = recvMsg.info.oblock; 
             auto& targDevice = recvMsg.info.device; 
+            std::cout<<"SCHEDULER Received write for device: "<<recvMsg.info.device<<std::endl; 
             bool result = this->oblockWaitMap[targOblock].addDevice(targDevice); 
+            if(result){std::cout<<"Run for "<<targOblock<<std::endl;} 
             if(result){
               auto& devList = this->oblockWaitMap[targOblock].mustOwn;
               for(auto dev : devList){
+                std::cout<<"Oblock: "<<recvMsg.info.oblock<<" calling for: "<<dev<<std::endl; 
                 HeapMasterMessage confirmMsg = makeMessage(targOblock, dev, PROTOCOLS::OWNER_CONFIRM); 
                 this->handleMessage(confirmMsg); 
               } 

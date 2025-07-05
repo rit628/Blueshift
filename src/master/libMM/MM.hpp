@@ -135,7 +135,6 @@ class TriggerManager{
 struct DeviceBox{
     std::shared_ptr<TSQ<HeapMasterMessage>> stateQueues;
     AtomicDMMContainer lastMessage; 
-    bool isTrigger = false;  
     bool devDropRead = false; 
     bool devDropWrite = false; 
     std::string deviceName; 
@@ -166,6 +165,7 @@ struct ReaderBox
         // Inserts the state into the object: 
         // the bool initEvent determines if the event is an initial event or not
         void insertState(HeapMasterMessage newDMM, TSQ<EMStateMessage>& sendEM){
+            std::cout<<"Inserting states: "<<newDMM.info.device<<std::endl; 
             if(!this->waitingQs.contains(newDMM.info.device)){
                 return; 
             }
@@ -185,7 +185,6 @@ struct ReaderBox
             }
             targDev.stateQueues->write(newDMM); 
             targDev.lastMessage.replace(newDMM); 
-
 
             // Begin Trigger Analysis: 
             int triggerId = -1; 

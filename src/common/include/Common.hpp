@@ -65,7 +65,7 @@ struct DeviceDescriptor{
         If the device is registered as a trigger then the exeuction of 
         the oblock is binded to the arrival of the devices state. 
     */ 
-    bool isTrigger = true; 
+    //bool isTrigger = true; 
 
     /* Driver Configuration Attributes */
     bool isInterrupt = false;
@@ -138,7 +138,7 @@ struct OBlockDesc{
     If custom descriptor is false then all incoming device states are 
     triggers
     */ 
-    bool customTriggers = false; 
+    //bool customTriggers = false; 
 
     template<typename Archive>
     void serialize(Archive& ar, const unsigned int version) {

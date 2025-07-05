@@ -64,7 +64,7 @@ class DeviceHandle {
         bool processing = false;
         bool watchersPaused = false;
 
-        DeviceHandle(TYPE dtype, std::unordered_map<std::string, std::string> &config, uint16_t sendInterrupt);
+        DeviceHandle(TYPE dtype, std::unordered_map<std::string, std::string> &config);
         void processStates(DynamicMessage input);
         void init(std::unordered_map<std::string, std::string> &config);
         void transmitStates(DynamicMessage &dmsg);
