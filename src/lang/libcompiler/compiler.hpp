@@ -18,20 +18,19 @@ namespace BlsLang {
 
     class Compiler {
         public:
-            Compiler(std::ostream& outputStream = std::cout)
-                   : outputStream(outputStream)
-                   , generator(analyzer.getOblockDescriptors()
-                             , analyzer.getLiteralPool()) {}
+            Compiler()
+            : generator(analyzer.getOblockDescriptors()
+                       , analyzer.getLiteralPool()) {}
             
-            void compileFile(const std::string& source);
-            void compileSource(const std::string& source);
+            void compileFile(const std::string& source, std::ostream& outputStream = std::cout);
+            void compileSource(const std::string& source, std::ostream& outputStream = std::cout);
             auto& getOblocks() { return oblocks; }
             auto& getOblockDescriptors() { return oblockDescriptors; }
+            auto& getOblockDescriptorMap() { return analyzer.getOblockDescriptors(); }
             auto getOblockContexts(){return depGraph.getOblockMap();}
             auto getGlobalContext() {return depGraph.getGlobalContext();}
             
         private:
-            std::ostream& outputStream;
             std::vector<Token> tokens;
             std::unique_ptr<AstNode> ast;
             Lexer lexer;

@@ -463,6 +463,23 @@ inline void BlsType::serialize(Archive& ar, const unsigned int version) {
     }
     break;
 
+    #define DEVTYPE_BEGIN(name) \
+    case TYPE::name: { \
+      if (std::holds_alternative<std::monostate>(*this)) { \
+        *this = std::make_shared<MapDescriptor>(TYPE::name, TYPE::string_t, TYPE::ANY); \
+      } \
+      auto heapDesc = std::get<std::shared_ptr<HeapDescriptor>>(*this); \
+      auto resolvedDesc = std::dynamic_pointer_cast<MapDescriptor>(heapDesc); \
+      ar & *resolvedDesc.get(); \
+    } \
+    break;
+    #define ATTRIBUTE(...)
+    #define DEVTYPE_END
+    #include "DEVTYPES.LIST"
+    #undef DEVTYPE_BEGIN
+    #undef ATTRIBUTE
+    #undef DEVTYPE_END
+
     default:
       throw std::runtime_error("Non serializable type");
     break;
@@ -477,7 +494,6 @@ void HeapDescriptor::serialize(Archive& ar, const unsigned int version) {
 
 template<typename Archive>
 void MapDescriptor::serialize(Archive & ar, const unsigned int version) {
-  // serialize base class information
   ar & boost::serialization::base_object<HeapDescriptor>(*this);
   ar & *map.get();
 }

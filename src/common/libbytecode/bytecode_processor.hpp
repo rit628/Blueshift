@@ -7,6 +7,7 @@
 #include <functional>
 #include <memory>
 #include <vector>
+#include <boost/archive/binary_iarchive.hpp>
 
 class BytecodeProcessor {
     public:
@@ -23,9 +24,9 @@ class BytecodeProcessor {
         std::vector<OBlockDesc> getOblockDescriptors() { return oblockDescs; }
 
     private:
-        void readHeader(std::istream& bytecode);
-        void loadLiterals(std::istream& bytecode);
-        void loadInstructions(std::istream& bytecode);
+        void readHeader(std::istream& bytecode, boost::archive::binary_iarchive& ia);
+        void loadLiterals(std::istream& bytecode, boost::archive::binary_iarchive& ia);
+        void loadInstructions(std::istream& bytecode, boost::archive::binary_iarchive& ia);
 
     protected:
         #define OPCODE_BEGIN(code) \

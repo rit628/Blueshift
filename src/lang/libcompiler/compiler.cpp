@@ -9,7 +9,7 @@
 
 using namespace BlsLang;
 
-void Compiler::compileFile(const std::string& source) {
+void Compiler::compileFile(const std::string& source, std::ostream& outputStream) {
     std::ifstream file;
     file.open(source);
     if (!file.is_open()) {
@@ -17,15 +17,15 @@ void Compiler::compileFile(const std::string& source) {
     }
     std::stringstream ss;
     ss << file.rdbuf();
-    compileSource(ss.str());
+    compileSource(ss.str(), outputStream);
 }
 
-void Compiler::compileSource(const std::string& source) {
+void Compiler::compileSource(const std::string& source, std::ostream& outputStream) {
     tokens = lexer.lex(source);
     ast = parser.parse(tokens);
     ast->accept(analyzer);
-    //ast->accept(generator);
-    //generator.writeBytecode(outputStream);
+    ast->accept(generator);
+    generator.writeBytecode(outputStream);
     ast->accept(this->depGraph);
     auto tempOblock = this->depGraph.getOblockMap();  
 

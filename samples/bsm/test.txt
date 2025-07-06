@@ -4,21 +4,23 @@
         "binded_devices" : [
             {
                 "device_name" : "T1",
-                "devtype" : 0,
+                "type" : 2,
                 "controller" : "CTL",
-                "port_maps" : {
-                    "file" : "omar.txt"
-                },
-                "isInterrupt" : false,
-                "isVtype" : false,
+                "port_maps" : {},
+                "initialValue" : 7,
+                "isVtype" : true,
+                "dropRead" : true,
+                "dropWrite" : true,
+                "polling_period" : 1000,
                 "isConst" : true,
-                "polling_period" : 1000
+                "isInterrupt" : false,
+                "isCursor" : false
             }
         ],
         "bytecode_offset" : 2,
-        "dropRead" : true,
-        "dropWrite" : true,
-        "synchronize_states" : true
+        "inDevices" : [],
+        "outDevices" : [],
+        "triggers" : []
     }
 ]
 LITERALS_BEGIN

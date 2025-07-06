@@ -24,6 +24,9 @@ template<class... Ts>
 struct overloads : Ts... { using Ts::operator()...; };
 
 void Generator::writeBytecode(std::ostream& outputStream) {
+    if (outputStream.bad()) {
+        throw std::runtime_error("Bad output stream provided.");
+    }
     boost::archive::binary_oarchive oa(outputStream, boost::archive::archive_flags::no_header);
     std::vector<BlsType> orderedLiterals(boost::adaptors::keys(literalPool).begin(), boost::adaptors::keys(literalPool).end());
     std::sort(orderedLiterals.begin(), orderedLiterals.end(), [this](const auto& a, const auto& b) {
