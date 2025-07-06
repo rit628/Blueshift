@@ -9,13 +9,14 @@
 #include <stdexcept>
 #include <vector>
 #include <string>
+#include <filesystem>
 
 namespace BlsLang {
 
     class E2ETest : public testing::Test {
         public:
             void TEST_E2E_SOURCE(const std::string& fileName) {
-                compiler.compileFile(fileName);
+                compiler.compileFile(std::filesystem::path(E2E_LANG_SAMPLE_DIR) / fileName);
             }
 
             void TEST_E2E_OBLOCK(const std::string& oblockName, std::vector<BlsType>&& input, const std::vector<BlsType>&& expectedOutput, const std::string& expectedStdout) {
