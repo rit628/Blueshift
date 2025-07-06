@@ -26,7 +26,7 @@ enum class PROTOCOLS
     OWNER_CANDIDATE_REQUEST_CONCLUDE, 
     OWNER_CONFIRM, 
     OWNER_RELEASE, 
-    
+
   
     // NM -> MM
     CALLBACKRECIEVED,
@@ -94,7 +94,7 @@ struct DeviceDescriptor{
 struct TriggerData {
     std::vector<std::string> rule;
     std::optional<std::string> id = std::nullopt;
-    uint8_t priority = 1;
+    uint16_t priority = 1;
 
     template<typename Archive>
     void serialize(Archive& ar, const unsigned int version) {

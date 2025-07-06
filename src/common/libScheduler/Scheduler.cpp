@@ -15,7 +15,7 @@ HeapMasterMessage DeviceScheduler::makeMessage(OblockID& oName, DeviceID& devNam
     }
     hmm.info.isVtype = false; // Idk this doesn't matter
     hmm.protocol = pmsg; 
-    hmm.info.priority = 1; 
+    hmm.info.priority = priority; 
 
     return hmm; 
 }
@@ -43,6 +43,7 @@ DeviceScheduler::DeviceScheduler(std::vector<OBlockDesc> &oblockDescList, std::f
 */
 // Sends a request message for each device stae
 void DeviceScheduler::request(OblockID& requestor, int priority){
+    std::cout<<"priority: "<<std::endl;
     // get the out devices from the oblock: 
     auto& jamar = this->oblockWaitMap[requestor]; 
     auto& ownDevs = jamar.mustOwn;
@@ -56,29 +57,10 @@ void DeviceScheduler::request(OblockID& requestor, int priority){
 
     for(auto dev : ownDevs){
         this->handleMessage(this->makeMessage(requestor, dev, PROTOCOLS::OWNER_CANDIDATE_REQUEST, priority)); 
-        /*
-        auto& scheData = this->scheduledProcessMap[dev]; 
-        if(scheData.loadedRequest.ps == PROCSTATE::EXECUTED){
-            loadRequest.ps = PROCSTATE::LOADED; 
-            scheData.loadedRequest = loadRequest; 
-            this->handleMessage(this->makeMessage(loadRequest.requestorOblock, dev, PROTOCOLS::OWNER_CANDIDATE_REQUEST, priority)); 
-        }
-        else if(priority > scheData.loadedRequest.priority){
-            // Candidate replacement
-            scheData.QueuePush(scheData.loadedRequest);
-            loadRequest.ps = PROCSTATE::LOADED; 
-            scheData.loadedRequest = loadRequest;  
-            this->handleMessage(this->makeMessage(loadRequest.requestorOblock, dev, PROTOCOLS::OWNER_CANDIDATE_REQUEST, priority)); 
-        }
-        else{
-            loadRequest.ps = PROCSTATE::WAITING; 
-            scheData.QueuePush(loadRequest); 
-        }
-            */ 
     }
 
     string k = ""; 
-    //this->handleMessage(this->makeMessage(requestor, k, PROTOCOLS::OWNER_CANDIDATE_REQUEST_CONCLUDE)); 
+    this->handleMessage(this->makeMessage(requestor, k, PROTOCOLS::OWNER_CANDIDATE_REQUEST_CONCLUDE)); 
 
     // Wait until the final message arrives: 
     std::unique_lock<std::mutex> lock(jamar.mtx); 

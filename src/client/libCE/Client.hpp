@@ -45,7 +45,7 @@ struct ClientSideReq{
 // ClientSideReq comparator
 struct ClientSideReqComp{
     bool operator()(const ClientSideReq& a, const ClientSideReq &b) const{
-        return a.priority > b.priority; 
+        return a.priority < b.priority; 
     }
 }; 
 

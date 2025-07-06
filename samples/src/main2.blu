@@ -28,7 +28,7 @@ oblock task(LINE_WRITER lw, READ_FILE rfp, FILE_LOG log)
 
 
 oblock task2(LINE_WRITER lw, FILE_LOG log2)
-: triggerOn(lw)
+: triggerOn({"rule" : lw, "priority" : 8})
 {
     if(lw.msg == "bruh "){
         log2.add_msg = "This is large"; 
@@ -43,7 +43,7 @@ oblock task2(LINE_WRITER lw, FILE_LOG log2)
 
 
 oblock task3(LINE_WRITER lw, FILE_LOG fl)
-: triggerOn({"rule" : lw, "priority" : 1})
+: triggerOn({"rule" : lw, "priority" : 5})
 {
     fl.add_msg = "Im on crack " + lw.msg; 
 }

@@ -239,26 +239,21 @@ void Client::listener(std::stop_token stoken){
             this->disconnect(); 
         }
         else if(ptype == Protocol::OWNER_CANDIDATE_REQUEST){
-            std::cout<<"Received REquest"<<std::endl; 
             dev_int targDevice = inMsg.header.device_code;
 
-            // DELETE THIS LATER
-            if(!this->deviceList.at(targDevice).pendingRequests.currOwned){
-                    sendMessage(inMsg.header.device_code, Protocol::OWNER_GRANT, false, inMsg.header.oblock_id); 
-                    this->deviceList.at(targDevice).pendingRequests.currOwned = true; 
-            }
-           
             ClientSideReq csReq; 
             csReq.ctl = inMsg.header.ctl_code; 
             csReq.targetDevice = targDevice; 
             csReq.requestorOblock = inMsg.header.oblock_id;  
             csReq.priority = inMsg.header.oblock_priority; 
-            std::cout<<"Adding request for obloc: "<<csReq.requestorOblock<<std::endl; 
+            std::cout<<"Adding request for obloc: "<<csReq.requestorOblock<<" with priority "<<csReq.priority<<std::endl; 
             this->deviceList.at(csReq.targetDevice).pendingRequests.getQueue().push(csReq);
         }
         else if(ptype == Protocol::OWNER_CANDIDATE_REQUEST_CONCLUDE){
+            std::cout<<"CLIENT SIDE RECEIVED OWNER CANDIDATE REQUEST CONCLUDE"<<std::endl; 
             // Protocol message concludes that all requests have been made in response to a trigger event ()
             // TODO: add support for decentralization
+            
             dev_int targDevice = inMsg.header.device_code;
             if(!this->deviceList.at(targDevice).pendingRequests.currOwned){
                     // Add the code to send the device grant here: 
@@ -342,7 +337,6 @@ bool Client::attemptConnection(boost::asio::ip::address master_address){
     try{
         tcp::endpoint master_endpoint(master_address, MASTER_PORT); 
         
-
         this->client_connection->connectToMaster(master_endpoint, this->client_name);
 
         this->listenerThread = std::jthread(std::bind(&Client::listener, std::ref(*this), std::placeholders::_1));
@@ -359,7 +353,7 @@ bool Client::attemptConnection(boost::asio::ip::address master_address){
 
         std::cout<<this->client_name + " Connection successful!"<<std::endl; 
 
-        return true; 
+        return true;  
     }
     catch(std::exception &e){ 
         std::cerr<<"CLIENT attemptConnection ERROR: "<<e.what()<<std::endl; 

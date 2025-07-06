@@ -249,6 +249,11 @@ void MasterNM::masterRead(){
                 sm_main.header.prot = Protocol::OWNER_RELEASE; 
                 break; 
             }
+            case PROTOCOLS::OWNER_CANDIDATE_REQUEST_CONCLUDE : {
+                std::cout<<"Pushing owner candidate request conclusion for device "<<new_state.info.device<<std::endl; 
+                sm_main.header.prot = Protocol::OWNER_CANDIDATE_REQUEST_CONCLUDE; 
+                break; 
+            }
             default : {
                 sm_main.header.prot = Protocol::STATE_CHANGE;
                 scheduling = false; 
@@ -266,7 +271,6 @@ void MasterNM::masterRead(){
             continue; 
         }
         
-
         // Send the Ticker Update Message (idk maybe)
 
         std::vector<Timer> timer_list; 
