@@ -28,6 +28,6 @@ size_t TokenStream::getLine() const {
 
 size_t TokenStream::getColumn() const {
     if (ts.empty()) return 0;
-    auto idx =std::min(index, ts.size() - 1);
+    auto idx = std::min(index, ts.size() - 1);
     return ts.at(idx).getColNum();
 }
