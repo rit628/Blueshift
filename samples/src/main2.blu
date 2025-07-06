@@ -1,5 +1,5 @@
 oblock task(LINE_WRITER lw, READ_FILE rfp, FILE_LOG log)
-: triggerOn(lw)
+: triggerOn({"rule" : lw, "priority" : 20})
 {
     string textMessage = lw.msg; 
     list<string> availNames = ["ROHAN ", "COLIN ", "TOMAS ", "THOMAS "]; 
@@ -43,7 +43,7 @@ oblock task2(LINE_WRITER lw, FILE_LOG log2)
 
 
 oblock task3(LINE_WRITER lw, FILE_LOG fl)
-: triggerOn(lw)
+: triggerOn({"rule" : lw, "priority" : 1})
 {
     fl.add_msg = "Im on crack " + lw.msg; 
 }
@@ -55,6 +55,6 @@ setup(){
     FILE_LOG log2 = "CTL1::file-logfile2.txt"; 
 
     task(lw, rfp, log); 
-    //task2(lw, log2); 
+    task2(lw, log2); 
     task3(lw, log); 
 }

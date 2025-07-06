@@ -240,12 +240,12 @@ void MasterNM::masterRead(){
                 break; 
             }
             case PROTOCOLS::OWNER_CONFIRM : {
-                std::cout<<"Pushing Confirm"<<std::endl; 
+                std::cout<<"Pushing CONFIRM request for: "<<new_state.info.oblock<<" with id: "<<sm_main.header.oblock_id<<std::endl; 
                 sm_main.header.prot = Protocol::OWNER_CONFIRM; 
                 break; 
             }
             case PROTOCOLS::OWNER_RELEASE : {  
-                std::cout<<"Pushing Release"<<std::endl; 
+                std::cout<<"Pushing Release request for: "<<new_state.info.oblock<<" with id: "<<sm_main.header.oblock_id<<std::endl; 
                 sm_main.header.prot = Protocol::OWNER_RELEASE; 
                 break; 
             }

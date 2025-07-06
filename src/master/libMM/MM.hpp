@@ -7,6 +7,7 @@
 #include "libtype/bls_types.hpp"
 #include <algorithm>
 #include <bitset>
+#include <condition_variable>
 #include <mutex>
 #include <unordered_map>
 #include <unordered_set>
@@ -149,7 +150,8 @@ struct ReaderBox
             Consists of the ordered list of all triggered events 
             to be queued up and sent to the execution manager
         */ 
-        std::vector<std::vector<HeapMasterMessage>> triggerCache; 
+        std::vector<EMStateMessage> triggerCache; 
+        std::unordered_set<OblockID>& triggerSet; 
         TriggerManager triggerMan; 
 
         bool callbackRecived;
@@ -160,6 +162,7 @@ struct ReaderBox
         bool pending_requests; 
         // used when forwarding packets to the EM when while the process is waiting for write permissions
         bool forwardPackets = false; 
+        OBlockDesc oblockDesc; 
 
 
         // Inserts the state into the object: 
@@ -189,22 +192,40 @@ struct ReaderBox
             // Begin Trigger Analysis: 
             int triggerId = -1; 
             bool writeTrig = this->triggerMan.processDevice(newDMM.info.device, triggerId); 
+    
             if(writeTrig){
+                this->triggerSet.insert(this->OblockName); 
+                auto& trigInfo = this->oblockDesc.triggers[triggerId];
                 std::vector<HeapMasterMessage> trigEvent; 
+                
                 for(auto& [name, devBox] : this->waitingQs){
                     if(devBox.stateQueues->isEmpty()){
                         auto newHmm = devBox.stateQueues->read(); 
                         newHmm.info.oblock = this->OblockName; 
+                        newHmm.info.priority = trigInfo.priority; 
                         trigEvent.push_back(newHmm); 
                     }
                     else{
                         auto newHmm = devBox.lastMessage.get(); 
                         newHmm.info.oblock = this->OblockName; 
+                        newHmm.info.priority = trigInfo.priority; 
                         trigEvent.push_back(newHmm);
                     }
                 }
 
-                this->triggerCache.push_back(trigEvent); 
+                EMStateMessage ems; 
+                ems.dmm_list = trigEvent; 
+                if(trigInfo.id.has_value()){
+                    ems.TriggerName = trigInfo.id.value();  
+                }
+                else{
+                     ems.TriggerName = ""; 
+                }
+                ems.priority = trigInfo.priority; 
+                ems.oblockName = this->OblockName; 
+                ems.protocol = PROTOCOLS::SENDSTATES; 
+            
+                this->triggerCache.push_back(ems); 
             }
         }
 
@@ -215,19 +236,14 @@ struct ReaderBox
                 for(int i = 0; i < maxQueueSz; i++){
                     auto dmmVect = this->triggerCache.back(); 
                     // Update when trigger naming comes 
+                    auto ems = this->triggerCache.back(); 
                     this->triggerCache.pop_back(); 
-                    EMStateMessage ems; 
-                    ems.TriggerName = "NONE"; 
-                    ems.dmm_list = dmmVect; 
-                    ems.protocol = PROTOCOLS::SENDSTATES; 
-                    ems.priority = 1; 
-                    ems.oblockName = this->OblockName; 
                     sendEM.write(ems); 
                 }
             }   
         }   
 
-        ReaderBox(bool dropRead, bool dropWrite, string name,  OBlockDesc& odesc);
+        ReaderBox(bool dropRead, bool dropWrite, string name,  OBlockDesc& odesc, std::unordered_set<OblockID> &trigSet);
     
 };
 
@@ -253,11 +269,20 @@ class MasterMailbox
     MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMessage> &readNM, TSQ<HeapMasterMessage> &readEM,
          TSQ<DynamicMasterMessage> &sendNM, TSQ<EMStateMessage> &sendEM);
     vector<OBlockDesc> OBlockList;
+    unordered_map<DeviceID, ControllerID> parentCont; 
     static DynamicMasterMessage buildDMM(HeapMasterMessage &hmm); 
+    
+    // List of oblocks that were triggered (used to ensure intended-order execution for trigger groups)
+    std::unordered_set<OblockID> triggerSet; 
+    std::unordered_set<DeviceID> targetedDevices; 
+
+    // number of found requests 
+    int requestCount = 0;
 
     unordered_map<OblockID, unique_ptr<ReaderBox>> oblockReadMap;
     unordered_map<DeviceID, unique_ptr<WriterBox>> deviceWriteMap;
     unordered_map<DeviceID, std::vector<OblockID>> interruptName_map;
+
 
     TSQ<std::string> readRequest; 
 

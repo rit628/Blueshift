@@ -3,6 +3,7 @@
 #include "include/Common.hpp"
 #include "libDevice/DeviceUtil.hpp"
 #include <memory>
+#include <queue>
 #include <thread>
 #include <shared_mutex>
 #include <unordered_map>
@@ -51,40 +52,18 @@ struct ClientSideReqComp{
 
 // Receives the queue for each controller
 struct ControllerQueue{
-    private: 
-        std::unordered_map<int, ClientSideReq> latestState; 
-        std::set<ClientSideReq, ClientSideReqComp> newSet; 
-
+    private:  
+        std::priority_queue<ClientSideReq, std::vector<ClientSideReq>, ClientSideReqComp> schepq; 
 
     public: 
 
         bool currOwned = false; 
         // The device owner is identified by the ctl_id, oblock_int
         std::pair<cont_int, oblock_int> owner;     
-
-        void addRequest(ClientSideReq &newReq){
-            if(latestState.find(newReq.ctl) != latestState.end()){
-                auto& ls= latestState[newReq.ctl];
-                // Replace if higher priority
-                if(ls.priority <= newReq.priority){
-                    auto it = newSet.find(ls); 
-                    if(it != newSet.end()){
-                        newSet.erase(it); 
-                    }
-                    newSet.insert(newReq); 
-                    latestState[newReq.ctl] = newReq; 
-                }
-            }
-            else{
-                newSet.insert(newReq); 
-                latestState[newReq.ctl] = newReq; 
-            }
+        std::priority_queue<ClientSideReq, std::vector<ClientSideReq>, ClientSideReqComp>& getQueue(){
+            return this->schepq; 
         }
-
-        std::set<ClientSideReq, ClientSideReqComp> &getSet(){
-            return newSet; 
-        }
-}; 
+};  
 
 
 struct ManagedDevice {

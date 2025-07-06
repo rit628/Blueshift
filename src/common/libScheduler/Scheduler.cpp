@@ -6,13 +6,16 @@
     HELPER FUNCTIONS\
 */
 
-HeapMasterMessage DeviceScheduler::makeMessage(OblockID& oName, DeviceID& devName, PROTOCOLS pmsg){
+HeapMasterMessage DeviceScheduler::makeMessage(OblockID& oName, DeviceID& devName, PROTOCOLS pmsg, int priority = 0){
     HeapMasterMessage hmm; 
     hmm.info.device = devName; 
     hmm.info.oblock = oName; 
-    hmm.info.controller = this->devControllerMap[devName]; 
+    if(this->devControllerMap.contains(devName)){
+         hmm.info.controller = this->devControllerMap[devName]; 
+    }
     hmm.info.isVtype = false; // Idk this doesn't matter
     hmm.protocol = pmsg; 
+    hmm.info.priority = 1; 
 
     return hmm; 
 }
@@ -52,35 +55,34 @@ void DeviceScheduler::request(OblockID& requestor, int priority){
     }
 
     for(auto dev : ownDevs){
+        this->handleMessage(this->makeMessage(requestor, dev, PROTOCOLS::OWNER_CANDIDATE_REQUEST, priority)); 
+        /*
         auto& scheData = this->scheduledProcessMap[dev]; 
-
-        SchedulerReq loadRequest; 
-        loadRequest.requestorOblock = requestor; 
-        loadRequest.priority = priority; 
-        loadRequest.ctl = "master"; 
-        loadRequest.targetDevice = dev; 
- 
         if(scheData.loadedRequest.ps == PROCSTATE::EXECUTED){
             loadRequest.ps = PROCSTATE::LOADED; 
             scheData.loadedRequest = loadRequest; 
-            this->handleMessage(this->makeMessage(loadRequest.requestorOblock, dev, PROTOCOLS::OWNER_CANDIDATE_REQUEST)); 
+            this->handleMessage(this->makeMessage(loadRequest.requestorOblock, dev, PROTOCOLS::OWNER_CANDIDATE_REQUEST, priority)); 
         }
         else if(priority > scheData.loadedRequest.priority){
             // Candidate replacement
             scheData.QueuePush(scheData.loadedRequest);
             loadRequest.ps = PROCSTATE::LOADED; 
             scheData.loadedRequest = loadRequest;  
-            this->handleMessage(this->makeMessage(loadRequest.requestorOblock, dev, PROTOCOLS::OWNER_CANDIDATE_REQUEST)); 
+            this->handleMessage(this->makeMessage(loadRequest.requestorOblock, dev, PROTOCOLS::OWNER_CANDIDATE_REQUEST, priority)); 
         }
         else{
             loadRequest.ps = PROCSTATE::WAITING; 
             scheData.QueuePush(loadRequest); 
         }
+            */ 
     }
+
+    string k = ""; 
+    //this->handleMessage(this->makeMessage(requestor, k, PROTOCOLS::OWNER_CANDIDATE_REQUEST_CONCLUDE)); 
 
     // Wait until the final message arrives: 
     std::unique_lock<std::mutex> lock(jamar.mtx); 
-    jamar.cv.wait(lock, [&jamar](){return jamar.executeFlag;});   
+    jamar.cv.wait(lock, [&jamar](){return jamar.executeFlag;});    
 }
 
 void DeviceScheduler::receive(HeapMasterMessage &recvMsg){
@@ -140,5 +142,15 @@ void DeviceScheduler::release(OblockID& reqOblock){
         // Send each device that the oblock in question has ended its ownership
         HeapMasterMessage newDMM = makeMessage(reqOblock, dev,PROTOCOLS::OWNER_RELEASE); 
         this->handleMessage(newDMM); 
+
+        // Send the new item
+        auto& scheDev = this->scheduledProcessMap[dev]; 
+        if(!scheDev.QueueEmpty()){
+            std::cout<<"Sending new state"<<std::endl; 
+            auto newReq = scheDev.QueuePop(); 
+            HeapMasterMessage hmm = makeMessage(newReq.requestorOblock, dev, PROTOCOLS::OWNER_CANDIDATE_REQUEST); 
+            this->handleMessage(hmm); 
+        }
     }
+    
 }

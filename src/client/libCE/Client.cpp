@@ -241,11 +241,11 @@ void Client::listener(std::stop_token stoken){
         else if(ptype == Protocol::OWNER_CANDIDATE_REQUEST){
             std::cout<<"Received REquest"<<std::endl; 
             dev_int targDevice = inMsg.header.device_code;
+
+            // DELETE THIS LATER
             if(!this->deviceList.at(targDevice).pendingRequests.currOwned){
-                // Add the code to send the device grant here: 
-                std::cout<<"Sending the grant message"<<std::endl; 
-                sendMessage(targDevice, Protocol::OWNER_GRANT, false, inMsg.header.oblock_id); 
-                this->deviceList.at(targDevice).pendingRequests.currOwned = true; 
+                    sendMessage(inMsg.header.device_code, Protocol::OWNER_GRANT, false, inMsg.header.oblock_id); 
+                    this->deviceList.at(targDevice).pendingRequests.currOwned = true; 
             }
            
             ClientSideReq csReq; 
@@ -253,11 +253,21 @@ void Client::listener(std::stop_token stoken){
             csReq.targetDevice = targDevice; 
             csReq.requestorOblock = inMsg.header.oblock_id;  
             csReq.priority = inMsg.header.oblock_priority; 
-            std::cout<<"before device add"<<std::endl; 
-            this->deviceList.at(csReq.targetDevice).pendingRequests.addRequest(csReq);
-            std::cout<<"after device add"<<std::endl; 
-            
+            std::cout<<"Adding request for obloc: "<<csReq.requestorOblock<<std::endl; 
+            this->deviceList.at(csReq.targetDevice).pendingRequests.getQueue().push(csReq);
         }
+        else if(ptype == Protocol::OWNER_CANDIDATE_REQUEST_CONCLUDE){
+            // Protocol message concludes that all requests have been made in response to a trigger event ()
+            // TODO: add support for decentralization
+            dev_int targDevice = inMsg.header.device_code;
+            if(!this->deviceList.at(targDevice).pendingRequests.currOwned){
+                    // Add the code to send the device grant here: 
+                    auto king = this->deviceList.at(targDevice).pendingRequests.getQueue().top(); 
+                    sendMessage(king.targetDevice, Protocol::OWNER_GRANT, false, king.requestorOblock); 
+                    this->deviceList.at(targDevice).pendingRequests.currOwned = true; 
+            }
+        }
+
         // Confirms the owner (all non owner attempts to access a device are blocked)
         else if(ptype == Protocol::OWNER_CONFIRM){
             std::cout<<"Received confirmation"<<std::endl; 
@@ -265,15 +275,15 @@ void Client::listener(std::stop_token stoken){
             auto& devicePending = this->deviceList.at(dev_id).pendingRequests; 
             
             // Check if the top value matches the confirmation: 
-            auto& pendingSet = devicePending.getSet(); 
-            auto loadedProcess = *pendingSet.begin(); 
+            auto& pendingSet = devicePending.getQueue(); 
+            auto loadedProcess = pendingSet.top(); 
             if((loadedProcess.ctl == inMsg.header.ctl_code) && (loadedProcess.requestorOblock == inMsg.header.oblock_id)){
                 sendMessage(dev_id, Protocol::OWNER_CONFIRM_OK, false, inMsg.header.oblock_id);
                 devicePending.currOwned = true;
                 auto& devPair = this->deviceList.at(dev_id).pendingRequests.owner; 
                 devPair = {inMsg.header.ctl_code, inMsg.header.oblock_id}; 
                 std::cout<<"Confrm Before Erasure"<<std::endl; 
-                pendingSet.erase(pendingSet.begin()); 
+                pendingSet.pop(); 
                 std::cout<<"Confirm After Erasure"<<std::endl; 
             }
             else{
@@ -283,12 +293,14 @@ void Client::listener(std::stop_token stoken){
         else if(ptype == Protocol::OWNER_RELEASE){
             std::cout<<"Received device release"<<std::endl; 
             auto& devPendStruct = this->deviceList.at(inMsg.header.device_code).pendingRequests; 
-            if(!devPendStruct.getSet().empty()){
-                auto& scheduleOrder = devPendStruct.getSet();
-                auto nextProcess = *scheduleOrder.begin();
+
+            std::cout<<"Size at release "<<devPendStruct.getQueue().size()<<std::endl; 
+        
+            if(!devPendStruct.getQueue().empty()){
+                auto& scheduleOrder = devPendStruct.getQueue();
+                auto nextProcess = scheduleOrder.top();
                 oblock_int o_id = nextProcess.requestorOblock;
                 sendMessage(inMsg.header.device_code, Protocol::OWNER_GRANT, false, o_id);
-                scheduleOrder.erase(scheduleOrder.begin()); 
             }
             else{
                 devPendStruct.currOwned = false; 

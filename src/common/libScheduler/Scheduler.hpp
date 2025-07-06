@@ -101,7 +101,7 @@ class DeviceScheduler{
         std::unordered_map<OblockID, PendingStateInfo> oblockWaitMap; 
 
         // Utility Functions: 
-        HeapMasterMessage makeMessage(OblockID& oName, DeviceID& devName, PROTOCOLS pmsg); 
+        HeapMasterMessage makeMessage(OblockID& oName, DeviceID& devName, PROTOCOLS pmsg, int priority); 
 
         // Function
         function<void(HeapMasterMessage)> handleMessage; 
