@@ -1,4 +1,5 @@
 #pragma once
+#include "libbytecode/bytecode_processor.hpp"
 #include "libtype/bls_types.hpp"
 #include "libtype/typedefs.hpp"
 #include <cstdint>
@@ -123,32 +124,35 @@ namespace BlsTrap {
 
     }
     
-    #define TRAP_BEGIN(name, returnType...) \
-    resolved_t<returnType> name(
-    #define VARIADIC(argName) \
-        std::vector<BlsType> argName,
-    #define ARGUMENT(argName, argType...) \
-        resolved_t<argType> argName,
-    #define TRAP_END \
-    int = 0);
-    #include "include/TRAPS.LIST"
-    #undef TRAP_BEGIN
-    #undef VARIADIC
-    #undef ARGUMENT
-    #undef TRAP_END
+    struct Impl {
+        #define TRAP_BEGIN(name, returnType...) \
+        static resolved_t<returnType> name(
+        #define VARIADIC(argName) \
+            std::vector<BlsType> argName,
+        #define ARGUMENT(argName, argType...) \
+            resolved_t<argType> argName,
+        #define TRAP_END \
+        BytecodeProcessor* vm = nullptr);
+        #include "include/TRAPS.LIST"
+        #undef TRAP_BEGIN
+        #undef VARIADIC
+        #undef ARGUMENT
+        #undef TRAP_END
+    };
+
 
     template<CALLNUM T>
-    BlsType executeTrap(std::vector<BlsType> args) {
+    BlsType executeTrap(std::vector<BlsType> args, BytecodeProcessor* vm = nullptr) {
         #define TRAP_BEGIN(name, ...) \
         if constexpr (T == CALLNUM::name) { \
             using argnum [[ maybe_unused ]] = Detail::name::ARGNUM; \
-            return name(
+            return BlsTrap::Impl::name(
                 #define VARIADIC(...) \
                 args,
                 #define ARGUMENT(argName, argType) \
                 resolveBlsType<argType>(std::move(args[argnum::argName])),
                 #define TRAP_END \
-                0 \
+                vm \
             ); \
         }
         #include "include/TRAPS.LIST"
