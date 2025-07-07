@@ -158,6 +158,8 @@ class HeapDescriptor {
     auto& getSampleElement() { return this->sampleElement; }
     virtual BlsType& access(BlsType &obj) = 0;
     BlsType& access(BlsType &&obj) { return access(obj); };
+    virtual bool operator==(const HeapDescriptor&) const = 0;
+    virtual bool operator!=(const HeapDescriptor&) const = 0;
 
     template<typename Archive>
     void serialize(Archive& ar, const unsigned int version);
@@ -188,6 +190,8 @@ class MapDescriptor : public HeapDescriptor{
     #undef ARGUMENT
     #undef METHOD_END
 
+    bool operator==(const HeapDescriptor& rhs) const override;
+    bool operator!=(const HeapDescriptor& rhs) const override;
     // Also only used for debugging
     std::unordered_map<std::string, BlsType>& getMap() { return *this->map; }
 
@@ -223,6 +227,8 @@ class VectorDescriptor : public HeapDescriptor, std::enable_shared_from_this<Vec
     #undef ARGUMENT
     #undef METHOD_END
 
+    bool operator==(const HeapDescriptor& rhs) const override;
+    bool operator!=(const HeapDescriptor& rhs) const override;
     // DEBUG FUNCTION ONLY (for now maybe): 
     std::vector<BlsType>& getVector() { return *this->vector; }
 

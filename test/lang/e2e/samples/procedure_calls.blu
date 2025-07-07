@@ -6,7 +6,12 @@ oblock simpleCall(int result) {
     result = exponentiate(2, 3);
 }
 
+oblock compoundCall(int result) {
+    result = exponentiate(exponentiate(2, 3), exponentiate(2, 1));
+}
+
 setup() {
     virtual int result = 0;
     simpleCall(result);
+    compoundCall(result);
 }

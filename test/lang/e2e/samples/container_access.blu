@@ -1,0 +1,8 @@
+oblock modifyElement(list<int> x) {
+    x[2] = 9;
+}
+
+setup() {
+    virtual list<int> X = [0, 1, 2, 3];
+    modifyElement(X);
+}

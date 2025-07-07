@@ -38,6 +38,16 @@ namespace BlsLang {
         TEST_E2E_SOURCE(fileName);
         std::string expectedStdout = "";
         TEST_E2E_OBLOCK("simpleCall", {0}, {8}, expectedStdout);
+        TEST_E2E_OBLOCK("compoundCall", {0}, {64}, expectedStdout);
+    }
+
+    GROUP_TEST_F(E2ETest, HeapTests, ContainerAccess) {
+        std::string fileName = "container_access.blu";
+        TEST_E2E_SOURCE(fileName);
+        std::string expectedStdout = "";
+        auto input = std::shared_ptr<VectorDescriptor>(new VectorDescriptor{0, 1, 2, 3});
+        auto output = std::shared_ptr<VectorDescriptor>(new VectorDescriptor{{0, 1, 9, 3}});
+        TEST_E2E_OBLOCK("modifyElement", {input}, {output}, expectedStdout);
     }
 
 }

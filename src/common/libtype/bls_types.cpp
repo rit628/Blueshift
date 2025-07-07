@@ -7,6 +7,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <variant>
 #include <boost/functional/hash.hpp>
 #include <boost/range/iterator_range_core.hpp>
@@ -15,6 +16,9 @@
 
 template<class... Ts>
 struct overloads : Ts... { using Ts::operator()...; };
+
+template<typename T>
+concept HeapType = std::same_as<std::remove_cv_t<std::remove_reference_t<T>>, std::shared_ptr<HeapDescriptor>>;
 
 template<typename T>
 concept Numeric = TypeDef::Integer<T> || TypeDef::Float<T>;
@@ -172,10 +176,13 @@ bool operator>=(const BlsType& lhs, const BlsType& rhs) {
         }
     }, lhs, rhs);
 }
-
+static_assert(HeapType<const std::shared_ptr<HeapDescriptor>&>, "");
 bool operator!=(const BlsType& lhs, const BlsType& rhs) {
     return std::visit([](const auto& a, const auto& b) -> bool {
-        if constexpr (WeaklyComparable<decltype(a), decltype(b)>) {
+        if constexpr (HeapType<decltype(a)> && HeapType<decltype(b)>) {
+            return *a != *b;
+        }
+        else if constexpr (WeaklyComparable<decltype(a), decltype(b)>) {
             return a != b;
         }
         else {
@@ -186,7 +193,10 @@ bool operator!=(const BlsType& lhs, const BlsType& rhs) {
 
 bool operator==(const BlsType& lhs, const BlsType& rhs) {
     return std::visit([](const auto& a, const auto& b) -> bool {
-        if constexpr (WeaklyComparable<decltype(a), decltype(b)>) {
+        if constexpr (HeapType<decltype(a)> && HeapType<decltype(b)>) {
+            return *a == *b;
+        }
+        else if constexpr (WeaklyComparable<decltype(a), decltype(b)>) {
             return a == b;
         }
         else {
@@ -462,6 +472,24 @@ int64_t MapDescriptor::size(int) {
     return this->map->size();
 }
 
+bool MapDescriptor::operator==(const HeapDescriptor& rhs) const {
+    if (auto* resolved = dynamic_cast<const MapDescriptor*>(&rhs)) {
+        return objType == resolved->objType && \
+               contType == resolved->contType && \
+               *map == *resolved->map;
+    }
+    return false;
+}
+
+bool MapDescriptor::operator!=(const HeapDescriptor& rhs) const {
+    if (auto* resolved = dynamic_cast<const MapDescriptor*>(&rhs)) {
+        return objType != resolved->objType || \
+               contType != resolved->contType || \
+               *map != *resolved->map;
+    }
+    return true;
+}
+
 VectorDescriptor::VectorDescriptor(std::string cont_code) {
     this->objType = TYPE::list_t;
     this->contType = getTypeFromName(cont_code); 
@@ -501,6 +529,24 @@ std::monostate VectorDescriptor::append(BlsType value, int){
 
 int64_t VectorDescriptor::size(int) {
     return this->vector->size();
+}
+
+bool VectorDescriptor::operator==(const HeapDescriptor& rhs) const {
+    if (auto* resolved = dynamic_cast<const VectorDescriptor*>(&rhs)) {
+        return objType == resolved->objType && \
+               contType == resolved->contType && \
+               *vector == *resolved->vector;
+    }
+    return false;
+}
+
+bool VectorDescriptor::operator!=(const HeapDescriptor& rhs) const {
+    if (auto* resolved = dynamic_cast<const VectorDescriptor*>(&rhs)) {
+        return objType != resolved->objType || \
+               contType != resolved->contType || \
+               *vector != *resolved->vector;
+    }
+    return false;
 }
 
 TYPE getType(const BlsType& obj) {

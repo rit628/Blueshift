@@ -633,7 +633,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Access& ast) {
         }
         auto& subscriptable = std::get<std::shared_ptr<HeapDescriptor>>(object);
         auto index = resolve(subscript->get()->accept(*this));
-        return std::ref(subscriptable->access(index));
+        return std::ref(subscriptable->getSampleElement().at(0));
     }
     else {
         return std::ref(object);
