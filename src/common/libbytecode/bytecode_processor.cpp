@@ -13,12 +13,15 @@
 #include <sstream>
 #include <stdexcept>
 #include <vector>
-#include <boost/archive/binary_iarchive.hpp>
 
 void BytecodeProcessor::loadBytecode(std::istream& bytecode) {
-    readHeader(bytecode);
-    loadLiterals(bytecode);
-    loadInstructions(bytecode);
+    if (bytecode.bad()) {
+        throw std::runtime_error("Bad bytecode stream provided.");
+    }
+    boost::archive::binary_iarchive ia(bytecode, boost::archive::archive_flags::no_header);
+    readHeader(bytecode, ia);
+    loadLiterals(bytecode, ia);
+    loadInstructions(bytecode, ia);
 }
 
 void BytecodeProcessor::loadBytecode(const std::string& filename) {
@@ -68,10 +71,9 @@ void BytecodeProcessor::dispatch() {
     exit: ;
 }
 
-void BytecodeProcessor::readHeader(std::istream& bytecode) {
+void BytecodeProcessor::readHeader(std::istream& bytecode, boost::archive::binary_iarchive& ia) {
     uint16_t descriptorCount;
     bytecode.read(reinterpret_cast<char*>(&descriptorCount), sizeof(descriptorCount));
-    boost::archive::binary_iarchive ia(bytecode, boost::archive::archive_flags::no_header);
     for (uint16_t i = 0; i < descriptorCount; i++) {
         OBlockDesc temp;
         ia >> temp;
@@ -79,10 +81,9 @@ void BytecodeProcessor::readHeader(std::istream& bytecode) {
     }
 }
 
-void BytecodeProcessor::loadLiterals(std::istream& bytecode) {
+void BytecodeProcessor::loadLiterals(std::istream& bytecode, boost::archive::binary_iarchive& ia) {
     uint16_t poolSize;
     bytecode.read(reinterpret_cast<char*>(&poolSize), sizeof(poolSize));
-    boost::archive::binary_iarchive ia(bytecode, boost::archive::archive_flags::no_header);
     for (uint16_t i = 0; i < poolSize; i++) {
         BlsType literal;
         ia >> literal;
@@ -90,7 +91,7 @@ void BytecodeProcessor::loadLiterals(std::istream& bytecode) {
     }
 }
 
-void BytecodeProcessor::loadInstructions(std::istream& bytecode) {
+void BytecodeProcessor::loadInstructions(std::istream& bytecode, boost::archive::binary_iarchive& ia) {
     OPCODE code;
     while (bytecode.read(reinterpret_cast<char*>(&code), sizeof(code))) {
         switch (code) {

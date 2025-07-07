@@ -6,24 +6,33 @@
 #include <cstdint>
 #include <iostream>
 #include <memory>
+#include <ranges>
 #include <variant>
 #include <vector>
 #include <boost/range/iterator_range_core.hpp>
 
 using namespace BlsLang;
 
-void VirtualMachine::transform(size_t oblockOffset, std::vector<BlsType>& deviceStates) {
+void VirtualMachine::setOblockOffset(size_t oblockOffset) {
+    this->oblockOffset = oblockOffset;
+}
+
+std::vector<BlsType> VirtualMachine::transform(std::vector<BlsType> deviceStates) {
     instruction = oblockOffset;
     signal = SIGNAL::START;
     cs.pushFrame(instruction, deviceStates);
     dispatch();
+    auto transformedStates = cs.extractLocals();
+    transformedStates.resize(deviceStates.size());
     cs.popFrame();
+    return transformedStates;
 }
 
 void VirtualMachine::CALL(uint16_t address, uint8_t argc, int) {
     std::vector<BlsType> args;
-    for (uint8_t i = 0; i < argc; i++) {
-        args.push_back(cs.popOperand());
+    args.resize(argc);
+    for (auto&& arg : std::ranges::reverse_view(args)) {
+        arg = cs.popOperand();
     }
     cs.pushFrame(instruction, args);
     instruction = address;
@@ -69,7 +78,7 @@ void VirtualMachine::MKTYPE(uint8_t index, uint8_t type, int) {
 
 void VirtualMachine::STORE(uint8_t index, int) {
     auto value = cs.popOperand();
-    cs.getLocal(index) = value;
+    cs.getLocal(index).assign(value);
 }
 
 void VirtualMachine::LOAD(uint8_t index, int) {
@@ -81,7 +90,7 @@ void VirtualMachine::ASTORE(int) {
     auto value = cs.popOperand();
     auto index = cs.popOperand();
     auto object = cs.popOperand();
-    std::get<std::shared_ptr<HeapDescriptor>>(object)->access(index) = value;
+    std::get<std::shared_ptr<HeapDescriptor>>(object)->access(index).assign(value);
 }
 
 void VirtualMachine::ALOAD(int) {
@@ -93,12 +102,12 @@ void VirtualMachine::ALOAD(int) {
 
 void VirtualMachine::NOT(int) {
     auto op = cs.popOperand();
-    cs.pushOperand(-op);
+    cs.pushOperand(!op);
 }
 
 void VirtualMachine::NEG(int) {
     auto op = cs.popOperand();
-    cs.pushOperand(!op);
+    cs.pushOperand(-op);
 }
 
 void VirtualMachine::OR(int) {
@@ -206,8 +215,9 @@ void VirtualMachine::RETURN(int) {
 
 void VirtualMachine::TRAP(uint16_t callnum, uint8_t argc, int) {
     std::vector<BlsType> args;
-    for (uint8_t i = 0; i < argc; i++) {
-        args.push_back(cs.popOperand());
+    args.resize(argc);
+    for (auto&& arg : std::ranges::reverse_view(args)) {
+        arg = cs.popOperand();
     }
 
     auto trapnum = static_cast<BlsTrap::CALLNUM>(callnum);
@@ -217,12 +227,12 @@ void VirtualMachine::TRAP(uint16_t callnum, uint8_t argc, int) {
             constexpr bool pushReturn = !TypeDef::Void<returnType>; \
             auto result [[ maybe_unused ]] = BlsTrap::executeTrap<BlsTrap::CALLNUM::name>(args);
             #define VARIADIC(...)
-            #define ARGUMENT(argName, argType...)
+            #define ARGUMENT(...)
             #define TRAP_END \
-            break; \
             if constexpr (pushReturn) { \
                 cs.pushOperand(result); \
             } \
+            break; \
         }
         #include "libtrap/include/TRAPS.LIST"
         #undef TRAP_BEGIN
@@ -236,20 +246,24 @@ void VirtualMachine::TRAP(uint16_t callnum, uint8_t argc, int) {
 
 void VirtualMachine::MTRAP(uint16_t callnum, int) {
     auto trapnum = static_cast<BlsTrap::MCALLNUM>(callnum);
-    auto object = cs.popOperand();
+    std::vector<BlsType> args;
 
     switch (trapnum) {
         #define METHOD_BEGIN(name, type, typeArgIdx, returnType...) \
         case BlsTrap::MCALLNUM::type##__##name: { \
             constexpr bool pushReturn = !TypeDef::Void<returnType>; \
-            auto result [[ maybe_unused ]] = BlsTrap::executeMTRAP<BlsTrap::MCALLNUM::type##__##name>(object, {
-            #define ARGUMENT(argName, typeArgIdx, type...) \
-                cs.popOperand(),
+            args.resize(BlsTrap::Detail::type##__##name::ARGNUM::COUNT); \
+            for (auto&& arg : std::ranges::reverse_view(args)) { \
+                arg = cs.popOperand(); \
+            } \
+            auto object = cs.popOperand(); \
+            auto result [[ maybe_unused ]] = BlsTrap::executeMTRAP<BlsTrap::MCALLNUM::type##__##name>(object, args);
+            #define ARGUMENT(...)
             #define METHOD_END \
-            }); \
             if constexpr (pushReturn) { \
                 cs.pushOperand(result); \
             } \
+            break; \
         }
         #include "libtype/include/LIST_METHODS.LIST"
         #include "libtype/include/MAP_METHODS.LIST"

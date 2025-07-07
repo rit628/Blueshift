@@ -1,5 +1,5 @@
 #pragma once
-/*
+
 #include "libbytecode/bytecode_processor.hpp"
 #include <cstdint>
 #include <iostream>
@@ -31,4 +31,3 @@ class BytecodePrinter : public BytecodeProcessor {
         std::ostream* outputStream;
         std::unordered_map<uint16_t, std::string> oblockLabels;
 };
-*/

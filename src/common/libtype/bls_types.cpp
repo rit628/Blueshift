@@ -1,11 +1,13 @@
 #include "bls_types.hpp"
 #include "typedefs.hpp"
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <variant>
 #include <boost/functional/hash.hpp>
 #include <boost/range/iterator_range_core.hpp>
@@ -16,6 +18,9 @@ template<class... Ts>
 struct overloads : Ts... { using Ts::operator()...; };
 
 template<typename T>
+concept HeapType = std::same_as<std::remove_cv_t<std::remove_reference_t<T>>, std::shared_ptr<HeapDescriptor>>;
+
+template<typename T>
 concept Numeric = TypeDef::Integer<T> || TypeDef::Float<T>;
 
 template<typename T, typename U>
@@ -23,43 +28,55 @@ concept BinaryOperable = !(TypeDef::Boolean<T> || TypeDef::Boolean<U>);
 
 template<typename T, typename U>
 concept WeaklyComparable = requires(T a, U b) {
-  { a == b };
-  { a != b };
+  { a == b } -> std::convertible_to<bool>;
+  { a != b } -> std::convertible_to<bool>;
 };
 
 template<typename T, typename U>
 concept Comparable = requires(T a, U b) {
-  { a < b };
-  { a <= b };
-  { a > b };
-  { a >= b };
+  { a < b } -> std::convertible_to<bool>;
+  { a <= b } -> std::convertible_to<bool>;
+  { a > b } -> std::convertible_to<bool>;
+  { a >= b } -> std::convertible_to<bool>;
 }
 && WeaklyComparable<T, U>
 && BinaryOperable<T, U>;
 
 template<typename T, typename U>
 concept Addable = requires(T a, U b) {
-  { a + b };
+  { a + b } -> std::convertible_to<T>;
 }
 && BinaryOperable<T, U>;
 
 template<typename T, typename U>
 concept Subtractable = requires(T a, U b) {
-  { a - b };
+  { a - b } -> std::convertible_to<T>;
 }
 && BinaryOperable<T, U>;
 
 template<typename T, typename U>
 concept Multiplicable = requires(T a, U b) {
-  { a * b };
+  { a * b } -> std::convertible_to<T>;
 }
 && BinaryOperable<T, U>;
 
 template<typename T, typename U>
 concept Divisible = requires(T a, U b) {
-  { a / b };
+  { a / b } -> std::convertible_to<T>;
 }
 && BinaryOperable<T, U>;
+
+BlsType& BlsType::assign(const BlsType& rhs) {
+    std::visit([](auto& a, const auto& b) -> void {
+        if constexpr (WeaklyComparable<decltype(a), decltype(b)>) {
+            a = b;
+        }
+        else {
+            throw std::runtime_error("Lhs and Rhs are not assignable.");
+        }
+    }, *this, rhs);
+    return *this;
+}
 
 BlsType::operator bool() const {
     return std::visit([](const auto& a) -> bool {
@@ -159,10 +176,13 @@ bool operator>=(const BlsType& lhs, const BlsType& rhs) {
         }
     }, lhs, rhs);
 }
-
+static_assert(HeapType<const std::shared_ptr<HeapDescriptor>&>, "");
 bool operator!=(const BlsType& lhs, const BlsType& rhs) {
     return std::visit([](const auto& a, const auto& b) -> bool {
-        if constexpr (WeaklyComparable<decltype(a), decltype(b)>) {
+        if constexpr (HeapType<decltype(a)> && HeapType<decltype(b)>) {
+            return *a != *b;
+        }
+        else if constexpr (WeaklyComparable<decltype(a), decltype(b)>) {
             return a != b;
         }
         else {
@@ -173,7 +193,10 @@ bool operator!=(const BlsType& lhs, const BlsType& rhs) {
 
 bool operator==(const BlsType& lhs, const BlsType& rhs) {
     return std::visit([](const auto& a, const auto& b) -> bool {
-        if constexpr (WeaklyComparable<decltype(a), decltype(b)>) {
+        if constexpr (HeapType<decltype(a)> && HeapType<decltype(b)>) {
+            return *a == *b;
+        }
+        else if constexpr (WeaklyComparable<decltype(a), decltype(b)>) {
             return a == b;
         }
         else {
@@ -223,7 +246,7 @@ BlsType operator/(const BlsType& lhs, const BlsType& rhs) {
                     throw std::runtime_error("Error: dividing by zero.");
                 }
             }
-            return a / b;
+            return double(a) / double(b);
         }
         else {
             throw std::runtime_error("Lhs and Rhs are not divisible.");
@@ -449,6 +472,39 @@ int64_t MapDescriptor::size(int) {
     return this->map->size();
 }
 
+bool MapDescriptor::operator==(const HeapDescriptor& rhs) const {
+    if (auto* resolved = dynamic_cast<const MapDescriptor*>(&rhs)) {
+        return objType == resolved->objType && \
+               contType == resolved->contType && \
+               *map == *resolved->map;
+    }
+    return false;
+}
+
+bool MapDescriptor::operator!=(const HeapDescriptor& rhs) const {
+    if (auto* resolved = dynamic_cast<const MapDescriptor*>(&rhs)) {
+        return objType != resolved->objType || \
+               contType != resolved->contType || \
+               *map != *resolved->map;
+    }
+    return true;
+}
+
+std::shared_ptr<HeapDescriptor> MapDescriptor::clone() const {
+    auto newMap = std::make_shared<MapDescriptor>(TYPE::ANY);
+    newMap->objType = objType;
+    newMap->contType = contType;
+    for (auto&& [key, value] : *map) {
+        if (std::holds_alternative<std::shared_ptr<HeapDescriptor>>(value)) {
+            newMap->map->emplace(key, std::get<std::shared_ptr<HeapDescriptor>>(value)->clone());
+        }
+        else {
+            newMap->map->emplace(key, value);
+        }
+    }
+    return newMap;
+}
+
 VectorDescriptor::VectorDescriptor(std::string cont_code) {
     this->objType = TYPE::list_t;
     this->contType = getTypeFromName(cont_code); 
@@ -488,6 +544,39 @@ std::monostate VectorDescriptor::append(BlsType value, int){
 
 int64_t VectorDescriptor::size(int) {
     return this->vector->size();
+}
+
+bool VectorDescriptor::operator==(const HeapDescriptor& rhs) const {
+    if (auto* resolved = dynamic_cast<const VectorDescriptor*>(&rhs)) {
+        return objType == resolved->objType && \
+               contType == resolved->contType && \
+               *vector == *resolved->vector;
+    }
+    return false;
+}
+
+bool VectorDescriptor::operator!=(const HeapDescriptor& rhs) const {
+    if (auto* resolved = dynamic_cast<const VectorDescriptor*>(&rhs)) {
+        return objType != resolved->objType || \
+               contType != resolved->contType || \
+               *vector != *resolved->vector;
+    }
+    return false;
+}
+
+std::shared_ptr<HeapDescriptor> VectorDescriptor::clone() const {
+    auto newList = std::make_shared<VectorDescriptor>(TYPE::ANY);
+    newList->objType = objType;
+    newList->contType = contType;
+    for (auto&& element : *vector) {
+        if (std::holds_alternative<std::shared_ptr<HeapDescriptor>>(element)) {
+            newList->vector->push_back(std::get<std::shared_ptr<HeapDescriptor>>(element)->clone());
+        }
+        else {
+            newList->vector->push_back(element);
+        }
+    }
+    return newList;
 }
 
 TYPE getType(const BlsType& obj) {

@@ -8,8 +8,15 @@ oblock printAppendedString(TIMER_TEST T) {
     println(s);
 }
 
+oblock printMultiArg(TIMER_TEST T) {
+    string s1 = "arg1";
+    string s2 = "arg2";
+    print(s1, s2);
+}
+
 setup() {
     TIMER_TEST T1 = "CTL::PWR-0";
     printString(T1);
     printAppendedString(T1);
+    printMultiArg(T1);
 }

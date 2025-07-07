@@ -167,7 +167,8 @@ void ClientEU::run(){
         }
 
         // Transformed object:
-        this->virtualMachine.transform(this->bytecodeOffset, transformStates); 
+        this->virtualMachine.setOblockOffset(this->bytecodeOffset);
+        auto transformedStates = this->virtualMachine.transform(transformStates);
 
         // Transformed the object: 
         for(auto& dev : this->oinfo.outDevices){

@@ -49,7 +49,7 @@ namespace BlsLang {
             std::unordered_map<BlsType, uint8_t>& literalPool;
             std::unordered_map<std::string, uint16_t> procedureAddresses;
             std::vector<std::unique_ptr<INSTRUCTION>> instructions;
-            std::stack<uint16_t> loopIndices, breakIndices; // needed for break and continue generation
+            std::stack<std::stack<uint16_t>> continueIndices, breakIndices; // needed for break and continue generation
             ACCESS_CONTEXT accessContext = ACCESS_CONTEXT::READ; // needed for assignment generation
     };
 

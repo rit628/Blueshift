@@ -85,6 +85,7 @@ struct DeviceDescriptor{
         ar & polling_period;
         ar & isConst;
         ar & isInterrupt;
+        ar & isCursor;
     }
 
     bool operator==(const DeviceDescriptor&) const = default;
@@ -125,11 +126,13 @@ struct OBlockDesc{
         ar & name;
         ar & binded_devices;
         ar & bytecode_offset;
+        ar & inDevices;
+        ar & outDevices;
         ar & triggers;
     }
 
     bool operator==(const OBlockDesc&) const = default;
-}; 
+};
 
 struct O_Info
 {

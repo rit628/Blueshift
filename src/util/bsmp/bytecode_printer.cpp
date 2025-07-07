@@ -1,7 +1,6 @@
 
 
 #include "bytecode_printer.hpp"
-/*
 #include "include/Common.hpp"
 #include "libtype/bls_types.hpp"
 #include <algorithm>
@@ -19,10 +18,22 @@ void tag_invoke(const value_from_tag&, value& jv, DeviceDescriptor const & desc)
     obj.emplace("type", value_from(static_cast<uint32_t>(desc.type)));
     obj.emplace("controller", value_from(desc.controller));
     obj.emplace("port_maps", value_from(desc.port_maps));
-    obj.emplace("isInterrupt", value_from(desc.isInterrupt));
+    obj.emplace("initialValue", value_from(desc.initialValue));
     obj.emplace("isVtype", value_from(desc.isVtype));
-    obj.emplace("isConst", value_from(desc.isConst));
+    obj.emplace("dropRead", value_from(desc.dropRead));
+    obj.emplace("dropWrite", value_from(desc.dropWrite));
     obj.emplace("polling_period", value_from(desc.polling_period));
+    obj.emplace("isConst", value_from(desc.isConst));
+    obj.emplace("isInterrupt", value_from(desc.isInterrupt));
+    obj.emplace("isCursor", value_from(desc.isCursor));
+}
+
+TriggerData tag_invoke(const value_from_tag&, value& jv, TriggerData const & trigger) {
+    auto& obj = jv.emplace_object();
+    obj.emplace("rule", value_from(trigger.rule));
+    obj.emplace("id", value_from(trigger.id));
+    obj.emplace("priority", value_from(trigger.priority));
+    return trigger;
 }
 
 void tag_invoke(const value_from_tag&, value& jv, OBlockDesc const & desc) {
@@ -30,9 +41,9 @@ void tag_invoke(const value_from_tag&, value& jv, OBlockDesc const & desc) {
     obj.emplace("name", value_from(desc.name));
     obj.emplace("binded_devices", value_from(desc.binded_devices));
     obj.emplace("bytecode_offset", value_from(desc.bytecode_offset));
-    obj.emplace("dropRead", value_from(desc.dropRead));
-    obj.emplace("dropWrite", value_from(desc.dropWrite));
-    obj.emplace("synchronize_states", value_from(desc.synchronize_states));
+    obj.emplace("inDevices", value_from(desc.inDevices));
+    obj.emplace("outDevices", value_from(desc.outDevices));
+    obj.emplace("triggers", value_from(desc.triggers));
 }
 
 void tag_invoke(const value_from_tag&, value& jv, std::shared_ptr<HeapDescriptor> const & hd) {
@@ -40,9 +51,22 @@ void tag_invoke(const value_from_tag&, value& jv, std::shared_ptr<HeapDescriptor
         case TYPE::list_t:
             jv = value_from(std::dynamic_pointer_cast<VectorDescriptor>(hd)->getVector());
         break;
+
         case TYPE::map_t:
             jv = value_from(std::dynamic_pointer_cast<MapDescriptor>(hd)->getMap());
         break;
+
+        #define DEVTYPE_BEGIN(name) \
+        case TYPE::name: \
+            jv = value_from(std::dynamic_pointer_cast<MapDescriptor>(hd)->getMap()); \
+        break;
+        #define ATTRIBUTE(...)
+        #define DEVTYPE_END 
+        #include "DEVTYPES.LIST"
+        #undef DEVTYPE_BEGIN
+        #undef ATTRIBUTE
+        #undef DEVTYPE_END
+
         default:
             throw std::runtime_error("invalid heap descriptor");
         break;
@@ -260,4 +284,3 @@ void BytecodePrinter::code(
 #undef OPCODE_BEGIN
 #undef ARGUMENT
 #undef OPCODE_END
-*/

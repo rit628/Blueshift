@@ -81,6 +81,8 @@ class MapDescriptor;
 
 struct BlsType : std::variant<std::monostate, bool, int64_t, double, std::string, std::shared_ptr<HeapDescriptor>> {
   using std::variant<std::monostate, bool, int64_t, double, std::string, std::shared_ptr<HeapDescriptor>>::variant;
+  // Strongly typed assignment for use in interpreter, analyzer, and vm (may be switched to assignment overload later) 
+  BlsType& assign(const BlsType& rhs);
   explicit operator bool() const;
   explicit operator double() const;
   explicit operator int64_t() const;
@@ -156,6 +158,9 @@ class HeapDescriptor {
     auto& getSampleElement() { return this->sampleElement; }
     virtual BlsType& access(BlsType &obj) = 0;
     BlsType& access(BlsType &&obj) { return access(obj); };
+    virtual bool operator==(const HeapDescriptor&) const = 0;
+    virtual bool operator!=(const HeapDescriptor&) const = 0;
+    virtual std::shared_ptr<HeapDescriptor> clone() const = 0;
 
     template<typename Archive>
     void serialize(Archive& ar, const unsigned int version);
@@ -186,6 +191,9 @@ class MapDescriptor : public HeapDescriptor{
     #undef ARGUMENT
     #undef METHOD_END
 
+    bool operator==(const HeapDescriptor& rhs) const override;
+    bool operator!=(const HeapDescriptor& rhs) const override;
+    virtual std::shared_ptr<HeapDescriptor> clone() const override;
     // Also only used for debugging
     std::unordered_map<std::string, BlsType>& getMap() { return *this->map; }
 
@@ -221,6 +229,9 @@ class VectorDescriptor : public HeapDescriptor, std::enable_shared_from_this<Vec
     #undef ARGUMENT
     #undef METHOD_END
 
+    bool operator==(const HeapDescriptor& rhs) const override;
+    bool operator!=(const HeapDescriptor& rhs) const override;
+    virtual std::shared_ptr<HeapDescriptor> clone() const override;
     // DEBUG FUNCTION ONLY (for now maybe): 
     std::vector<BlsType>& getVector() { return *this->vector; }
 
@@ -463,6 +474,23 @@ inline void BlsType::serialize(Archive& ar, const unsigned int version) {
     }
     break;
 
+    #define DEVTYPE_BEGIN(name) \
+    case TYPE::name: { \
+      if (std::holds_alternative<std::monostate>(*this)) { \
+        *this = std::make_shared<MapDescriptor>(TYPE::name, TYPE::string_t, TYPE::ANY); \
+      } \
+      auto heapDesc = std::get<std::shared_ptr<HeapDescriptor>>(*this); \
+      auto resolvedDesc = std::dynamic_pointer_cast<MapDescriptor>(heapDesc); \
+      ar & *resolvedDesc.get(); \
+    } \
+    break;
+    #define ATTRIBUTE(...)
+    #define DEVTYPE_END
+    #include "DEVTYPES.LIST"
+    #undef DEVTYPE_BEGIN
+    #undef ATTRIBUTE
+    #undef DEVTYPE_END
+
     default:
       throw std::runtime_error("Non serializable type");
     break;
@@ -477,7 +505,6 @@ void HeapDescriptor::serialize(Archive& ar, const unsigned int version) {
 
 template<typename Archive>
 void MapDescriptor::serialize(Archive & ar, const unsigned int version) {
-  // serialize base class information
   ar & boost::serialization::base_object<HeapDescriptor>(*this);
   ar & *map.get();
 }
