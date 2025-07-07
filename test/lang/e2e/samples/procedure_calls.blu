@@ -1,0 +1,12 @@
+int exponentiate(int a, int b) {
+    return a ^ b;
+}
+
+oblock simpleCall(int result) {
+    result = exponentiate(2, 3);
+}
+
+setup() {
+    virtual int result = 0;
+    simpleCall(result);
+}

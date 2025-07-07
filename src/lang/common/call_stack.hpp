@@ -3,6 +3,7 @@
 #include "error_types.hpp"
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <span>
 #include <stack>
 #include <string>
@@ -33,7 +34,7 @@ namespace BlsLang {
                   , CONDITIONAL
                 };
 
-                using container_t = std::conditional_t<IntAddressable<T>, std::vector<BlsType>, std::unordered_map<T, std::pair<uint8_t, BlsType>>>;
+                using container_t = std::conditional_t<IntAddressable<T>, std::vector<BlsType>, std::unordered_map<T, std::pair<uint8_t, std::shared_ptr<BlsType>>>>;
 
                 Frame(Context context, const std::string& name) requires StringAddressable<T> : context(context), name(name) {}
                 Frame(size_t returnAddress, std::span<BlsType> arguments) requires IntAddressable<T>;
@@ -58,7 +59,7 @@ namespace BlsLang {
             BlsType popOperand() requires IntAddressable<T>;
             void addLocal(T index, BlsType value);
             BlsType& getLocal(T index);
-            Frame::container_t&& extractLocals();
+            Frame::container_t&& extractLocals() requires IntAddressable<T>;
             bool checkContext(Frame::Context context) requires StringAddressable<T>;
             const std::string& getFrameName() requires StringAddressable<T>;
             uint8_t getLocalIndex(T index) requires StringAddressable<T>;
@@ -128,7 +129,7 @@ namespace BlsLang {
     inline void CallStack<T>::addLocal(T index, BlsType value) {
         if constexpr (std::is_same<T, std::string>()) {
             auto& frame = cs.back();
-            frame.locals[index] = {frame.localCount++, value};
+            frame.locals.try_emplace(index, frame.localCount++, new BlsType(value));
         }
         else {
             auto& locals = cs.top().locals;
@@ -147,7 +148,7 @@ namespace BlsLang {
             for (auto it = cs.rbegin(); it != cs.rend(); it++) {
                 auto& locals = it->locals;
                 if (locals.contains(index)) {
-                    return locals[index].second;
+                    return *locals[index].second;
                 }
                 else if (it->context == Frame::Context::FUNCTION) { // exhausted current function frame scope
                     throw SemanticError("local variable: " + index + " does not exist");
@@ -161,13 +162,8 @@ namespace BlsLang {
     }
 
     template<StackType T>
-    CallStack<T>::Frame::container_t&& CallStack<T>::extractLocals() {
-        if constexpr (std::is_same<T, std::string>()) {
-            return std::move(cs.back().locals);
-        }
-        else {
-            return std::move(cs.top().locals);
-        }
+    CallStack<T>::Frame::container_t&& CallStack<T>::extractLocals() requires IntAddressable<T> {
+        return std::move(cs.top().locals);
     }
 
     template<StackType T>

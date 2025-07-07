@@ -26,6 +26,11 @@ oblock divide(int intResult, float floatResult) {
     floatResult = a / b;
 }
 
+oblock grouped(int intResult, float floatResult) {
+    intResult = 10 * (8 - 9);
+    floatResult = 10 * 8 - 9;
+}
+
 setup() {
     virtual int intResult = 0;
     virtual float floatResult = 0;
@@ -33,4 +38,5 @@ setup() {
     subtract(intResult, floatResult);
     multiply(intResult, floatResult);
     divide(intResult, floatResult);
+    grouped(intResult, floatResult);
 }

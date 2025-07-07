@@ -30,6 +30,14 @@ namespace BlsLang {
         TEST_E2E_OBLOCK("subtract", {0, 0.0}, {-1, -6.28}, expectedStdout);
         TEST_E2E_OBLOCK("multiply", {0, 0.0}, {90, 45.0}, expectedStdout);
         TEST_E2E_OBLOCK("divide", {0, 0.0}, {0, .9}, expectedStdout);
+        TEST_E2E_OBLOCK("grouped", {0, 0.0}, {-10, 71.0}, expectedStdout);
+    }
+
+    GROUP_TEST_F(E2ETest, ExecutionTests, ProcedureCalls) {
+        std::string fileName = "procedure_calls.blu";
+        TEST_E2E_SOURCE(fileName);
+        std::string expectedStdout = "";
+        TEST_E2E_OBLOCK("simpleCall", {0}, {8}, expectedStdout);
     }
 
 }
