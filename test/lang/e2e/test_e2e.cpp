@@ -46,6 +46,12 @@ namespace BlsLang {
         TEST_E2E_SOURCE(fileName);
         std::string expectedStdout = "0\n1\n2\n3\n4\n";
         TEST_E2E_OBLOCK("forLoop", {5}, {5}, expectedStdout);
+        expectedStdout = "0\n1\n2\n3\n4\n";
+        TEST_E2E_OBLOCK("whileLoop", {5}, {5}, expectedStdout);
+        expectedStdout = "0\n1\n2\n3\n";
+        TEST_E2E_OBLOCK("conditionalBreak", {5}, {5}, expectedStdout);
+        expectedStdout = "0\n1\n2\ntoo large!\ntoo large!\n";
+        TEST_E2E_OBLOCK("conditionalContinue", {5}, {5}, expectedStdout);
     }
 
     GROUP_TEST_F(E2ETest, HeapTests, ContainerAccess) {

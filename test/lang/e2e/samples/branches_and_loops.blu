@@ -4,7 +4,39 @@ oblock forLoop(int count) {
     }
 }
 
+oblock whileLoop(int count) {
+    int i = 0;
+    while (i < count) {
+        println(i);
+        i++;
+    }
+}
+
+oblock conditionalBreak(int count) {
+    int i = 0;
+    for (int i = 0; i < count; i++) {
+        println(i);
+        if (i > count / 2) {
+            break;
+        }
+    }
+}
+
+oblock conditionalContinue(int count) {
+    int i = 0;
+    for (int i = 0; i < count; i++) {
+        if (i > count / 2) {
+            println("too large!");
+            continue;
+        }
+        println(i);
+    }
+}
+
 setup() {
     virtual int count = 5;
     forLoop(count);
+    whileLoop(count);
+    conditionalBreak(count);
+    conditionalContinue(count);
 }

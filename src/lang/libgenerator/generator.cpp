@@ -189,12 +189,14 @@ BlsObject Generator::visit(AstNode::Statement::If& ast) {
 }
 
 BlsObject Generator::visit(AstNode::Statement::For& ast) {
+    // ensure we only break / continue the innermost loop
+    continueIndices.emplace();
+    breakIndices.emplace();
     auto& initStatement = ast.getInitStatement();
     if (initStatement.has_value()) {
         initStatement->get()->accept(*this);
     }
     uint16_t loopStart = instructions.size();
-    loopIndices.push(loopStart); // for use in continue JMP instructions
 
     auto& condition = ast.getCondition();
     INSTRUCTION::BRANCH* loopBranchInstruction = nullptr; // no branch needed if no condition provided
@@ -209,29 +211,43 @@ BlsObject Generator::visit(AstNode::Statement::For& ast) {
         statement->accept(*this);
     }
 
+    uint16_t incrementIndex = instructions.size();
     auto& incrementExpression = ast.getIncrementExpression();
     if (incrementExpression.has_value()) {
         incrementExpression->get()->accept(*this);
     }
     // maybe add a discard operation for the expression result
-    
+
     instructions.push_back(createJMP(loopStart));
     uint16_t endAddress = instructions.size();
     if (loopBranchInstruction) {
         loopBranchInstruction->address = endAddress;
     }
 
-    loopIndices.pop(); // in scope continue JMP instructions emitted, index no longer necessary
-    for (size_t i = 0; i < breakIndices.size(); i++) {  // set break JMP indices
-        auto& breakInstruction = instructions.at(breakIndices.top());
+    auto& loopContinues = continueIndices.top();
+    auto& loopBreaks = breakIndices.top();
+
+    for (size_t i = 0; i < loopContinues.size(); i++) {  // set continue JMP indices
+        auto& continueInstruction = instructions.at(loopContinues.top());
+        static_cast<INSTRUCTION::JMP&>(*continueInstruction).address = incrementIndex;
+        loopContinues.pop();
+    }
+
+    for (size_t i = 0; i < loopBreaks.size(); i++) {  // set break JMP indices
+        auto& breakInstruction = instructions.at(loopBreaks.top());
         static_cast<INSTRUCTION::JMP&>(*breakInstruction).address = endAddress;
-        breakIndices.pop();
+        loopBreaks.pop();
     }
     
+    continueIndices.pop();
+    breakIndices.pop();
     return 0;
 }
 
 BlsObject Generator::visit(AstNode::Statement::While& ast) {
+    // ensure we only break / continue the innermost loop
+    continueIndices.emplace();
+    breakIndices.emplace();
     std::optional<std::reference_wrapper<INSTRUCTION::JMP>> doJMPInstruction;
     if (ast.getType() == AstNode::Statement::While::LOOP_TYPE::DO) {
         auto jmpPtr = createJMP(0);
@@ -239,7 +255,6 @@ BlsObject Generator::visit(AstNode::Statement::While& ast) {
         instructions.push_back(std::move(jmpPtr));
     }
     uint16_t loopStart = instructions.size();
-    loopIndices.push(loopStart); // for use in continue JMP instructions
 
     ast.getCondition()->accept(*this);
     auto loopBranch = createBRANCH(0);
@@ -256,13 +271,23 @@ BlsObject Generator::visit(AstNode::Statement::While& ast) {
     uint16_t endAddress = instructions.size();
     loopBranchInstruction->address = endAddress;
 
-    loopIndices.pop(); // in scope continue JMP instructions emitted, index no longer necessary
-    for (size_t i = 0; i < breakIndices.size(); i++) {  // set break JMP indices
-        auto& breakInstruction = instructions.at(breakIndices.top());
-        static_cast<INSTRUCTION::JMP&>(*breakInstruction).address = endAddress;
-        breakIndices.pop();
+    auto& loopContinues = continueIndices.top();
+    auto& loopBreaks = breakIndices.top();
+
+    for (size_t i = 0; i < loopContinues.size(); i++) {  // set continue JMP indices
+        auto& continueInstruction = instructions.at(loopContinues.top());
+        static_cast<INSTRUCTION::JMP&>(*continueInstruction).address = loopStart;
+        loopContinues.pop();
     }
 
+    for (size_t i = 0; i < loopBreaks.size(); i++) {  // set break JMP indices
+        auto& breakInstruction = instructions.at(loopBreaks.top());
+        static_cast<INSTRUCTION::JMP&>(*breakInstruction).address = endAddress;
+        loopBreaks.pop();
+    }
+
+    continueIndices.pop();
+    breakIndices.pop();
     return 0;
 }
 
@@ -279,13 +304,13 @@ BlsObject Generator::visit(AstNode::Statement::Return& ast) {
 }
 
 BlsObject Generator::visit(AstNode::Statement::Continue& ast) {
-    uint16_t parentLoopIndex = loopIndices.top();
-    instructions.push_back(createJMP(parentLoopIndex));
+    continueIndices.top().push(instructions.size());
+    instructions.push_back(createJMP(0));
     return 0;
 }
 
 BlsObject Generator::visit(AstNode::Statement::Break& ast) {
-    breakIndices.push(instructions.size());
+    breakIndices.top().push(instructions.size());
     instructions.push_back(createJMP(0));
     return 0;
 }
