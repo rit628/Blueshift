@@ -10,14 +10,16 @@
 
 namespace BlsLang {
 
-    GROUP_TEST_F(E2ETest, MasterTrapTests, PrintString) {
-        std::string fileName = "print_string.blu";
+    GROUP_TEST_F(E2ETest, TrapTests, print) {
+        std::string fileName = "print.blu";
         TEST_E2E_SOURCE(fileName);
         auto T1 = createBlsType(TypeDef::TIMER_TEST());
         std::string expectedStdout = "A string.\n";
         TEST_E2E_OBLOCK("printString", {T1}, {T1}, expectedStdout);
         expectedStdout = "A string. Another string.\n";
         TEST_E2E_OBLOCK("printAppendedString", {T1}, {T1}, expectedStdout);
+        expectedStdout = "arg1 arg2\n";
+        TEST_E2E_OBLOCK("printMultiArg", {T1}, {T1}, expectedStdout);
     }
 
     GROUP_TEST_F(E2ETest, ExecutionTests, BinaryOperations) {
