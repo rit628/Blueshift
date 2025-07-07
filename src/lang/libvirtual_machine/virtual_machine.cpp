@@ -12,12 +12,19 @@
 
 using namespace BlsLang;
 
-void VirtualMachine::transform(size_t oblockOffset, std::vector<BlsType>& deviceStates) {
+void VirtualMachine::setOblockOffset(size_t oblockOffset) {
+    this->oblockOffset = oblockOffset;
+}
+
+std::vector<BlsType> VirtualMachine::transform(std::vector<BlsType> deviceStates) {
     instruction = oblockOffset;
     signal = SIGNAL::START;
     cs.pushFrame(instruction, deviceStates);
     dispatch();
+    auto transformedStates = cs.extractLocals();
+    transformedStates.resize(deviceStates.size());
     cs.popFrame();
+    return transformedStates;
 }
 
 void VirtualMachine::CALL(uint16_t address, uint8_t argc, int) {
@@ -69,7 +76,7 @@ void VirtualMachine::MKTYPE(uint8_t index, uint8_t type, int) {
 
 void VirtualMachine::STORE(uint8_t index, int) {
     auto value = cs.popOperand();
-    cs.getLocal(index) = value;
+    cs.getLocal(index).assign(value);
 }
 
 void VirtualMachine::LOAD(uint8_t index, int) {
@@ -81,7 +88,7 @@ void VirtualMachine::ASTORE(int) {
     auto value = cs.popOperand();
     auto index = cs.popOperand();
     auto object = cs.popOperand();
-    std::get<std::shared_ptr<HeapDescriptor>>(object)->access(index) = value;
+    std::get<std::shared_ptr<HeapDescriptor>>(object)->access(index).assign(value);
 }
 
 void VirtualMachine::ALOAD(int) {

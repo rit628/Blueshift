@@ -279,7 +279,7 @@ if(NOT CMAKE_CROSSCOMPILING)
     file(GLOB_RECURSE LANG_E2E_TESTS ${LANG_TEST_DIR}/e2e/*.cpp)
     add_executable(test_lang ${LANG_E2E_TESTS})
     target_include_directories(test_lang PUBLIC ${TEST_DEPS} ${LANG_COMMON} ${LANG_SRC_DIR})
-    target_link_libraries(test_lang compiler lang_common GTest::gtest_main)
+    target_link_libraries(test_lang compiler virtual_machine lang_common GTest::gtest_main)
 
     # MASTER TESTS
     file(GLOB_RECURSE LIBTSM_TESTS ${MASTER_TEST_DIR}/libTSM/*.cpp)

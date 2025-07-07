@@ -1,5 +1,6 @@
 #include "bls_types.hpp"
 #include "typedefs.hpp"
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -23,43 +24,55 @@ concept BinaryOperable = !(TypeDef::Boolean<T> || TypeDef::Boolean<U>);
 
 template<typename T, typename U>
 concept WeaklyComparable = requires(T a, U b) {
-  { a == b };
-  { a != b };
+  { a == b } -> std::convertible_to<bool>;
+  { a != b } -> std::convertible_to<bool>;
 };
 
 template<typename T, typename U>
 concept Comparable = requires(T a, U b) {
-  { a < b };
-  { a <= b };
-  { a > b };
-  { a >= b };
+  { a < b } -> std::convertible_to<bool>;
+  { a <= b } -> std::convertible_to<bool>;
+  { a > b } -> std::convertible_to<bool>;
+  { a >= b } -> std::convertible_to<bool>;
 }
 && WeaklyComparable<T, U>
 && BinaryOperable<T, U>;
 
 template<typename T, typename U>
 concept Addable = requires(T a, U b) {
-  { a + b };
+  { a + b } -> std::convertible_to<T>;
 }
 && BinaryOperable<T, U>;
 
 template<typename T, typename U>
 concept Subtractable = requires(T a, U b) {
-  { a - b };
+  { a - b } -> std::convertible_to<T>;
 }
 && BinaryOperable<T, U>;
 
 template<typename T, typename U>
 concept Multiplicable = requires(T a, U b) {
-  { a * b };
+  { a * b } -> std::convertible_to<T>;
 }
 && BinaryOperable<T, U>;
 
 template<typename T, typename U>
 concept Divisible = requires(T a, U b) {
-  { a / b };
+  { a / b } -> std::convertible_to<T>;
 }
 && BinaryOperable<T, U>;
+
+BlsType& BlsType::assign(const BlsType& rhs) {
+    std::visit([](auto& a, const auto& b) -> void {
+        if constexpr (WeaklyComparable<decltype(a), decltype(b)>) {
+            a = b;
+        }
+        else {
+            throw std::runtime_error("Lhs and Rhs are not assignable.");
+        }
+    }, *this, rhs);
+    return *this;
+}
 
 BlsType::operator bool() const {
     return std::visit([](const auto& a) -> bool {
@@ -223,7 +236,7 @@ BlsType operator/(const BlsType& lhs, const BlsType& rhs) {
                     throw std::runtime_error("Error: dividing by zero.");
                 }
             }
-            return a / b;
+            return double(a) / double(b);
         }
         else {
             throw std::runtime_error("Lhs and Rhs are not divisible.");

@@ -81,6 +81,8 @@ class MapDescriptor;
 
 struct BlsType : std::variant<std::monostate, bool, int64_t, double, std::string, std::shared_ptr<HeapDescriptor>> {
   using std::variant<std::monostate, bool, int64_t, double, std::string, std::shared_ptr<HeapDescriptor>>::variant;
+  // Strongly typed assignment for use in interpreter, analyzer, and vm (may be switched to assignment overload later) 
+  BlsType& assign(const BlsType& rhs);
   explicit operator bool() const;
   explicit operator double() const;
   explicit operator int64_t() const;

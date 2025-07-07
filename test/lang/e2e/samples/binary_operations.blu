@@ -1,0 +1,36 @@
+oblock add(int intResult, float floatResult) {
+    int a = 9;
+    int b = 10;
+    intResult = a + b + 2;
+    floatResult = a + b + 2.1;
+}
+
+oblock subtract(int intResult, float floatResult) {
+    int a = 9;
+    int b = 10;
+    intResult = a - b;
+    floatResult = a - b - 5.28;
+}
+
+oblock multiply(int intResult, float floatResult) {
+    int a = 9;
+    int b = 10;
+    intResult = a * b;
+    floatResult = a * b * .5;
+}
+
+oblock divide(int intResult, float floatResult) {
+    int a = 9;
+    int b = 10;
+    intResult = a / b;
+    floatResult = a / b;
+}
+
+setup() {
+    virtual int intResult = 0;
+    virtual float floatResult = 0;
+    add(intResult, floatResult);
+    subtract(intResult, floatResult);
+    multiply(intResult, floatResult);
+    divide(intResult, floatResult);
+}

@@ -343,11 +343,9 @@ BlsObject Analyzer::visit(AstNode::Statement::Declaration& ast) {
         if (!typeCompatible(typedObj, literal)) {
             throw SemanticError("Invalid initialization for declaration");
         }
-        cs.addLocal(name, literal);
+        typedObj.assign(literal);
     }
-    else {
-        cs.addLocal(name, typedObj);
-    }
+    cs.addLocal(name, typedObj);
     ast.getLocalIndex() = cs.getLocalIndex(name);
     return std::monostate();
 }
@@ -429,31 +427,31 @@ BlsObject Analyzer::visit(AstNode::Expression::Binary& ast) {
         break;
 
         case BINARY_OPERATOR::ASSIGN:
-            return lhs = rhs;
+            return lhs.assign(rhs);
         break;
 
         case BINARY_OPERATOR::ASSIGN_ADD:
-            return lhs = lhs + rhs;
+            return lhs.assign(lhs + rhs);
         break;
 
         case BINARY_OPERATOR::ASSIGN_SUB:
-            return lhs = lhs - rhs;
+            return lhs.assign(lhs - rhs);
         break;
 
         case BINARY_OPERATOR::ASSIGN_MUL:
-            return lhs = lhs * rhs;
+            return lhs.assign(lhs * rhs);
         break;
 
         case BINARY_OPERATOR::ASSIGN_DIV:
-            return lhs = lhs / rhs;
+            return lhs.assign(lhs / rhs);
         break;
 
         case BINARY_OPERATOR::ASSIGN_MOD:
-            return lhs = lhs % rhs;
+            return lhs.assign(lhs % rhs);
         break;
 
         case BINARY_OPERATOR::ASSIGN_EXP:
-            return lhs = lhs ^ rhs;
+            return lhs.assign(lhs ^ rhs);
         break;
 
         default:
@@ -487,24 +485,24 @@ BlsObject Analyzer::visit(AstNode::Expression::Unary& ast) {
 
         case UNARY_OPERATOR::INC:
             if (position == AstNode::Expression::Unary::OPERATOR_POSITION::PREFIX) {
-                object = object + int64_t(1);
+                object.assign(object + 1);
                 return object;
             }
             else {
                 auto objCopy = object;
-                object = object + int64_t(1);
+                object.assign(object + 1);
                 return objCopy;
             }
         break;
 
         case UNARY_OPERATOR::DEC:
             if (position == AstNode::Expression::Unary::OPERATOR_POSITION::PREFIX) {
-                object = object - int64_t(1);
+                object.assign(object - 1);
                 return object;
             }
             else {
                 auto objCopy = object;
-                object = object - int64_t(1);
+                object.assign(object - 1);
                 return objCopy;
             }
         break;

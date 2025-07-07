@@ -58,6 +58,7 @@ namespace BlsLang {
             BlsType popOperand() requires IntAddressable<T>;
             void addLocal(T index, BlsType value);
             BlsType& getLocal(T index);
+            Frame::container_t&& extractLocals();
             bool checkContext(Frame::Context context) requires StringAddressable<T>;
             const std::string& getFrameName() requires StringAddressable<T>;
             uint8_t getLocalIndex(T index) requires StringAddressable<T>;
@@ -156,6 +157,16 @@ namespace BlsLang {
         }
         else {
             return cs.top().locals[index];
+        }
+    }
+
+    template<StackType T>
+    CallStack<T>::Frame::container_t&& CallStack<T>::extractLocals() {
+        if constexpr (std::is_same<T, std::string>()) {
+            return std::move(cs.back().locals);
+        }
+        else {
+            return std::move(cs.top().locals);
         }
     }
 
