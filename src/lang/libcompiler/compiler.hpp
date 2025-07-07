@@ -2,11 +2,14 @@
 #include "ast.hpp"
 #include "include/Common.hpp"
 #include "libgenerator/generator.hpp"
+#include "dependency_graph.hpp"
 #include "liblexer/lexer.hpp"
 #include "libparser/parser.hpp"
 #include "libinterpreter/interpreter.hpp"
 #include "libanalyzer/analyzer.hpp"
 #include "libdepgraph/depgraph.hpp"
+#include "libsymgraph/symgraph.hpp"
+#include "libdivider/divider.hpp"
 #include "token.hpp"
 #include <memory>
 #include <vector>
@@ -24,7 +27,9 @@ namespace BlsLang {
             void compileSource(const std::string& source);
             auto& getOblocks() { return oblocks; }
             auto& getOblockDescriptors() { return oblockDescriptors; }
-        
+            auto getOblockContexts(){return depGraph.getOblockMap();}
+            auto getGlobalContext() {return depGraph.getGlobalContext();}
+            
         private:
             std::ostream& outputStream;
             std::vector<Token> tokens;
@@ -32,8 +37,11 @@ namespace BlsLang {
             Lexer lexer;
             Parser parser;
             Analyzer analyzer;
+            DepGraph depGraph;
             Generator generator;
             Interpreter masterInterpreter;
+            Symgraph symGraph; 
+            Divider divider; 
             std::vector<Interpreter> euInterpreters;
             std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks;
             std::vector<OBlockDesc> oblockDescriptors;

@@ -2,7 +2,11 @@
 
 #include "libTSQ/TSQ.hpp"
 #include "include/Common.hpp"
+#include "../../lang/libinterpreter/interpreter.hpp"
+#include "libScheduler/Scheduler.hpp"
+#include "../../lang/common/ast.hpp"
 #include "libtype/bls_types.hpp"
+#include "libTSM/TSM.hpp"
 #include <unordered_map>
 #include <thread>
 #include <memory>
@@ -21,33 +25,53 @@ class ExecutionUnit
     vector<string> devices;
     vector<bool> isVtype;
     vector<string> controllers;
-    TSQ<vector<HeapMasterMessage>> EUcache;
+    TSQ<EMStateMessage> EUcache;
     thread executionThread;
     bool stop = false;
     std::unordered_map<std::string, int> devicePositionMap; 
+    DeviceScheduler& globalScheduler; 
+    // Contains the states to be replaced whikle the device is waiting for write access
+    TSM<DeviceID, HeapMasterMessage> replacementCache; 
 
-    ExecutionUnit(OBlockDesc OblockData, vector<string> devices, vector<bool> isVtype, vector<string> controllers, TSQ<HeapMasterMessage> &sendMM, function<vector<BlsType>(vector<BlsType>)>  transform_function);
+    ExecutionUnit(OBlockDesc OblockData, 
+    vector<string> devices, 
+    vector<bool> isVtype, vector<string> controllers, 
+    TSQ<HeapMasterMessage> &sendMM,  
+    function<vector<BlsType>(vector<BlsType>)>  transform_function, DeviceScheduler &devSchedule);
+   
+    // Get the trigger name
+    std::string TriggerName = ""; 
+    
+
+    
     void running( TSQ<HeapMasterMessage> &sendMM);
+    // Replaced cached states while devices are read from
+    void replaceCachedStates(std::unordered_map<DeviceID, HeapMasterMessage> &cachedHMMs); 
    
     function<vector<BlsType>(vector<BlsType>)>  transform_function;
     ~ExecutionUnit();
 };
 
+
+
+
 class ExecutionManager
 {
     public:
     //ExecutionManager() = default;
-    ExecutionManager(vector<OBlockDesc> OblockList, TSQ<vector<HeapMasterMessage>> &readMM, 
+    ExecutionManager(vector<OBlockDesc> OblockList, TSQ<EMStateMessage> &readMM, 
         TSQ<HeapMasterMessage> &sendMM, 
-        std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks);
+        std::unordered_map<std::string, 
+        std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks);
 
     ExecutionUnit &assign(HeapMasterMessage DMM);
 
     void running();
 
-    TSQ<vector<HeapMasterMessage>> &readMM;
+    TSQ<EMStateMessage> &readMM;
     TSQ<HeapMasterMessage> &sendMM;
     unordered_map<string, unique_ptr<ExecutionUnit>> EU_map;
     vector<OBlockDesc> OblockList;
+    DeviceScheduler scheduler; 
 };
 

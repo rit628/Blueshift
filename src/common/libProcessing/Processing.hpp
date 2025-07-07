@@ -1,28 +1,16 @@
-#pragma once
-
-#include "include/Common.hpp"
-#include "libTSQ/TSQ.hpp"
-#include "libDM/DynamicMessage.hpp"
-#include "libEM/EM.hpp"
-#include "libtype/bls_types.hpp"
-#include <algorithm>
+#pragma once 
 #include <bitset>
-#include <condition_variable>
-#include <mutex>
-#include <unordered_map>
-#include <unordered_set>
 #include <memory>
+#include <unordered_map>
+#include <unordered_set> 
+#include "include/Common.hpp"
 #include <string>
-#include <vector>
+#include "libTSQ/TSQ.hpp"
+#include "libtype/bls_types.hpp"
 
 
-
-using namespace std;
-
-using OblockID = std::string;
-using DeviceID = std::string; 
-
-# define MAX_EM_QUEUE_FILL 10 
+#define BITSET_SZ 32
+#define MAX_EM_QUEUE_FILL 10 
  
 /*
     Contains a single dmsg (without needing the )
@@ -50,67 +38,53 @@ struct AtomicDMMContainer{
         }
 }; 
 
-#define BITSET_SZ 32
-
 
 class TriggerManager{
     private:   
         std::bitset<BITSET_SZ> currentBitmap;  
         std::bitset<BITSET_SZ> initBitmap; 
         std::unordered_map<std::string, int> stringMap; 
-        std::vector<std::bitset<BITSET_SZ>> ruleset; 
-        std::vector<TriggerData> trigData; 
-        std::bitset<BITSET_SZ> defaultBitstring; 
+        std::unordered_set<std::bitset<BITSET_SZ>> ruleset; 
         
-
-
     public: 
         // Device Constructor (created rules)
         TriggerManager(OBlockDesc& OBlockDesc){
             int i = 0; 
-            for(DeviceDescriptor& devDesc : OBlockDesc.binded_devices){
-                stringMap[devDesc.device_name] = i; 
-                i++; 
+            for(DeviceDescriptor& devDesc : OBlockDesc.inDevices){
+                if(!devDesc.isVtype){
+                    stringMap[devDesc.device_name] = i; 
+                    i++; 
+                }
             }
 
             // Add the default universal bitset (all 1s): 
-            defaultBitstring = (1 << (i)) - 1; 
-            this->trigData = OBlockDesc.triggers; 
+            std::bitset<BITSET_SZ> defaultOption;
+            defaultOption = (1 << (i)) - 1; 
+            this->ruleset.insert(defaultOption); 
 
             // Loop through rules; 
-            for(auto& data : OBlockDesc.triggers)
-            {
-                auto& rule = data.rule;
+            for(auto& rule : OBlockDesc.triggers){
                 std::bitset<BITSET_SZ> king; 
-                for(auto& devName : rule){
+                for(auto& devName : rule.rule){
                     king.set(this->stringMap[devName]); 
                 }       
-                ruleset.push_back(king); 
+                ruleset.insert(king); 
             }
             
         }
 
         private: 
-            // Tests bit against ruleset and grab the trigger rule with highest priority: 
+            // Tests bit against ruleset: 
             bool testBit(int& id){
                 int i = 0; 
-                int max_priority = -1; 
                 for(auto& ruleBit : this->ruleset){
                     if((this->currentBitmap & ruleBit) == ruleBit){
-                        if(this->trigData[i].priority > max_priority){
-                            max_priority = this->trigData[i].priority;
-                            id = i; 
-                        }
+                        id = i; 
+                        return true;
                     }; 
                     i++; 
                 }
-
-                if(max_priority > 0 || (this->currentBitmap & this->defaultBitstring) == this->defaultBitstring){
-                    return true; 
-                }
-
-                // Check if the reultBit is the default (all devices)
-                return false;  
+                return false; 
             }
         public: 
             // Returns true if the new device corresponds to a trigger 
@@ -146,9 +120,16 @@ class TriggerManager{
 struct DeviceBox{
     std::shared_ptr<TSQ<HeapMasterMessage>> stateQueues;
     AtomicDMMContainer lastMessage; 
-    bool devDropRead = false; 
-    bool devDropWrite = false; 
+    bool devDropRead = false;  
     std::string deviceName; 
+
+    void insertState(HeapMasterMessage& dmm){
+        if(this->devDropRead){
+            this->stateQueues->clearQueue(); 
+        } 
+        this->stateQueues->write(dmm); 
+        this->lastMessage.replace(dmm); 
+    }
 }; 
 
 
@@ -160,19 +141,17 @@ struct ReaderBox
             Consists of the ordered list of all triggered events 
             to be queued up and sent to the execution manager
         */ 
-        std::vector<EMStateMessage> triggerCache; 
-        std::unordered_set<OblockID>& triggerSet; 
+        std::vector<std::vector<HeapMasterMessage>> triggerCache; 
         TriggerManager triggerMan; 
 
         bool callbackRecived;
         bool dropRead = false;
         bool dropWrite = true;
         bool statesRequested = false;
-        string OblockName;
+        std::string OblockName;
         bool pending_requests; 
         // used when forwarding packets to the EM when while the process is waiting for write permissions
         bool forwardPackets = false; 
-        OBlockDesc oblockDesc; 
 
 
         // Inserts the state into the object: 
@@ -198,43 +177,22 @@ struct ReaderBox
             targDev.stateQueues->write(newDMM); 
             targDev.lastMessage.replace(newDMM); 
 
+
             // Begin Trigger Analysis: 
             int triggerId = -1; 
             bool writeTrig = this->triggerMan.processDevice(newDMM.info.device, triggerId); 
-    
             if(writeTrig){
-                this->triggerSet.insert(this->OblockName); 
-                auto& trigInfo = this->oblockDesc.triggers[triggerId];
                 std::vector<HeapMasterMessage> trigEvent; 
-                
                 for(auto& [name, devBox] : this->waitingQs){
                     if(devBox.stateQueues->isEmpty()){
-                        auto newHmm = devBox.stateQueues->read(); 
-                        newHmm.info.oblock = this->OblockName; 
-                        newHmm.info.priority = trigInfo.priority; 
-                        trigEvent.push_back(newHmm); 
+                        trigEvent.push_back(devBox.stateQueues->read()); 
                     }
                     else{
-                        auto newHmm = devBox.lastMessage.get(); 
-                        newHmm.info.oblock = this->OblockName; 
-                        newHmm.info.priority = trigInfo.priority; 
-                        trigEvent.push_back(newHmm);
+                        trigEvent.push_back(devBox.lastMessage.get());
                     }
                 }
 
-                EMStateMessage ems; 
-                ems.dmm_list = trigEvent; 
-                if(trigInfo.id.has_value()){
-                    ems.TriggerName = trigInfo.id.value();  
-                }
-                else{
-                     ems.TriggerName = ""; 
-                }
-                ems.priority = trigInfo.priority; 
-                ems.oblockName = this->OblockName; 
-                ems.protocol = PROTOCOLS::SENDSTATES; 
-            
-                this->triggerCache.push_back(ems); 
+                this->triggerCache.push_back(trigEvent); 
             }
         }
 
@@ -245,58 +203,24 @@ struct ReaderBox
                 for(int i = 0; i < maxQueueSz; i++){
                     auto dmmVect = this->triggerCache.back(); 
                     // Update when trigger naming comes 
-                    auto ems = this->triggerCache.back(); 
                     this->triggerCache.pop_back(); 
+                    EMStateMessage ems; 
+                    ems.TriggerName = "NONE"; 
+                    ems.dmm_list = dmmVect; 
+                    ems.protocol = PROTOCOLS::SENDSTATES; 
+                    ems.priority = 1; 
+                    ems.oblockName = this->OblockName; 
                     sendEM.write(ems); 
                 }
             }   
         }   
 
-        ReaderBox(string name,  OBlockDesc& odesc, std::unordered_set<OblockID> &trigSet);
+        ReaderBox(bool dropRead, bool dropWrite, std::string name,  OBlockDesc& odesc)
+        : triggerMan(odesc)
+        {
+            this->dropRead = dropRead;
+            this->dropWrite = dropWrite;
+            this->OblockName = name;
+        }
     
 };
-
-struct WriterBox
-{
-    public:
-    TSQ<DynamicMasterMessage> waitingQ;
-    bool waitingForCallback = false;
-    string deviceName;
-    WriterBox(string deviceName);
-    WriterBox() = default;
-};
-
-
-
-class MasterMailbox
-{
-    public:
-    TSQ<DynamicMasterMessage> &readNM;
-    TSQ<HeapMasterMessage> &readEM;
-    TSQ<EMStateMessage> &sendEM;
-    TSQ<DynamicMasterMessage> &sendNM;
-    MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMessage> &readNM, TSQ<HeapMasterMessage> &readEM,
-         TSQ<DynamicMasterMessage> &sendNM, TSQ<EMStateMessage> &sendEM);
-    vector<OBlockDesc> OBlockList;
-    unordered_map<DeviceID, ControllerID> parentCont; 
-    static DynamicMasterMessage buildDMM(HeapMasterMessage &hmm); 
-    
-    // List of oblocks that were triggered (used to ensure intended-order execution for trigger groups)
-    std::unordered_set<OblockID> triggerSet; 
-    std::unordered_set<DeviceID> targetedDevices; 
-
-    // number of found requests 
-    int requestCount = 0;
-
-    unordered_map<OblockID, unique_ptr<ReaderBox>> oblockReadMap;
-    unordered_map<DeviceID, unique_ptr<WriterBox>> deviceWriteMap;
-    unordered_map<DeviceID, std::vector<OblockID>> interruptName_map;
-
-
-    TSQ<std::string> readRequest; 
-
-    void assignNM(DynamicMasterMessage DMM);
-    void assignEM(HeapMasterMessage DMM);
-    void runningNM();
-    void runningEM();
-}; 

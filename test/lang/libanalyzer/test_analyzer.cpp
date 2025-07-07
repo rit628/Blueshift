@@ -1570,7 +1570,6 @@ namespace BlsLang {
                         .dropRead = true
                     }
                 },
-                .dropRead = true,
                 .triggers = {
                     TriggerData{{"writer_1", "writer_2"}},
                     TriggerData{{"writer_3"}, "my trigger", 12}

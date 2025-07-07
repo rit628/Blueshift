@@ -7,6 +7,7 @@
 #include <functional>
 #include <unordered_map>
 
+
 using DMM = DynamicMasterMessage;
 
 
@@ -36,7 +37,34 @@ using DMM = DynamicMasterMessage;
 // }
 
 
+// Temporary fill until the divider is filly implemented
+void modifyOblockDesc(std::vector<OBlockDesc> &oDescs,  GlobalContext gcx){
+    std::unordered_map<DeviceID, DeviceDescriptor&> devDesc; 
+    for(auto& oblock : oDescs){
+        // Construct the device device desc map: 
+        std::unordered_map<DeviceID, DeviceDescriptor> devMap; 
+        for(auto& str : oblock.binded_devices){
+            devMap[str.device_name] = str; 
+        }
+
+        // Fill in the global context: 
+        auto& inMap = gcx.oblockConnections[oblock.name].inDeviceList; 
+        auto& outMap = gcx.oblockConnections[oblock.name].outDeviceList; 
+
+        for(auto &devId : inMap){
+            oblock.inDevices.push_back(devMap[devId]);
+        }
+
+        for(auto& devId : outMap){
+            oblock.outDevices.push_back(devMap[devId]); 
+        }   
+    }
+}
+
+
 int main(int argc, char *argv[]){
+
+    
     std::string filename;
 
     if(argc == 2){
@@ -56,9 +84,13 @@ int main(int argc, char *argv[]){
     std::vector<OBlockDesc> oblockDescriptors = compiler.getOblockDescriptors(); 
     auto oblocks = compiler.getOblocks();  
 
+    // Only temporary until symgraph is complete
+    modifyOblockDesc(oblockDescriptors, compiler.getGlobalContext()); 
+    
+
     // EM and MM
     TSQ<HeapMasterMessage> EM_MM_queue; 
-    TSQ<std::vector<HeapMasterMessage>> MM_EM_queue; 
+    TSQ<EMStateMessage> MM_EM_queue; 
     
     // NM and MM
     TSQ<DMM> NM_MM_queue; 
@@ -82,5 +114,6 @@ int main(int argc, char *argv[]){
     t1.join(); 
     t2.join(); 
     t3.join(); 
+    
     
 }

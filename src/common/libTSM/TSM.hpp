@@ -4,12 +4,13 @@
 #include <shared_mutex>
 #include <map>
 #include <optional>
+#include <unordered_map>
 
 template<typename Key, typename Value>
 class TSM
 {
     private:
-    std::map<Key, Value> map;
+    std::unordered_map<Key, Value> map;
     mutable std::shared_mutex mut;
     public:
     void insert(const Key& key, const Value& value) 
@@ -26,5 +27,22 @@ class TSM
             return it->second;
         }
         return std::nullopt;
+    }
+
+    int getSize(){
+        std::shared_lock<std::shared_mutex> lock(this->mut);
+        return this->map.size();  
+
+    }
+
+    bool contains(const Key& key){
+        std::shared_lock<std::shared_mutex> lock(this->mut); 
+        return this->map.contains(key); 
+    }
+
+    // Should be safe since it copies by value? 
+    std::unordered_map<Key, Value> getMap(){
+        std::shared_lock<std::shared_mutex> lock(this->mut); 
+        return this->map; 
     }
 };

@@ -83,6 +83,10 @@ add_compile_definitions(MASTER_PORT=$ENV{MASTER_PORT})
 file(GLOB_RECURSE LIBTSQ_SRC ${COMMON_SRC_DIR}/libTSQ/*.cpp)
 add_library(TSQ STATIC ${LIBTSQ_SRC})
 
+file(GLOB_RECURSE LIBTSM_SRC ${COMMON_SRC_DIR}/libTSM/*.cpp)
+add_library(TSM STATIC ${LIBTSM_SRC})
+
+
 file(GLOB_RECURSE LIBTYPE_SRC ${COMMON_SRC_DIR}/libtype/*.cpp)
 add_library(type STATIC ${LIBTYPE_SRC})
 target_include_directories(type PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
@@ -102,6 +106,11 @@ file(GLOB_RECURSE LIBNETWORK_SRC ${COMMON_SRC_DIR}/libnetwork/*.cpp)
 add_library(network STATIC ${LIBNETWORK_SRC})
 target_include_directories(network PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
 target_link_libraries(network TSQ ${BOOST_LIB_DEPS})
+
+file(GLOB_RECURSE LIBSCHEDULER_SRC ${COMMON_SRC_DIR}/libScheduler/*.cpp)
+add_library(scheduler STATIC ${LIBSCHEDULER_SRC})
+target_include_directories(scheduler PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
+target_link_libraries(scheduler TSQ ${BOOST_LIB_DEPS})
 
 file(GLOB_RECURSE LIBBYTECODE_SRC ${COMMON_SRC_DIR}/libbytecode/*.cpp)
 add_library(bytecode STATIC ${LIBBYTECODE_SRC})
@@ -144,6 +153,16 @@ add_library(depgraph STATIC ${LIBDEPGRAPH_SRC})
 target_include_directories(depgraph PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
 target_link_libraries(depgraph lang_common type ${BOOST_LIB_DEPS})
 
+file(GLOB_RECURSE LIBSYMGRAPH_SRC ${LANG_SRC_DIR}/libsymgraph/*.cpp)
+add_library(symgraph STATIC ${LIBSYMGRAPH_SRC})
+target_include_directories(symgraph PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
+target_link_libraries(symgraph depgraph lang_common type ${BOOST_LIB_DEPS})
+
+file(GLOB_RECURSE LIBDIVIDER_SRC ${LANG_SRC_DIR}/libdivider/*.cpp)
+add_library(divider STATIC ${LIBDIVIDER_SRC})
+target_include_directories(divider PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
+target_link_libraries(divider symgraph depgraph lang_common type ${BOOST_LIB_DEPS})
+
 file(GLOB_RECURSE LIBVIRTUALMACHINE_SRC ${LANG_SRC_DIR}/libvirtual_machine/*.cpp)
 add_library(virtual_machine STATIC ${LIBVIRTUALMACHINE_SRC})
 target_include_directories(virtual_machine PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
@@ -152,15 +171,12 @@ target_link_libraries(virtual_machine lang_common type bytecode trap ${BOOST_LIB
 file(GLOB_RECURSE LIBCOMPILER_SRC ${LANG_SRC_DIR}/libcompiler/*.cpp)
 add_library(compiler STATIC ${LIBCOMPILER_SRC})
 target_include_directories(compiler PUBLIC ${BLS_CONFIG} ${LANG_COMMON} ${LANG_SRC_DIR})
-target_link_libraries(compiler lang_common lexer parser interpreter analyzer generator ${BOOST_LIB_DEPS})
+target_link_libraries(compiler lang_common lexer parser interpreter analyzer generator depgraph symgraph divider ${BOOST_LIB_DEPS})
 
 add_executable(lang ${LANG_SRC_DIR}/main.cpp)
-target_link_libraries(lang compiler virtual_machine ${BOOST_LIB_DEPS})
+target_link_libraries(lang symgraph compiler virtual_machine ${BOOST_LIB_DEPS})
 
 # MASTER LIBS AND EXECUTABLE
-file(GLOB_RECURSE LIBTSM_SRC ${MASTER_SRC_DIR}/libTSM/*.cpp)
-add_library(TSM STATIC ${LIBTSM_SRC})
-
 file(GLOB_RECURSE LIBTICKER_SRC ${MASTER_SRC_DIR}/libTicker/*.cpp)
 add_library(ticker STATIC ${LIBTICKER_SRC})
 target_include_directories(ticker PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
@@ -169,7 +185,7 @@ target_link_libraries(ticker network TSQ ${BOOST_LIB_DEPS})
 file(GLOB_RECURSE LIBEM_SRC ${MASTER_SRC_DIR}/libEM/*.cpp)
 add_library(EM STATIC ${LIBEM_SRC})
 target_include_directories(EM PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${MASTER_SRC_DIR})
-target_link_libraries(EM TSM TSQ dynamic_message interpreter ${BOOST_LIB_DEPS})
+target_link_libraries(EM scheduler TSM TSQ dynamic_message interpreter ${BOOST_LIB_DEPS})
 
 file(GLOB_RECURSE LIBMM_SRC ${MASTER_SRC_DIR}/libMM/*.cpp)
 add_library(MM STATIC ${LIBMM_SRC})
@@ -196,10 +212,15 @@ add_library(device STATIC ${LIBDEVICE_SRC} $<TARGET_OBJECTS:drivers>)
 target_include_directories(device PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
 target_link_libraries(device network dynamic_message ${BOOST_LIB_DEPS} ${SYSTEM_LINK_LIBRARIES})
 
+file(GLOB_RECURSE LIBCLIENTGATEWAY_SRC ${CLIENT_SRC_DIR}/libClientGateway/*.cpp)
+add_library(client_gateway STATIC ${LIBCLIENTGATEWAY_SRC})
+target_include_directories(client_gateway PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${CLIENT_SRC_DIR})
+target_link_libraries(client_gateway network device virtual_machine bytecode ${BOOST_LIB_DEPS})
+
 file(GLOB_RECURSE LIBCE_SRC ${CLIENT_SRC_DIR}/libCE/*.cpp)
 add_library(client_engine STATIC ${LIBCE_SRC})
 target_include_directories(client_engine PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${CLIENT_SRC_DIR})
-target_link_libraries(client_engine network device ${BOOST_LIB_DEPS})
+target_link_libraries(client_engine network device client_gateway ${BOOST_LIB_DEPS})
 
 add_executable(client ${CLIENT_SRC_DIR}/main.cpp)
 target_include_directories(client PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_SRC_DIR})
@@ -262,7 +283,7 @@ if(NOT CMAKE_CROSSCOMPILING)
     # MASTER TESTS
     file(GLOB_RECURSE LIBTSM_TESTS ${MASTER_TEST_DIR}/libTSM/*.cpp)
     add_executable(test_libTSM ${LIBTSM_TESTS})
-    target_include_directories(test_libTSM PUBLIC ${TEST_DEPS} ${MASTER_SRC_DIR}/libTSM)
+    target_include_directories(test_libTSM PUBLIC ${TEST_DEPS} ${COMMON_SRC_DIR}/libTSM)
     target_link_libraries(test_libTSM TSM GTest::gtest_main)
 
     file(GLOB_RECURSE LIBEM_TESTS ${MASTER_TEST_DIR}/libEM/*.cpp)

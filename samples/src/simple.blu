@@ -1,18 +1,11 @@
-void main() {
-    return;
-}
+oblock main(LINE_WRITER dev, dev2) {
+        
 
-oblock test() {
-    //!true;
 
-    //int i;
-    //i = 2 + 3 - 10;
-    //float j = 3.33;
-    //j += 1;
-    int k;
-    ++k;
+
 }
 
 setup() {
-
+    LINE_WRITER manat = "mamal::file-file1.txt";
+    main(manat);
 }

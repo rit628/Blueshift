@@ -296,11 +296,18 @@ AstNode::Expression::Binary::Binary(const AstNode::Expression::Binary& other) {
 }
 
 /* AstNode::Statement::Expression */
-AstNode::Statement::Expression::Expression(std::unique_ptr<AstNode::Expression> expression) : expression(std::move(expression)) {}
+AstNode::Statement::Expression::Expression(std::unique_ptr<AstNode::Expression> expression
+                                         , std::unordered_set<std::string> controllerSplit)
+                                         : AstNode::Statement(std::move(controllerSplit))
+                                         , expression(std::move(expression)) {}
 
-AstNode::Statement::Expression::Expression(AstNode::Expression* expression) : expression(expression) {}
+AstNode::Statement::Expression::Expression(AstNode::Expression* expression
+                                         , std::unordered_set<std::string> controllerSplit)
+                                         : AstNode::Statement(std::move(controllerSplit))
+                                         , expression(std::move(expression)) {}
 
 AstNode::Statement::Expression::Expression(const AstNode::Statement::Expression& other) {
+    this->controllerSplit = other.controllerSplit;
     this->expression = other.expression->cloneBase();
 }
 
@@ -330,6 +337,7 @@ AstNode::Statement::Declaration::Declaration(std::string name
                                            {}
             
 AstNode::Statement::Declaration::Declaration(const AstNode::Statement::Declaration& other) {
+    this->controllerSplit = other.controllerSplit;
     this->name = other.name;
     this->modifiers = other.modifiers;
     this->type = std::make_unique<AstNode::Specifier::Type>(*other.type);
@@ -346,6 +354,7 @@ AstNode::Statement::Return::Return(std::optional<std::unique_ptr<AstNode::Expres
 AstNode::Statement::Return::Return(AstNode::Expression* value) : value(value) {}
 
 AstNode::Statement::Return::Return(const AstNode::Statement::Return& other) {
+    this->controllerSplit = other.controllerSplit;
     this->value = std::nullopt;
     if (other.value.has_value()) {
         this->value = (*other.value)->cloneBase();
@@ -374,6 +383,7 @@ AstNode::Statement::While::While(AstNode::Expression* condition
 }
             
 AstNode::Statement::While::While(const AstNode::Statement::While& other) {
+    this->controllerSplit = other.controllerSplit;
     this->condition = other.condition->cloneBase();
     for (auto&& stmt : other.block) {
         this->block.push_back(stmt->cloneBase());
@@ -406,6 +416,7 @@ AstNode::Statement::For::For(std::optional<AstNode::Statement*> initStatement
 }
             
 AstNode::Statement::For::For(const AstNode::Statement::For& other) {
+    this->controllerSplit = other.controllerSplit;
     this->initStatement = std::nullopt;
     if (other.initStatement.has_value()) {
         this->initStatement = (*other.initStatement)->cloneBase();
@@ -452,6 +463,7 @@ AstNode::Statement::If::If(AstNode::Expression* condition
 }
             
 AstNode::Statement::If::If(const AstNode::Statement::If& other) {
+    this->controllerSplit = other.controllerSplit;
     this->condition = other.condition->cloneBase();
     for (auto&& stmt : other.block) {
         this->block.push_back(stmt->cloneBase());

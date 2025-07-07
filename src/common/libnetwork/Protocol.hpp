@@ -23,13 +23,17 @@ enum class Protocol : uint8_t{
     CONFIG_INFO, 
     CONFIG_OK, 
 
-    // (Master -> Client)
+    // (Master -> Client) or 
     STATE_CHANGE, 
     TICKER_UPDATE, 
     BEGIN, 
     SHUTDOWN, 
     TICKER_INITIAL, 
     MASTER_ERROR, 
+    OWNER_CANDIDATE_REQUEST, 
+    OWNER_CANDIDATE_REQUEST_CONCLUDE, 
+    OWNER_RELEASE, 
+    OWNER_CONFIRM, 
 
     // (Client -> Master)
     CONFIG_NAME, 
@@ -37,6 +41,14 @@ enum class Protocol : uint8_t{
     SEND_STATE, 
     CALLBACK, 
     CLIENT_ERROR, 
+    OWNER_GRANT, 
+    OWNER_CONFIRM_OK,
+
+    // Controller to Controller (peer to peer) or self
+    SEND_ARGUMENT, 
+
+    
+
 
     // Client Loop back
     CONNECTION_LOST 
@@ -84,8 +96,12 @@ struct SentHeader{
     uint16_t ctl_code = 0; 
     uint8_t device_code = 0; 
     uint32_t body_size = 0; 
-    uint16_t timer_id = 0; 
+    uint16_t timer_id = 0;
     ERROR_T ec = ERROR_T::BAD_DEV_CONFIG; 
+
+    // Used to communicate about oblock ownership between master and client
+    uint16_t oblock_id = 0;
+    uint8_t oblock_priority = 0; 
 
     bool fromInterrupt = false; 
 

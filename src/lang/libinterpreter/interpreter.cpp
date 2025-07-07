@@ -360,24 +360,24 @@ BlsObject Interpreter::visit(AstNode::Expression::Unary& ast) {
 
         case UNARY_OPERATOR::INC:
             if (position == AstNode::Expression::Unary::OPERATOR_POSITION::PREFIX) {
-                object = object + 1;
+                object = object + int64_t(1);
                 return object;
             }
             else {
                 auto objCopy = object;
-                object = object + 1;
+                object = object + int64_t(1);
                 return objCopy;
             }
         break;
 
         case UNARY_OPERATOR::DEC:
             if (position == AstNode::Expression::Unary::OPERATOR_POSITION::PREFIX) {
-                object = object - 1;
+                object = object - int64_t(1);
                 return object;
             }
             else {
                 auto objCopy = object;
-                object = object - 1;
+                object = object - int64_t(1);
                 return objCopy;
             }
         break;

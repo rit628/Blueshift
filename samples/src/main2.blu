@@ -1,32 +1,62 @@
-
-oblock fun2(LINE_WRITER lw1, LIGHT king)
-: triggerOn(lw1)
+oblock task(LINE_WRITER lw, READ_FILE rfp, FILE_LOG log)
+: triggerOn({"id": "name1", "rule" : lw, "priority" : 20})
 {
-    if(lw1.msg == "right "){
-        print("PROGMESSAGE: from line writer 1"); 
-    }
+    string textMessage = lw.msg; 
+    list<string> availNames = ["ROHAN ", "COLIN ", "TOMAS ", "THOMAS "]; 
+    int k = 0; 
+    print("This ran!"); 
 
-    king.on = !king.on;
+    for(int i = 0 ; i < 4; i++){
+        string omar = rfp.msg; 
+        if(omar == availNames[i]){
+            k = 1;  
+
+            if(k == 1){
+                println("Please print"); 
+            }
+
+            println("FOUND NAME"); 
+            log.add_msg = textMessage + "from: " + availNames[i] + " (priority 20)"; 
+        }
+    }
+    
+    if(k == 0){
+        log.add_msg = textMessage + " from uknown sender " +  " (priority 20)";
+    }   
+}
+
+// Expecting multiple devices
+
+oblock task2(LINE_WRITER lw, FILE_LOG log1, int k)
+: triggerOn({"id":"basic", "rule" : lw, "priority" : 8}, {"rule" : k, "priority" : 4})
+{
+    log1.add_msg = "This is from task2 (priority 8)"; 
 }
 
 
-oblock fun1(LINE_WRITER lw2, LINE_WRITER lw3, LIGHT king)
-: triggerOn(lw2, [king, lw3])
-{   
-    if(king.on){
-        print("PROGMESSAGE: The light is on"); 
-    }
-    else{
-        print("PROGMESSAGE: This light is off");
-    }
+oblock task3(LINE_WRITER lw, FILE_LOG fl, int k)
+: triggerOn({"id" : "t3", "rule" : lw, "priority" : 5}, {"rule" : k, "priority" : 8})
+{
+    fl.add_msg = "Im on crack " + lw.msg + " priority 5 "; 
 }
+
+oblock task4(READ_FILE omar, int k)
+: triggerOn(omar)
+{
+    k = k + 1; 
+}
+
 
 setup(){   
-    virtual LIGHT king = "MASTER::GPIO-192"; 
-    LINE_WRITER lw1 = "CTL1::file-file1.txt";
-    LINE_WRITER lw2 = "CTL1::file-file2.txt"; 
-    LINE_WRITER lw3 = "CTL1::file-omar.txt"; 
+    virtual int k; 
+    LINE_WRITER lw = "CTL1::file-file1.txt";
+    READ_FILE omar = "CTL1::file-omar.txt";
+    READ_FILE hello = "CTL1::file-Hello.txt"; 
+    FILE_LOG log = "CTL1::file-logfile.txt";
+    FILE_LOG log2 = "CTL1::file-logfile2.txt"; 
 
-    fun2(lw1, king);
-    fun1(lw2, lw3, king); 
+    task(lw, omar, log); 
+    task2(lw, log, k); 
+    task3(lw, log, k); 
+    task4(omar, k); 
 }

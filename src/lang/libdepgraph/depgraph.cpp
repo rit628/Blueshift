@@ -1,5 +1,4 @@
 #include "depgraph.hpp"
-#include "print_visitor.hpp"
 
 #include <stdexcept>
 
@@ -68,6 +67,7 @@ BlsObject DepGraph::visit(AstNode::Source& ast) {
     auto& oblockList = ast.getOblocks(); 
     for(auto& oblock : oblockList){
         oblock->accept(*this); 
+        this->oblockCtxList.push_back(this->oblockCtx); 
         clearOblockCtx(); 
     }
 
@@ -86,7 +86,6 @@ BlsObject DepGraph::visit(AstNode::Function::Oblock& ast){
     auto& name = ast.getName(); 
     this->oblockCtx.operatingOblock = name; 
     auto& params = ast.getParameters(); 
-
 
     if(this->globalCtx.oblockConnections.contains(name)){
 

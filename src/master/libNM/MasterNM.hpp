@@ -11,7 +11,8 @@
 
 using boost::asio::ip::tcp; 
 using boost::asio::ip::udp; 
-using DMM = DynamicMasterMessage;
+using DMM = DynamicMasterMessage; 
+
 
 class MasterNM{
     private: 
@@ -81,8 +82,6 @@ class MasterNM{
         // Transfer the items
         void sendInitialTicker(std::shared_ptr<Connection> &client_con); 
 
-        
-
     public:     
         MasterNM(std::vector<OBlockDesc> &descs, TSQ<DMM> &in_que, TSQ<DMM> &out_q); 
         ~MasterNM(); 
@@ -90,5 +89,5 @@ class MasterNM{
         void stop(); 
         void makeBeginCall();
 
-  
+
 }; 

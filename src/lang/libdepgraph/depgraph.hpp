@@ -1,20 +1,10 @@
+
 #pragma once
-#include "binding_parser.hpp"
-#include "libtype/bls_types.hpp"
-#include "call_stack.hpp"
 #include "ast.hpp"
-#include "error_types.hpp"
-#include "include/Common.hpp"
 #include "print_visitor.hpp"
-#include "visitor.hpp"
-#include <cstdint>
-#include <functional>
 #include <memory>
-#include <stdexcept>
 #include <string>
-#include <typeinfo>
 #include <unordered_map>
-#include <variant>
 #include <vector>
 #include <unordered_set>
 
@@ -73,12 +63,25 @@ namespace BlsLang{
             SetupContext setupCtx; 
             GlobalContext globalCtx; 
 
+            // Oblock List: 
+            std::vector<OblockContext> oblockCtxList;
+
             //utility functions: 
             void clearOblockCtx(); 
             bool isDevice(const SymbolID &candidate); 
 
         public: 
-            DepGraph() : Printer(std::cout){}; 
+
+        DepGraph() : Printer(std::cout){}; 
+
+            std::unordered_map<OblockID, OblockContext> getOblockMap(){
+                std::unordered_map<OblockID, OblockContext> sysCtx; 
+                for(auto& oblock : this->oblockCtxList){
+                    sysCtx[oblock.operatingOblock] = oblock;  
+                }
+                return sysCtx; 
+            }
+
         
             /*
             #define AST_NODE_ABSTRACT(...)
@@ -90,6 +93,7 @@ namespace BlsLang{
             */ 
 
             GlobalContext& getGlobalContext();
+            OblockContext& getOblockContext(){return this->oblockCtx;}
             // Debug Helpers: 
             void printGlobalContext(); 
 

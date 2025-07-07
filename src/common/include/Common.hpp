@@ -10,6 +10,11 @@
 #include <variant>
 #include <vector>
 
+using ControllerID = std::string; 
+using DeviceID = std::string; 
+using OblockID = std::string; 
+
+
 enum class PROTOCOLS
 {
     // both: 
@@ -17,10 +22,23 @@ enum class PROTOCOLS
 
     // EM -> MM
     REQUESTINGSTATES,
+    OWNER_CANDIDATE_REQUEST, 
+    OWNER_CANDIDATE_REQUEST_CONCLUDE, 
+    OWNER_CONFIRM, 
+    OWNER_RELEASE, 
 
+  
     // NM -> MM
     CALLBACKRECIEVED,
+
+    //MM -> EM
+    OWNER_GRANT, 
+    OWNER_CONFIRM_OK, 
+
+    // MM->EM (Forward data to a waiting device)
+    WAIT_STATE_FORWARD
    
+
 };
 
 enum class PORTTYPE{
@@ -49,10 +67,10 @@ struct DeviceDescriptor{
         If the device is registered as a trigger then the exeuction of 
         the oblock is binded to the arrival of the devices state. 
     */ 
-    bool isTrigger = true; 
 
     /* Driver Configuration Attributes */
     bool isInterrupt = false;
+    bool isCursor = false;
 
     template<typename Archive>
     void serialize(Archive& ar, const unsigned int version) {
@@ -75,7 +93,7 @@ struct DeviceDescriptor{
 struct TriggerData {
     std::vector<std::string> rule;
     std::optional<std::string> id = std::nullopt;
-    uint8_t priority = 1;
+    uint16_t priority = 1;
 
     template<typename Archive>
     void serialize(Archive& ar, const unsigned int version) {
@@ -97,41 +115,17 @@ struct OBlockDesc{
     std::string name; 
     std::vector<DeviceDescriptor> binded_devices; 
     int bytecode_offset = 0; 
-    //std::vector<DeviceDescriptor> inDevices; 
-    //std::vector<DeviceDescriptor> outDevices; 
+    std::vector<DeviceDescriptor> inDevices;
+    std::vector<DeviceDescriptor> outDevices; 
 
-    // Reading Config
-
-    /*
-        dropRead :if true -> only read all recieving states once Oblock execution is finished, drop all others
-        dropWrite: if true -> Only write to mailbox with the callback is open: 
-    */
-
-    bool dropRead = false; 
-    bool dropWrite = false; 
     std::vector<TriggerData> triggers = {};
-
-    // Configuration (all time in milliseconds)
-
-    /*
-        Synchronize State: Block until all states of refreshed (true for now)
-    */
-    bool synchronize_states = false;
-    /* 
-    If custom descriptor is false then all incoming device states are 
-    triggers
-    */ 
-    bool customTriggers = false; 
 
     template<typename Archive>
     void serialize(Archive& ar, const unsigned int version) {
         ar & name;
         ar & binded_devices;
         ar & bytecode_offset;
-        ar & dropRead;
-        ar & dropWrite;
         ar & triggers;
-        ar & synchronize_states;
     }
 
     bool operator==(const OBlockDesc&) const = default;
@@ -143,7 +137,9 @@ struct O_Info
     std::string device;
     std::string controller;
     bool isVtype = false;
+    int priority; 
 };
+
 
 struct DynamicMasterMessage
 {
@@ -157,6 +153,7 @@ struct DynamicMasterMessage
     
     ~DynamicMasterMessage() = default;
 };
+
 
 struct HeapMasterMessage
 {
@@ -178,10 +175,43 @@ struct HeapMasterMessage
     ~HeapMasterMessage() = default;
 };
 
+struct EMStateMessage{
+    std::string TriggerName; 
+    OblockID oblockName; 
+    std::vector<HeapMasterMessage> dmm_list; 
+    int priority; 
+    PROTOCOLS protocol; 
+}; 
+
+
 /*
-    The GenericException class automatically disables 
-    
-*/ 
+    Schdueling issue
+*/
+
+// ScheduleRequestMetadata
+enum class PROCSTATE{
+    WAITING, 
+    EXECUTED, 
+    LOADED, 
+}; 
+
+
+// Scheduler Request State
+struct SchedulerReq{
+    OblockID requestorOblock; 
+    DeviceID targetDevice; 
+    int priority; 
+    PROCSTATE ps;     
+    int cyclesWaiting; 
+    ControllerID ctl; 
+}; 
+
+// Req Scheduler used by 
+struct ReqComparator{
+    bool operator()(const SchedulerReq& a, const SchedulerReq& b) const {
+        return a.priority > b.priority; 
+    }
+}; 
 
 
 

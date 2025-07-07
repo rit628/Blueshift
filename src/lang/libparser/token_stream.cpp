@@ -22,12 +22,12 @@ void TokenStream::setStream(std::vector<Token>& newStream) {
 
 size_t TokenStream::getLine() const {
     if (ts.empty()) return 0;
-    auto idx = outOfRange(index) ? ts.size() - 1 : index;
+    auto idx = std::min(index, ts.size() - 1);
     return ts.at(idx).getLineNum();
 }
 
 size_t TokenStream::getColumn() const {
     if (ts.empty()) return 0;
-    auto idx = outOfRange(index) ? ts.size() - 1 : index;
+    auto idx =std::min(index, ts.size() - 1);
     return ts.at(idx).getColNum();
 }

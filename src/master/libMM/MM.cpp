@@ -1,6 +1,7 @@
 #include "MM.hpp"
 #include "include/Common.hpp"
 #include "libDM/DynamicMessage.hpp"
+#include "libEM/EM.hpp"
 #include "libtype/bls_types.hpp"
 #include <exception>
 #include <memory>
@@ -8,8 +9,9 @@
 #include <unordered_set>
 #include <variant>
 
+
 MasterMailbox::MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMessage> &readNM, 
-    TSQ<HeapMasterMessage> &readEM, TSQ<DynamicMasterMessage> &sendNM, TSQ<vector<HeapMasterMessage>> &sendEM)
+    TSQ<HeapMasterMessage> &readEM, TSQ<DynamicMasterMessage> &sendNM, TSQ<EMStateMessage> &sendEM)
 : readNM(readNM), readEM(readEM), sendNM(sendNM), sendEM(sendEM)
 {
     this->OBlockList = OBlockList;
@@ -18,14 +20,13 @@ MasterMailbox::MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMes
     // Creating the read line
     for(auto &oblock : this->OBlockList)
     {
-        oblockReadMap[oblock.name] = make_unique<ReaderBox>(oblock.dropRead, oblock.dropWrite, oblock.name, oblock);
+        oblockReadMap[oblock.name] = make_unique<ReaderBox>(oblock.name, oblock, this->triggerSet);
 
         for(auto &devDesc : oblock.binded_devices)
         { 
             string deviceName = devDesc.device_name;
             auto TSQPtr = make_shared<TSQ<HeapMasterMessage>>();
             auto& db =oblockReadMap[oblock.name]->waitingQs[deviceName];
-            db.isTrigger = devDesc.isTrigger;
             db.stateQueues = TSQPtr; 
             db.devDropRead = devDesc.dropRead; 
             db.devDropWrite = devDesc.dropWrite; 
@@ -34,18 +35,19 @@ MasterMailbox::MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMes
             // Generate the new state
             if(devDesc.isVtype){
                 std::cout<<"This is for a vtype"<<std::endl; 
-                auto defDevice = std::make_shared<MapDescriptor>(static_cast<TYPE>(devDesc.type), TYPE::string_t, TYPE::ANY); 
                 HeapMasterMessage hmm;
-                hmm.heapTree = defDevice; 
+
+                if(oblock.name == "task2"){
+                    std::cout<<std::endl; 
+                }
+
+                hmm.heapTree = devDesc.initialValue; 
                 hmm.info.isVtype = true; 
                 hmm.info.device = devDesc.device_name; 
                 hmm.info.controller = "MASTER"; 
-                oblockReadMap[oblock.name]->insertState(hmm); 
+                oblockReadMap[oblock.name]->insertState(hmm, this->sendEM); 
             } 
         }
-
-
-
 
         // Write the out devics
         for(auto& devDesc : oblock.binded_devices){
@@ -53,6 +55,7 @@ MasterMailbox::MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMes
                 auto wb = std::make_unique<WriterBox>();
                 wb->deviceName = devDesc.device_name; 
                 wb->waitingForCallback = false; 
+                this->parentCont[devDesc.device_name] = devDesc.controller; 
                 this->deviceWriteMap[devDesc.device_name] = std::move(wb); 
                 emplaced_set.insert(devDesc.device_name); 
             }
@@ -70,12 +73,24 @@ MasterMailbox::MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMes
     }
 }
 
-ReaderBox::ReaderBox(bool dropRead, bool dropWrite, string name, OBlockDesc& oDesc)
-: triggerMan(oDesc)
+DynamicMasterMessage MasterMailbox::buildDMM(HeapMasterMessage &hmm){
+    DynamicMasterMessage dmm; 
+    dmm.info = hmm.info; 
+    dmm.isInterrupt = hmm.isInterrupt; 
+    dmm.protocol = hmm.protocol; 
+    if(std::holds_alternative<std::shared_ptr<HeapDescriptor>>(hmm.heapTree)){
+        auto omar = std::get<std::shared_ptr<HeapDescriptor>>(hmm.heapTree); 
+        dmm.DM.makeFromRoot(omar); 
+    }
+  
+    return dmm;
+}
+
+ReaderBox::ReaderBox(string name, OBlockDesc& oDesc, std::unordered_set<OblockID> &triggerSet)
+: triggerSet(triggerSet), triggerMan(oDesc)
 {
-    this->dropRead = dropRead;
-    this->dropWrite = dropWrite;
     this->OblockName = name;
+    this->oblockDesc = oDesc; 
 }
 
 WriterBox::WriterBox(string deviceName)
@@ -101,10 +116,16 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
                     hmm.protocol = PROTOCOLS::CALLBACKRECIEVED; 
                     hmm.info = DMM.info; 
                     hmm.heapTree = DMM.DM.toTree(); 
-                    this->oblockReadMap[oblockName]->waitingQs[devName].lastMessage.replace(hmm); 
+                    this->oblockReadMap[oblockName]->insertState(hmm, this->sendEM); 
                 }
             }
+
+            std::cout<<"UPDATING CALLBACKS FOR TRIGGERS"<<std::endl; 
+            for(auto& oblockName : this->interruptName_map[devName]){
+                this->oblockReadMap[oblockName]->handleRequest(this->sendEM); 
+            }
            
+            // Send the next device for items waiting for a callback 
             if(!deviceWriteMap.at(DMM.info.device)->waitingQ.isEmpty())
             {
                 DynamicMasterMessage DMMtoSend = deviceWriteMap.at(DMM.info.device)->waitingQ.read();
@@ -126,19 +147,45 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
                     DMM.info.oblock = oid; 
 
                     HeapMasterMessage newHMM(DMM); 
-                    targReadBox->insertState(newHMM); 
-                    targReadBox->handleRequest(sendEM); 
+                    targReadBox->insertState(newHMM, this->sendEM); 
                 } 
+                std::cout<<"Oblocks Triggered: "<<this->triggerSet.size()<<std::endl; 
+
+                for(auto& oid : oList){
+                    if(!this->oblockReadMap.contains(oid)){break;}
+                    auto& targReadBox = this->oblockReadMap[oid]; 
+                    targReadBox->handleRequest(this->sendEM); 
+                }
             }
             else{
                 OblockID targId = DMM.info.oblock; 
                 if(!this->oblockReadMap.contains(targId)){break;}
                 auto& rBox = this->oblockReadMap.at(targId); 
-                rBox->insertState(DMM);
+                rBox->insertState(DMM, this->sendEM);
                 rBox->handleRequest(sendEM); 
             }
          
             break;
+        }
+        // Add handlers for any other stated
+        case PROTOCOLS::OWNER_CONFIRM_OK: 
+        case PROTOCOLS::OWNER_GRANT: {
+
+            if(DMM.protocol == PROTOCOLS::OWNER_CONFIRM_OK){
+                std::cout<<"Mailbox: Received Owner confirmation "<<DMM.info.oblock<<" for device "<<DMM.info.device<<std::endl; 
+            }
+            else{
+                std::cout<<"Mailbox: Grant received for oblock "<<DMM.info.oblock<<" for device: "<<DMM.info.device<<std::endl; 
+            }
+            
+            EMStateMessage ems; 
+            ems.dmm_list = {DMM}; 
+            ems.priority = -1; 
+            ems.protocol = DMM.protocol; 
+            ems.TriggerName = ""; 
+            ems.oblockName = DMM.info.oblock; 
+            this->sendEM.write(ems); 
+            break; 
         }
         default:
         {
@@ -163,12 +210,22 @@ void MasterMailbox::assignEM(HeapMasterMessage DMM)
                 // Notify the relevant devices (store into the slots for the master devices)
                 std::vector<OblockID> oblockList = this->interruptName_map[DMM.info.device]; 
                 for(auto &name : oblockList){
+                     if(!this->oblockReadMap.contains(name)){break;}
                     std::unique_ptr<ReaderBox>& reader = this->oblockReadMap[name]; 
-                    std::cout<<"Inserting vtype into state:"<<std::endl; 
-                    
-                    reader->insertState(DMM); 
-                    reader->handleRequest(this->sendEM);
+                    reader->insertState(DMM, this->sendEM); 
                 }   
+                std::cout<<"Trigger set size: "<<triggerSet.size()<<std::endl; 
+                for(auto& trig : triggerSet){
+                    std::cout<<trig<<std::endl; 
+                }
+
+
+                for(auto& name : oblockList){
+                    if(!this->oblockReadMap.contains(name)){break;}
+                    std::unique_ptr<ReaderBox>& reader = this->oblockReadMap[name]; 
+                    reader->handleRequest(this->sendEM);
+                }
+              
                 break; 
             }
 
@@ -211,6 +268,49 @@ void MasterMailbox::assignEM(HeapMasterMessage DMM)
 
             break;
         }
+        case PROTOCOLS::OWNER_CANDIDATE_REQUEST:{   
+            auto oblockName = DMM.info.oblock; 
+            std::cout<<"Mailbox Ownership request for the device: "<<DMM.info.device<<" from oblock "<<oblockName<<std::endl; 
+            this->oblockReadMap[oblockName]->forwardPackets = true; 
+            this->targetedDevices.insert(DMM.info.device); 
+            this->sendNM.write(MasterMailbox::buildDMM(DMM)); 
+            break; 
+        }
+        case PROTOCOLS::OWNER_CANDIDATE_REQUEST_CONCLUDE:{
+            std::cout<<"What!"<<std::endl;
+            auto oblockName = DMM.info.oblock; 
+            if(this->triggerSet.contains(oblockName)){
+                if(++requestCount == this->triggerSet.size()){
+                    // Loop target devices: 
+                    for(auto& dev : targetedDevices){
+                        DynamicMasterMessage dmm; 
+                        dmm.protocol = PROTOCOLS::OWNER_CANDIDATE_REQUEST_CONCLUDE; 
+                        dmm.info.controller = this->parentCont.at(dev); 
+                        dmm.info.device = dev; 
+                        this->sendNM.write(dmm); 
+                    }
+                    requestCount = 0; 
+                    this->triggerSet.clear(); 
+                    targetedDevices.clear(); 
+                }
+            }
+            break; 
+        }
+        case PROTOCOLS::OWNER_CONFIRM: {
+            // If confirms this means the oblock is not waiting for state and the readerbox can close
+            auto oblockName = DMM.info.oblock; 
+            std::cout<<"Mailbox Owner Confirmation for the device: "<<DMM.info.device<<" from oblock "<<oblockName<<std::endl; 
+            this->oblockReadMap[oblockName]->forwardPackets = false; 
+            this->sendNM.write(MasterMailbox::buildDMM(DMM)); 
+            break; 
+        }
+        case PROTOCOLS::OWNER_RELEASE:{
+            auto oblockName = DMM.info.oblock; 
+            std::cout<<"Mailbox Owner Release for the device: "<<DMM.info.device<<" from oblock "<<oblockName<<std::endl; 
+            this->oblockReadMap[oblockName]->forwardPackets = false; 
+            this->sendNM.write(MasterMailbox::buildDMM(DMM)); 
+            break; 
+        }
         default:
         {
             break;
@@ -223,6 +323,7 @@ void MasterMailbox::runningNM()
     while(true)
     {
         DynamicMasterMessage currentDMM = this->readNM.read();  
+        std::cout<<"Recieved from NM: "<<currentDMM.info.device<<std::endl; 
         assignNM(currentDMM);
     }
 }

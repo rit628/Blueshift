@@ -3,14 +3,21 @@
 #include "include/Common.hpp"
 #include "libDevice/DeviceUtil.hpp"
 #include <memory>
+#include <queue>
 #include <thread>
 #include <shared_mutex>
 #include <unordered_map>
 #include "libnetwork/Protocol.hpp"
 #include "libnetwork/Connection.hpp"
+#include <set> 
 
 using boost::asio::ip::tcp; 
-using boost::asio::ip::udp; 
+using boost::asio::ip::udp;
+
+// numeric id types for different devices
+using cont_int = uint16_t; 
+using dev_int = uint16_t; 
+using oblock_int = uint16_t; 
 
 using TimePoint = std::chrono::time_point<std::chrono::high_resolution_clock>; 
 
@@ -24,6 +31,47 @@ enum class ClientState{
     // The client is in shutdown mode, so its going to sleep
     SHUTDOWN, 
 };
+
+// Scheduler Request State client side (Repalces the string val)
+struct ClientSideReq{
+    uint16_t requestorOblock; 
+    uint16_t targetDevice; 
+    int priority; 
+    PROCSTATE ps;     
+    int cyclesWaiting; 
+    uint16_t ctl; 
+};
+
+// ClientSideReq comparator
+struct ClientSideReqComp{
+    bool operator()(const ClientSideReq& a, const ClientSideReq &b) const{
+        return a.priority < b.priority; 
+    }
+}; 
+
+
+// Receives the queue for each controller
+struct ControllerQueue{
+    private:  
+        std::priority_queue<ClientSideReq, std::vector<ClientSideReq>, ClientSideReqComp> schepq; 
+
+    public: 
+
+        bool currOwned = false; 
+        // The device owner is identified by the ctl_id, oblock_int
+        std::pair<cont_int, oblock_int> owner;     
+        std::priority_queue<ClientSideReq, std::vector<ClientSideReq>, ClientSideReqComp>& getQueue(){
+            return this->schepq; 
+        }
+};  
+
+
+struct ManagedDevice {
+    DeviceHandle device;
+    ControllerQueue pendingRequests;
+    ManagedDevice(TYPE dtype, std::unordered_map<std::string, std::string> &config)
+                        : device(dtype, config) {}
+}; 
 
 class Client{
     private: 
@@ -44,6 +92,9 @@ class Client{
         std::shared_ptr<Connection> client_connection; 
         // Input Thread safe queue
         TSQ<OwnedSentMessage> in_queue; 
+        // Input Thread 
+        TSQ<OwnedSentMessage>client_in_queue; 
+
 
         /*
             Blueshift Client Stuff
@@ -54,7 +105,7 @@ class Client{
        // Ticker Mutex; 
         std::shared_mutex ticker_mutex; 
         // Contains the list of known devices
-        std::unordered_map<int, DeviceHandle> deviceList;     
+        std::unordered_map<int, ManagedDevice> deviceList;     
         // client name used to identify controller
         std::string client_name; 
         // Listens for incoming message and places it into the spot
@@ -62,13 +113,15 @@ class Client{
         // use to keep track of the state 
         ClientState curr_state; 
         // sends a callback for a device
-        void sendMessage(uint16_t device, Protocol prot, bool );  
+        void sendMessage(uint16_t device, Protocol prot, bool fromint, oblock_int oint, bool write_self);  
         // Send a message
         void send(SentMessage &msg); 
         // Updates the ticker table
         void updateTicker(); 
         // Temp timers 
         std::vector<Timer> start_timers; 
+        // Run the client listener
+        
         // Error Sender: 
         std::unique_ptr<GenericBlsException> genBlsException; 
 

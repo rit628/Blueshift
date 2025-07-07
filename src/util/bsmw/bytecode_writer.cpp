@@ -1,4 +1,6 @@
 #include "bytecode_writer.hpp"
+
+/*
 #include "include/Common.hpp"
 #include "libDM/DynamicMessage.hpp"
 #include "libtype/bls_types.hpp"
@@ -160,3 +162,4 @@ void BytecodeWriter::convertToBinary(std::ostream& stream) {
     writeLiteralPool(stream);
     writeBody(stream);
 }
+*/ 

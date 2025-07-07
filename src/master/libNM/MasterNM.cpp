@@ -1,6 +1,7 @@
 #include "MasterNM.hpp"
 #include "include/Common.hpp"
 #include "libDM/DynamicMessage.hpp"
+#include "libnetwork/Protocol.hpp"
 #include <algorithm>
 #include <exception>
 
@@ -41,14 +42,18 @@ void MasterNM::writeConfig(std::vector<OBlockDesc> &desc_list){
     std::set<std::string> c_list; 
     std::set<std::string> dev_list; 
 
+    int i = 0; 
     for(auto &oblock : desc_list){
+        this->oblock_list.push_back(oblock.name); 
+        this->oblock_alias_map[oblock.name] = i;  
+        i++; 
         for(auto &dev : oblock.binded_devices){
             dev_list.insert(dev.device_name); 
             c_list.insert(dev.controller); 
         }
     }
 
-    int i = 0; 
+    i = 0; 
     for(auto &name : c_list){
         if(name != "MASTER"){
             this->controller_alias_map[name] = i; 
@@ -76,9 +81,7 @@ void MasterNM::writeConfig(std::vector<OBlockDesc> &desc_list){
             this->ctl_configs[dev.controller].device_alias.push_back(this->device_alias_map[dev.device_name]); 
             this->ctl_configs[dev.controller].type.push_back(dev.type); 
             this->ctl_configs[dev.controller].srcs.push_back(dev.port_maps); 
-            std::cout<<"MASTER - Is Trigger: "<<dev.isTrigger<<std::endl; 
-            this->ctl_configs[dev.controller].triggers.push_back(dev.isTrigger); 
-            
+
             dev_list.insert(dev.device_name); 
             c_list.insert(dev.controller);
         }
@@ -218,21 +221,56 @@ void MasterNM::masterRead(){
         // Send the normal message:
 
         auto new_state = this->EMM_in_queue.read(); 
-
-        std::cout<<"MASTER NM MESSAGE RECEIVED"<<std::endl; 
-
         SentMessage sm_main;
 
         std::string cont = new_state.info.controller; 
 
         sm_main.header.device_code = this->device_alias_map[new_state.info.device]; 
         sm_main.header.ctl_code = this->controller_alias_map[new_state.info.controller]; 
-        sm_main.header.prot = Protocol::STATE_CHANGE; 
-        sm_main.body = new_state.DM.Serialize(); 
-        sm_main.header.body_size = sm_main.body.size(); 
+        sm_main.header.oblock_id = this->oblock_alias_map[new_state.info.oblock]; 
 
+        bool scheduling = true;
+
+
+        // Add other communication MASERT_PROTOCOLS
+        switch(new_state.protocol){
+            case PROTOCOLS::OWNER_CANDIDATE_REQUEST : {
+                std::cout<<"Pushing owner candidate request for: "<<new_state.info.oblock<<" with id: "<<sm_main.header.oblock_id<<std::endl; 
+                sm_main.header.prot = Protocol::OWNER_CANDIDATE_REQUEST ;
+                break; 
+            }
+            case PROTOCOLS::OWNER_CONFIRM : {
+                std::cout<<"Pushing CONFIRM request for: "<<new_state.info.oblock<<" with id: "<<sm_main.header.oblock_id<<std::endl; 
+                sm_main.header.prot = Protocol::OWNER_CONFIRM; 
+                break; 
+            }
+            case PROTOCOLS::OWNER_RELEASE : {  
+                std::cout<<"Pushing Release request for: "<<new_state.info.oblock<<" with id: "<<sm_main.header.oblock_id<<std::endl; 
+                sm_main.header.prot = Protocol::OWNER_RELEASE; 
+                break; 
+            }
+            case PROTOCOLS::OWNER_CANDIDATE_REQUEST_CONCLUDE : {
+                std::cout<<"Pushing owner candidate request conclusion for device "<<new_state.info.device<<std::endl; 
+                sm_main.header.prot = Protocol::OWNER_CANDIDATE_REQUEST_CONCLUDE; 
+                break; 
+            }
+            default : {
+                sm_main.header.prot = Protocol::STATE_CHANGE;
+                scheduling = false; 
+                sm_main.body = new_state.DM.Serialize(); 
+                sm_main.header.body_size = sm_main.body.size(); 
+            }
+        }
+   
+   
+        sm_main.header.oblock_priority = new_state.info.priority; 
+    
         messageClient(cont, sm_main); 
 
+        if(scheduling){
+            continue; 
+        }
+        
         // Send the Ticker Update Message (idk maybe)
 
         std::vector<Timer> timer_list; 
@@ -258,8 +296,7 @@ void MasterNM::masterRead(){
 
 void MasterNM::update(){
     while(true){
-        auto omar = this->in_queue.read();
-        std::cout<<"Recieved the message MASTER Network Manager"<<std::endl; 
+        auto omar = this->in_queue.read(); 
         this->handleMessage(omar);
     }
 }
@@ -380,6 +417,25 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
 
             break; 
         }
+        // Add any other protocol involved in  
+        case Protocol::OWNER_GRANT : {
+            DMM new_msg; 
+            new_msg.protocol = PROTOCOLS::OWNER_GRANT; 
+            new_msg.info.controller = this->controller_list[in_msg.sm.header.ctl_code]; 
+            new_msg.info.device = this->device_list[in_msg.sm.header.device_code]; 
+            new_msg.info.oblock =  this->oblock_list[in_msg.sm.header.oblock_id]; 
+            this->EMM_out_queue.write(new_msg); 
+            break;  
+        }
+        case Protocol::OWNER_CONFIRM_OK : {
+            DMM new_msg; 
+            new_msg.protocol = PROTOCOLS::OWNER_CONFIRM_OK; 
+            new_msg.info.controller = this->controller_list[in_msg.sm.header.ctl_code]; 
+            new_msg.info.device = this->device_list[in_msg.sm.header.device_code]; 
+            new_msg.info.oblock =  this->oblock_list[in_msg.sm.header.oblock_id]; 
+            this->EMM_out_queue.write(new_msg); 
+            break; 
+        }
         default:{
             std::cerr<<"MASTER NM unknown handle"<<std::endl; 
         }
@@ -403,7 +459,6 @@ bool MasterNM::confirmClient(std::shared_ptr<Connection> &con_obj){
     dmsg.createField("__DEV_ALIAS__" ,this->ctl_configs[c_name].device_alias); 
     dmsg.createField("__DEV_TYPES__" ,this->ctl_configs[c_name].type);
     dmsg.createField("__DEV_PORTS__" ,this->ctl_configs[c_name].srcs);  
-    dmsg.createField("__DEV_INIT__", this->ctl_configs[c_name].triggers);
 
     dev_sm.body = dmsg.Serialize(); 
     dev_sm.header.body_size = dev_sm.body.size(); 
