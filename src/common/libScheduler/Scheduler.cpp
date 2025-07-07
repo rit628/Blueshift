@@ -26,7 +26,7 @@ DeviceScheduler::DeviceScheduler(std::vector<OBlockDesc> &oblockDescList, std::f
     for(auto& odesc : oblockDescList){
         auto& oblockName = odesc.name;
         for(DeviceDescriptor& dev : odesc.outDevices){
-            if(!dev.isCursor){
+            if(!dev.isCursor && !dev.isVtype){
                 if(this->scheduledProcessMap.contains(dev.device_name)){
                     this->scheduledProcessMap[dev.device_name]; 
                 }
@@ -52,6 +52,8 @@ void DeviceScheduler::request(OblockID& requestor, int priority){
 
     if(ownDevs.empty()){
         std::cout<<"No devices left to own"<<std::endl; 
+        std::string k = ""; 
+        this->handleMessage(this->makeMessage(requestor, k, PROTOCOLS::OWNER_CANDIDATE_REQUEST_CONCLUDE)); 
         return; 
     }
 
@@ -72,13 +74,10 @@ void DeviceScheduler::receive(HeapMasterMessage &recvMsg){
         case PROTOCOLS::OWNER_GRANT :  {
             auto& targOblock = recvMsg.info.oblock; 
             auto& targDevice = recvMsg.info.device; 
-            std::cout<<"SCHEDULER Received write for device: "<<recvMsg.info.device<<std::endl; 
             bool result = this->oblockWaitMap[targOblock].addDevice(targDevice); 
-            if(result){std::cout<<"Run for "<<targOblock<<std::endl;} 
             if(result){
               auto& devList = this->oblockWaitMap[targOblock].mustOwn;
               for(auto dev : devList){
-                std::cout<<"Oblock: "<<recvMsg.info.oblock<<" calling for: "<<dev<<std::endl; 
                 HeapMasterMessage confirmMsg = makeMessage(targOblock, dev, PROTOCOLS::OWNER_CONFIRM); 
                 this->handleMessage(confirmMsg); 
               } 

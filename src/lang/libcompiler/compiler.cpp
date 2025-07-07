@@ -24,8 +24,8 @@ void Compiler::compileSource(const std::string& source) {
     tokens = lexer.lex(source);
     ast = parser.parse(tokens);
     ast->accept(analyzer);
-    ast->accept(generator);
-    generator.writeBytecode(outputStream);
+    //ast->accept(generator);
+    //generator.writeBytecode(outputStream);
     ast->accept(this->depGraph);
     auto tempOblock = this->depGraph.getOblockMap();  
 

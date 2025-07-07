@@ -58,7 +58,9 @@ class TriggerManager{
         std::bitset<BITSET_SZ> currentBitmap;  
         std::bitset<BITSET_SZ> initBitmap; 
         std::unordered_map<std::string, int> stringMap; 
-        std::unordered_set<std::bitset<BITSET_SZ>> ruleset; 
+        std::vector<std::bitset<BITSET_SZ>> ruleset; 
+        std::vector<TriggerData> trigData; 
+        std::bitset<BITSET_SZ> defaultBitstring; 
         
 
 
@@ -72,9 +74,8 @@ class TriggerManager{
             }
 
             // Add the default universal bitset (all 1s): 
-            std::bitset<BITSET_SZ> defaultOption;
-            defaultOption = (1 << (i)) - 1; 
-            this->ruleset.insert(defaultOption); 
+            defaultBitstring = (1 << (i)) - 1; 
+            this->trigData = OBlockDesc.triggers; 
 
             // Loop through rules; 
             for(auto& data : OBlockDesc.triggers)
@@ -84,23 +85,32 @@ class TriggerManager{
                 for(auto& devName : rule){
                     king.set(this->stringMap[devName]); 
                 }       
-                ruleset.insert(king); 
+                ruleset.push_back(king); 
             }
             
         }
 
         private: 
-            // Tests bit against ruleset: 
+            // Tests bit against ruleset and grab the trigger rule with highest priority: 
             bool testBit(int& id){
                 int i = 0; 
+                int max_priority = -1; 
                 for(auto& ruleBit : this->ruleset){
                     if((this->currentBitmap & ruleBit) == ruleBit){
-                        id = i; 
-                        return true;
+                        if(this->trigData[i].priority > max_priority){
+                            max_priority = this->trigData[i].priority;
+                            id = i; 
+                        }
                     }; 
                     i++; 
                 }
-                return false; 
+
+                if(max_priority > 0 || (this->currentBitmap & this->defaultBitstring) == this->defaultBitstring){
+                    return true; 
+                }
+
+                // Check if the reultBit is the default (all devices)
+                return false;  
             }
         public: 
             // Returns true if the new device corresponds to a trigger 
@@ -168,7 +178,6 @@ struct ReaderBox
         // Inserts the state into the object: 
         // the bool initEvent determines if the event is an initial event or not
         void insertState(HeapMasterMessage newDMM, TSQ<EMStateMessage>& sendEM){
-            std::cout<<"Inserting states: "<<newDMM.info.device<<std::endl; 
             if(!this->waitingQs.contains(newDMM.info.device)){
                 return; 
             }
@@ -243,7 +252,7 @@ struct ReaderBox
             }   
         }   
 
-        ReaderBox(bool dropRead, bool dropWrite, string name,  OBlockDesc& odesc, std::unordered_set<OblockID> &trigSet);
+        ReaderBox(string name,  OBlockDesc& odesc, std::unordered_set<OblockID> &trigSet);
     
 };
 

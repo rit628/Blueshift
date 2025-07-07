@@ -67,7 +67,6 @@ struct DeviceDescriptor{
         If the device is registered as a trigger then the exeuction of 
         the oblock is binded to the arrival of the devices state. 
     */ 
-    //bool isTrigger = true; 
 
     /* Driver Configuration Attributes */
     bool isInterrupt = false;
@@ -119,38 +118,14 @@ struct OBlockDesc{
     std::vector<DeviceDescriptor> inDevices;
     std::vector<DeviceDescriptor> outDevices; 
 
-    // Reading Config
-
-    /*
-        dropRead :if true -> only read all recieving states once Oblock execution is finished, drop all others
-        dropWrite: if true -> Only write to mailbox with the callback is open: 
-    */
-
-    bool dropRead = false; 
-    bool dropWrite = false; 
     std::vector<TriggerData> triggers = {};
-
-    // Configuration (all time in milliseconds)
-
-    /*
-        Synchronize State: Block until all states of refreshed (true for now)
-    */
-    bool synchronize_states = false;
-    /* 
-    If custom descriptor is false then all incoming device states are 
-    triggers
-    */ 
-    //bool customTriggers = false; 
 
     template<typename Archive>
     void serialize(Archive& ar, const unsigned int version) {
         ar & name;
         ar & binded_devices;
         ar & bytecode_offset;
-        ar & dropRead;
-        ar & dropWrite;
         ar & triggers;
-        ar & synchronize_states;
     }
 
     bool operator==(const OBlockDesc&) const = default;

@@ -4,6 +4,7 @@
 #include "libScheduler/Scheduler.hpp"
 #include "libtype/bls_types.hpp"
 #include <memory>
+#include <variant>
 
 // 
 
@@ -93,6 +94,8 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
 
         EMStateMessage currentHMMs = EUcache.read();
 
+        this->TriggerName = currentHMMs.TriggerName;  
+
         std::unordered_map<DeviceID, HeapMasterMessage> HMMs;
         
         // Fill in the known data into the stack 
@@ -107,15 +110,21 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
         
         vector<BlsType> transformableStates;
 
+        std::cout<<"Trigger name: "<<TriggerName<<std::endl; 
+
         for(auto& deviceDesc : this->Oblock.binded_devices){
             DeviceID devName = deviceDesc.device_name; 
             if(HMMs.contains(devName)){
                 transformableStates.push_back(HMMs.at(devName).heapTree); 
             }
             else{
-                auto defDevice = std::make_shared<MapDescriptor>(static_cast<TYPE>(deviceDesc.type), TYPE::string_t, TYPE::ANY); 
+                auto defDevice = deviceDesc.initialValue; 
                 transformableStates.push_back(defDevice); 
             }
+        }
+
+        if(this->Oblock.name == "task2"){
+            std::cout<<std::endl; 
         }
 
         transformableStates = transform_function(transformableStates);
@@ -126,7 +135,7 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
         for(auto& devDesc : this->Oblock.outDevices)
         {   
             int pos = this->devicePositionMap[devDesc.device_name]; 
-            auto transformedState = std::get<shared_ptr<HeapDescriptor>>(transformableStates.at(pos));
+            auto transformedState = transformableStates.at(pos);
             HeapMasterMessage newHMM; 
             newHMM.info.controller = devDesc.controller;
             newHMM.info.device = devDesc.device_name; 

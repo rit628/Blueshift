@@ -199,6 +199,7 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
                     auto& declaredDev = deviceDescriptors.at(expr->getObject());
                     auto& dev = devices.at(i);
                     dev.device_name = declaredDev.device_name;
+                    dev.initialValue = declaredDev.initialValue;
                     dev.type = declaredDev.type;
                     dev.controller = declaredDev.controller;
                     dev.port_maps = declaredDev.port_maps;
@@ -486,24 +487,24 @@ BlsObject Analyzer::visit(AstNode::Expression::Unary& ast) {
 
         case UNARY_OPERATOR::INC:
             if (position == AstNode::Expression::Unary::OPERATOR_POSITION::PREFIX) {
-                object = object + 1;
+                object = object + int64_t(1);
                 return object;
             }
             else {
                 auto objCopy = object;
-                object = object + 1;
+                object = object + int64_t(1);
                 return objCopy;
             }
         break;
 
         case UNARY_OPERATOR::DEC:
             if (position == AstNode::Expression::Unary::OPERATOR_POSITION::PREFIX) {
-                object = object - 1;
+                object = object - int64_t(1);
                 return object;
             }
             else {
                 auto objCopy = object;
-                object = object - 1;
+                object = object - int64_t(1);
                 return objCopy;
             }
         break;
@@ -942,7 +943,6 @@ BlsObject Analyzer::visit(AstNode::Initializer::Oblock& ast) {
                 boundDevices.at(parameterIndices.at(alias)).dropRead = true;
             }
         }
-        desc.dropRead = true;
     }
     else if (option == "dropWriteOn") {
         if (args.empty()) {
@@ -955,7 +955,6 @@ BlsObject Analyzer::visit(AstNode::Initializer::Oblock& ast) {
                 boundDevices.at(parameterIndices.at(alias)).dropWrite = true;
             }
         }
-        desc.dropWrite = true;
     }
     else {
         throw SemanticError("Invalid oblock configuration option: " + option + ".");

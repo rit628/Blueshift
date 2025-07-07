@@ -37,8 +37,12 @@ class ExecutionUnit
     vector<string> devices, 
     vector<bool> isVtype, vector<string> controllers, 
     TSQ<HeapMasterMessage> &sendMM,  
-    function<vector<BlsType>(vector<BlsType>)>  transform_function, 
-    DeviceScheduler &devSchedule);
+    function<vector<BlsType>(vector<BlsType>)>  transform_function, DeviceScheduler &devSchedule);
+   
+    // Get the trigger name
+    std::string TriggerName = ""; 
+    
+
     
     void running( TSQ<HeapMasterMessage> &sendMM);
     // Replaced cached states while devices are read from
