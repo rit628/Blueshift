@@ -391,7 +391,8 @@ BlsObject Interpreter::visit(AstNode::Expression::Group& ast) {
 }
 
 BlsObject Interpreter::visit(AstNode::Expression::Method& ast) {
-    auto& object = ast.getObject();
+    auto& objectName = ast.getObject();
+    auto& object = cs.getLocal(objectName);
     auto objType = getType(object);
     auto& args = ast.getArguments();
     auto& methodName = ast.getMethodName();

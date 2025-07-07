@@ -9,6 +9,7 @@
 #include <memory>
 #include <sstream>
 #include <stdexcept>
+#include <variant>
 #include <vector>
 #include <string>
 #include <filesystem>
@@ -29,10 +30,19 @@ namespace BlsLang {
                 auto vmTransform = std::bind(&VirtualMachine::transform, std::ref(vm), std::placeholders::_1);
                 
                 auto checkOblockOutput = [&expectedOutput, &expectedStdout](std::function<std::vector<BlsType>(std::vector<BlsType>)> transformFunction, std::vector<BlsType> input) {
+                    std::vector<BlsType> clonedInput;
+                    for (auto&& arg : input) {
+                        if (std::holds_alternative<std::shared_ptr<HeapDescriptor>>(arg)) {
+                            clonedInput.push_back(std::get<std::shared_ptr<HeapDescriptor>>(arg)->clone());
+                        }
+                        else {
+                            clonedInput.push_back(arg);
+                        }
+                    }
                     std::stringstream stdoutCapture;
                     auto oldBuffer = std::cout.rdbuf();
                     std::cout.rdbuf(stdoutCapture.rdbuf());
-                    auto output = transformFunction(input);
+                    auto output = transformFunction(clonedInput);
                     EXPECT_EQ(output.size(), expectedOutput.size());
                     for (int i = 0; i < output.size(); i++) {
                         EXPECT_EQ(output.at(i), expectedOutput.at(i));

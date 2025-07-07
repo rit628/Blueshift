@@ -229,10 +229,10 @@ void VirtualMachine::TRAP(uint16_t callnum, uint8_t argc, int) {
             #define VARIADIC(...)
             #define ARGUMENT(...)
             #define TRAP_END \
-            break; \
             if constexpr (pushReturn) { \
                 cs.pushOperand(result); \
             } \
+            break; \
         }
         #include "libtrap/include/TRAPS.LIST"
         #undef TRAP_BEGIN
@@ -246,7 +246,6 @@ void VirtualMachine::TRAP(uint16_t callnum, uint8_t argc, int) {
 
 void VirtualMachine::MTRAP(uint16_t callnum, int) {
     auto trapnum = static_cast<BlsTrap::MCALLNUM>(callnum);
-    auto object = cs.popOperand();
     std::vector<BlsType> args;
 
     switch (trapnum) {
@@ -257,12 +256,14 @@ void VirtualMachine::MTRAP(uint16_t callnum, int) {
             for (auto&& arg : std::ranges::reverse_view(args)) { \
                 arg = cs.popOperand(); \
             } \
+            auto object = cs.popOperand(); \
             auto result [[ maybe_unused ]] = BlsTrap::executeMTRAP<BlsTrap::MCALLNUM::type##__##name>(object, args);
             #define ARGUMENT(...)
             #define METHOD_END \
             if constexpr (pushReturn) { \
                 cs.pushOperand(result); \
             } \
+            break; \
         }
         #include "libtype/include/LIST_METHODS.LIST"
         #include "libtype/include/MAP_METHODS.LIST"

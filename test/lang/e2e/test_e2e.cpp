@@ -47,11 +47,16 @@ namespace BlsLang {
         std::string expectedStdout = "";
         auto input = std::shared_ptr<VectorDescriptor>(new VectorDescriptor{0, 1, 2, 3});
         auto output = std::shared_ptr<VectorDescriptor>(new VectorDescriptor{{0, 1, 9, 3}});
-        TEST_E2E_OBLOCK("modifyElement", {input->clone()}, {output->clone()}, expectedStdout);
+        TEST_E2E_OBLOCK("modifyElement", {input}, {output}, expectedStdout);
+        expectedStdout = "3\n";
+        TEST_E2E_OBLOCK("printElement", {input}, {input}, expectedStdout);
         expectedStdout = "true\nfalse\nfalse\n";
-        TEST_E2E_OBLOCK("checkElementEquality", {input->clone()}, {input->clone()}, expectedStdout);
+        TEST_E2E_OBLOCK("checkElementEquality", {input}, {input}, expectedStdout);
         expectedStdout = "true\nfalse\nfalse\n";
-        TEST_E2E_OBLOCK("checkContainerEquality", {input->clone()}, {input->clone()}, expectedStdout);
+        TEST_E2E_OBLOCK("checkContainerEquality", {input}, {input}, expectedStdout);
+        expectedStdout = "[0, 1, 2, 3, 4]\n";
+        output = std::shared_ptr<VectorDescriptor>(new VectorDescriptor{{0, 1, 2, 3, 4}});
+        TEST_E2E_OBLOCK("appendElement", {input}, {output}, expectedStdout);
     }
 
 }
