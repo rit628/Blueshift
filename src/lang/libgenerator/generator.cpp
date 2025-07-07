@@ -205,15 +205,16 @@ BlsObject Generator::visit(AstNode::Statement::For& ast) {
         instructions.push_back(std::move(loopBranch));
     }
 
+    for (auto&& statement : ast.getBlock()) {
+        statement->accept(*this);
+    }
+
     auto& incrementExpression = ast.getIncrementExpression();
     if (incrementExpression.has_value()) {
         incrementExpression->get()->accept(*this);
     }
     // maybe add a discard operation for the expression result
-
-    for (auto&& statement : ast.getBlock()) {
-        statement->accept(*this);
-    }
+    
     instructions.push_back(createJMP(loopStart));
     uint16_t endAddress = instructions.size();
     if (loopBranchInstruction) {

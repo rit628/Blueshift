@@ -1121,6 +1121,81 @@ namespace BlsLang {
         TEST_GENERATE(ast, expectedInstructions);
     }
 
+    GROUP_TEST_F(GeneratorTest, StatementTests, PopulatedFor) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::For(
+            new AstNode::Statement::Declaration(
+                "i",
+                {},
+                new AstNode::Specifier::Type(
+                    PRIMITIVE_INT,
+                    {}
+                ),
+                new AstNode::Expression::Literal(
+                    int64_t(0)
+                )
+            ),
+            new AstNode::Statement::Expression(
+                new AstNode::Expression::Binary(
+                    COMPARISON_LT,
+                    new AstNode::Expression::Access(
+                        "i"
+                    ),
+                    new AstNode::Expression::Literal(
+                        int64_t(7)
+                    )
+                )
+            ),
+            new AstNode::Expression::Unary(
+                UNARY_INCREMENT,
+                new AstNode::Expression::Access(
+                    "i"
+                ),
+                AstNode::Expression::Unary::OPERATOR_POSITION::POSTFIX
+            ),
+            {
+                new AstNode::Statement::Expression(
+                    new AstNode::Expression::Function(
+                        "print",
+                        {
+                            new AstNode::Expression::Access(
+                                "i"
+                            )
+                        }
+                    )
+                )
+            }
+        ));
+
+        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<BlsType, uint8_t> literalPool = {
+            {0, 0},
+            {7, 1},
+            {1, 2}
+        };
+        
+        INIT(oblockDescriptors, literalPool);
+
+        std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
+            createMKTYPE(0, static_cast<uint8_t>(TYPE::int_t)),
+            createPUSH(0),
+            createSTORE(0),
+            createLOAD(0),
+            createPUSH(1),
+            createLT(),
+            createBRANCH(15),
+            createLOAD(0),
+            createTRAP(static_cast<uint16_t>(BlsTrap::CALLNUM::print), 1),
+            createLOAD(0),
+            createLOAD(0),
+            createPUSH(2),
+            createADD(),
+            createSTORE(0),
+            createJMP(3)
+        );
+
+        TEST_GENERATE(ast, expectedInstructions);
+    }
+
     GROUP_TEST_F(GeneratorTest, FunctionTests, RecursiveProcedureCall) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Procedure(
             "f",

@@ -1,0 +1,10 @@
+oblock forLoop(int count) {
+    for (int i = 0; i < count; i++) {
+        println(i);
+    }
+}
+
+setup() {
+    virtual int count = 5;
+    forLoop(count);
+}

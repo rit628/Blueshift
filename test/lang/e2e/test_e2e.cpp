@@ -41,6 +41,13 @@ namespace BlsLang {
         TEST_E2E_OBLOCK("compoundCall", {0}, {64}, expectedStdout);
     }
 
+    GROUP_TEST_F(E2ETest, ExecutionTests, BranchesAndLoops) {
+        std::string fileName = "branches_and_loops.blu";
+        TEST_E2E_SOURCE(fileName);
+        std::string expectedStdout = "0\n1\n2\n3\n4\n";
+        TEST_E2E_OBLOCK("forLoop", {5}, {5}, expectedStdout);
+    }
+
     GROUP_TEST_F(E2ETest, HeapTests, ContainerAccess) {
         std::string fileName = "container_access.blu";
         TEST_E2E_SOURCE(fileName);
