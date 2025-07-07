@@ -3,7 +3,6 @@
 #include <unordered_map>
 #include <vector>
 #include "include/Common.hpp"
-#include "libCE/Client.hpp"
 #include "libScheduler/Scheduler.hpp"
 #include "libTSQ/TSQ.hpp"
 #include "libProcessing/Processing.hpp"
@@ -34,12 +33,13 @@ class ClientEU{
         int ctlCode; 
         std::unordered_map<DeviceID, int> devPosMap; 
         IdentData &idMaps; 
+        std::vector<char> byteCodeSerialized; 
         
         void replaceCache(std::unordered_map<DeviceID, HeapMasterMessage> &currentLoad); 
         
     public: 
         ClientEU(OBlockDesc &odesc, DeviceScheduler &scheObj, TSQ<SentMessage> &clientMainLine, 
-        IdentData &idData, int ctlCode);
+        IdentData &idData, int ctlCode, std::vector<char> &bytecode);
 
         void insertDevice(HeapMasterMessage heapDesc);
         void run(); 
@@ -61,16 +61,20 @@ class ClientEM{
         int ctlCode; 
         std::unordered_map<OblockID, std::unique_ptr<ClientEU>> clientMap; 
         IdentData ident_data; 
-
+        
         // Converts sent message to HMM
         HeapMasterMessage getHMM(SentMessage &toConvert, PROTOCOLS pcol);
     
     public: 
         ClientEM(std::vector<OBlockDesc> &descList, 
+            std::vector<std::vector<char>> &bytecodeList,
              TSQ<SentMessage> &readLine, 
              TSQ<SentMessage> &writeLine, 
              std::unordered_map<DeviceID, int> deviceMap, 
              int ctlCode); 
+
+
+        
 
         void run(); 
 }; 

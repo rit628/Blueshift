@@ -10,11 +10,14 @@
 #include <vector>
 
 
-ClientEM::ClientEM(std::vector<OBlockDesc> &descList, TSQ<SentMessage> &readLine,
+
+
+ClientEM::ClientEM(std::vector<OBlockDesc> &descList, std::vector<std::vector<char>> &bytecodeList, TSQ<SentMessage> &readLine,
     TSQ<SentMessage> &writeLine,std::unordered_map<DeviceID, int> data, int ctlCode)
 :   clientScheduler(descList, [this](HeapMasterMessage hmm){}), 
     clientReadLine(readLine),
     clientWriteLine(writeLine)
+    
 {
     int i = 0; 
     for(auto& odesc : descList){
@@ -24,7 +27,7 @@ ClientEM::ClientEM(std::vector<OBlockDesc> &descList, TSQ<SentMessage> &readLine
         }
 
         this->ident_data.oblockMap[odesc.name] = i; 
-        this->clientMap.emplace(odesc.name ,std::make_unique<ClientEU>(odesc, this->clientScheduler, writeLine, this->ident_data, ctlCode));
+        this->clientMap.emplace(odesc.name ,std::make_unique<ClientEU>(odesc, this->clientScheduler, writeLine, this->ident_data, ctlCode, bytecodeList[i]));
         i++;  
     }
 
@@ -88,11 +91,12 @@ void ClientEM::run(){
 }
 
 
-ClientEU::ClientEU(OBlockDesc &odesc, DeviceScheduler &devSche, TSQ<SentMessage> &mainLine, IdentData &data, int ctlCode)
+ClientEU::ClientEU(OBlockDesc &odesc, DeviceScheduler &devSche, TSQ<SentMessage> &mainLine, IdentData &data, int ctlCode, std::vector<char> &bytecode)
 :EuCache(false, false, odesc.name, odesc), scheObj(devSche), clientMainLine(mainLine),
 idMaps(data)
 {   
-    virtualMachine.loadBytecode("PLACEHOLDER");
+    this->byteCodeSerialized = bytecode; 
+    virtualMachine.loadBytecode("REPLACE WITH VECTOR"); 
     this->bytecodeOffset = odesc.bytecode_offset; 
     this->name = odesc.name; 
     this->oinfo = odesc; 
@@ -167,8 +171,7 @@ void ClientEU::run(){
         }
 
         // Transformed object:
-        this->virtualMachine.setOblockOffset(this->bytecodeOffset);
-        auto transformedStates = this->virtualMachine.transform(transformStates);
+        this->virtualMachine.transform(this->bytecodeOffset, transformStates); 
 
         // Transformed the object: 
         for(auto& dev : this->oinfo.outDevices){

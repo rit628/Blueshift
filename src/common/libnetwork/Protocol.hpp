@@ -22,6 +22,7 @@ enum class Protocol : uint8_t{
     // Configuration and Handshake
     CONFIG_INFO, 
     CONFIG_OK, 
+    CONFIG_OBLOCK, 
 
     // (Master -> Client) or 
     STATE_CHANGE, 
@@ -46,9 +47,6 @@ enum class Protocol : uint8_t{
 
     // Controller to Controller (peer to peer) or self
     SEND_ARGUMENT, 
-
-    
-
 
     // Client Loop back
     CONNECTION_LOST 

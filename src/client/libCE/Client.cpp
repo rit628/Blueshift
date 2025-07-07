@@ -137,6 +137,13 @@ void Client::listener(std::stop_token stoken){
             std::cout<<"Client side handshake complete!"<<std::endl; 
 
         }
+        else if(ptype == Protocol::CONFIG_OBLOCK){
+            auto code = inMsg.body; 
+            
+
+
+
+        }
         else if(ptype == Protocol::STATE_CHANGE){
         
             if(this->curr_state == ClientState::IN_OPERATION){
