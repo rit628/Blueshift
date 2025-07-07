@@ -38,6 +38,7 @@ class ExecutionUnit
     vector<bool> isVtype, vector<string> controllers, 
     TSQ<HeapMasterMessage> &sendMM,  
     function<vector<BlsType>(vector<BlsType>)>  transform_function, DeviceScheduler &devSchedule);
+    bool readForwardState = false; 
    
     // Get the trigger name
     std::string TriggerName = ""; 

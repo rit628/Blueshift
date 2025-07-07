@@ -9,10 +9,15 @@
 #include <string>
 #include <variant>
 #include <vector>
+#include <queue>
 
 using ControllerID = std::string; 
 using DeviceID = std::string; 
 using OblockID = std::string; 
+using cont_int = uint16_t; 
+using dev_int = uint16_t; 
+using oblock_int = uint16_t; 
+
 
 
 enum class PROTOCOLS
@@ -206,10 +211,25 @@ struct SchedulerReq{
     ControllerID ctl; 
 }; 
 
+// Receives the queue for each controller
+template <typename T, typename Q>
+struct ControllerQueue{
+    private:  
+        std::priority_queue<T, std::vector<T>, Q> schepq; 
+
+    public: 
+
+        bool currOwned = false; 
+        // The device owner is identified by the ctl_id, oblock_int 
+        std::priority_queue<T, std::vector<T>, Q>& getQueue(){
+            return this->schepq; 
+        }
+};  
+
 // Req Scheduler used by 
 struct ReqComparator{
     bool operator()(const SchedulerReq& a, const SchedulerReq& b) const {
-        return a.priority > b.priority; 
+        return a.priority < b.priority; 
     }
 }; 
 

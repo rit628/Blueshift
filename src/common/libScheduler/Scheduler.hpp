@@ -55,7 +55,7 @@ struct PendingStateInfo{
     int ownedCounter = 0; 
     int confirmedCounter = 0; 
     bool executeFlag = false; 
-
+    bool doubleExec = false; 
 
     std::mutex mtx; 
     std::condition_variable cv; 

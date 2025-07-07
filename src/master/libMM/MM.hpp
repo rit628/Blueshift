@@ -9,6 +9,7 @@
 #include <bitset>
 #include <condition_variable>
 #include <mutex>
+#include <queue>
 #include <unordered_map>
 #include <unordered_set>
 #include <memory>
@@ -21,8 +22,13 @@ using namespace std;
 
 using OblockID = std::string;
 using DeviceID = std::string; 
+using SchedulerPriorityQueue = std::priority_queue<SchedulerReq, std::vector<SchedulerReq>, ReqComparator>;
 
 # define MAX_EM_QUEUE_FILL 10 
+
+
+
+
  
 /*
     Contains a single dmsg (without needing the )
@@ -146,8 +152,8 @@ class TriggerManager{
 struct DeviceBox{
     std::shared_ptr<TSQ<HeapMasterMessage>> stateQueues;
     AtomicDMMContainer lastMessage; 
-    bool devDropRead = false; 
-    bool devDropWrite = false; 
+    bool devDropRead = true;
+    bool devDropWrite = false;
     std::string deviceName; 
 }; 
 
@@ -161,7 +167,7 @@ struct ReaderBox
             to be queued up and sent to the execution manager
         */ 
         std::vector<EMStateMessage> triggerCache; 
-        std::unordered_set<OblockID>& triggerSet; 
+        std::unordered_map<OblockID, int>& triggerCount; 
         TriggerManager triggerMan; 
 
         bool callbackRecived;
@@ -185,8 +191,14 @@ struct ReaderBox
             DeviceBox& targDev = this->waitingQs[newDMM.info.device];
 
             if(forwardPackets && targDev.devDropRead){
+                // Make sure an oblock isnt forwarding to itself 
+                if(this->OblockName == newDMM.info.oblock){
+                    return; 
+                }
+
                 EMStateMessage ems; 
                 ems.protocol = PROTOCOLS::WAIT_STATE_FORWARD; 
+                newDMM.info.oblock = this->OblockName; 
                 ems.dmm_list = {newDMM}; 
                 sendEM.write(ems); 
                 return; 
@@ -203,7 +215,8 @@ struct ReaderBox
             bool writeTrig = this->triggerMan.processDevice(newDMM.info.device, triggerId); 
     
             if(writeTrig){
-                this->triggerSet.insert(this->OblockName); 
+                std::cout<<"TRIGGER IDENTIFIED: "<<this->oblockDesc.name<<std::endl;
+                this->triggerCount[this->OblockName]++; 
                 auto& trigInfo = this->oblockDesc.triggers[triggerId];
                 std::vector<HeapMasterMessage> trigEvent; 
                 
@@ -252,7 +265,7 @@ struct ReaderBox
             }   
         }   
 
-        ReaderBox(string name,  OBlockDesc& odesc, std::unordered_set<OblockID> &trigSet);
+        ReaderBox(string name,  OBlockDesc& odesc, std::unordered_map<OblockID, int> &trigSet);
     
 };
 
@@ -265,6 +278,13 @@ struct WriterBox
     WriterBox(string deviceName);
     WriterBox() = default;
 };
+
+
+struct ManagedVtype{
+    ControllerQueue<SchedulerReq, ReqComparator> queue; 
+    OblockID oblockOwner; 
+}; 
+
 
 
 
@@ -282,7 +302,7 @@ class MasterMailbox
     static DynamicMasterMessage buildDMM(HeapMasterMessage &hmm); 
     
     // List of oblocks that were triggered (used to ensure intended-order execution for trigger groups)
-    std::unordered_set<OblockID> triggerSet; 
+    std::unordered_map<OblockID, int> triggerSet; 
     std::unordered_set<DeviceID> targetedDevices; 
 
     // number of found requests 
@@ -291,7 +311,7 @@ class MasterMailbox
     unordered_map<OblockID, unique_ptr<ReaderBox>> oblockReadMap;
     unordered_map<DeviceID, unique_ptr<WriterBox>> deviceWriteMap;
     unordered_map<DeviceID, std::vector<OblockID>> interruptName_map;
-
+    unordered_map<DeviceID, ManagedVtype> vTypeScheduler; 
 
     TSQ<std::string> readRequest; 
 

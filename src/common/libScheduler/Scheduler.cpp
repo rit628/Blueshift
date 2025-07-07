@@ -26,7 +26,7 @@ DeviceScheduler::DeviceScheduler(std::vector<OBlockDesc> &oblockDescList, std::f
     for(auto& odesc : oblockDescList){
         auto& oblockName = odesc.name;
         for(DeviceDescriptor& dev : odesc.outDevices){
-            if(!dev.isCursor && !dev.isVtype){
+            if(!dev.isCursor){
                 if(this->scheduledProcessMap.contains(dev.device_name)){
                     this->scheduledProcessMap[dev.device_name]; 
                 }
@@ -43,12 +43,18 @@ DeviceScheduler::DeviceScheduler(std::vector<OBlockDesc> &oblockDescList, std::f
 */
 // Sends a request message for each device stae
 void DeviceScheduler::request(OblockID& requestor, int priority){
+
     std::cout<<"priority: "<<std::endl;
     // get the out devices from the oblock: 
     auto& jamar = this->oblockWaitMap[requestor]; 
     auto& ownDevs = jamar.mustOwn;
     jamar.executeFlag = false; 
     std::cout<<"Request made from oblock: "<<requestor<<std::endl; 
+
+    if(jamar.doubleExec){
+        std::cout<<"Double Execution detection"<<std::endl; 
+        return; 
+    }
 
     if(ownDevs.empty()){
         std::cout<<"No devices left to own"<<std::endl; 
@@ -64,6 +70,8 @@ void DeviceScheduler::request(OblockID& requestor, int priority){
     string k = ""; 
     this->handleMessage(this->makeMessage(requestor, k, PROTOCOLS::OWNER_CANDIDATE_REQUEST_CONCLUDE)); 
 
+    jamar.doubleExec = true; 
+
     // Wait until the final message arrives: 
     std::unique_lock<std::mutex> lock(jamar.mtx); 
     jamar.cv.wait(lock, [&jamar](){return jamar.executeFlag;});    
@@ -74,6 +82,7 @@ void DeviceScheduler::receive(HeapMasterMessage &recvMsg){
         case PROTOCOLS::OWNER_GRANT :  {
             auto& targOblock = recvMsg.info.oblock; 
             auto& targDevice = recvMsg.info.device; 
+            std::cout<<"Received owner grant for oblock: "<<targOblock<<" for device: "<<targDevice<<std::endl; 
             bool result = this->oblockWaitMap[targOblock].addDevice(targDevice); 
             if(result){
               auto& devList = this->oblockWaitMap[targOblock].mustOwn;
@@ -96,6 +105,7 @@ void DeviceScheduler::receive(HeapMasterMessage &recvMsg){
                     
                     // Perform any time based schdueling algorithms etc
 
+
                     if(!devProc.QueueEmpty()){
                         auto nextReq = devProc.QueuePop(); 
                         nextReq.ps = PROCSTATE::LOADED; 
@@ -117,21 +127,16 @@ void DeviceScheduler::receive(HeapMasterMessage &recvMsg){
 }
 
 void DeviceScheduler::release(OblockID& reqOblock){
+
     std::cout<<"Releasing devices for "<<reqOblock<<std::endl; 
     auto& deviceList = this->oblockWaitMap[reqOblock].mustOwn;
     for(auto dev : deviceList){
         // Send each device that the oblock in question has ended its ownership
         HeapMasterMessage newDMM = makeMessage(reqOblock, dev,PROTOCOLS::OWNER_RELEASE); 
         this->handleMessage(newDMM); 
-
-        // Send the new item
-        auto& scheDev = this->scheduledProcessMap[dev]; 
-        if(!scheDev.QueueEmpty()){
-            std::cout<<"Sending new state"<<std::endl; 
-            auto newReq = scheDev.QueuePop(); 
-            HeapMasterMessage hmm = makeMessage(newReq.requestorOblock, dev, PROTOCOLS::OWNER_CANDIDATE_REQUEST); 
-            this->handleMessage(hmm); 
-        }
+        this->oblockWaitMap[reqOblock].doubleExec = false; 
     }
+
+    
     
 }
