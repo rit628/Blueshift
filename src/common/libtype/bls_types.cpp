@@ -490,6 +490,21 @@ bool MapDescriptor::operator!=(const HeapDescriptor& rhs) const {
     return true;
 }
 
+std::shared_ptr<HeapDescriptor> MapDescriptor::clone() const {
+    auto newMap = std::make_shared<MapDescriptor>(TYPE::ANY);
+    newMap->objType = objType;
+    newMap->contType = contType;
+    for (auto&& [key, value] : *map) {
+        if (std::holds_alternative<std::shared_ptr<HeapDescriptor>>(value)) {
+            newMap->map->emplace(key, std::get<std::shared_ptr<HeapDescriptor>>(value)->clone());
+        }
+        else {
+            newMap->map->emplace(key, value);
+        }
+    }
+    return newMap;
+}
+
 VectorDescriptor::VectorDescriptor(std::string cont_code) {
     this->objType = TYPE::list_t;
     this->contType = getTypeFromName(cont_code); 
@@ -547,6 +562,21 @@ bool VectorDescriptor::operator!=(const HeapDescriptor& rhs) const {
                *vector != *resolved->vector;
     }
     return false;
+}
+
+std::shared_ptr<HeapDescriptor> VectorDescriptor::clone() const {
+    auto newList = std::make_shared<VectorDescriptor>(TYPE::ANY);
+    newList->objType = objType;
+    newList->contType = contType;
+    for (auto&& element : *vector) {
+        if (std::holds_alternative<std::shared_ptr<HeapDescriptor>>(element)) {
+            newList->vector->push_back(std::get<std::shared_ptr<HeapDescriptor>>(element)->clone());
+        }
+        else {
+            newList->vector->push_back(element);
+        }
+    }
+    return newList;
 }
 
 TYPE getType(const BlsType& obj) {
