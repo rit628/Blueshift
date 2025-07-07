@@ -2,7 +2,21 @@ oblock modifyElement(list<int> x) {
     x[2] = 9;
 }
 
+oblock checkElementEquality(list<int> x) {
+    print(x[2] == 2);
+    print(x[2] != 2);
+    print(!(x[2] == 2));
+}
+
+oblock checkContainerEquality(list<int> x) {
+    print(x == [0, 1, 2, 3]);
+    print(x != [0, 1, 2, 3]);
+    print(!(x == [0, 1, 2, 3]));
+}
+
 setup() {
     virtual list<int> X = [0, 1, 2, 3];
     modifyElement(X);
+    checkElementEquality(X);
+    checkContainerEquality(X);
 }

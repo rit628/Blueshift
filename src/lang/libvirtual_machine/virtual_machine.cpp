@@ -102,12 +102,12 @@ void VirtualMachine::ALOAD(int) {
 
 void VirtualMachine::NOT(int) {
     auto op = cs.popOperand();
-    cs.pushOperand(-op);
+    cs.pushOperand(!op);
 }
 
 void VirtualMachine::NEG(int) {
     auto op = cs.popOperand();
-    cs.pushOperand(!op);
+    cs.pushOperand(-op);
 }
 
 void VirtualMachine::OR(int) {
