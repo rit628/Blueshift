@@ -474,7 +474,7 @@ inline void BlsType::serialize(Archive& ar, const unsigned int version) {
     }
     break;
 
-    #define DEVTYPE_BEGIN(name) \
+    #define DEVTYPE_BEGIN(name, ...) \
     case TYPE::name: { \
       if (std::holds_alternative<std::monostate>(*this)) { \
         *this = std::make_shared<MapDescriptor>(TYPE::name, TYPE::string_t, TYPE::ANY); \
