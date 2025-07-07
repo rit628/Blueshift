@@ -143,8 +143,8 @@ void Client::listener(std::stop_token stoken){
                 auto dev_index = inMsg.header.device_code; 
 
                 // Check if the writer is the valid owner of the device (if applies)
-                auto& pendingReq = this->deviceList.at(dev_index).pendingRequests; 
-                if(pendingReq.currOwned){
+                auto& pendingReq = this->deviceList.at(dev_index);
+                if(pendingReq.pendingRequests.currOwned){
                     if((inMsg.header.ctl_code != pendingReq.owner.first) || (inMsg.header.oblock_id != pendingReq.owner.second)){
                         std::cout<<"OWNERSHIP WARNING: "<<std::endl; 
                         std::cout<<"CTL: "<<inMsg.header.ctl_code<<std::endl; 
@@ -269,10 +269,10 @@ void Client::listener(std::stop_token stoken){
             
             dev_int targDevice = inMsg.header.device_code;
             if(!this->deviceList.at(targDevice).pendingRequests.currOwned){
-                    // Add the code to send the device grant here: 
-                    auto king = this->deviceList.at(targDevice).pendingRequests.getQueue().top(); 
-                    sendMessage(king.targetDevice, Protocol::OWNER_GRANT, false, king.requestorOblock); 
-                    this->deviceList.at(targDevice).pendingRequests.currOwned = true; 
+                // Add the code to send the device grant here: 
+                auto king = this->deviceList.at(targDevice).pendingRequests.getQueue().top(); 
+                sendMessage(king.targetDevice, Protocol::OWNER_GRANT, false, king.requestorOblock); 
+                this->deviceList.at(targDevice).pendingRequests.currOwned = true; 
             }
         }
 
@@ -287,8 +287,7 @@ void Client::listener(std::stop_token stoken){
             auto loadedProcess = pendingSet.top(); 
             if((loadedProcess.ctl == inMsg.header.ctl_code) && (loadedProcess.requestorOblock == inMsg.header.oblock_id)){
                 sendMessage(dev_id, Protocol::OWNER_CONFIRM_OK, false, inMsg.header.oblock_id);
-                devicePending.currOwned = true;
-                auto& devPair = this->deviceList.at(dev_id).pendingRequests.owner; 
+                auto& devPair = this->deviceList.at(dev_id).owner; 
                 devPair = {inMsg.header.ctl_code, inMsg.header.oblock_id}; 
                 std::cout<<"Confrm Before Erasure"<<std::endl; 
                 pendingSet.pop(); 
@@ -296,6 +295,9 @@ void Client::listener(std::stop_token stoken){
             }
             else{
                 std::cerr<<"PROTOCOL ERROR: INVALID OWNER CONFIRM FOR PROCESS THAT IS NOT A PRIME CANDIDATE"<<std::endl; 
+                std::cout<<"ERROR CTL_CODE: "<<inMsg.header.ctl_code<<" ERROR OBLOCK ID "<<inMsg.header.oblock_id<<std::endl; 
+                // Send a grant to the new oblock on top instead
+                sendMessage(loadedProcess.targetDevice, Protocol::OWNER_GRANT, false, loadedProcess.requestorOblock);
             }         
         }
         else if(ptype == Protocol::OWNER_RELEASE){
@@ -305,6 +307,7 @@ void Client::listener(std::stop_token stoken){
             std::cout<<"Size at release "<<devPendStruct.getQueue().size()<<std::endl; 
         
             if(!devPendStruct.getQueue().empty()){
+                devPendStruct.currOwned = true; 
                 auto& scheduleOrder = devPendStruct.getQueue();
                 auto nextProcess = scheduleOrder.top();
                 oblock_int o_id = nextProcess.requestorOblock;

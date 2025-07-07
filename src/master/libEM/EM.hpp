@@ -35,6 +35,7 @@ class ExecutionUnit
     // Get the trigger name
     std::string TriggerName = "";
     BlsLang::VirtualMachine vm;
+    bool readForwardState = false; 
 
 
     ExecutionUnit(OBlockDesc OblockData

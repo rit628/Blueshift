@@ -1,5 +1,6 @@
 #include "MM.hpp"
 #include "include/Common.hpp"
+#include "include/reserved_tokens.hpp"
 #include "libDM/DynamicMessage.hpp"
 #include "libEM/EM.hpp"
 #include "libtype/bls_types.hpp"
@@ -86,8 +87,8 @@ DynamicMasterMessage MasterMailbox::buildDMM(HeapMasterMessage &hmm){
     return dmm;
 }
 
-ReaderBox::ReaderBox(string name, OBlockDesc& oDesc, std::unordered_set<OblockID> &triggerSet)
-: triggerSet(triggerSet), triggerMan(oDesc)
+ReaderBox::ReaderBox(string name, OBlockDesc& oDesc, std::unordered_map<OblockID, int> &triggerName)
+: triggerCount(triggerName), triggerMan(oDesc)
 {
     this->OblockName = name;
     this->oblockDesc = oDesc; 
@@ -150,7 +151,6 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
                     targReadBox->insertState(newHMM, this->sendEM); 
                 } 
                 std::cout<<"Oblocks Triggered: "<<this->triggerSet.size()<<std::endl; 
-
                 for(auto& oid : oList){
                     if(!this->oblockReadMap.contains(oid)){break;}
                     auto& targReadBox = this->oblockReadMap[oid]; 
@@ -194,6 +194,23 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
     }
 }
 
+EMStateMessage makeVTYPESchedulerMessage(const SchedulerReq &req, PROTOCOLS pcode){
+    HeapMasterMessage hmm; 
+    hmm.protocol = pcode;  
+    hmm.info.device = req.targetDevice; 
+    hmm.info.oblock= req.requestorOblock;
+
+    EMStateMessage ems; 
+    ems.dmm_list = {hmm}; 
+    ems.priority = -1; 
+    ems.protocol = pcode; 
+    ems.TriggerName = ""; 
+    ems.oblockName = req.requestorOblock; 
+
+    return ems; 
+}
+
+
 void MasterMailbox::assignEM(HeapMasterMessage DMM)
 {
     ReaderBox &correspondingReaderBox = *oblockReadMap.at(DMM.info.oblock);
@@ -207,19 +224,21 @@ void MasterMailbox::assignEM(HeapMasterMessage DMM)
         case PROTOCOLS::SENDSTATES:
         {
             if(DMM.info.isVtype){
+                if(DMM.info.oblock != this->vTypeScheduler[DMM.info.device].oblockOwner){
+                    std::cout<<"Invalid Attempt to write to a VTYPE of without ownership"<<std::endl; 
+                    break; 
+                }
+
                 // Notify the relevant devices (store into the slots for the master devices)
                 std::vector<OblockID> oblockList = this->interruptName_map[DMM.info.device]; 
                 for(auto &name : oblockList){
-                     if(!this->oblockReadMap.contains(name)){break;}
+                    if(!this->oblockReadMap.contains(name)){break;}
                     std::unique_ptr<ReaderBox>& reader = this->oblockReadMap[name]; 
                     reader->insertState(DMM, this->sendEM); 
                 }   
+
                 std::cout<<"Trigger set size: "<<triggerSet.size()<<std::endl; 
-                for(auto& trig : triggerSet){
-                    std::cout<<trig<<std::endl; 
-                }
-
-
+        
                 for(auto& name : oblockList){
                     if(!this->oblockReadMap.contains(name)){break;}
                     std::unique_ptr<ReaderBox>& reader = this->oblockReadMap[name]; 
@@ -271,26 +290,53 @@ void MasterMailbox::assignEM(HeapMasterMessage DMM)
         case PROTOCOLS::OWNER_CANDIDATE_REQUEST:{   
             auto oblockName = DMM.info.oblock; 
             std::cout<<"Mailbox Ownership request for the device: "<<DMM.info.device<<" from oblock "<<oblockName<<std::endl; 
-            this->oblockReadMap[oblockName]->forwardPackets = true; 
             this->targetedDevices.insert(DMM.info.device); 
+            this->oblockReadMap[oblockName]->forwardPackets = true;  
+
+            if(DMM.info.controller == BlsLang::RESERVED_MASTER){
+                SchedulerReq sr; 
+                sr.priority = DMM.info.priority;
+                sr.requestorOblock = DMM.info.oblock; 
+                std::cout<<"REquesting vtype with oblock: "<<sr.requestorOblock<<" and priority: "<<sr.priority<<std::endl; 
+                sr.ctl = DMM.info.controller;  
+                sr.targetDevice = DMM.info.device; 
+                this->vTypeScheduler[DMM.info.device].queue.getQueue().push(sr); 
+                break; 
+            }
+
             this->sendNM.write(MasterMailbox::buildDMM(DMM)); 
             break; 
         }
         case PROTOCOLS::OWNER_CANDIDATE_REQUEST_CONCLUDE:{
-            std::cout<<"What!"<<std::endl;
-            auto oblockName = DMM.info.oblock; 
+            auto& oblockName = DMM.info.oblock; 
+            std::cout<<"Candidate conclude for "<<oblockName<<std::endl; 
+            for(auto& omar : this->triggerSet){std::cout<<omar.first<<" : "<<omar.second<<std::endl;}
             if(this->triggerSet.contains(oblockName)){
-                if(++requestCount == this->triggerSet.size()){
-                    // Loop target devices: 
+
+                std::cout<<"Erasing "<<oblockName<<std::endl; 
+                this->triggerSet.erase(oblockName); 
+           
+                // issue trigger if the group is completed
+                if(this->triggerSet.empty()){   
+                    std::cout<<"TRIGGER INFO"<<std::endl; 
+                    for(auto& dev : targetedDevices){std::cout<<dev<<std::endl;} 
+                    for(auto& vtypeName : vTypeScheduler){std::cout<<vtypeName.first<<std::endl;} 
+
+
                     for(auto& dev : targetedDevices){
-                        DynamicMasterMessage dmm; 
-                        dmm.protocol = PROTOCOLS::OWNER_CANDIDATE_REQUEST_CONCLUDE; 
-                        dmm.info.controller = this->parentCont.at(dev); 
-                        dmm.info.device = dev; 
-                        this->sendNM.write(dmm); 
+                        if(this->vTypeScheduler.contains(dev)){
+                            auto& topQueue = this->vTypeScheduler[dev].queue.getQueue().top(); 
+                            std::cout<<"Sending vtype grant for "<<dev<<" to "<<topQueue.requestorOblock<<std::endl; 
+                            this->sendEM.write(makeVTYPESchedulerMessage(topQueue, PROTOCOLS::OWNER_GRANT));
+                        }
+                        else{
+                            DynamicMasterMessage dmm; 
+                            dmm.protocol = PROTOCOLS::OWNER_CANDIDATE_REQUEST_CONCLUDE; 
+                            dmm.info.controller = this->parentCont.at(dev); 
+                            dmm.info.device = dev; 
+                            this->sendNM.write(dmm); 
+                        }
                     }
-                    requestCount = 0; 
-                    this->triggerSet.clear(); 
                     targetedDevices.clear(); 
                 }
             }
@@ -300,7 +346,22 @@ void MasterMailbox::assignEM(HeapMasterMessage DMM)
             // If confirms this means the oblock is not waiting for state and the readerbox can close
             auto oblockName = DMM.info.oblock; 
             std::cout<<"Mailbox Owner Confirmation for the device: "<<DMM.info.device<<" from oblock "<<oblockName<<std::endl; 
-            this->oblockReadMap[oblockName]->forwardPackets = false; 
+
+            if(DMM.info.controller == BlsLang::RESERVED_MASTER){
+                auto top_schedule = this->vTypeScheduler[DMM.info.device].queue.getQueue().top(); 
+                if(DMM.info.oblock == top_schedule.requestorOblock){
+                    auto& schedulerObj = this->vTypeScheduler[DMM.info.device];
+                    this->sendEM.write(makeVTYPESchedulerMessage(top_schedule, PROTOCOLS::OWNER_CONFIRM_OK)); 
+                    schedulerObj.oblockOwner = top_schedule.requestorOblock;   
+                    schedulerObj.queue.getQueue().pop(); 
+                     
+                }
+                else{
+                    this->sendEM.write(makeVTYPESchedulerMessage(top_schedule, PROTOCOLS::OWNER_GRANT)); 
+                }
+
+                break; 
+            }
             this->sendNM.write(MasterMailbox::buildDMM(DMM)); 
             break; 
         }
@@ -308,7 +369,21 @@ void MasterMailbox::assignEM(HeapMasterMessage DMM)
             auto oblockName = DMM.info.oblock; 
             std::cout<<"Mailbox Owner Release for the device: "<<DMM.info.device<<" from oblock "<<oblockName<<std::endl; 
             this->oblockReadMap[oblockName]->forwardPackets = false; 
+
+            if(DMM.info.controller == BlsLang::RESERVED_MASTER){
+                auto& scheduler = this->vTypeScheduler[DMM.info.device];
+                if(!scheduler.queue.getQueue().empty()){
+                    auto& jamar = scheduler.queue.getQueue().top(); 
+                    this->sendEM.write(makeVTYPESchedulerMessage(jamar, PROTOCOLS::OWNER_GRANT)); 
+                }
+                else{
+                    scheduler.queue.currOwned = false; 
+                }
+                break; 
+            }
+                
             this->sendNM.write(MasterMailbox::buildDMM(DMM)); 
+
             break; 
         }
         default:

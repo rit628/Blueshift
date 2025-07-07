@@ -89,6 +89,7 @@ void ExecutionUnit::replaceCachedStates(std::unordered_map<DeviceID, HeapMasterM
         HeapMasterMessage replaceHMM = item.second;; 
         cachedHMMs[devState] = replaceHMM; 
    }
+
 }
 
 
@@ -111,7 +112,10 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
 
         this->globalScheduler.request(this->Oblock.name, currentHMMs.priority); 
 
-        replaceCachedStates(HMMs); 
+        if(this->readForwardState){
+            replaceCachedStates(HMMs); 
+            this->readForwardState = false; 
+        }
         
         vector<BlsType> transformableStates;
 
@@ -203,9 +207,11 @@ void ExecutionManager::running()
                 this->scheduler.receive(currentDMMs.dmm_list[0]); 
                 break; 
             }
-            case(PROTOCOLS::WAIT_STATE_FORWARD):{
+            case(PROTOCOLS::WAIT_STATE_FORWARD):{ 
                 HeapMasterMessage dmm = currentDMMs.dmm_list[0]; 
+                assignedUnit.readForwardState = true; 
                 assignedUnit.replacementCache.insert(dmm.info.device, dmm); 
+          
                 break; 
             }
             default:{
