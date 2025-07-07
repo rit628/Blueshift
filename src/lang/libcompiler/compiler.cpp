@@ -26,8 +26,8 @@ void Compiler::compileSource(const std::string& source, std::ostream& outputStre
     ast->accept(analyzer);
     ast->accept(generator);
     generator.writeBytecode(outputStream);
-    ast->accept(this->depGraph);
-    auto tempOblock = this->depGraph.getOblockMap();  
+    // ast->accept(this->depGraph);
+    // auto tempOblock = this->depGraph.getOblockMap();  
 
 
     /*
