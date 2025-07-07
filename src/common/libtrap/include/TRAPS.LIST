@@ -5,3 +5,18 @@ TRAP_END
 TRAP_BEGIN(println, void)
     VARIADIC(values)
 TRAP_END
+
+TRAP_BEGIN(sleep, void)
+    ARGUMENT(seconds, int)
+TRAP_END
+
+TRAP_BEGIN(stoi, int)
+    ARGUMENT(input, string)
+TRAP_END
+
+TRAP_BEGIN(toString, string)
+    ARGUMENT(input, float)
+TRAP_END
+
+TRAP_BEGIN(getTrigger, string)
+TRAP_END

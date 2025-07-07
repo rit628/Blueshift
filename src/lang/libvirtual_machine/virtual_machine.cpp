@@ -224,8 +224,9 @@ void VirtualMachine::TRAP(uint16_t callnum, uint8_t argc, int) {
     switch (trapnum) {
         #define TRAP_BEGIN(name, returnType...) \
         case BlsTrap::CALLNUM::name: { \
+            using namespace TypeDef; \
             constexpr bool pushReturn = !TypeDef::Void<returnType>; \
-            auto result [[ maybe_unused ]] = BlsTrap::executeTrap<BlsTrap::CALLNUM::name>(args);
+            auto result [[ maybe_unused ]] = BlsTrap::executeTrap<BlsTrap::CALLNUM::name>(args, this);
             #define VARIADIC(...)
             #define ARGUMENT(...)
             #define TRAP_END \

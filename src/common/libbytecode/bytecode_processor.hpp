@@ -9,6 +9,10 @@
 #include <vector>
 #include <boost/archive/binary_iarchive.hpp>
 
+namespace BlsTrap {
+    struct Impl;
+}
+
 class BytecodeProcessor {
     public:
         enum class SIGNAL : uint8_t {
@@ -22,6 +26,8 @@ class BytecodeProcessor {
         void loadBytecode(const std::vector<char>& bytecode);
         void dispatch();
         std::vector<OBlockDesc> getOblockDescriptors() { return oblockDescs; }
+
+        friend struct BlsTrap::Impl;
 
     private:
         void readHeader(std::istream& bytecode, boost::archive::binary_iarchive& ia);
