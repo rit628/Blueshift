@@ -5,6 +5,7 @@
 #include <chrono>
 #include <concepts>
 #include <cstdint>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <variant>
@@ -41,7 +42,10 @@ int64_t Impl::stoi(std::string input, BytecodeProcessor* vm) {
 }
 
 std::string Impl::toString(double input, BytecodeProcessor* vm) {
-    return std::to_string(input);
+    // use a stringstream for now for better formatted output; eventually overloads will allow for std::to_string
+    std::stringstream out;
+    out << input;
+    return out.str();
 }
 
 std::string Impl::getTrigger(BytecodeProcessor* vm) {

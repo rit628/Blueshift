@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <ios>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -372,7 +373,7 @@ std::ostream& operator<<(std::ostream& os, const BlsType& obj) {
             }
         },
         [&](const bool& x) {
-            os << ((x) ? "true" : "false");
+            os << std::boolalpha << x;
         },
         [&](const auto& x) {
             os << x;

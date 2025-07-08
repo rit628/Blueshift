@@ -340,8 +340,16 @@ T createFromBlsType(const BlsType& value) {
 template<TypeDef::BlueshiftConstructible T>
 constexpr T resolveBlsType(const BlsType& value) {
   using namespace TypeDef;
-  if constexpr (Void<T> || Boolean<T> || Integer<T> || Float<T> || String<T>) {
+  if constexpr (Void<T> || Boolean<T> || String<T>) {
     return std::get<resolved_t<T>>(value);
+  }
+  else if constexpr (Integer<T> || Float<T>) {
+    if (std::holds_alternative<int64_t>(value)) {
+      return std::get<int64_t>(value);
+    }
+    else {
+      return std::get<double>(value);
+    }
   }
   else if constexpr (List<T> || Map<T>) {
     return std::dynamic_pointer_cast<resolved_t<T>>(std::get<std::shared_ptr<HeapDescriptor>>(value));
