@@ -146,8 +146,9 @@ class HeapDescriptor {
     TYPE contType = TYPE::ANY;
     std::vector<BlsType> sampleElement = {};
 
-
   public:
+    bool modified = false;
+
     HeapDescriptor() = default;
     virtual ~HeapDescriptor() = default;
     void setCont(TYPE contType) { this->contType = contType; }

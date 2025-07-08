@@ -129,13 +129,15 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
         }
 
         transformableStates = vm.transform(transformableStates);
+        auto& modifiedStates = vm.getModifiedStates();
 
         std::vector<HeapMasterMessage> outGoingStates;  
 
         // SHIP ALL OUTGOING DEVICES (EVEN ONCE NOT ALTERED)
         for(auto& devDesc : this->Oblock.outDevices)
         {   
-            int pos = this->devicePositionMap[devDesc.device_name]; 
+            size_t pos = this->devicePositionMap[devDesc.device_name];
+            if (!modifiedStates.at(pos)) continue;
             auto transformedState = transformableStates.at(pos);
             HeapMasterMessage newHMM; 
             newHMM.info.controller = devDesc.controller;

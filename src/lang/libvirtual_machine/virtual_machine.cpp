@@ -17,7 +17,6 @@ void VirtualMachine::setParentExecutionUnit(ExecutionUnit* ownerUnit) {
     this->ownerUnit = ownerUnit;
 }
 
-
 void VirtualMachine::setOblockOffset(size_t oblockOffset) {
     this->oblockOffset = oblockOffset;
 }
@@ -25,12 +24,23 @@ void VirtualMachine::setOblockOffset(size_t oblockOffset) {
 std::vector<BlsType> VirtualMachine::transform(std::vector<BlsType> deviceStates) {
     instruction = oblockOffset;
     signal = SIGNAL::START;
+    modifiedStates.resize(deviceStates.size(), false);
     cs.pushFrame(instruction, deviceStates);
     dispatch();
     auto transformedStates = cs.extractLocals();
     transformedStates.resize(deviceStates.size());
+    for (int i = 0; i < transformedStates.size(); i++) {
+        auto& value = transformedStates.at(i);
+        if (std::holds_alternative<std::shared_ptr<HeapDescriptor>>(value)) {
+            modifiedStates.at(i) = std::get<std::shared_ptr<HeapDescriptor>>(value)->modified;
+        }
+    }
     cs.popFrame();
     return transformedStates;
+}
+
+std::vector<bool>& VirtualMachine::getModifiedStates() {
+    return modifiedStates;
 }
 
 void VirtualMachine::CALL(uint16_t address, uint8_t argc, int) {
@@ -84,6 +94,9 @@ void VirtualMachine::MKTYPE(uint8_t index, uint8_t type, int) {
 void VirtualMachine::STORE(uint8_t index, int) {
     auto value = cs.popOperand();
     cs.getLocal(index).assign(value);
+    if (index < modifiedStates.size()) {
+        modifiedStates.at(index) = true;
+    }
 }
 
 void VirtualMachine::LOAD(uint8_t index, int) {
@@ -95,7 +108,9 @@ void VirtualMachine::ASTORE(int) {
     auto value = cs.popOperand();
     auto index = cs.popOperand();
     auto object = cs.popOperand();
-    std::get<std::shared_ptr<HeapDescriptor>>(object)->access(index).assign(value);
+    auto& target = std::get<std::shared_ptr<HeapDescriptor>>(object);
+    target->access(index).assign(value);
+    target->modified = true;
 }
 
 void VirtualMachine::ALOAD(int) {
