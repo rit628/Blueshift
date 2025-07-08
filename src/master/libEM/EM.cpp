@@ -42,6 +42,7 @@ ExecutionUnit::ExecutionUnit(OBlockDesc oblock, vector<string> devices, vector<b
     this->devices = devices;
     this->isVtype = isVtype;
     this->controllers = controllers;
+    this->vm.setParentExecutionUnit(this);
     this->vm.setOblockOffset(bytecodeOffset);
     this->vm.loadBytecode(bytecode);
     this->transform_function = transform_function;

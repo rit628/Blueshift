@@ -1,5 +1,6 @@
 #include "traps.hpp"
 #include "libbytecode/bytecode_processor.hpp"
+#include "libEM/EM.hpp"
 #include "libtype/bls_types.hpp"
 #include <chrono>
 #include <concepts>
@@ -44,9 +45,11 @@ std::string Impl::toString(double input, BytecodeProcessor* vm) {
 }
 
 std::string Impl::getTrigger(BytecodeProcessor* vm) {
-    if (!vm) {
-        return "";
-    }
-    // get triggers from master
-    return "";    
+    if (!vm) return "";
+    return vm->ownerUnit->TriggerName;
+}
+
+std::string Impl::time(BytecodeProcessor* vm) {
+    std::time_t result = std::time(nullptr);
+    return std::asctime(std::localtime(&result));
 }

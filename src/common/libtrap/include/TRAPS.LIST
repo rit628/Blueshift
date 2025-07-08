@@ -20,3 +20,6 @@ TRAP_END
 
 TRAP_BEGIN(getTrigger, string)
 TRAP_END
+
+TRAP_BEGIN(time, string)
+TRAP_END

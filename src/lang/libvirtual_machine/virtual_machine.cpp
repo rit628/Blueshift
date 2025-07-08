@@ -13,6 +13,11 @@
 
 using namespace BlsLang;
 
+void VirtualMachine::setParentExecutionUnit(ExecutionUnit* ownerUnit) {
+    this->ownerUnit = ownerUnit;
+}
+
+
 void VirtualMachine::setOblockOffset(size_t oblockOffset) {
     this->oblockOffset = oblockOffset;
 }

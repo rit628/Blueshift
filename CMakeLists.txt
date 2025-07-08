@@ -86,7 +86,7 @@ target_link_libraries(type ${BOOST_LIB_DEPS})
 
 file(GLOB_RECURSE LIBTRAP_SRC ${COMMON_SRC_DIR}/libtrap/*.cpp)
 add_library(trap STATIC ${LIBTRAP_SRC})
-target_include_directories(trap PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
+target_include_directories(trap PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON} ${MASTER_SRC_DIR})
 target_link_libraries(trap type ${BOOST_LIB_DEPS})
 
 file(GLOB_RECURSE LIBDM_SRC ${COMMON_SRC_DIR}/libDM/*.cpp)
@@ -176,7 +176,7 @@ target_link_libraries(ticker network TSQ ${BOOST_LIB_DEPS})
 
 file(GLOB_RECURSE LIBEM_SRC ${MASTER_SRC_DIR}/libEM/*.cpp)
 add_library(EM STATIC ${LIBEM_SRC})
-target_include_directories(EM PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${MASTER_SRC_DIR})
+target_include_directories(EM PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_SRC_DIR} ${MASTER_SRC_DIR})
 target_link_libraries(EM scheduler TSM TSQ dynamic_message interpreter virtual_machine ${BOOST_LIB_DEPS})
 
 file(GLOB_RECURSE LIBMM_SRC ${MASTER_SRC_DIR}/libMM/*.cpp)

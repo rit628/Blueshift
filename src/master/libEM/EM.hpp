@@ -2,10 +2,8 @@
 
 #include "libTSQ/TSQ.hpp"
 #include "include/Common.hpp"
-#include "../../lang/libinterpreter/interpreter.hpp"
 #include "../../lang/libvirtual_machine/virtual_machine.hpp"
 #include "libScheduler/Scheduler.hpp"
-#include "../../lang/common/ast.hpp"
 #include "libtype/bls_types.hpp"
 #include "libTSM/TSM.hpp"
 #include <unordered_map>

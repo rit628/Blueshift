@@ -1,6 +1,8 @@
 #include "depgraph.hpp"
 
 #include <stdexcept>
+#include <string>
+#include <variant>
 
 using namespace BlsLang; 
 
@@ -118,9 +120,6 @@ BlsObject DepGraph::visit(AstNode::Statement::Declaration& ast) {
                 devDesc.ctl_name = ctl; 
                 this->globalCtx.deviceConnections[dev] = devDesc; 
             }
-            else{
-                error("Device declaration has no constructor!");
-            }
         }
     }
     else{
@@ -235,7 +234,9 @@ BlsObject DepGraph::visit(AstNode::Expression::Access& ast) {
 
 BlsObject DepGraph::visit(AstNode::Expression::Literal& ast) {
     if(this->setupCtx.inSetup){
-        return std::get<std::string>(ast.getLiteral()); 
+        if (std::holds_alternative<std::string>(ast.getLiteral())) {
+            return std::get<std::string>(ast.getLiteral());
+        }
     }
    
     return true; 

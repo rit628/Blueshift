@@ -204,7 +204,7 @@ struct ReaderBox
     
             if(writeTrig){
                 this->triggerSet.insert(this->OblockName); 
-                auto& trigInfo = this->oblockDesc.triggers[triggerId];
+                auto& trigInfo = this->oblockDesc.triggers.at(triggerId);
                 std::vector<HeapMasterMessage> trigEvent; 
                 
                 for(auto& [name, devBox] : this->waitingQs){

@@ -1,17 +1,22 @@
 #pragma once
+#include "libtrap/traps.hpp"
 #include "libtype/bls_types.hpp"
 #include "call_stack.hpp"
 #include "libbytecode/bytecode_processor.hpp"
 #include <cstddef>
 #include <vector>
 
+class ExecutionUnit;
 
 namespace BlsLang {
     
     class VirtualMachine : public BytecodeProcessor {
         public:
+            void setParentExecutionUnit(ExecutionUnit* ownerUnit);
             void setOblockOffset(size_t oblockOffset);
             std::vector<BlsType> transform(std::vector<BlsType> deviceStates);
+
+            friend struct BlsTrap::Impl;
 
         protected:
             #define OPCODE_BEGIN(code) \
