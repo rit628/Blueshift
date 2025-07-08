@@ -224,12 +224,7 @@ struct ReaderBox
 
                 EMStateMessage ems; 
                 ems.dmm_list = trigEvent; 
-                if(trigInfo.id.has_value()){
-                    ems.TriggerName = trigInfo.id.value();  
-                }
-                else{
-                     ems.TriggerName = ""; 
-                }
+                ems.TriggerName = trigInfo.id;  
                 ems.priority = trigInfo.priority; 
                 ems.oblockName = this->OblockName; 
                 ems.protocol = PROTOCOLS::SENDSTATES; 

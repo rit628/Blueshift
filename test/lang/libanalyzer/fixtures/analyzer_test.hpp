@@ -28,10 +28,14 @@ namespace BlsLang {
                     EXPECT_EQ(desc.type, expectedDesc.type);
                     EXPECT_EQ(desc.controller, expectedDesc.controller);
                     EXPECT_EQ(desc.port_maps, expectedDesc.port_maps);
+                    EXPECT_EQ(desc.initialValue, expectedDesc.initialValue);
                     EXPECT_EQ(desc.isVtype, expectedDesc.isVtype);
+                    EXPECT_EQ(desc.dropRead, expectedDesc.dropRead);
+                    EXPECT_EQ(desc.dropWrite, expectedDesc.dropWrite);
                     EXPECT_EQ(desc.polling_period, expectedDesc.polling_period);
                     EXPECT_EQ(desc.isConst, expectedDesc.isConst);
                     EXPECT_EQ(desc.isInterrupt, expectedDesc.isInterrupt);
+                    EXPECT_EQ(desc.isCursor, expectedDesc.isCursor);
                 };
 
                 static auto compareOblockDescriptors = [](const OBlockDesc& desc, const OBlockDesc& expectedDesc) {
@@ -40,6 +44,13 @@ namespace BlsLang {
                         compareDeviceDescriptors(devDesc, expectedDevDesc);
                     }
                     EXPECT_EQ(desc.bytecode_offset, expectedDesc.bytecode_offset);
+                    for (auto&& [devDesc, expectedDevDesc] : boost::combine(desc.inDevices, expectedDesc.inDevices)) {
+                        compareDeviceDescriptors(devDesc, expectedDevDesc);
+                    }
+                    for (auto&& [devDesc, expectedDevDesc] : boost::combine(desc.outDevices, expectedDesc.outDevices)) {
+                        compareDeviceDescriptors(devDesc, expectedDevDesc);
+                    }
+                    EXPECT_EQ(desc.hostController, expectedDesc.hostController);
                     EXPECT_EQ(desc.triggers, expectedDesc.triggers);
                 };
 

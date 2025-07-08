@@ -20,6 +20,7 @@
         "bytecode_offset" : 2,
         "inDevices" : [],
         "outDevices" : [],
+        "hostController" : "MASTER",
         "triggers" : []
     }
 ]

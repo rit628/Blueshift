@@ -280,7 +280,7 @@ BlsType createBlsType(const T& value) {
   }
   #define DEVTYPE_BEGIN(name) \
   else if constexpr (std::same_as<T, name>) {  \
-      auto devtype = std::make_shared<MapDescriptor>(TYPE::ANY);
+      auto devtype = std::make_shared<MapDescriptor>(TYPE::name, TYPE::string_t, TYPE::ANY);
   #define ATTRIBUTE(name, ...) \
       BlsType name##_key = #name; \
       BlsType name##_val = value.name; \
