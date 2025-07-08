@@ -25,7 +25,7 @@ class ClientEU{
         int bytecodeOffset; 
         ReaderBox EuCache; 
         TSQ<EMStateMessage> reciever; 
-        DeviceScheduler &scheObj; 
+        std::shared_ptr<DeviceScheduler> clientScheduler; 
         OblockID name; 
         OBlockDesc oinfo; 
         TSM<DeviceID, HeapMasterMessage> replacementCache; 
@@ -38,8 +38,7 @@ class ClientEU{
         void replaceCache(std::unordered_map<DeviceID, HeapMasterMessage> &currentLoad); 
         
     public: 
-        ClientEU(OBlockDesc &odesc, DeviceScheduler &scheObj, TSQ<SentMessage> &clientMainLine, 
-        IdentData &idData, int ctlCode, std::vector<char> &bytecode);
+        ClientEU(OBlockDesc &odesc, std::shared_ptr<DeviceScheduler> scheObj, TSQ<SentMessage> &clientMainLine,  IdentData &idData, int ctlCode, std::vector<char> &bytecode);
 
         void insertDevice(HeapMasterMessage heapDesc);
         void run(); 
@@ -50,12 +49,13 @@ class ClientEM{
     private: 
         // Device to oblock list (using the in devices)
         std::unordered_map<DeviceID, std::vector<OblockID>> devToOblockMap; 
+        BlsLang::VirtualMachine vmDivider; 
 
         // Add a loopback queue that is a heap descriptor by default
-        DeviceScheduler clientScheduler; 
-        TSQ<SentMessage> &clientReadLine; 
+        std::shared_ptr<DeviceScheduler> clientScheduler; 
         
         // The connection outLine
+        TSQ<SentMessage> &clientReadLine; 
         TSQ<SentMessage> &clientWriteLine; 
     
         int ctlCode; 
@@ -66,12 +66,13 @@ class ClientEM{
         HeapMasterMessage getHMM(SentMessage &toConvert, PROTOCOLS pcol);
     
     public: 
-        ClientEM(std::vector<OBlockDesc> &descList, 
-            std::vector<std::vector<char>> &bytecodeList,
+        ClientEM(
+            std::vector<char> &bytecodeList,
              TSQ<SentMessage> &readLine, 
              TSQ<SentMessage> &writeLine, 
              std::unordered_map<DeviceID, int> deviceMap, 
              int ctlCode); 
+
 
 
         

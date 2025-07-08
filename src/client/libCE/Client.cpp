@@ -8,6 +8,7 @@
 #include <ostream>
 #include <stdexcept>
 #include <sys/socket.h>
+#include <unordered_map>
 
 Client::Client(std::string c_name): bc_socket(client_ctx, udp::endpoint(udp::v4(), BROADCAST_PORT)), client_socket(client_ctx){
     this->client_name = c_name; 
@@ -24,7 +25,6 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
     // Write code for a callback
     SentMessage sm; 
     DynamicMessage dmsg; 
-
 
     switch(type){
         case(Protocol::OWNER_GRANT):{
@@ -63,15 +63,18 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
         }
     }
 
-    if(write_self){
-        OwnedSentMessage osm; 
-        osm.sm = sm; 
-        osm.connection = nullptr; 
-        this->in_queue.write(osm); 
-    }
-    else{
-        std::cout<<"State for device: "<<deviceCode<<std::endl; 
-        this->client_connection->send(sm); 
+    auto& writeList = this->devRouteMap.at(deviceCode);
+    for(auto& ctlName : writeList){
+        if(ctlName == "MASTER"){
+            this->client_connection->send(sm); 
+        }
+        else if(ctlName == this->client_name){
+            OwnedSentMessage osm; 
+            osm.sm = sm; 
+            osm.connection = nullptr; 
+            this->in_queue.write(osm); 
+        }
+
     }
 }
 
@@ -99,20 +102,23 @@ void Client::listener(std::stop_token stoken){
             std::vector<uint16_t> device_alias; 
             std::vector<TYPE> device_types; 
             std::vector<std::unordered_map<std::string, std::string>> srcs;  
+            std::vector<std::string> device_names; 
             uint8_t controller_alias = inMsg.header.ctl_code; 
-
+        
             dmsg.unpack("__DEV_ALIAS__", device_alias);
             dmsg.unpack("__DEV_TYPES__", device_types); 
             dmsg.unpack("__DEV_PORTS__", srcs); 
-
+            dmsg.unpack("__DEV_NAMES__", device_names); 
+            dmsg.unpack("__DEV_ROUTE__", this->devRouteMap);
+            
             this->controller_alias = controller_alias; 
 
             // Check that all vectors are of equal size and more than 0 devices are configured: 
             int size = device_alias.size(); 
             bool b = device_types.size() == size; 
             bool c = srcs.size() == size; 
-            
 
+        
             if(!(b && c)){
                 throw std::invalid_argument("Config vectors of different sizes what!"); 
             }
@@ -132,8 +138,9 @@ void Client::listener(std::stop_token stoken){
             sm.header.prot = Protocol::CONFIG_OK; 
             sm.header.ctl_code = this->controller_alias; 
             this->client_connection->send(sm); 
-        
 
+            
+        
             std::cout<<"Client side handshake complete!"<<std::endl; 
 
         }

@@ -3,7 +3,9 @@
 #include "libDM/DynamicMessage.hpp"
 #include "libnetwork/Protocol.hpp"
 #include <algorithm>
+#include <cstdint>
 #include <exception>
+#include <unordered_map>
 
 
 MasterNM::MasterNM(std::vector<OBlockDesc> &desc_list, TSQ<DMM> &in_msg, TSQ<DMM> &out_q)
@@ -73,22 +75,32 @@ void MasterNM::writeConfig(std::vector<OBlockDesc> &desc_list){
 
 
     // Configure the controller config data once the mappings are made
+
     for(auto &oblock : desc_list){
         for(auto &dev : oblock.binded_devices){
             // used for debugging 
             this->dd_map[dev.device_name] = dev; 
+            auto devAlias = this->device_alias_map[dev.device_name]; 
             
-            this->ctl_configs[dev.controller].device_alias.push_back(this->device_alias_map[dev.device_name]); 
+            this->ctl_configs[dev.controller].device_alias.push_back(devAlias); 
+            this->ctl_configs[dev.controller].device_names.push_back(dev.device_name); 
             this->ctl_configs[dev.controller].type.push_back(dev.type); 
-            this->ctl_configs[dev.controller].srcs.push_back(dev.port_maps); 
-
+            this->ctl_configs[dev.controller].srcs.push_back(dev.port_maps);
+             
             dev_list.insert(dev.device_name); 
             c_list.insert(dev.controller);
         }
+
+        for(auto &dev : oblock.inDevices){
+            auto devAlias = this->device_alias_map[dev.device_name]; 
+            this->ctl_configs[dev.controller].deviceDests[devAlias].insert(oblock.hostController); 
+        }
         
         this->oblock_list.push_back(oblock.name); 
-        
     }
+
+
+
 }
 
 bool MasterNM::start(){
@@ -452,14 +464,27 @@ bool MasterNM::confirmClient(std::shared_ptr<Connection> &con_obj){
     // Device code doesnt matter 
     dev_sm.header.device_code = 0; 
 
-    // Copy the data: 
+    // Copy the data into the device destination map: 
     DynamicMessage dmsg; 
+    unordered_map<uint16_t, std::vector<std::string>> sendMap; 
+    for(auto& pair : this->ctl_configs[c_name].deviceDests){
+        sendMap[pair.first] = std::vector<std::string>(pair.second.begin(), pair.second.end()); 
+    }
 
+    std::cout<<"PORT MAPS for item"<<std::endl; 
+    for(auto& pair : sendMap){
+        std::cout<<"Device: "<<this->device_list.at(pair.first)<<std::endl; 
+        for(auto& dev : pair.second){std::cout<<dev<<",";}
+        std::cout<<std::endl; 
+    }
+   
     // Sends the configuration info for all the devices
     dmsg.createField("__DEV_ALIAS__" ,this->ctl_configs[c_name].device_alias); 
     dmsg.createField("__DEV_TYPES__" ,this->ctl_configs[c_name].type);
     dmsg.createField("__DEV_PORTS__" ,this->ctl_configs[c_name].srcs);  
-
+    dmsg.createField("__DEV_NAMES__", this->ctl_configs[c_name].device_names); 
+    dmsg.createField("__DEV_ROUTES__", sendMap); 
+    
     dev_sm.body = dmsg.Serialize(); 
     dev_sm.header.body_size = dev_sm.body.size(); 
 

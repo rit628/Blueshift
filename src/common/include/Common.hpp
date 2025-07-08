@@ -58,7 +58,7 @@ struct DeviceDescriptor{
     /* Binding/Declaration Attributes */
     std::string device_name = "";
     TYPE type = TYPE::NONE;
-    std::string controller = "";
+    std::string controller = "MASTER";
     std::unordered_map<std::string, std::string> port_maps = {};
     BlsType initialValue = std::monostate();
     bool isVtype = false;

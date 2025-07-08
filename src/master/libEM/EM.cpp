@@ -102,6 +102,8 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
 
         this->TriggerName = currentHMMs.TriggerName;  
 
+        std::cout<<"Trigger: "<<this->TriggerName<<std::endl; 
+
         std::unordered_map<DeviceID, HeapMasterMessage> HMMs;
         
         // Fill in the known data into the stack 

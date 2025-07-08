@@ -85,7 +85,6 @@ class Client{
         /*
             Blueshift Client Stuff
         */
-
   
         uint8_t controller_alias;   
         std::shared_mutex ticker_mutex; 
@@ -107,9 +106,11 @@ class Client{
         std::vector<DeviceInterruptor> interruptors;
 
         /*  
-            Client EU
+            Client EU and routing for decentralization
         */
         std::unique_ptr<ClientEM> ClientExec; 
+        std::unordered_map<uint16_t, std::vector<std::string>> devRouteMap; 
+
 
     public: 
         // Client constructor

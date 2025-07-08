@@ -1,0 +1,424 @@
+diff --git a/src/client/libCE/Client.cpp b/src/client/libCE/Client.cpp
+index c143e7b..2e9c5e6 100644
+--- a/src/client/libCE/Client.cpp
++++ b/src/client/libCE/Client.cpp
+@@ -8,6 +8,7 @@
+ #include <ostream>
+ #include <stdexcept>
+ #include <sys/socket.h>
++#include <unordered_map>
+ 
+ Client::Client(std::string c_name): bc_socket(client_ctx, udp::endpoint(udp::v4(), BROADCAST_PORT)), client_socket(client_ctx){
+     this->client_name = c_name; 
+@@ -25,7 +26,6 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
+     SentMessage sm; 
+     DynamicMessage dmsg; 
+ 
+-
+     switch(type){
+         case(Protocol::OWNER_GRANT):{
+             sm.header.oblock_id = oint; 
+@@ -63,15 +63,18 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
+         }
+     }
+ 
+-    if(write_self){
+-        OwnedSentMessage osm; 
+-        osm.sm = sm; 
+-        osm.connection = nullptr; 
+-        this->in_queue.write(osm); 
+-    }
+-    else{
+-        std::cout<<"State for device: "<<deviceCode<<std::endl; 
+-        this->client_connection->send(sm); 
++    auto& writeList = this->devRouteMap.at(deviceCode);
++    for(auto& ctlName : writeList){
++        if(ctlName == "MASTER"){
++            this->client_connection->send(sm); 
++        }
++        else if(ctlName == this->client_name){
++            OwnedSentMessage osm; 
++            osm.sm = sm; 
++            osm.connection = nullptr; 
++            this->in_queue.write(osm); 
++        }
++
+     }
+ }
+ 
+@@ -99,20 +102,23 @@ void Client::listener(std::stop_token stoken){
+             std::vector<uint16_t> device_alias; 
+             std::vector<TYPE> device_types; 
+             std::vector<std::unordered_map<std::string, std::string>> srcs;  
++            std::vector<std::string> device_names; 
+             uint8_t controller_alias = inMsg.header.ctl_code; 
+-
++        
+             dmsg.unpack("__DEV_ALIAS__", device_alias);
+             dmsg.unpack("__DEV_TYPES__", device_types); 
+             dmsg.unpack("__DEV_PORTS__", srcs); 
+-
++            dmsg.unpack("__DEV_NAMES__", device_names); 
++            dmsg.unpack("__DEV_ROUTE__", this->devRouteMap);
++            
+             this->controller_alias = controller_alias; 
+ 
+             // Check that all vectors are of equal size and more than 0 devices are configured: 
+             int size = device_alias.size(); 
+             bool b = device_types.size() == size; 
+             bool c = srcs.size() == size; 
+-            
+ 
++        
+             if(!(b && c)){
+                 throw std::invalid_argument("Config vectors of different sizes what!"); 
+             }
+@@ -132,8 +138,9 @@ void Client::listener(std::stop_token stoken){
+             sm.header.prot = Protocol::CONFIG_OK; 
+             sm.header.ctl_code = this->controller_alias; 
+             this->client_connection->send(sm); 
+-        
+ 
++            
++        
+             std::cout<<"Client side handshake complete!"<<std::endl; 
+ 
+         }
+diff --git a/src/client/libCE/Client.hpp b/src/client/libCE/Client.hpp
+index 9685a06..2826fd0 100644
+--- a/src/client/libCE/Client.hpp
++++ b/src/client/libCE/Client.hpp
+@@ -85,7 +85,6 @@ class Client{
+         /*
+             Blueshift Client Stuff
+         */
+-
+   
+         uint8_t controller_alias;   
+         std::shared_mutex ticker_mutex; 
+@@ -107,9 +106,11 @@ class Client{
+         std::vector<DeviceInterruptor> interruptors;
+ 
+         /*  
+-            Client EU
++            Client EU and routing for decentralization
+         */
+         std::unique_ptr<ClientEM> ClientExec; 
++        std::unordered_map<uint16_t, std::vector<std::string>> devRouteMap; 
++
+ 
+     public: 
+         // Client constructor
+diff --git a/src/client/libClientGateway/ClientGateway.cpp b/src/client/libClientGateway/ClientGateway.cpp
+index cfeb5bc..000abd6 100644
+--- a/src/client/libClientGateway/ClientGateway.cpp
++++ b/src/client/libClientGateway/ClientGateway.cpp
+@@ -12,14 +12,25 @@
+ 
+ 
+ 
+-ClientEM::ClientEM(std::vector<OBlockDesc> &descList, std::vector<std::vector<char>> &bytecodeList, TSQ<SentMessage> &readLine,
+-    TSQ<SentMessage> &writeLine,std::unordered_map<DeviceID, int> data, int ctlCode)
+-:   clientScheduler(descList, [this](HeapMasterMessage hmm){}), 
++ClientEM::ClientEM(std::vector<char> &bytecodeList, TSQ<SentMessage> &readLine,
++    TSQ<SentMessage> &writeLine,std::unordered_map<DeviceID, int> deviceMap, int ctlCode)
++    :   
+     clientReadLine(readLine),
+-    clientWriteLine(writeLine)
+-    
++    clientWriteLine(writeLine)   
+ {
+     int i = 0; 
++
++    // this->vmDivider.loadBytecode(bytecodeList); 
++    std::vector<OBlockDesc> descList = this->vmDivider.getOblockDescriptors(); 
++
++    this->clientScheduler = std::make_shared<DeviceScheduler>(descList, [this](HeapMasterMessage hmm){}); 
++
++    this->ctlCode = ctlCode; 
++    this->ident_data.deviceMap = deviceMap; 
++    for(auto& pair : this->ident_data.deviceMap){
++        this->ident_data.intToDev[pair.second] = pair.first; 
++    }
++
+     for(auto& odesc : descList){
+         // Populate the in list: 
+         for(auto& dev : odesc.inDevices){
+@@ -27,15 +38,9 @@ ClientEM::ClientEM(std::vector<OBlockDesc> &descList, std::vector<std::vector<ch
+         }
+ 
+         this->ident_data.oblockMap[odesc.name] = i; 
+-        this->clientMap.emplace(odesc.name ,std::make_unique<ClientEU>(odesc, this->clientScheduler, writeLine, this->ident_data, ctlCode, bytecodeList[i]));
++        this->clientMap.emplace(odesc.name ,std::make_unique<ClientEU>(odesc, this->clientScheduler, writeLine, this->ident_data, ctlCode, bytecodeList));
+         i++;  
+     }
+-
+-    this->ctlCode = ctlCode; 
+-    this->ident_data.deviceMap = data; 
+-    for(auto& pair : this->ident_data.deviceMap){
+-        this->ident_data.intToDev[pair.second] = pair.first; 
+-    }
+ } 
+ 
+ // Convert the sentMessage to a 
+@@ -73,12 +78,12 @@ void ClientEM::run(){
+             }
+             case Protocol::OWNER_GRANT : {
+                 HeapMasterMessage hmm = getHMM(message, PROTOCOLS::OWNER_GRANT);
+-                this->clientScheduler.receive(hmm); 
++                this->clientScheduler->receive(hmm); 
+                 break; 
+             }
+             case Protocol::OWNER_CONFIRM_OK : {
+                 HeapMasterMessage hmm = getHMM(message, PROTOCOLS::OWNER_CONFIRM_OK);
+-                this->clientScheduler.receive(hmm);
++                this->clientScheduler->receive(hmm);
+                 break; 
+             }
+             default: {
+@@ -91,15 +96,16 @@ void ClientEM::run(){
+ }
+ 
+ 
+-ClientEU::ClientEU(OBlockDesc &odesc, DeviceScheduler &devSche, TSQ<SentMessage> &mainLine, IdentData &data, int ctlCode, std::vector<char> &bytecode)
+-:EuCache(false, false, odesc.name, odesc), scheObj(devSche), clientMainLine(mainLine),
++ClientEU::ClientEU(OBlockDesc &odesc, std::shared_ptr<DeviceScheduler> devSche, TSQ<SentMessage> &mainLine, IdentData &data, int ctlCode, std::vector<char> &bytecode)
++:EuCache(false, false, odesc.name, odesc), clientScheduler(devSche), clientMainLine(mainLine),
+ idMaps(data)
+ {   
+     this->byteCodeSerialized = bytecode; 
+-    virtualMachine.loadBytecode("REPLACE WITH VECTOR"); 
++    virtualMachine.loadBytecode(bytecode); 
+     this->bytecodeOffset = odesc.bytecode_offset; 
+     this->name = odesc.name; 
+     this->oinfo = odesc; 
++    this->clientScheduler = devSche; 
+ 
+     int i = 0; 
+     for(auto& devPos : odesc.binded_devices){
+@@ -154,7 +160,7 @@ void ClientEU::run(){
+ 
+         // Open and close the packet flow-through valve while waiting for confirm_oks
+         this->EuCache.forwardPackets = true; 
+-        this->scheObj.request(this->name, obj.priority);
++        this->clientScheduler->request(this->name, obj.priority);
+         this->EuCache.forwardPackets = false; 
+ 
+         this->replaceCache(heapMap); 
+@@ -180,6 +186,6 @@ void ClientEU::run(){
+             ); 
+         }  
+ 
+-        this->scheObj.release(this->oinfo.name); 
++        this->clientScheduler->release(this->oinfo.name); 
+     }
+ }
+diff --git a/src/client/libClientGateway/ClientGateway.hpp b/src/client/libClientGateway/ClientGateway.hpp
+index 7c7ec1c..b440a1a 100644
+--- a/src/client/libClientGateway/ClientGateway.hpp
++++ b/src/client/libClientGateway/ClientGateway.hpp
+@@ -25,7 +25,7 @@ class ClientEU{
+         int bytecodeOffset; 
+         ReaderBox EuCache; 
+         TSQ<EMStateMessage> reciever; 
+-        DeviceScheduler &scheObj; 
++        std::shared_ptr<DeviceScheduler> clientScheduler; 
+         OblockID name; 
+         OBlockDesc oinfo; 
+         TSM<DeviceID, HeapMasterMessage> replacementCache; 
+@@ -38,8 +38,7 @@ class ClientEU{
+         void replaceCache(std::unordered_map<DeviceID, HeapMasterMessage> &currentLoad); 
+         
+     public: 
+-        ClientEU(OBlockDesc &odesc, DeviceScheduler &scheObj, TSQ<SentMessage> &clientMainLine, 
+-        IdentData &idData, int ctlCode, std::vector<char> &bytecode);
++        ClientEU(OBlockDesc &odesc, std::shared_ptr<DeviceScheduler> scheObj, TSQ<SentMessage> &clientMainLine,  IdentData &idData, int ctlCode, std::vector<char> &bytecode);
+ 
+         void insertDevice(HeapMasterMessage heapDesc);
+         void run(); 
+@@ -50,12 +49,13 @@ class ClientEM{
+     private: 
+         // Device to oblock list (using the in devices)
+         std::unordered_map<DeviceID, std::vector<OblockID>> devToOblockMap; 
++        BlsLang::VirtualMachine vmDivider; 
+ 
+         // Add a loopback queue that is a heap descriptor by default
+-        DeviceScheduler clientScheduler; 
+-        TSQ<SentMessage> &clientReadLine; 
++        std::shared_ptr<DeviceScheduler> clientScheduler; 
+         
+         // The connection outLine
++        TSQ<SentMessage> &clientReadLine; 
+         TSQ<SentMessage> &clientWriteLine; 
+     
+         int ctlCode; 
+@@ -66,14 +66,15 @@ class ClientEM{
+         HeapMasterMessage getHMM(SentMessage &toConvert, PROTOCOLS pcol);
+     
+     public: 
+-        ClientEM(std::vector<OBlockDesc> &descList, 
+-            std::vector<std::vector<char>> &bytecodeList,
++        ClientEM(
++            std::vector<char> &bytecodeList,
+              TSQ<SentMessage> &readLine, 
+              TSQ<SentMessage> &writeLine, 
+              std::unordered_map<DeviceID, int> deviceMap, 
+              int ctlCode); 
+ 
+ 
++
+         
+ 
+         void run(); 
+diff --git a/src/common/include/Common.hpp b/src/common/include/Common.hpp
+index 4f6d1a6..1eb80fa 100644
+--- a/src/common/include/Common.hpp
++++ b/src/common/include/Common.hpp
+@@ -58,7 +58,7 @@ struct DeviceDescriptor{
+     /* Binding/Declaration Attributes */
+     std::string device_name = "";
+     TYPE type = TYPE::NONE;
+-    std::string controller = "";
++    std::string controller = "MASTER";
+     std::unordered_map<std::string, std::string> port_maps = {};
+     BlsType initialValue = std::monostate();
+     bool isVtype = false;
+@@ -122,6 +122,7 @@ struct OBlockDesc{
+     int bytecode_offset = 0; 
+     std::vector<DeviceDescriptor> inDevices;
+     std::vector<DeviceDescriptor> outDevices; 
++    std::string hostController = "MASTER";
+ 
+     std::vector<TriggerData> triggers = {};
+ 
+diff --git a/src/common/libnetwork/Protocol.hpp b/src/common/libnetwork/Protocol.hpp
+index ee2d1f5..6b860ea 100644
+--- a/src/common/libnetwork/Protocol.hpp
++++ b/src/common/libnetwork/Protocol.hpp
+@@ -1,7 +1,9 @@
+ #pragma once
+ 
++#include <cstdint>
+ #include <stdint.h>
+ #include <vector> 
++#include <unordered_set>
+ #include "include/Common.hpp"
+ 
+ #define MAX_NAME_LEN 128
+@@ -81,6 +83,11 @@ struct DeviceConfigMsg{
+     // Determines if the client should send and initial state
+     std::vector<uint16_t> triggers;  
+ 
++    // Device Names
++    std::vector<std::string> device_names; 
++
++    // Device 
++    std::unordered_map<uint16_t, std::unordered_set<std::string>> deviceDests; 
+ }; 
+ 
+ 
+diff --git a/src/master/libEM/EM.cpp b/src/master/libEM/EM.cpp
+index 113d1f9..df62402 100644
+--- a/src/master/libEM/EM.cpp
++++ b/src/master/libEM/EM.cpp
+@@ -97,6 +97,8 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
+ 
+         this->TriggerName = currentHMMs.TriggerName;  
+ 
++        std::cout<<"Trigger: "<<this->TriggerName<<std::endl; 
++
+         std::unordered_map<DeviceID, HeapMasterMessage> HMMs;
+         
+         // Fill in the known data into the stack 
+@@ -125,10 +127,6 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
+             }
+         }
+ 
+-        if(this->Oblock.name == "task2"){
+-            std::cout<<std::endl; 
+-        }
+-
+         transformableStates = transform_function(transformableStates);
+ 
+         std::vector<HeapMasterMessage> outGoingStates;  
+diff --git a/src/master/libNM/MasterNM.cpp b/src/master/libNM/MasterNM.cpp
+index d64d89f..c7e12b7 100644
+--- a/src/master/libNM/MasterNM.cpp
++++ b/src/master/libNM/MasterNM.cpp
+@@ -3,7 +3,9 @@
+ #include "libDM/DynamicMessage.hpp"
+ #include "libnetwork/Protocol.hpp"
+ #include <algorithm>
++#include <cstdint>
+ #include <exception>
++#include <unordered_map>
+ 
+ 
+ MasterNM::MasterNM(std::vector<OBlockDesc> &desc_list, TSQ<DMM> &in_msg, TSQ<DMM> &out_q)
+@@ -73,22 +75,32 @@ void MasterNM::writeConfig(std::vector<OBlockDesc> &desc_list){
+ 
+ 
+     // Configure the controller config data once the mappings are made
++
+     for(auto &oblock : desc_list){
+         for(auto &dev : oblock.binded_devices){
+             // used for debugging 
+             this->dd_map[dev.device_name] = dev; 
++            auto devAlias = this->device_alias_map[dev.device_name]; 
+             
+-            this->ctl_configs[dev.controller].device_alias.push_back(this->device_alias_map[dev.device_name]); 
++            this->ctl_configs[dev.controller].device_alias.push_back(devAlias); 
++            this->ctl_configs[dev.controller].device_names.push_back(dev.device_name); 
+             this->ctl_configs[dev.controller].type.push_back(dev.type); 
+-            this->ctl_configs[dev.controller].srcs.push_back(dev.port_maps); 
+-
++            this->ctl_configs[dev.controller].srcs.push_back(dev.port_maps);
++             
+             dev_list.insert(dev.device_name); 
+             c_list.insert(dev.controller);
+         }
++
++        for(auto &dev : oblock.inDevices){
++            auto devAlias = this->device_alias_map[dev.device_name]; 
++            this->ctl_configs[dev.controller].deviceDests[devAlias].insert(oblock.hostController); 
++        }
+         
+         this->oblock_list.push_back(oblock.name); 
+-        
+     }
++
++
++
+ }
+ 
+ bool MasterNM::start(){
+@@ -452,14 +464,27 @@ bool MasterNM::confirmClient(std::shared_ptr<Connection> &con_obj){
+     // Device code doesnt matter 
+     dev_sm.header.device_code = 0; 
+ 
+-    // Copy the data: 
++    // Copy the data into the device destination map: 
+     DynamicMessage dmsg; 
++    unordered_map<uint16_t, std::vector<std::string>> sendMap; 
++    for(auto& pair : this->ctl_configs[c_name].deviceDests){
++        sendMap[pair.first] = std::vector<std::string>(pair.second.begin(), pair.second.end()); 
++    }
+ 
++    std::cout<<"PORT MAPS for item"<<std::endl; 
++    for(auto& pair : sendMap){
++        std::cout<<"Device: "<<this->device_list.at(pair.first)<<std::endl; 
++        for(auto& dev : pair.second){std::cout<<dev<<",";}
++        std::cout<<std::endl; 
++    }
++   
+     // Sends the configuration info for all the devices
+     dmsg.createField("__DEV_ALIAS__" ,this->ctl_configs[c_name].device_alias); 
+     dmsg.createField("__DEV_TYPES__" ,this->ctl_configs[c_name].type);
+     dmsg.createField("__DEV_PORTS__" ,this->ctl_configs[c_name].srcs);  
+-
++    dmsg.createField("__DEV_NAMES__", this->ctl_configs[c_name].device_names); 
++    dmsg.createField("__DEV_ROUTES__", sendMap); 
++    
+     dev_sm.body = dmsg.Serialize(); 
+     dev_sm.header.body_size = dev_sm.body.size(); 
+ 

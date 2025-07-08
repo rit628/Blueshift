@@ -1,7 +1,9 @@
 #pragma once
 
+#include <cstdint>
 #include <stdint.h>
 #include <vector> 
+#include <unordered_set>
 #include "include/Common.hpp"
 
 #define MAX_NAME_LEN 128
@@ -81,6 +83,11 @@ struct DeviceConfigMsg{
     // Determines if the client should send and initial state
     std::vector<uint16_t> triggers;  
 
+    // Device Names
+    std::vector<std::string> device_names; 
+
+    // Device 
+    std::unordered_map<uint16_t, std::unordered_set<std::string>> deviceDests; 
 }; 
 
 
