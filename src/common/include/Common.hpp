@@ -93,18 +93,13 @@ struct DeviceDescriptor{
 
 struct TriggerData {
     std::vector<std::string> rule;
-    std::optional<std::string> id = std::nullopt;
+    std::string id = "";
     uint16_t priority = 1;
 
     template<typename Archive>
     void serialize(Archive& ar, const unsigned int version) {
         ar & rule;
-        bool hasId = id.has_value();
-        ar & hasId;
-        if (hasId) {
-            id = "";
-            ar & id.value();
-        }
+        ar & id;
         ar & priority;
     }
 
@@ -118,6 +113,7 @@ struct OBlockDesc{
     int bytecode_offset = 0; 
     std::vector<DeviceDescriptor> inDevices;
     std::vector<DeviceDescriptor> outDevices; 
+    std::string hostController = "MASTER";
 
     std::vector<TriggerData> triggers = {};
 
@@ -128,6 +124,7 @@ struct OBlockDesc{
         ar & bytecode_offset;
         ar & inDevices;
         ar & outDevices;
+        ar & hostController;
         ar & triggers;
     }
 

@@ -1475,7 +1475,7 @@ namespace BlsLang {
                             {}
                         ),
                         new AstNode::Expression::Literal(
-                            std::string("host-2::file-f3.txt")
+                            std::string("host-1::file-f3.txt")
                         )
                     ),
                     new AstNode::Statement::Expression(
@@ -1524,7 +1524,7 @@ namespace BlsLang {
             {"writer_3", DeviceDescriptor{
                 .device_name = "writer_3",
                 .type = TYPE::LINE_WRITER,
-                .controller = "host-2",
+                .controller = "host-1",
                 .port_maps = {
                     {"file", "f3.txt"}
                 },
@@ -1562,7 +1562,7 @@ namespace BlsLang {
                     DeviceDescriptor{
                         .device_name = "writer_3",
                         .type = TYPE::LINE_WRITER,
-                        .controller = "host-2",
+                        .controller = "host-1",
                         .port_maps = {
                             {"file", "f3.txt"}
                         },
@@ -1570,6 +1570,7 @@ namespace BlsLang {
                         .dropRead = true
                     }
                 },
+                .hostController = "host-1",
                 .triggers = {
                     TriggerData{{"writer_1", "writer_2"}},
                     TriggerData{{"writer_3"}, "my trigger", 12}

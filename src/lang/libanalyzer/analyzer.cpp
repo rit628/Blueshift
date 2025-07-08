@@ -189,6 +189,7 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
             }
             auto& desc = oblockDescriptors.at(name);
             desc.name = name;
+            bool decentralizable = true;
             auto& devices = desc.binded_devices;
             for (size_t i = 0; i < args.size(); i++) {
                 auto* expr = dynamic_cast<AstNode::Expression::Access*>(args.at(i).get());
@@ -204,6 +205,15 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
                     dev.controller = declaredDev.controller;
                     dev.port_maps = declaredDev.port_maps;
                     dev.isVtype = declaredDev.isVtype;
+                    if (decentralizable) {
+                        if (desc.hostController == RESERVED_MASTER) {
+                            desc.hostController = dev.controller;
+                        }
+                        else if (desc.hostController != dev.controller) {
+                            decentralizable = false;
+                            desc.hostController = RESERVED_MASTER;
+                        }
+                    }
                 }
                 catch (std::out_of_range) {
                     throw SemanticError(expr->getObject() + " does not refer to a device binding");
@@ -799,18 +809,12 @@ BlsObject Analyzer::visit(AstNode::Specifier::Type& ast) {
         break;
 
         #define DEVTYPE_BEGIN(name) \
-        case TYPE::name: { \
+        case TYPE::name: \
             using namespace TypeDef; \
             if (!typeArgs.empty()) throw SemanticError("Devtypes cannot include type arguments."); \
-            auto devtype = std::make_shared<MapDescriptor>(TYPE::name, TYPE::string_t, TYPE::ANY); \
-            BlsType attr, attrVal;
-        #define ATTRIBUTE(name, type) \
-            attr = BlsType(#name); \
-            attrVal = BlsType(type()); \
-            devtype->add(attr, attrVal);
-        #define DEVTYPE_END \
-            return BlsType(devtype); \
-        } \
+            return createBlsType(name());
+        #define ATTRIBUTE(...)
+        #define DEVTYPE_END
         break;
         #include "DEVTYPES.LIST"
         #undef DEVTYPE_BEGIN
@@ -861,7 +865,7 @@ BlsObject Analyzer::visit(AstNode::Initializer::Oblock& ast) {
 
         for (auto&& arg : args) {
             std::vector<std::string> rule;
-            std::optional<std::string> id = std::nullopt;
+            std::string id = "";
             uint8_t priority = 1;
             if (auto* resolvedMap = dynamic_cast<AstNode::Expression::Map*>(arg.get())) { // verbose syntax
                 for (auto&& [attrExpr, valExpr] : resolvedMap->getElements()) {

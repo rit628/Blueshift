@@ -84,7 +84,7 @@ TriggerData tag_invoke(const value_to_tag<TriggerData>&, value const& jv) {
     auto& obj = jv.as_object();
     TriggerData trigger;
     trigger.rule = value_to<std::vector<std::string>>(obj.at("rule"));
-    trigger.id = value_to<std::optional<std::string>>(obj.at("id"));
+    trigger.id = value_to<std::string>(obj.at("id"));
     trigger.priority = value_to<uint8_t>(obj.at("priority"));
     return trigger;
 }
@@ -97,6 +97,7 @@ OBlockDesc tag_invoke(const value_to_tag<OBlockDesc>&, value const& jv) {
     desc.bytecode_offset = value_to<int>(obj.at("bytecode_offset"));
     desc.inDevices = value_to<std::vector<DeviceDescriptor>>(obj.at("inDevices"));
     desc.outDevices = value_to<std::vector<DeviceDescriptor>>(obj.at("outDevices"));
+    desc.hostController = value_to<std::string>(obj.at("hostController"));
     desc.triggers = value_to<std::vector<TriggerData>>(obj.at("triggers"));
     return desc;
 }

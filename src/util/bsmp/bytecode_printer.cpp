@@ -43,6 +43,7 @@ void tag_invoke(const value_from_tag&, value& jv, OBlockDesc const & desc) {
     obj.emplace("bytecode_offset", value_from(desc.bytecode_offset));
     obj.emplace("inDevices", value_from(desc.inDevices));
     obj.emplace("outDevices", value_from(desc.outDevices));
+    obj.emplace("hostController", value_from(desc.hostController));
     obj.emplace("triggers", value_from(desc.triggers));
 }
 
