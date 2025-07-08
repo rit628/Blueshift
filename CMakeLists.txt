@@ -207,7 +207,7 @@ target_link_libraries(device network dynamic_message ${BOOST_LIB_DEPS} ${SYSTEM_
 file(GLOB_RECURSE LIBCLIENTGATEWAY_SRC ${CLIENT_SRC_DIR}/libClientGateway/*.cpp)
 add_library(client_gateway STATIC ${LIBCLIENTGATEWAY_SRC})
 target_include_directories(client_gateway PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${CLIENT_SRC_DIR})
-target_link_libraries(client_gateway network device virtual_machine bytecode ${BOOST_LIB_DEPS})
+target_link_libraries(client_gateway network device virtual_machine bytecode scheduler  ${BOOST_LIB_DEPS})
 
 file(GLOB_RECURSE LIBCE_SRC ${CLIENT_SRC_DIR}/libCE/*.cpp)
 add_library(client_engine STATIC ${LIBCE_SRC})

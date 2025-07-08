@@ -64,6 +64,10 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
         }
     }
 
+
+    this->client_connection->send(sm); 
+
+    /*
     auto& writeList = this->devRouteMap.at(deviceCode);
 
     for(auto& ctlName : writeList){
@@ -73,14 +77,14 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
             osm.sm = sm; 
             osm.connection = nullptr; 
             sm.header.prot = Protocol::SEND_ARGUMENT; 
-            this->connection_in_queue.write(osm); 
+            //this->connection_in_queue.write(osm); 
+            this->client_connection->send(sm); 
         }
         else{
             this->client_connection->send(sm); 
         }
-     
-
     }
+        */ 
 }
 
 void Client::listener(std::stop_token stoken){
@@ -89,9 +93,12 @@ void Client::listener(std::stop_token stoken){
         auto inMsg = this->client_in_queue.read().sm; 
         
         Protocol ptype = inMsg.header.prot; 
-
         DynamicMessage dmsg; 
-        dmsg.Capture(inMsg.body);
+
+        if(ptype != Protocol::CONFIG_OBLOCK){
+           
+            dmsg.Capture(inMsg.body);
+        }
 
         if(ptype == Protocol::CONFIG_OK){
             this->curr_state = ClientState::IN_OPERATION; 
@@ -154,7 +161,7 @@ void Client::listener(std::stop_token stoken){
             // Processing code instructions
             std::cout<<"Received programming information"<<std::endl; 
             auto code = inMsg.body; 
-            //this->ClientExec = std::make_unique<ClientEM>(code, this->connection_in_queue, this->client_in_queue, this->devAliasMap, 0); 
+            this->ClientExec = std::make_unique<ClientEM>(code, this->connection_in_queue, this->client_in_queue, this->devAliasMap, 0); 
         }
         else if(ptype == Protocol::STATE_CHANGE){
         

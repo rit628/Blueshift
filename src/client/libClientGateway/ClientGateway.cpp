@@ -20,9 +20,8 @@ ClientEM::ClientEM(std::vector<char> &bytecodeList, TSQ<OwnedSentMessage> &readL
     clientReadLine(readLine),
     clientWriteLine(writeLine)   
 {
-    int i = 0; 
-
-    // this->vmDivider.loadBytecode(bytecodeList); 
+ 
+    this->vmDivider.loadBytecode(bytecodeList); 
     std::vector<OBlockDesc> descList = this->vmDivider.getOblockDescriptors(); 
 
     this->clientScheduler = std::make_shared<DeviceScheduler>(descList, [this](HeapMasterMessage hmm){}); 
@@ -33,7 +32,14 @@ ClientEM::ClientEM(std::vector<char> &bytecodeList, TSQ<OwnedSentMessage> &readL
         this->ident_data.intToDev[pair.second] = pair.first; 
     }
 
+    int i = 0; 
+    
     for(auto& odesc : descList){
+        if(odesc.hostController == "MASTER"){
+            continue; 
+        }
+
+        std::cout<<"Decentralized: "<<odesc.name<<std::endl; 
         // Populate the in list: 
         for(auto& dev : odesc.inDevices){
             this->devToOblockMap[dev.device_name].push_back(odesc.name); 

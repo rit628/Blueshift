@@ -14,6 +14,7 @@ MasterNM::MasterNM(std::vector<OBlockDesc> &desc_list, TSQ<DMM> &in_msg, TSQ<DMM
 {
     std::cout<<"Master started!"<<std::endl; 
     writeConfig(desc_list); 
+    this->bytecode = bytecode; 
 
 }
 
