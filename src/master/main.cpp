@@ -84,7 +84,6 @@ int main(int argc, char *argv[]){
     printf("past compilation\n");
 
     std::vector<OBlockDesc> oblockDescriptors = compiler.getOblockDescriptors(); 
-    std::vector<char> bytecode = {}; 
     auto oblocks = compiler.getOblocks();  
 
     // Only temporary until symgraph is complete
