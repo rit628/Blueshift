@@ -6,6 +6,7 @@
 #include "libtype/bls_types.hpp"
 #include <functional>
 #include <unordered_map>
+#include <vector>
 
 
 using DMM = DynamicMasterMessage;
@@ -77,8 +78,9 @@ int main(int argc, char *argv[]){
     
     printf("pre compilation\n");
     // Makes interpreter
+    std::vector<char> bytecode;
     BlsLang::Compiler compiler;
-    compiler.compileFile(filename); 
+    compiler.compileFile(filename, bytecode); 
     printf("past compilation\n");
 
     std::vector<OBlockDesc> oblockDescriptors = compiler.getOblockDescriptors(); 
@@ -101,7 +103,7 @@ int main(int argc, char *argv[]){
     NM.start(); 
 
 
-    ExecutionManager EM(oblockDescriptors, MM_EM_queue, EM_MM_queue, oblocks); 
+    ExecutionManager EM(oblockDescriptors, MM_EM_queue, EM_MM_queue, bytecode, oblocks); 
     std::thread t3([&](){EM.running();});
     
     // Make Mailbox (runs with EM and NM)

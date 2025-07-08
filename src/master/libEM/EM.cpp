@@ -9,7 +9,8 @@
 // 
 
 ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<EMStateMessage> &readMM, 
-    TSQ<HeapMasterMessage> &sendMM, 
+    TSQ<HeapMasterMessage> &sendMM,
+    std::vector<char>& bytecode,
     std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks)
     : readMM(readMM), sendMM(sendMM), scheduler(OblockList, [this](HeapMasterMessage dmm){this->sendMM.write(dmm);})
 {
@@ -28,18 +29,21 @@ ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<EMStateMes
         }
 
         auto function = oblocks[OblockName];
-        EU_map[OblockName] = std::make_unique<ExecutionUnit>(oblock, devices, isVtype, controllers, this->sendMM, function, this->scheduler);
+        auto bytecodeOffset = oblock.bytecode_offset;
+        EU_map[OblockName] = std::make_unique<ExecutionUnit>(oblock, devices, isVtype, controllers, this->sendMM, bytecodeOffset, bytecode, function, this->scheduler);
     }
 }
 
 ExecutionUnit::ExecutionUnit(OBlockDesc oblock, vector<string> devices, vector<bool> isVtype, vector<string> controllers,
-    TSQ<HeapMasterMessage> &sendMM, function<vector<BlsType>(vector<BlsType>)>  transform_function, DeviceScheduler &devScheduler)
+    TSQ<HeapMasterMessage> &sendMM, size_t bytecodeOffset, std::vector<char>& bytecode, function<vector<BlsType>(vector<BlsType>)>  transform_function, DeviceScheduler &devScheduler)
     : globalScheduler(devScheduler)
 {
     this->Oblock = oblock;
     this->devices = devices;
     this->isVtype = isVtype;
     this->controllers = controllers;
+    this->vm.setOblockOffset(bytecodeOffset);
+    this->vm.loadBytecode(bytecode);
     this->transform_function = transform_function;
     this->info.oblock = oblock.name;
 
@@ -123,11 +127,7 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
             }
         }
 
-        if(this->Oblock.name == "task2"){
-            std::cout<<std::endl; 
-        }
-
-        transformableStates = transform_function(transformableStates);
+        transformableStates = vm.transform(transformableStates);
 
         std::vector<HeapMasterMessage> outGoingStates;  
 

@@ -12,6 +12,7 @@
 #include "libdivider/divider.hpp"
 #include "token.hpp"
 #include <memory>
+#include <variant>
 #include <vector>
 
 namespace BlsLang {
@@ -22,8 +23,10 @@ namespace BlsLang {
             : generator(analyzer.getOblockDescriptors()
                        , analyzer.getLiteralPool()) {}
             
-            void compileFile(const std::string& source, std::ostream& outputStream = std::cout);
-            void compileSource(const std::string& source, std::ostream& outputStream = std::cout);
+            using ostream_t = std::variant<std::reference_wrapper<std::vector<char>>, std::reference_wrapper<std::ostream>>;
+
+            void compileFile(const std::string& source, ostream_t outputStream = std::cout);
+            void compileSource(const std::string& source, ostream_t outputStream = std::cout);
             auto& getOblocks() { return oblocks; }
             auto& getOblockDescriptors() { return oblockDescriptors; }
             auto& getOblockDescriptorMap() { return analyzer.getOblockDescriptors(); }
