@@ -171,12 +171,13 @@ void ClientEU::run(){
         }
 
         // Transformed object:
-        this->virtualMachine.transform(this->bytecodeOffset, transformStates); 
+        this->virtualMachine.setOblockOffset(this->bytecodeOffset);
+        auto transformedStates = this->virtualMachine.transform(transformStates); 
 
         // Transformed the object: 
         for(auto& dev : this->oinfo.outDevices){
             this->clientMainLine.write(
-                createSentMessage(transformStates.at(this->devPosMap[dev.device_name]), dev, Protocol::SEND_STATE)  
+                createSentMessage(transformedStates.at(this->devPosMap[dev.device_name]), dev, Protocol::SEND_STATE)  
             ); 
         }  
 

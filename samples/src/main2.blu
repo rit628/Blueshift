@@ -59,7 +59,7 @@ oblock task6(READ_FILE_POLL jamar, FILE_LOG log2)
 }
 
 oblock task7(READ_FILE_POLL jamar, FILE_LOG log2)
-: triggerOn({"rule": jamar, "priority" : 10}), constPollOn({jamar : 750}) 
+: triggerOn({"rule": jamar, "priority" : 10}), constPollOn({jamar : 500}) 
 {
     log2.add_msg = jamar.msg + " priority 10.";
 }
@@ -78,7 +78,7 @@ setup(){
     task3(lw, log, k); 
     task4(omar, k); 
     task5(omar, k); 
-    //task6(rfp, log2); 
-    //task7(rfp, log2); 
+    task6(rfp, log2); 
+    task7(rfp, log2); 
 
 }
