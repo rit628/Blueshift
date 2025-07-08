@@ -1,6 +1,7 @@
 #ifdef __RPI64__
 
 #include "include/LIGHT.hpp"
+#include <cstdint>
 #include <pigpio.h>
 
 using namespace Device;
@@ -22,6 +23,7 @@ void LIGHT::init(std::unordered_map<std::string, std::string> &config) {
             return;
     }
     gpioSetMode(this->PIN, PI_OUTPUT);
+    addGPIOIWatch(this->PIN, [](int, int, uint32_t) -> bool { return true; });
 }
 
 void LIGHT::transmitStates(DynamicMessage &dmsg) {
