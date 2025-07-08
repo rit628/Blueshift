@@ -77,7 +77,7 @@ class Client{
         // The client object 
         std::shared_ptr<Connection> client_connection; 
         // Input Thread safe queue
-        TSQ<OwnedSentMessage> in_queue; 
+        TSQ<OwnedSentMessage> connection_in_queue; 
         // Input Thread 
         TSQ<OwnedSentMessage>client_in_queue; 
 
@@ -110,6 +110,7 @@ class Client{
         */
         std::unique_ptr<ClientEM> ClientExec; 
         std::unordered_map<uint16_t, std::vector<std::string>> devRouteMap; 
+        std::unordered_map<std::string, int> devAliasMap;
 
 
     public: 

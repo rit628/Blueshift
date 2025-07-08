@@ -58,7 +58,7 @@ struct DeviceDescriptor{
     /* Binding/Declaration Attributes */
     std::string device_name = "";
     TYPE type = TYPE::NONE;
-    std::string controller = "MASTER";
+    std::string controller;
     std::unordered_map<std::string, std::string> port_maps = {};
     BlsType initialValue = std::monostate();
     bool isVtype = false;
@@ -181,7 +181,7 @@ struct HeapMasterMessage
 };
 
 struct EMStateMessage{
-    std::string TriggerName; 
+    std::optional<std::string> TriggerName; 
     OblockID oblockName; 
     std::vector<HeapMasterMessage> dmm_list; 
     int priority; 

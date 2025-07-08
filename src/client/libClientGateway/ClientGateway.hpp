@@ -11,6 +11,7 @@
 #include "libbytecode/bytecode_processor.hpp"
 #include "libtype/bls_types.hpp"
 #include "libTSM/TSM.hpp"
+#include "libnetwork/Connection.hpp"
 
 struct IdentData{
     std::unordered_map<OblockID, int> oblockMap; 
@@ -29,7 +30,7 @@ class ClientEU{
         OblockID name; 
         OBlockDesc oinfo; 
         TSM<DeviceID, HeapMasterMessage> replacementCache; 
-        TSQ<SentMessage> &clientMainLine; 
+        TSQ<OwnedSentMessage> &clientMainLine; 
         int ctlCode; 
         std::unordered_map<DeviceID, int> devPosMap; 
         IdentData &idMaps; 
@@ -38,7 +39,7 @@ class ClientEU{
         void replaceCache(std::unordered_map<DeviceID, HeapMasterMessage> &currentLoad); 
         
     public: 
-        ClientEU(OBlockDesc &odesc, std::shared_ptr<DeviceScheduler> scheObj, TSQ<SentMessage> &clientMainLine,  IdentData &idData, int ctlCode, std::vector<char> &bytecode);
+        ClientEU(OBlockDesc &odesc, std::shared_ptr<DeviceScheduler> scheObj, TSQ<OwnedSentMessage> &clientMainLine,  IdentData &idData, int ctlCode, std::vector<char> &bytecode);
 
         void insertDevice(HeapMasterMessage heapDesc);
         void run(); 
@@ -55,8 +56,8 @@ class ClientEM{
         std::shared_ptr<DeviceScheduler> clientScheduler; 
         
         // The connection outLine
-        TSQ<SentMessage> &clientReadLine; 
-        TSQ<SentMessage> &clientWriteLine; 
+        TSQ<OwnedSentMessage> &clientReadLine; 
+        TSQ<OwnedSentMessage> &clientWriteLine; 
     
         int ctlCode; 
         std::unordered_map<OblockID, std::unique_ptr<ClientEU>> clientMap; 
@@ -68,9 +69,9 @@ class ClientEM{
     public: 
         ClientEM(
             std::vector<char> &bytecodeList,
-             TSQ<SentMessage> &readLine, 
-             TSQ<SentMessage> &writeLine, 
-             std::unordered_map<DeviceID, int> deviceMap, 
+             TSQ<OwnedSentMessage> &readLine, 
+             TSQ<OwnedSentMessage> &writeLine, 
+             std::unordered_map<DeviceID, int> &deviceMap, 
              int ctlCode); 
 
 

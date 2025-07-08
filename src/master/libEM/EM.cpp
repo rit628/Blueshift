@@ -100,8 +100,10 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
 
         EMStateMessage currentHMMs = EUcache.read();
 
-        this->TriggerName = currentHMMs.TriggerName;  
-
+        if(currentHMMs.TriggerName.has_value()){
+            this->TriggerName = currentHMMs.TriggerName.value();  
+        }
+        
         std::cout<<"Trigger: "<<this->TriggerName<<std::endl; 
 
         std::unordered_map<DeviceID, HeapMasterMessage> HMMs;
@@ -120,8 +122,6 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
         }
         
         vector<BlsType> transformableStates;
-
-        std::cout<<"Trigger name: "<<TriggerName<<std::endl; 
 
         for(auto& deviceDesc : this->Oblock.binded_devices){
             DeviceID devName = deviceDesc.device_name; 

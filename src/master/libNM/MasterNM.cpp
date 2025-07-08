@@ -8,7 +8,7 @@
 #include <unordered_map>
 
 
-MasterNM::MasterNM(std::vector<OBlockDesc> &desc_list, TSQ<DMM> &in_msg, TSQ<DMM> &out_q)
+MasterNM::MasterNM(std::vector<OBlockDesc> &desc_list, TSQ<DMM> &in_msg, TSQ<DMM> &out_q, std::vector<char> &bytecode)
 : master_socket(master_ctx), master_acceptor(master_ctx, tcp::endpoint(tcp::v4(), MASTER_PORT)), 
   EMM_in_queue(in_msg), EMM_out_queue(out_q), tickerTable(desc_list)
 {
@@ -450,7 +450,6 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
     }
 }
 
-
 // Creates the config message and send it to the client (assuming the target is found)
 bool MasterNM::confirmClient(std::shared_ptr<Connection> &con_obj){
     std::string c_name = con_obj->getName();
@@ -489,7 +488,20 @@ bool MasterNM::confirmClient(std::shared_ptr<Connection> &con_obj){
 
     con_obj->send(dev_sm); 
 
+    /*
+        SENDING CODE OVER
+    */
 
+    std::cout<<"Sending code information"<<std::endl; 
+    SentMessage codeMsg; 
+    codeMsg.body = this->bytecode; 
+    codeMsg.header.prot = Protocol::CONFIG_OBLOCK; 
+    codeMsg.header.ctl_code = this->controller_alias_map[c_name]; 
+    codeMsg.header.body_size = this->bytecode.size(); 
+    // Device code doesnt matter 
+    codeMsg.header.device_code = 0; 
+    
+    con_obj->send(codeMsg);
 
     return true; 
 }

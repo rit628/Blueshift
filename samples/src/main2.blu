@@ -1,5 +1,5 @@
 oblock task(LINE_WRITER lw, READ_FILE rfp, FILE_LOG log)
-: triggerOn({"id": "name1", "rule" : lw, "priority" : 20})
+: triggerOn({"id" : "name1", "rule" : lw, "priority" : 20})
 {
     string textMessage = lw.msg; 
     list<string> availNames = ["ROHAN ", "COLIN ", "TOMAS ", "THOMAS "]; 
@@ -28,7 +28,7 @@ oblock task(LINE_WRITER lw, READ_FILE rfp, FILE_LOG log)
 // Expecting multiple devices
 
 oblock task2(LINE_WRITER lw, FILE_LOG log1)
-: triggerOn({"id":"basic", "rule" : lw, "priority" : 8})
+: triggerOn({"id": "basic", "rule" : lw, "priority" : 8})
 {
     log1.add_msg = "This is from task2 (priority 8)"; 
 }

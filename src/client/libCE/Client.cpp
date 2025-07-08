@@ -5,6 +5,7 @@
 #include "libnetwork/Protocol.hpp"
 #include <functional>
 #include <exception>
+#include <memory>
 #include <ostream>
 #include <stdexcept>
 #include <sys/socket.h>
@@ -71,7 +72,8 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
             OwnedSentMessage osm; 
             osm.sm = sm; 
             osm.connection = nullptr; 
-            this->in_queue.write(osm); 
+            sm.header.prot = Protocol::SEND_ARGUMENT; 
+            this->connection_in_queue.write(osm); 
         }
         else{
             this->client_connection->send(sm); 
@@ -84,7 +86,7 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
 void Client::listener(std::stop_token stoken){
     while(!stoken.stop_requested()){
 
-        auto inMsg = this->in_queue.read().sm; 
+        auto inMsg = this->client_in_queue.read().sm; 
         
         Protocol ptype = inMsg.header.prot; 
 
@@ -120,14 +122,17 @@ void Client::listener(std::stop_token stoken){
             int size = device_alias.size(); 
             bool b = device_types.size() == size; 
             bool c = srcs.size() == size; 
+            bool d = device_names.size() == size; 
+
 
         
-            if(!(b && c)){
+            if(!(b && c && d)){
                 throw std::invalid_argument("Config vectors of different sizes what!"); 
             }
 
             for(int i = 0; i < size; i++){
                 try{      
+                    this->devAliasMap[device_names[i]] = device_alias[i]; 
                     deviceList.try_emplace(device_alias[i], device_types[i], srcs[i]);
                 }
                 catch(BlsExceptionClass& bec){
@@ -142,17 +147,14 @@ void Client::listener(std::stop_token stoken){
             sm.header.ctl_code = this->controller_alias; 
             this->client_connection->send(sm); 
 
-            
-        
             std::cout<<"Client side handshake complete!"<<std::endl; 
 
         }
         else if(ptype == Protocol::CONFIG_OBLOCK){
+            // Processing code instructions
+            std::cout<<"Received programming information"<<std::endl; 
             auto code = inMsg.body; 
-            
-
-
-
+            //this->ClientExec = std::make_unique<ClientEM>(code, this->connection_in_queue, this->client_in_queue, this->devAliasMap, 0); 
         }
         else if(ptype == Protocol::STATE_CHANGE){
         
@@ -353,7 +355,7 @@ void Client::broadcastListen(){
         if(attempt_name == this->client_name){
             auto master_address = master_endpoint.address().to_string(); 
             this->client_connection = std::make_shared<Connection>(
-                this->client_ctx, tcp::socket(this->client_ctx), Owner::CLIENT, this->in_queue, master_address
+                this->client_ctx, tcp::socket(this->client_ctx), Owner::CLIENT, this->client_in_queue, master_address
             ); 
             this->client_connection->setName(this->client_name); 
             this->genBlsException = std::make_unique<GenericBlsException>(
@@ -433,7 +435,7 @@ bool Client::disconnect(){
 
 
 TSQ<OwnedSentMessage>& Client::getInQueue(){
-    return this->in_queue; 
+    return this->client_in_queue; 
 }
 
 

@@ -84,10 +84,12 @@ int main(int argc, char *argv[]){
     printf("past compilation\n");
 
     std::vector<OBlockDesc> oblockDescriptors = compiler.getOblockDescriptors(); 
+    std::vector<char> bytecode = {}; 
     auto oblocks = compiler.getOblocks();  
 
     // Only temporary until symgraph is complete
     modifyOblockDesc(oblockDescriptors, compiler.getGlobalContext()); 
+
     
 
     // EM and MM
@@ -99,7 +101,7 @@ int main(int argc, char *argv[]){
     TSQ<DMM> MM_NM_queue; 
 
     // Make network (runs at start)
-    MasterNM NM(oblockDescriptors, MM_NM_queue, NM_MM_queue);
+    MasterNM NM(oblockDescriptors, MM_NM_queue, NM_MM_queue, bytecode);
     NM.start(); 
 
 

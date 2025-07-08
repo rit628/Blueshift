@@ -2,8 +2,10 @@
 #include "include/Common.hpp"
 #include "libDM/DynamicMessage.hpp"
 #include "libScheduler/Scheduler.hpp"
+#include "libnetwork/Connection.hpp"
 #include "libnetwork/Protocol.hpp"
 #include "libtype/bls_types.hpp"
+#include <cstddef>
 #include <memory>
 #include <unordered_map>
 #include <variant>
@@ -12,8 +14,8 @@
 
 
 
-ClientEM::ClientEM(std::vector<char> &bytecodeList, TSQ<SentMessage> &readLine,
-    TSQ<SentMessage> &writeLine,std::unordered_map<DeviceID, int> deviceMap, int ctlCode)
+ClientEM::ClientEM(std::vector<char> &bytecodeList, TSQ<OwnedSentMessage> &readLine,
+    TSQ<OwnedSentMessage> &writeLine,std::unordered_map<DeviceID, int> &deviceMap, int ctlCode)
     :   
     clientReadLine(readLine),
     clientWriteLine(writeLine)   
@@ -61,11 +63,12 @@ HeapMasterMessage ClientEM::getHMM(SentMessage &toConvert, PROTOCOLS pcol){
 // Run the Exec Manager and Units
 void ClientEM::run(){
     while(true){
-        auto message = this->clientReadLine.read();
+        auto ogMsg = this->clientReadLine.read(); 
+        auto message = ogMsg.sm;
         switch(message.header.prot){
             case Protocol::SEND_STATE:{
                 // forward packet 
-                this->clientWriteLine.write(message); 
+                this->clientWriteLine.write(ogMsg); 
                 break; 
             }
             case Protocol::SEND_ARGUMENT: {
@@ -88,7 +91,7 @@ void ClientEM::run(){
             }
             default: {
                 // Forward Packet
-                this->clientWriteLine.write(message); 
+                this->clientWriteLine.write(ogMsg); 
                 break; 
             }
         }
@@ -96,7 +99,7 @@ void ClientEM::run(){
 }
 
 
-ClientEU::ClientEU(OBlockDesc &odesc, std::shared_ptr<DeviceScheduler> devSche, TSQ<SentMessage> &mainLine, IdentData &data, int ctlCode, std::vector<char> &bytecode)
+ClientEU::ClientEU(OBlockDesc &odesc, std::shared_ptr<DeviceScheduler> devSche, TSQ<OwnedSentMessage> &mainLine, IdentData &data, int ctlCode, std::vector<char> &bytecode)
 :EuCache(false, false, odesc.name, odesc), clientScheduler(devSche), clientMainLine(mainLine),
 idMaps(data)
 {   
@@ -182,9 +185,10 @@ void ClientEU::run(){
 
         // Transformed the object: 
         for(auto& dev : this->oinfo.outDevices){
-            this->clientMainLine.write(
-                createSentMessage(transformedStates.at(this->devPosMap[dev.device_name]), dev, Protocol::SEND_STATE)  
-            ); 
+            OwnedSentMessage osm; 
+            osm.sm = createSentMessage(transformedStates.at(this->devPosMap[dev.device_name]), dev, Protocol::SEND_STATE) ; 
+            osm.connection = nullptr; 
+            this->clientMainLine.write(osm); 
         }  
 
         this->clientScheduler->release(this->oinfo.name); 

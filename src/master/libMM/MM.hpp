@@ -219,7 +219,7 @@ struct ReaderBox
 
                 if(triggerId == -1){
                     // Resorting to default trigger
-                    trigInfo.id = ""; 
+                    trigInfo.id = "null"; 
                     trigInfo.priority = 1; 
                 }
                 else{
@@ -246,7 +246,7 @@ struct ReaderBox
 
                 EMStateMessage ems; 
                 ems.dmm_list = trigEvent; 
-                ems.TriggerName = trigInfo.id;  
+                ems.TriggerName = trigInfo.id; 
                 ems.priority = trigInfo.priority; 
                 ems.oblockName = this->OblockName; 
                 ems.protocol = PROTOCOLS::SENDSTATES; 

@@ -36,6 +36,8 @@ class ExecutionUnit
     std::string TriggerName = "";
     BlsLang::VirtualMachine vm;
     bool readForwardState = false; 
+   
+    
 
 
     ExecutionUnit(OBlockDesc OblockData
@@ -47,6 +49,7 @@ class ExecutionUnit
                 , std::vector<char>& bytecode
                 , function<vector<BlsType>(vector<BlsType>)> transform_function
                 , DeviceScheduler &devSchedule);
+                
     
 
     
