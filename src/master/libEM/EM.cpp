@@ -9,7 +9,8 @@
 // 
 
 ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<EMStateMessage> &readMM, 
-    TSQ<HeapMasterMessage> &sendMM, 
+    TSQ<HeapMasterMessage> &sendMM,
+    std::vector<char>& bytecode,
     std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks)
     : readMM(readMM), sendMM(sendMM), scheduler(OblockList, [this](HeapMasterMessage dmm){this->sendMM.write(dmm);})
 {
@@ -28,18 +29,22 @@ ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<EMStateMes
         }
 
         auto function = oblocks[OblockName];
-        EU_map[OblockName] = std::make_unique<ExecutionUnit>(oblock, devices, isVtype, controllers, this->sendMM, function, this->scheduler);
+        auto bytecodeOffset = oblock.bytecode_offset;
+        EU_map[OblockName] = std::make_unique<ExecutionUnit>(oblock, devices, isVtype, controllers, this->sendMM, bytecodeOffset, bytecode, function, this->scheduler);
     }
 }
 
 ExecutionUnit::ExecutionUnit(OBlockDesc oblock, vector<string> devices, vector<bool> isVtype, vector<string> controllers,
-    TSQ<HeapMasterMessage> &sendMM, function<vector<BlsType>(vector<BlsType>)>  transform_function, DeviceScheduler &devScheduler)
+    TSQ<HeapMasterMessage> &sendMM, size_t bytecodeOffset, std::vector<char>& bytecode, function<vector<BlsType>(vector<BlsType>)>  transform_function, DeviceScheduler &devScheduler)
     : globalScheduler(devScheduler)
 {
     this->Oblock = oblock;
     this->devices = devices;
     this->isVtype = isVtype;
     this->controllers = controllers;
+    this->vm.setParentExecutionUnit(this);
+    this->vm.setOblockOffset(bytecodeOffset);
+    this->vm.loadBytecode(bytecode);
     this->transform_function = transform_function;
     this->info.oblock = oblock.name;
 
@@ -115,7 +120,12 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
         for(auto& deviceDesc : this->Oblock.binded_devices){
             DeviceID devName = deviceDesc.device_name; 
             if(HMMs.contains(devName)){
-                transformableStates.push_back(HMMs.at(devName).heapTree); 
+                auto& state = HMMs.at(devName).heapTree;
+                if (std::holds_alternative<std::shared_ptr<HeapDescriptor>>(state)) {
+                    // make sure default is set to unmodified (may not be needed depending on serialization)
+                    std::get<std::shared_ptr<HeapDescriptor>>(state)->modified = false;
+                }
+                transformableStates.push_back(state); 
             }
             else{
                 auto defDevice = deviceDesc.initialValue; 
@@ -123,18 +133,16 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
             }
         }
 
-        if(this->Oblock.name == "task2"){
-            std::cout<<std::endl; 
-        }
-
-        transformableStates = transform_function(transformableStates);
+        transformableStates = vm.transform(transformableStates);
+        auto& modifiedStates = vm.getModifiedStates();
 
         std::vector<HeapMasterMessage> outGoingStates;  
 
         // SHIP ALL OUTGOING DEVICES (EVEN ONCE NOT ALTERED)
         for(auto& devDesc : this->Oblock.outDevices)
         {   
-            int pos = this->devicePositionMap[devDesc.device_name]; 
+            size_t pos = this->devicePositionMap[devDesc.device_name];
+            if (!modifiedStates.at(pos)) continue;
             auto transformedState = transformableStates.at(pos);
             HeapMasterMessage newHMM; 
             newHMM.info.controller = devDesc.controller;

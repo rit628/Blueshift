@@ -1,15 +1,18 @@
 #include "compiler.hpp"
 #include <cstddef>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <sstream>
 #include <tuple>
 #include <boost/range/combine.hpp>
+#include <variant>
+#include <vector>
 
 
 using namespace BlsLang;
 
-void Compiler::compileFile(const std::string& source, std::ostream& outputStream) {
+void Compiler::compileFile(const std::string& source, ostream_t outputStream) {
     std::ifstream file;
     file.open(source);
     if (!file.is_open()) {
@@ -20,13 +23,18 @@ void Compiler::compileFile(const std::string& source, std::ostream& outputStream
     compileSource(ss.str(), outputStream);
 }
 
-void Compiler::compileSource(const std::string& source, std::ostream& outputStream) {
+void Compiler::compileSource(const std::string& source, ostream_t outputStream) {
     tokens = lexer.lex(source);
     ast = parser.parse(tokens);
     ast->accept(analyzer);
     ast->accept(generator);
-    generator.writeBytecode(outputStream);
-    // ast->accept(this->depGraph);
+    if (auto* stream = std::get_if<std::reference_wrapper<std::vector<char>>>(&outputStream)) {
+        generator.writeBytecode(*stream);
+    }
+    else {
+        generator.writeBytecode(std::get<std::reference_wrapper<std::ostream>>(outputStream));
+    }
+    ast->accept(this->depGraph);
     // auto tempOblock = this->depGraph.getOblockMap();  
 
 
