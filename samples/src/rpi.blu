@@ -11,8 +11,10 @@ oblock light(LIGHT target, LINE_WRITER remote) {
     }
 }
 
-oblock button(BUTTON button, LIGHT rpi_light) {
-    if (button.pressed == true) {
+oblock button(BUTTON button, LIGHT rpi_light) : 
+triggerOn(button)
+{
+    if (button.pressed) {
         println("button pressed!");
         rpi_light.on = true; 
     }
@@ -22,11 +24,33 @@ oblock button(BUTTON button, LIGHT rpi_light) {
     }
 }
 
+oblock flash(LIGHT rpi_light) : 
+triggerOn(rpi_light),
+constPollOn({rpi_light : 10000})
+{
+    print("GOT SOME MONEY");
+    rpi_light.on = !rpi_light.on;
+    sleep(1);
+    print("FUCK YOU");
+}
+
+oblock keyboardLight(KEYBOARD kbd, LIGHT rpi_light) :
+triggerOn(kbd)
+{
+    rpi_light.on = !rpi_light.on;
+    //sleep(1);
+}
+
 setup() {
     LIGHT rpi_light = "rpi::PIN-16";
+    //KEYBOARD KBD = "ctl::mode-all";
     //LINE_WRITER rpi_light_controller = "remote::file-file1.txt"; 
     //light(rpi_light, rpi_light_controller);
     
     BUTTON rpi_button = "rpi::PIN-21";
     button(rpi_button, rpi_light);
+
+    //flash(rpi_light);
+
+    //keyboardLight(KBD, rpi_light);
 }
