@@ -1,5 +1,5 @@
 oblock task(LINE_WRITER lw, READ_FILE rfp, FILE_LOG log)
-: triggerOn({"id": "name1", "rule" : lw, "priority" : 20})
+: triggerOn({"id" : "name1", "rule" : lw, "priority" : 20})
 {
     string textMessage = lw.msg; 
     list<string> availNames = ["ROHAN ", "COLIN ", "TOMAS ", "THOMAS "]; 
@@ -27,25 +27,42 @@ oblock task(LINE_WRITER lw, READ_FILE rfp, FILE_LOG log)
 
 // Expecting multiple devices
 
-oblock task2(LINE_WRITER lw, FILE_LOG log1, int k)
-: triggerOn({"id":"basic", "rule" : lw, "priority" : 8}, {"rule" : k, "priority" : 4})
+oblock task2(LINE_WRITER lw, FILE_LOG log1)
+: triggerOn({"id": "basic", "rule" : lw, "priority" : 8})
 {
     log1.add_msg = "This is from task2 (priority 8)"; 
 }
 
 
 oblock task3(LINE_WRITER lw, FILE_LOG fl, int k)
-: triggerOn({"id" : "t3", "rule" : lw, "priority" : 5}, {"rule" : k, "priority" : 8})
+: triggerOn({"id" : "t3", "rule" : lw, "priority" : 5}, {"rule" : k})
 {
     fl.add_msg = "Im on crack " + lw.msg + " priority 5 "; 
 }
 
 oblock task4(READ_FILE omar, int k)
-: triggerOn(omar)
+: triggerOn({"rule" : omar, "priority" : 5})
 {
-    k = k + 1; 
+    k = k + 100; 
 }
 
+oblock task5(READ_FILE omar, int k)
+: triggerOn({"rule" : omar, "priority" : 10}){
+    k = k + 5; 
+    print("VALUE SHOULD BE 105: ", k); 
+}
+
+oblock task6(READ_FILE_POLL jamar, FILE_LOG log2)
+: triggerOn({"rule": jamar,  "priority" : 5}) 
+{
+    log2.add_msg = jamar.msg + " priority 5.";
+}
+
+oblock task7(READ_FILE_POLL jamar, FILE_LOG log2)
+: triggerOn({"rule": jamar, "priority" : 10}), constPollOn({jamar : 500}) 
+{
+    log2.add_msg = jamar.msg + " priority 10.";
+}
 
 setup(){   
     virtual int k; 
@@ -54,9 +71,14 @@ setup(){
     READ_FILE hello = "CTL1::file-Hello.txt"; 
     FILE_LOG log = "CTL1::file-logfile.txt";
     FILE_LOG log2 = "CTL1::file-logfile2.txt"; 
+    READ_FILE_POLL rfp = "CTL1::file-Hello.txt"; 
 
     task(lw, omar, log); 
-    task2(lw, log, k); 
+    task2(lw, log); 
     task3(lw, log, k); 
     task4(omar, k); 
+    task5(omar, k); 
+    task6(rfp, log2); 
+    task7(rfp, log2); 
+
 }
