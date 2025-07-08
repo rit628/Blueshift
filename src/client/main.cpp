@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
         SDL_Window* window = nullptr;
         SDL_Renderer* renderer = nullptr;
         auto windowName = name + " Input Window";
-        if (!SDL_CreateWindowAndRenderer(windowName.c_str(), 800, 600, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN, &window, &renderer)) {
+        if (!SDL_CreateWindowAndRenderer(windowName.c_str(), 800, 600, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY, &window, &renderer)) {
             std::cerr << "Input window creation failed: " << SDL_GetError() << ". Some devices may not work properly." << std::endl;
         }
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);

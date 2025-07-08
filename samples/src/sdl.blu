@@ -1,3 +1,10 @@
+float max(float x, float y) {
+    if (x > y) {
+        return x;
+    }
+    return y;
+}
+
 oblock logKey(KEYBOARD kbd, string log) : 
 triggerOn({
     "id" : "keyPress",
@@ -36,9 +43,7 @@ triggerOn({
     print(log += convertedKey);
 }
 
-oblock recordMouse(MOUSE ms) :
-triggerOn(ms)
-{
+oblock recordMouse(MOUSE ms) {
     println("DONT TOUCH THAT MOUSE");
     println("MOUSE COORDS\n____________", "x: " + toString(ms.x), "y: " + toString(ms.y));
     println("DONT TOUCH THAT WHEEL");
@@ -55,10 +60,86 @@ triggerOn(ms)
     }
 }
 
+oblock quadrantLogger(MOUSE ms, float xBorder, float yBorder) : 
+triggerOn(ms)
+{
+    if (ms.x > xBorder / 4) {
+        if (ms.y > yBorder / 4) {
+            print("IN BOTTOM RIGHT");
+        }
+        else {
+            print("IN TOP RIGHT");
+        }
+    }
+    else {
+        if (ms.y > yBorder / 4) {
+            print("IN BOTTOM LEFT");
+        }
+        else {
+            print("IN TOP LEFT");
+        }
+    }
+}
+
+oblock quadrantLighter(MOUSE ms, float xBorder, float yBorder, LIGHT q1, LIGHT q2, LIGHT q3, LIGHT q4) : 
+triggerOn(ms),
+dropReadOn(ms)
+{
+    q1.on = false;
+    q2.on = false;
+    q3.on = false;
+    q4.on = false;
+    
+    if (ms.x > xBorder / 4) {
+        if (ms.y > yBorder / 4) {
+            print("IN BOTTOM RIGHT");
+            q4.on = true;
+        }
+        else {
+            print("IN TOP RIGHT");
+            q1.on = true;
+        }
+    }
+    else {
+        if (ms.y > yBorder / 4) {
+            print("IN BOTTOM LEFT");
+            q3.on = true;
+        }
+        else {
+            print("IN TOP LEFT");
+            q2.on = true;
+        }
+    }
+}
+
+oblock calibrateMouse(KEYBOARD calibrationSig, MOUSE ms, float maxX, float maxY) :
+triggerOn(calibrationSig)
+{
+    print("Calibrating...");
+    maxX = max(maxX, ms.x);
+    maxY = max(maxY, ms.y);
+    print("New window maxes: ", toString(maxX), toString(maxY));
+}
+
 setup() {
-    KEYBOARD KBD = "ctl::mode-select";
-    MOUSE MS = "ctl::mode-select";
+    KEYBOARD KBD = "ctl::mode-all";
+    MOUSE MS = "ctl::mode-all";
     virtual string log = "";
-    logKey(KBD, log);
-    recordMouse(MS);
+    //logKey(KBD, log);
+
+    virtual float maxX = 0;
+    virtual float maxY = 0;
+
+    calibrateMouse(KBD, MS, maxX, maxY);
+
+    LIGHT Q1 = "rpi::PIN-21";
+    LIGHT Q2 = "rpi::PIN-20";
+    LIGHT Q3 = "rpi::PIN-18";
+    LIGHT Q4 = "rpi::PIN-19";
+
+    quadrantLighter(MS, maxX, maxY, Q1, Q2, Q3, Q4);
+    
+    //quadrantLogger(MS, maxX, maxY);
+    
+    //recordMouse(MS);
 }

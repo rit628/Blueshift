@@ -279,21 +279,13 @@ void MasterMailbox::assignEM(HeapMasterMessage DMM)
         case PROTOCOLS::OWNER_CANDIDATE_REQUEST_CONCLUDE:{
             std::cout<<"What!"<<std::endl;
             auto oblockName = DMM.info.oblock; 
-            if(this->triggerSet.contains(oblockName)){
-                if(++requestCount == this->triggerSet.size()){
-                    // Loop target devices: 
-                    for(auto& dev : targetedDevices){
-                        DynamicMasterMessage dmm; 
-                        dmm.protocol = PROTOCOLS::OWNER_CANDIDATE_REQUEST_CONCLUDE; 
-                        dmm.info.controller = this->parentCont.at(dev); 
-                        dmm.info.device = dev; 
-                        this->sendNM.write(dmm); 
-                    }
-                    requestCount = 0; 
-                    this->triggerSet.clear(); 
-                    targetedDevices.clear(); 
-                }
-            }
+            for(auto& dev : targetedDevices){
+                    DynamicMasterMessage dmm; 
+                    dmm.protocol = PROTOCOLS::OWNER_CANDIDATE_REQUEST_CONCLUDE; 
+                    dmm.info.controller = this->parentCont.at(dev); 
+                    dmm.info.device = dev; 
+                    this->sendNM.write(dmm); 
+             }
             break; 
         }
         case PROTOCOLS::OWNER_CONFIRM: {

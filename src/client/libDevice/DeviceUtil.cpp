@@ -353,6 +353,7 @@ void DeviceInterruptor::IGpioWatcher(std::stop_token stoken, int portNum, std::f
     auto callback = [](int gpio, int level, unsigned int tick, void* data) -> void {
         auto& [signaler, handler] = *reinterpret_cast<callback_data*>(data);
         signaler = handler(gpio, level, tick);
+        signaler.notify_one();
     }; 
 
     #ifdef __RPI64__
@@ -360,11 +361,9 @@ void DeviceInterruptor::IGpioWatcher(std::stop_token stoken, int portNum, std::f
     #endif
 
     while (!stoken.stop_requested()) {
-        if(signaler) {
-            this->sendMessage();
-            std::this_thread::sleep_for(std::chrono::milliseconds(5));
-            signaler = false;
-        }
+        signaler.wait(false);
+        this->sendMessage();
+        signaler = false;
     }
 }
 
@@ -376,6 +375,7 @@ void DeviceInterruptor::ISdlWatcher(std::stop_token stoken, std::function<bool(S
     auto filter = [](void* signalerAndHandler, SDL_Event* event) -> bool {
         auto& [signaler, handler] = *reinterpret_cast<filter_data*>(signalerAndHandler);
         signaler = handler(event);
+        signaler.notify_one();
         return signaler;
     };
 
@@ -384,10 +384,9 @@ void DeviceInterruptor::ISdlWatcher(std::stop_token stoken, std::function<bool(S
     }
 
     while (!stoken.stop_requested()) {
-        if (signaler) {
-            this->sendMessage();
-            signaler = false;
-        }
+        signaler.wait(false);
+        this->sendMessage();
+        signaler = false;
     }
 }
 #endif

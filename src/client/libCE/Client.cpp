@@ -234,17 +234,17 @@ void Client::listener(std::stop_token stoken){
                 interruptor.setupThreads();
             }
             #ifdef SDL_ENABLED
-            SDL_RunOnMainThread([](void*) -> void {
-                auto window = SDL_GL_GetCurrentWindow();
-                if (SDL_GetHintBoolean("SDL_HINT_INPUT_WINDOW_REQUIRED", false)) {
-                    SDL_ShowWindow(window);
-                }
-                else {
-                    SDL_Event event;
-                    event.type = SDL_EVENT_USER;
-                    SDL_PushEvent(&event);
-                }
-            }, nullptr, true);
+            // SDL_RunOnMainThread([](void*) -> void {
+            //     auto window = SDL_GL_GetCurrentWindow();
+            //     if (SDL_GetHintBoolean("SDL_HINT_INPUT_WINDOW_REQUIRED", false)) {
+            //         SDL_ShowWindow(window);
+            //     }
+            //     else {
+            //         SDL_Event event;
+            //         event.type = SDL_EVENT_USER;
+            //         SDL_PushEvent(&event);
+            //     }
+            // }, nullptr, true);
             #endif
         }
         else if(ptype == Protocol::CONNECTION_LOST){
@@ -296,6 +296,10 @@ void Client::listener(std::stop_token stoken){
             }
             else{
                 std::cerr<<"PROTOCOL ERROR: INVALID OWNER CONFIRM FOR PROCESS THAT IS NOT A PRIME CANDIDATE"<<std::endl; 
+                std::cout<<"ERROR CTL_CODE: "<<inMsg.header.ctl_code<<" ERROR OBLOCK ID "<<inMsg.header.oblock_id<<std::endl; 
+                // Send a grant to the new oblock on top instead
+                sendMessage(loadedProcess.targetDevice, Protocol::OWNER_GRANT, false, loadedProcess.requestorOblock);
+
             }         
         }
         else if(ptype == Protocol::OWNER_RELEASE){
