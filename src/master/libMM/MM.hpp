@@ -131,7 +131,6 @@ class TriggerManager{
                 bool found = this->testBit(trigger_id); 
                 if(found){
                     this->currentBitmap.reset(); 
-    
                     return true; 
                 }
                 return false; 
@@ -216,8 +215,18 @@ struct ReaderBox
     
             if(writeTrig){
                 std::cout<<"TRIGGER IDENTIFIED: "<<this->oblockDesc.name<<std::endl;
-                this->triggerCount[this->OblockName]++; 
-                auto& trigInfo = this->oblockDesc.triggers.at(triggerId);
+                TriggerData trigInfo; 
+
+                if(triggerId == -1){
+                    // Resorting to default trigger
+                    trigInfo.id = ""; 
+                    trigInfo.priority = 1; 
+                }
+                else{
+                    this->triggerCount[this->OblockName]++; 
+                    trigInfo = this->oblockDesc.triggers.at(triggerId);
+                }
+
                 std::vector<HeapMasterMessage> trigEvent; 
                 
                 for(auto& [name, devBox] : this->waitingQs){
