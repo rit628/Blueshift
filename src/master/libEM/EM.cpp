@@ -120,7 +120,12 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
         for(auto& deviceDesc : this->Oblock.binded_devices){
             DeviceID devName = deviceDesc.device_name; 
             if(HMMs.contains(devName)){
-                transformableStates.push_back(HMMs.at(devName).heapTree); 
+                auto& state = HMMs.at(devName).heapTree;
+                if (std::holds_alternative<std::shared_ptr<HeapDescriptor>>(state)) {
+                    // make sure default is set to unmodified (may not be needed depending on serialization)
+                    std::get<std::shared_ptr<HeapDescriptor>>(state)->modified = false;
+                }
+                transformableStates.push_back(state); 
             }
             else{
                 auto defDevice = deviceDesc.initialValue; 
