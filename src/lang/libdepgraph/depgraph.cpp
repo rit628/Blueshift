@@ -20,7 +20,7 @@ ControllerID extractCtls(const std::string& deviceCons){
     if(pos != std::string::npos){
         return deviceCons.substr(0, pos); 
     }
-    error("Device constructor contains no device name"); 
+    // error("Device constructor contains no device name"); 
     return ""; 
 }
 

@@ -1,8 +1,43 @@
-oblock logKey(KEYBOARD kbd) {
+oblock logKey(KEYBOARD kbd, string log) : 
+triggerOn({
+    "id" : "keyPress",
+    "rule" : kbd,
+    "priority" : 2
+})
+{
     print("Pressed the '", kbd.key, "' key.");
+    string convertedKey = kbd.key;
+    if (convertedKey == "Return") {
+        convertedKey = "\n";
+    }
+    else if (convertedKey == "Space") {
+        convertedKey = " ";
+    }
+    else if (convertedKey == "Tab") {
+        convertedKey = "\t";
+    }
+    else if (convertedKey == "Backspace"
+          || convertedKey == "Delete"
+          || convertedKey == "Left Shift"
+          || convertedKey == "Right Shift"
+          || convertedKey == "CapsLock"
+          || convertedKey == "Escape"
+          || convertedKey == "Left Ctrl"
+          || convertedKey == "Right Ctrl"
+          || convertedKey == "Left Alt"
+          || convertedKey == "Right Alt"
+          || convertedKey == "Up"
+          || convertedKey == "Down"
+          || convertedKey == "Left"
+          || convertedKey == "Right") {
+        convertedKey = "";
+    }
+
+    print(log += convertedKey);
 }
 
 setup() {
     KEYBOARD KBD = "ctl::mode-select";
-    logKey(KBD);
+    virtual string log = "";
+    logKey(KBD, log);
 }
