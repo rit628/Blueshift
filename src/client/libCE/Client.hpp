@@ -111,6 +111,7 @@ class Client{
         std::unique_ptr<ClientEM> ClientExec; 
         std::unordered_map<uint16_t, std::vector<std::string>> devRouteMap; 
         std::unordered_map<std::string, int> devAliasMap;
+        jthread execManThread; 
 
 
     public: 

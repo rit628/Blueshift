@@ -9,6 +9,7 @@
 #include <ostream>
 #include <stdexcept>
 #include <sys/socket.h>
+#include <thread>
 #include <unordered_map>
 
 Client::Client(std::string c_name): bc_socket(client_ctx, udp::endpoint(udp::v4(), BROADCAST_PORT)), client_socket(client_ctx){
@@ -162,6 +163,8 @@ void Client::listener(std::stop_token stoken){
             std::cout<<"Received programming information"<<std::endl; 
             auto code = inMsg.body; 
             this->ClientExec = std::make_unique<ClientEM>(code, this->connection_in_queue, this->client_in_queue, this->devAliasMap, 0); 
+            this->execManThread  = jthread(std::bind( &ClientEM::run, std::ref(*this->ClientExec), std::placeholders::_1)); 
+            std::cout<<"Successfully began running threads"<<std::endl; 
         }
         else if(ptype == Protocol::STATE_CHANGE){
         

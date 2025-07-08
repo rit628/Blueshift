@@ -6,7 +6,10 @@
 #include "libnetwork/Protocol.hpp"
 #include "libtype/bls_types.hpp"
 #include <cstddef>
+#include <functional>
 #include <memory>
+#include <stop_token>
+#include <thread>
 #include <unordered_map>
 #include <variant>
 #include <vector>
@@ -49,6 +52,9 @@ ClientEM::ClientEM(std::vector<char> &bytecodeList, TSQ<OwnedSentMessage> &readL
         this->clientMap.emplace(odesc.name ,std::make_unique<ClientEU>(odesc, this->clientScheduler, writeLine, this->ident_data, ctlCode, bytecodeList));
         i++;  
     }
+
+
+    this->beginVMs(); 
 } 
 
 // Convert the sentMessage to a 
@@ -65,10 +71,17 @@ HeapMasterMessage ClientEM::getHMM(SentMessage &toConvert, PROTOCOLS pcol){
 
 }
 
+void ClientEM::beginVMs(){
+     for(auto& pair : this->clientMap){
+        this->euThreads.emplace_back(std::bind(&ClientEU::run, std::ref(*pair.second), std::placeholders::_1)); 
+    }
+}
+
 
 // Run the Exec Manager and Units
-void ClientEM::run(){
-    while(true){
+void ClientEM::run(std::stop_token st){
+
+    while(!st.stop_requested()){
         auto ogMsg = this->clientReadLine.read(); 
         auto message = ogMsg.sm;
         switch(message.header.prot){
@@ -103,6 +116,9 @@ void ClientEM::run(){
         }
     }
 }
+
+
+
 
 
 ClientEU::ClientEU(OBlockDesc &odesc, std::shared_ptr<DeviceScheduler> devSche, TSQ<OwnedSentMessage> &mainLine, IdentData &data, int ctlCode, std::vector<char> &bytecode)
@@ -157,8 +173,8 @@ SentMessage ClientEU::createSentMessage(BlsType &newData, DeviceDescriptor &devD
 }
 
 
-void ClientEU::run(){
-    while(true){
+void ClientEU::run(std::stop_token st){
+    while(!st.stop_requested()){
         auto obj =this->reciever.read(); 
         
         // Make HMM map: 

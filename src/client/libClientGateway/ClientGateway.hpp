@@ -1,5 +1,7 @@
 #include <iostream>
 #include <memory>
+#include <stop_token>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 #include "include/Common.hpp"
@@ -42,7 +44,7 @@ class ClientEU{
         ClientEU(OBlockDesc &odesc, std::shared_ptr<DeviceScheduler> scheObj, TSQ<OwnedSentMessage> &clientMainLine,  IdentData &idData, int ctlCode, std::vector<char> &bytecode);
 
         void insertDevice(HeapMasterMessage heapDesc);
-        void run(); 
+        void run(std::stop_token st); 
         SentMessage createSentMessage(BlsType &hdesc, DeviceDescriptor &devDesc, Protocol pcode);
 }; 
 
@@ -65,6 +67,9 @@ class ClientEM{
         
         // Converts sent message to HMM
         HeapMasterMessage getHMM(SentMessage &toConvert, PROTOCOLS pcol);
+        void beginVMs(); 
+
+        std::vector<std::jthread> euThreads; 
     
     public: 
         ClientEM(
@@ -75,10 +80,7 @@ class ClientEM{
              int ctlCode); 
 
 
-
-        
-
-        void run(); 
+        void run(std::stop_token st); 
 }; 
 
 
