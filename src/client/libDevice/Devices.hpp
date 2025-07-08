@@ -32,6 +32,7 @@ namespace Device {
 #include "include/MOTOR.hpp"
 #include "include/READ_FILE_POLL.hpp"
 #include "include/KEYBOARD.hpp"
+#include "include/MOUSE.hpp"
 
 template<typename T>
 concept DeviceDriver = requires (T device, std::unordered_map<std::string, std::string>& config, DynamicMessage& dmsg) {

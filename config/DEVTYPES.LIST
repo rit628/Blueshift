@@ -33,3 +33,13 @@ DEVTYPE_END
 DEVTYPE_BEGIN(KEYBOARD)
     ATTRIBUTE(key, string)
 DEVTYPE_END
+
+DEVTYPE_BEGIN(MOUSE)
+    ATTRIBUTE(x, float)
+    ATTRIBUTE(y, float)
+    ATTRIBUTE(leftClick, bool)
+    ATTRIBUTE(rightClick, bool)
+    ATTRIBUTE(middleClick, bool)
+    ATTRIBUTE(scrollX, int)
+    ATTRIBUTE(scrollY, int)
+DEVTYPE_END

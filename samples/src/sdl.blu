@@ -36,8 +36,29 @@ triggerOn({
     print(log += convertedKey);
 }
 
+oblock recordMouse(MOUSE ms) :
+triggerOn(ms)
+{
+    println("DONT TOUCH THAT MOUSE");
+    println("MOUSE COORDS\n____________", "x: " + toString(ms.x), "y: " + toString(ms.y));
+    println("DONT TOUCH THAT WHEEL");
+    println("MOUSE WHEEL\n___________", "x: " + toString(ms.scrollX), "y: " + toString(ms.scrollY));
+
+    if (ms.leftClick) {
+        print("LMB PRESSED");
+    }
+    if (ms.rightClick) {
+        print("RMB PRESSED");
+    }
+    if (ms.middleClick) {
+        print("MMB PRESSED");
+    }
+}
+
 setup() {
     KEYBOARD KBD = "ctl::mode-select";
+    MOUSE MS = "ctl::mode-select";
     virtual string log = "";
     logKey(KBD, log);
+    recordMouse(MS);
 }

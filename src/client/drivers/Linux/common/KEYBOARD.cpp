@@ -1,6 +1,8 @@
 #if defined(__linux__) &&  defined(SDL_ENABLED)
 
 #include "include/KEYBOARD.hpp"
+#include "libnetwork/Protocol.hpp"
+#include "libnetwork/Connection.hpp"
 #include "libDM/DynamicMessage.hpp"
 #include <string>
 #include <unordered_map>
@@ -38,11 +40,11 @@ void KEYBOARD::init(std::unordered_map<std::string, std::string>& config) {
             SDL_SetHint("SDL_HINT_INPUT_WINDOW_REQUIRED", "true");
         };
         if (!SDL_RunOnMainThread(selectKeyboard, this, true)) {
-            throw std::runtime_error("Failed to select keyboard: " + std::string(SDL_GetError()));
+            throw BlsExceptionClass("Failed to select keyboard: " + std::string(SDL_GetError()), ERROR_T::DEVICE_FAILURE);
         }
     }
     else {
-        throw std::runtime_error("Invalid keyboard input mode.");
+        throw BlsExceptionClass("Invalid keyboard input mode.", ERROR_T::BAD_DEV_CONFIG);
     }
     addSDLIWatch(std::bind(&KEYBOARD::handleInterrupt, std::ref(*this), std::placeholders::_1));
 }
