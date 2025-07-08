@@ -86,14 +86,10 @@ void MasterNM::writeConfig(std::vector<OBlockDesc> &desc_list){
             this->ctl_configs[dev.controller].device_names.push_back(dev.device_name); 
             this->ctl_configs[dev.controller].type.push_back(dev.type); 
             this->ctl_configs[dev.controller].srcs.push_back(dev.port_maps);
+            this->ctl_configs[dev.controller].deviceDests[devAlias].insert(oblock.hostController); 
              
             dev_list.insert(dev.device_name); 
             c_list.insert(dev.controller);
-        }
-
-        for(auto &dev : oblock.inDevices){
-            auto devAlias = this->device_alias_map[dev.device_name]; 
-            this->ctl_configs[dev.controller].deviceDests[devAlias].insert(oblock.hostController); 
         }
         
         this->oblock_list.push_back(oblock.name); 

@@ -64,16 +64,19 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
     }
 
     auto& writeList = this->devRouteMap.at(deviceCode);
+
     for(auto& ctlName : writeList){
-        if(ctlName == "MASTER"){
-            this->client_connection->send(sm); 
-        }
-        else if(ctlName == this->client_name){
+     
+        if(ctlName == this->client_name){
             OwnedSentMessage osm; 
             osm.sm = sm; 
             osm.connection = nullptr; 
             this->in_queue.write(osm); 
         }
+        else{
+            this->client_connection->send(sm); 
+        }
+     
 
     }
 }
