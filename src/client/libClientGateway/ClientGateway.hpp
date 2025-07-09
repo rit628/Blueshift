@@ -68,19 +68,18 @@ class ClientEM{
         // Converts sent message to HMM
         HeapMasterMessage getHMM(SentMessage &toConvert, PROTOCOLS pcol);
         void beginVMs(); 
+        bool isConfigured = false; 
 
         std::vector<std::jthread> euThreads; 
     
     public: 
         ClientEM(
-            std::vector<char> &bytecodeList,
              TSQ<OwnedSentMessage> &readLine, 
-             TSQ<OwnedSentMessage> &writeLine, 
-             std::unordered_map<DeviceID, int> &deviceMap, 
-             int ctlCode); 
+             TSQ<OwnedSentMessage> &writeLine); 
 
 
         void run(std::stop_token st); 
+        void config(std::vector<char> &bytecodeList, std::unordered_map<DeviceID, int> &deviceMap, int ctlCode); 
 }; 
 
 

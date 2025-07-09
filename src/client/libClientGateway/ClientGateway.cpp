@@ -17,13 +17,16 @@
 
 
 
-ClientEM::ClientEM(std::vector<char> &bytecodeList, TSQ<OwnedSentMessage> &readLine,
-    TSQ<OwnedSentMessage> &writeLine,std::unordered_map<DeviceID, int> &deviceMap, int ctlCode)
+ClientEM::ClientEM(TSQ<OwnedSentMessage> &readLine,TSQ<OwnedSentMessage> &writeLine)
     :   
     clientReadLine(readLine),
     clientWriteLine(writeLine)   
 {
- 
+
+}
+
+void ClientEM::config(std::vector<char> &bytecodeList, std::unordered_map<DeviceID, int> &deviceMap, int ctlCode){
+     
     this->vmDivider.loadBytecode(bytecodeList); 
     std::vector<OBlockDesc> descList = this->vmDivider.getOblockDescriptors(); 
 
@@ -44,18 +47,20 @@ ClientEM::ClientEM(std::vector<char> &bytecodeList, TSQ<OwnedSentMessage> &readL
 
         std::cout<<"Decentralized: "<<odesc.name<<std::endl; 
         // Populate the in list: 
-        for(auto& dev : odesc.inDevices){
+        for(auto& dev : odesc.binded_devices){
             this->devToOblockMap[dev.device_name].push_back(odesc.name); 
         }
 
         this->ident_data.oblockMap[odesc.name] = i; 
-        this->clientMap.emplace(odesc.name ,std::make_unique<ClientEU>(odesc, this->clientScheduler, writeLine, this->ident_data, ctlCode, bytecodeList));
+        this->clientMap.emplace(odesc.name ,std::make_unique<ClientEU>(odesc, this->clientScheduler, this->clientWriteLine, this->ident_data, ctlCode, bytecodeList));
         i++;  
     }
 
-
+    this->isConfigured = true; 
     this->beginVMs(); 
-} 
+
+}
+
 
 // Convert the sentMessage to a 
 HeapMasterMessage ClientEM::getHMM(SentMessage &toConvert, PROTOCOLS pcol){
@@ -85,20 +90,17 @@ void ClientEM::run(std::stop_token st){
         auto ogMsg = this->clientReadLine.read(); 
         auto message = ogMsg.sm;
         switch(message.header.prot){
-            case Protocol::SEND_STATE:{
-                // forward packet 
-                this->clientWriteLine.write(ogMsg); 
-                break; 
-            }
             case Protocol::SEND_ARGUMENT: {
+                std::cout<<"Recieved arguemnt"<<std::endl; 
                 HeapMasterMessage hmm = getHMM(message, PROTOCOLS::SENDSTATES);
-                auto& transferList = this->devToOblockMap[hmm.info.device];
+                auto& transferList = this->devToOblockMap.at(hmm.info.device);
                 for(auto& oblock : transferList){
                     this->clientMap[oblock]->insertDevice(hmm); 
                 }
                 break; 
             }
             case Protocol::OWNER_GRANT : {
+                
                 HeapMasterMessage hmm = getHMM(message, PROTOCOLS::OWNER_GRANT);
                 this->clientScheduler->receive(hmm); 
                 break; 
@@ -110,6 +112,7 @@ void ClientEM::run(std::stop_token st){
             }
             default: {
                 // Forward Packet
+                std::cout<<"MESSAGE PASS THROUGH CLIENT"<<std::endl; 
                 this->clientWriteLine.write(ogMsg); 
                 break; 
             }
@@ -119,11 +122,8 @@ void ClientEM::run(std::stop_token st){
 
 
 
-
-
 ClientEU::ClientEU(OBlockDesc &odesc, std::shared_ptr<DeviceScheduler> devSche, TSQ<OwnedSentMessage> &mainLine, IdentData &data, int ctlCode, std::vector<char> &bytecode)
-:EuCache(false, false, odesc.name, odesc), clientScheduler(devSche), clientMainLine(mainLine),
-idMaps(data)
+:EuCache(false, false, odesc.name, odesc), clientScheduler(devSche), clientMainLine(mainLine), idMaps(data)
 {   
     this->byteCodeSerialized = bytecode; 
     virtualMachine.loadBytecode(bytecode); 
@@ -176,7 +176,7 @@ SentMessage ClientEU::createSentMessage(BlsType &newData, DeviceDescriptor &devD
 void ClientEU::run(std::stop_token st){
     while(!st.stop_requested()){
         auto obj =this->reciever.read(); 
-        
+
         // Make HMM map: 
         std::unordered_map<DeviceID, HeapMasterMessage> heapMap; 
         for(auto& hmm : obj.dmm_list){
@@ -185,7 +185,7 @@ void ClientEU::run(std::stop_token st){
 
         // Open and close the packet flow-through valve while waiting for confirm_oks
         this->EuCache.forwardPackets = true; 
-        this->clientScheduler->request(this->name, obj.priority);
+        //this->clientScheduler->request(this->name, obj.priority);
         this->EuCache.forwardPackets = false; 
 
         this->replaceCache(heapMap); 
@@ -208,11 +208,11 @@ void ClientEU::run(std::stop_token st){
         // Transformed the object: 
         for(auto& dev : this->oinfo.outDevices){
             OwnedSentMessage osm; 
-            osm.sm = createSentMessage(transformedStates.at(this->devPosMap[dev.device_name]), dev, Protocol::SEND_STATE) ; 
+            osm.sm = createSentMessage(transformedStates.at(this->devPosMap[dev.device_name]), dev, Protocol::STATE_CHANGE) ; 
             osm.connection = nullptr; 
             this->clientMainLine.write(osm); 
         }  
 
-        this->clientScheduler->release(this->oinfo.name); 
+        //this->clientScheduler->release(this->oinfo.name); 
     }
 }

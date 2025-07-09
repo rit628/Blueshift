@@ -2,6 +2,7 @@
 
 #include <array>
 #include <boost/asio.hpp>
+#include "include/Common.hpp"
 #include "libTSQ/TSQ.hpp"
 #include "Protocol.hpp"
 #include <memory>
@@ -25,6 +26,8 @@ class Connection : public enable_shared_from_this<Connection>{
         Owner own; 
         std::string ip;
         std::string client_name; 
+        bool expeditedQueue = false; 
+        std::unordered_map<uint16_t, std::vector<ControllerID>> routeMap; 
         //SentMessage currMessage; 
 
         // in_message buffer 
@@ -32,7 +35,7 @@ class Connection : public enable_shared_from_this<Connection>{
         std::list<int> in_tickets; 
 
         // Confirm Connection (checks if the targeted device is the right device)
-        bool connectionConfirm; 
+        bool routeConfig = false; 
 
         // Queues
         TSQ<SentMessage> out_queue; 
@@ -42,22 +45,28 @@ class Connection : public enable_shared_from_this<Connection>{
         void addToQueue(int index); 
         void readHeader(); 
         void readBody(int index); 
+        void sendToMaster(SentMessage sm); 
+
 
     public: 
 
         Connection(boost::asio::io_context &in_ctx, tcp::socket i_socket, Owner own_type, TSQ<OwnedSentMessage> &in_msg, std::string &ip_addr);
         ~Connection() = default; 
 
-
         void connectToMaster(tcp::endpoint endpoints, std::string &name); 
         void connectToClient(); 
         bool disconnect(); 
         bool isConnected() const; 
+        // Defines where to send 
+        void setRoutes(std::unordered_map<uint16_t, std::vector<ControllerID>>& routes); 
 
         std::string& getIP(); 
         void send(SentMessage sm); 
         std::string& getName(); 
         void setName(std::string& cname); 
+
+        // Determines if the client has begun to send states
+        bool connectionConfirm = false; 
 
         // Used to connect Master to external APIs (phase 3)
         void connectToServer(boost::asio::ip::tcp::resolver::results_type &results); 

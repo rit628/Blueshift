@@ -291,7 +291,6 @@ struct ManagedVtype{
 
 
 
-
 class MasterMailbox
 {
     public:

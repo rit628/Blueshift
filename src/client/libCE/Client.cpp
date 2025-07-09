@@ -15,6 +15,7 @@
 Client::Client(std::string c_name): bc_socket(client_ctx, udp::endpoint(udp::v4(), BROADCAST_PORT)), client_socket(client_ctx){
     this->client_name = c_name; 
     std::cout<<"Client Created: " << c_name <<std::endl; 
+    this->ClientExec = std::make_unique<ClientEM>(this->connection_in_queue, this->client_in_queue); 
 }
 
 void Client::start(){
@@ -67,25 +68,7 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
 
 
     this->client_connection->send(sm); 
-
-    /*
-    auto& writeList = this->devRouteMap.at(deviceCode);
-
-    for(auto& ctlName : writeList){
-     
-        if(ctlName == this->client_name){
-            OwnedSentMessage osm; 
-            osm.sm = sm; 
-            osm.connection = nullptr; 
-            sm.header.prot = Protocol::SEND_ARGUMENT; 
-            //this->connection_in_queue.write(osm); 
-            this->client_connection->send(sm); 
-        }
-        else{
-            this->client_connection->send(sm); 
-        }
-    }
-        */ 
+        
 }
 
 void Client::listener(std::stop_token stoken){
@@ -132,8 +115,8 @@ void Client::listener(std::stop_token stoken){
             bool c = srcs.size() == size; 
             bool d = device_names.size() == size; 
 
+            this->client_connection->setRoutes(this->devRouteMap); 
 
-        
             if(!(b && c && d)){
                 throw std::invalid_argument("Config vectors of different sizes what!"); 
             }
@@ -162,9 +145,8 @@ void Client::listener(std::stop_token stoken){
             // Processing code instructions
             std::cout<<"Received programming information"<<std::endl; 
             auto code = inMsg.body; 
-            this->ClientExec = std::make_unique<ClientEM>(code, this->connection_in_queue, this->client_in_queue, this->devAliasMap, 0); 
-            this->execManThread  = jthread(std::bind( &ClientEM::run, std::ref(*this->ClientExec), std::placeholders::_1)); 
-            std::cout<<"Successfully began running threads"<<std::endl; 
+            this->ClientExec->config(code, this->devAliasMap, 0); 
+ 
         }
         else if(ptype == Protocol::STATE_CHANGE){
         
@@ -235,6 +217,7 @@ void Client::listener(std::stop_token stoken){
 
             std::cout<<"CLIENT: Beginning sending process"<<std::endl; 
             this->curr_state = ClientState::IN_OPERATION; 
+            this->client_connection->connectionConfirm = true; 
 
             // Begin the timers only when the call is made
             for(Timer &timer : this->start_timers){
@@ -365,7 +348,7 @@ void Client::broadcastListen(){
         if(attempt_name == this->client_name){
             auto master_address = master_endpoint.address().to_string(); 
             this->client_connection = std::make_shared<Connection>(
-                this->client_ctx, tcp::socket(this->client_ctx), Owner::CLIENT, this->client_in_queue, master_address
+                this->client_ctx, tcp::socket(this->client_ctx), Owner::CLIENT, this->connection_in_queue, master_address
             ); 
             this->client_connection->setName(this->client_name); 
             this->genBlsException = std::make_unique<GenericBlsException>(
@@ -387,6 +370,8 @@ bool Client::attemptConnection(boost::asio::ip::address master_address){
         this->listenerThread = std::jthread(std::bind(&Client::listener, std::ref(*this), std::placeholders::_1));
         this->ctxThread = std::jthread([this](){this->client_ctx.run();});   
 
+        this->execManThread  = jthread(std::bind( &ClientEM::run, std::ref(*this->ClientExec), std::placeholders::_1)); 
+
         if(this->listenerThread.joinable()){
             this->listenerThread.join(); 
         }
@@ -395,6 +380,8 @@ bool Client::attemptConnection(boost::asio::ip::address master_address){
         if(this->ctxThread.joinable()){
             this->ctxThread.join(); 
         }
+                   
+        
 
         std::cout<<this->client_name + " Connection successful!"<<std::endl; 
 

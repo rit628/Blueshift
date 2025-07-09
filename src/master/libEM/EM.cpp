@@ -1,5 +1,6 @@
 #include "EM.hpp"
 #include "include/Common.hpp"
+#include "include/reserved_tokens.hpp"
 #include "libMM/MM.hpp"
 #include "libScheduler/Scheduler.hpp"
 #include "libtype/bls_types.hpp"
@@ -16,7 +17,12 @@ ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<EMStateMes
 {
     this->OblockList = OblockList;
     for(auto &oblock : OblockList)
-    {
+    {   
+        std::cout<<"Oblock "<<oblock.hostController<<std::endl; 
+        if(oblock.hostController != BlsLang::RESERVED_MASTER){
+            continue; 
+        }
+
         string OblockName = oblock.name;
          vector<string> devices;
         vector<bool> isVtype;

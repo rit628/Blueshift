@@ -30,6 +30,7 @@ oblock task(LINE_WRITER lw, READ_FILE rfp, FILE_LOG log)
 oblock task2(LINE_WRITER lw, FILE_LOG log1)
 : triggerOn({"id": "basic", "rule" : lw, "priority" : 8})
 {
+    print("RUNNING OBLOK"); 
     log1.add_msg = "This is from task2 (priority 8)"; 
 }
 
@@ -37,7 +38,7 @@ oblock task2(LINE_WRITER lw, FILE_LOG log1)
 oblock task3(LINE_WRITER lw, FILE_LOG fl, int k)
 : triggerOn({"id" : "t3", "rule" : lw, "priority" : 5}, {"rule" : k})
 {
-    fl.add_msg = "Im on crack " + lw.msg + " priority 5 "; 
+    fl.add_msg = "From Task 3 " + lw.msg + " priority 5 "; 
 }
 
 oblock task4(READ_FILE omar, int k)

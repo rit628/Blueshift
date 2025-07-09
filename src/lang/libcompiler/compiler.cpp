@@ -1,11 +1,14 @@
 #include "compiler.hpp"
+#include "include/Common.hpp"
 #include <cstddef>
 #include <fstream>
 #include <functional>
 #include <iostream>
 #include <sstream>
+#include <string>
 #include <tuple>
 #include <boost/range/combine.hpp>
+#include <unordered_map>
 #include <variant>
 #include <vector>
 
@@ -27,6 +30,8 @@ void Compiler::compileSource(const std::string& source, ostream_t outputStream) 
     tokens = lexer.lex(source);
     ast = parser.parse(tokens);
     ast->accept(analyzer);
+    ast->accept(this->depGraph);
+    modifyOblockDesc(analyzer.getOblockDescriptors(), depGraph.getGlobalContext());
     ast->accept(generator);
     if (auto* stream = std::get_if<std::reference_wrapper<std::vector<char>>>(&outputStream)) {
         generator.writeBytecode(*stream);
@@ -34,7 +39,6 @@ void Compiler::compileSource(const std::string& source, ostream_t outputStream) 
     else {
         generator.writeBytecode(std::get<std::reference_wrapper<std::ostream>>(outputStream));
     }
-    ast->accept(this->depGraph);
     // auto tempOblock = this->depGraph.getOblockMap();  
 
 
@@ -98,4 +102,27 @@ void Compiler::compileSource(const std::string& source, ostream_t outputStream) 
         oblockDescriptors.push_back(descriptor);
     }
 
+}
+
+void Compiler::modifyOblockDesc(std::unordered_map<std::string, OBlockDesc>& oDescs,  GlobalContext gcx){
+    std::unordered_map<DeviceID, DeviceDescriptor&> devDesc; 
+    for(auto& [name, oblock] : oDescs){
+        // Construct the device device desc map: 
+        std::unordered_map<DeviceID, DeviceDescriptor> devMap; 
+        for(auto& str : oblock.binded_devices){
+            devMap[str.device_name] = str; 
+        }
+
+        // Fill in the global context: 
+        auto& inMap = gcx.oblockConnections[oblock.name].inDeviceList; 
+        auto& outMap = gcx.oblockConnections[oblock.name].outDeviceList; 
+
+        for(auto &devId : inMap){
+            oblock.inDevices.push_back(devMap[devId]);
+        }
+
+        for(auto& devId : outMap){
+            oblock.outDevices.push_back(devMap[devId]); 
+        }   
+    }
 }

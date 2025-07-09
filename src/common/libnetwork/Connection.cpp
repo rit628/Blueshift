@@ -1,9 +1,11 @@
  #include "Connection.hpp"
 #include "boost/asio/write.hpp"
 #include "boost/system/detail/error_code.hpp"
+#include "include/Common.hpp"
 #include "libnetwork/Protocol.hpp"
 #include <array>
 #include <cstddef>
+#include <unordered_map>
  
 Connection::Connection(boost::asio::io_context &in_ctx, 
 tcp::socket socket ,Owner own_type, TSQ<OwnedSentMessage> &in_msg, std::string &ip_addr) 
@@ -86,18 +88,41 @@ std::string& Connection::getIP(){
     return this->ip; 
 }
 
-void Connection::send(SentMessage sm){
+
+void Connection::sendToMaster(SentMessage sm){
     boost::asio::post(this->ctx, [this, sm](){
-        boost::asio::async_write(this->socket, std::array{
-            boost::asio::buffer(&sm.header, sizeof(SentHeader)),
-            boost::asio::buffer(sm.body.data(), sm.header.body_size)
-        },
-        [](boost::system::error_code ec, size_t size) {
-            if (ec) {
-                std::cerr << "Error Writing Message: " << ec.message() << std::endl;
-            }
+    boost::asio::async_write(this->socket, std::array{
+        boost::asio::buffer(&sm.header, sizeof(SentHeader)),
+        boost::asio::buffer(sm.body.data(), sm.header.body_size)
+    },
+    [](boost::system::error_code ec, size_t size) {
+        if (ec) {
+            std::cerr << "Error Writing Message: " << ec.message() << std::endl;
+        }
         });
     });
+}   
+
+
+void Connection::send(SentMessage sm){
+    if(this->own == Owner::CLIENT && this->connectionConfirm){
+        for(auto& option : this->routeMap.at(sm.header.device_code)){
+            if(option == this->client_name){
+                sm.header.prot = Protocol::SEND_ARGUMENT; 
+                std::cout<<"Writing to self"<<std::endl; 
+                OwnedSentMessage osm; 
+                osm.connection = nullptr; 
+                osm.sm = sm; 
+                this->in_queue.write(osm); 
+            }
+            else{
+                this->sendToMaster(sm); 
+            }
+        }
+    }
+    else{
+        this->sendToMaster(sm); 
+    }
 }
 
 std::string& Connection::getName(){
@@ -134,6 +159,11 @@ void Connection::readHeader(){
             //this->socket.close(); 
         }
     }); 
+}
+
+void Connection::setRoutes(std::unordered_map<uint16_t, std::vector<ControllerID>> &obj){
+    this->routeMap = obj; 
+    this->routeConfig = true; 
 }
 
 

@@ -1,3 +1,4 @@
+#include "include/reserved_tokens.hpp"
 #include "libcompiler/compiler.hpp"
 #include "include/Common.hpp"
 #include "libEM/EM.hpp"
@@ -11,54 +12,10 @@
 
 using DMM = DynamicMasterMessage;
 
-
-
-/*
-    Modifies the Oblock Descriptor with the data derived from the 
-    dependency graph. 
-*/
-
-// void modifyOblockDesc(std::vector<OBlockDesc> &oDescs){
-//     std::unordered_map<DeviceID, DeviceDescriptor&> devDesc; 
-//     for(auto& oblock : oDescs){
-//         // Construct the device device desc map: 
-//         std::unordered_map<DeviceID, DeviceDescriptor> devMap; 
-//         for(auto& str : oblock.binded_devices){
-//             devMap[str.device_name] = str; 
-//         }
-        
-//         // Remove the artifical oblock adder
-//         if(oblock.name == "task"){
-//             std::cout<<"Establishing trigger rules"<<std::endl; 
-//             oblock.customTriggers = true; 
-//             oblock.triggerRules = {{"lw", "rfp"}, {"lw"}}; 
-//         }
-
-//     }
-// }
-
-
-// Temporary fill until the divider is filly implemented
-void modifyOblockDesc(std::vector<OBlockDesc> &oDescs,  GlobalContext gcx){
-    std::unordered_map<DeviceID, DeviceDescriptor&> devDesc; 
-    for(auto& oblock : oDescs){
-        // Construct the device device desc map: 
-        std::unordered_map<DeviceID, DeviceDescriptor> devMap; 
-        for(auto& str : oblock.binded_devices){
-            devMap[str.device_name] = str; 
-        }
-
-        // Fill in the global context: 
-        auto& inMap = gcx.oblockConnections[oblock.name].inDeviceList; 
-        auto& outMap = gcx.oblockConnections[oblock.name].outDeviceList; 
-
-        for(auto &devId : inMap){
-            oblock.inDevices.push_back(devMap[devId]);
-        }
-
-        for(auto& devId : outMap){
-            oblock.outDevices.push_back(devMap[devId]); 
-        }   
+// Edits all the oblocks to be ran on the master
+void forceMaster(std::vector<OBlockDesc> &odesc){
+    for(auto& desc : odesc){
+        desc.hostController = BlsLang::RESERVED_MASTER; 
     }
 }
 
@@ -75,6 +32,8 @@ int main(int argc, char *argv[]){
         std::cout<<"Invalid number of arguments"<<std::endl;
         return 1;
     }
+
+
     
     printf("pre compilation\n");
     // Makes interpreter
@@ -85,11 +44,6 @@ int main(int argc, char *argv[]){
 
     std::vector<OBlockDesc> oblockDescriptors = compiler.getOblockDescriptors(); 
     auto oblocks = compiler.getOblocks();  
-
-    // Only temporary until symgraph is complete
-    modifyOblockDesc(oblockDescriptors, compiler.getGlobalContext()); 
-
-    
 
     // EM and MM
     TSQ<HeapMasterMessage> EM_MM_queue; 

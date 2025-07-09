@@ -21,6 +21,12 @@ MasterMailbox::MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMes
     // Creating the read line
     for(auto &oblock : this->OBlockList)
     {
+
+        // Bypass any controllers not hosted on the master
+        if(oblock.hostController != BlsLang::RESERVED_MASTER){
+            continue; 
+        }
+
         oblockReadMap[oblock.name] = make_unique<ReaderBox>(oblock.name, oblock, this->triggerSet);
 
         for(auto &devDesc : oblock.binded_devices)
@@ -69,7 +75,9 @@ MasterMailbox::MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMes
     {
         for(auto &devDesc : oblock.binded_devices){
             string deviceName = devDesc.device_name;
-            interruptName_map[deviceName].push_back(oblock.name);   
+            if(oblock.hostController == BlsLang::RESERVED_MASTER){
+                interruptName_map[deviceName].push_back(oblock.name);
+            }
         }
     }
 }
@@ -110,7 +118,11 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
 
             // For now we count callbacks to update the state in the mailbox (CHECK IF CALLBACK DEV IN READ LIST)
             for(auto &oblockName : this->interruptName_map[devName]){
-                if(this->oblockReadMap[oblockName]->waitingQs.contains(devName)){
+                if(!this->oblockReadMap.contains(oblockName)){
+                    continue; 
+                }
+
+                if(this->oblockReadMap.at(oblockName)->waitingQs.contains(devName)){
                     DMM.info.oblock = oblockName; 
                     // Conversion of DMM callback to HMM
                     HeapMasterMessage hmm; 
@@ -123,6 +135,10 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
 
             std::cout<<"UPDATING CALLBACKS FOR TRIGGERS"<<std::endl; 
             for(auto& oblockName : this->interruptName_map[devName]){
+                if(!this->oblockReadMap.contains(oblockName)){
+                    continue;
+                }
+                
                 this->oblockReadMap[oblockName]->handleRequest(this->sendEM); 
             }
            
