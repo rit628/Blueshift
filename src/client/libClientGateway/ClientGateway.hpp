@@ -21,6 +21,34 @@ struct IdentData{
     std::unordered_map<int, DeviceID> intToDev; 
 }; 
 
+
+struct OutQueue{
+    TSQ<OwnedSentMessage> &clientLine; 
+    TSQ<OwnedSentMessage> outLine; 
+    bool callbackRecieved = true; 
+
+    OutQueue(TSQ<OwnedSentMessage> &osm)
+    : clientLine(osm){}
+
+    void insertMessage(OwnedSentMessage osm){
+        if(callbackRecieved){
+            this->callbackRecieved = false; 
+            clientLine.write(osm);
+            return; 
+        }
+        outLine.write(osm); 
+    }   
+
+    void updateCallback(){
+        this->callbackRecieved = true; 
+        if(!outLine.isEmpty()){
+            this->clientLine.write(this->outLine.read()); 
+        }
+    }
+
+}; 
+
+
 // Client side EU
 class ClientEU{
     private: 
@@ -32,17 +60,17 @@ class ClientEU{
         OblockID name; 
         OBlockDesc oinfo; 
         TSM<DeviceID, HeapMasterMessage> replacementCache; 
-        TSQ<OwnedSentMessage> &clientMainLine; 
         int ctlCode; 
         std::unordered_map<DeviceID, int> devPosMap; 
         IdentData &idMaps; 
         std::vector<char> byteCodeSerialized; 
+        std::unordered_map<DeviceID, std::unique_ptr<OutQueue>> &outLines; 
         
         void replaceCache(std::unordered_map<DeviceID, HeapMasterMessage> &currentLoad); 
         
     public: 
-        ClientEU(OBlockDesc &odesc, std::shared_ptr<DeviceScheduler> scheObj, TSQ<OwnedSentMessage> &clientMainLine,  IdentData &idData, int ctlCode, std::vector<char> &bytecode);
-
+        ClientEU(OBlockDesc &odesc, std::shared_ptr<DeviceScheduler> scheObj, IdentData &idData, int ctlCode, std::vector<char> &bytecode, 
+            std::unordered_map<DeviceID, std::unique_ptr<OutQueue>> &outLines);
         void insertDevice(HeapMasterMessage heapDesc);
         void run(std::stop_token st); 
         SentMessage createSentMessage(BlsType &hdesc, DeviceDescriptor &devDesc, Protocol pcode);
@@ -69,6 +97,12 @@ class ClientEM{
         HeapMasterMessage getHMM(SentMessage &toConvert, PROTOCOLS pcol);
         void beginVMs(); 
         bool isConfigured = false; 
+
+        // Callback Enable Queue
+        std::unordered_map<DeviceID, std::unique_ptr<OutQueue>> deviceOutMaps; 
+        
+        // Static function for converting HMM to SentMessage
+        static SentMessage ownHmmConvert(); 
 
         std::vector<std::jthread> euThreads; 
     

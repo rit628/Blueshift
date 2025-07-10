@@ -76,9 +76,9 @@ setup(){
 
     task(lw, omar, log); 
     task2(lw, log); 
-    task3(lw, log, k); 
-    task4(omar, k); 
-    task5(omar, k); 
+    //task3(lw, log, k); 
+    //task4(omar, k); 
+    //task5(omar, k); 
     task6(rfp, log2); 
     task7(rfp, log2); 
 

@@ -44,7 +44,6 @@ DeviceScheduler::DeviceScheduler(std::vector<OBlockDesc> &oblockDescList, std::f
 // Sends a request message for each device stae
 void DeviceScheduler::request(OblockID& requestor, int priority){
 
-    std::cout<<"priority: "<<std::endl;
     // get the out devices from the oblock: 
     auto& jamar = this->oblockWaitMap[requestor]; 
     auto& ownDevs = jamar.mustOwn;

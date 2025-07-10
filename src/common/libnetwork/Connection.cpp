@@ -108,7 +108,9 @@ void Connection::send(SentMessage sm){
     if(this->own == Owner::CLIENT && this->connectionConfirm){
         for(auto& option : this->routeMap.at(sm.header.device_code)){
             if(option == this->client_name){
-                sm.header.prot = Protocol::SEND_ARGUMENT; 
+                if(sm.header.prot != Protocol::CALLBACK){
+                    sm.header.prot = Protocol::SEND_ARGUMENT; 
+                }
                 std::cout<<"Writing to self"<<std::endl; 
                 OwnedSentMessage osm; 
                 osm.connection = nullptr; 
