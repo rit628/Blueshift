@@ -353,6 +353,7 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
             
             break; 
         }
+        case(Protocol::SEND_ARGUMENT): 
         case(Protocol::SEND_STATE_INIT) :
         case(Protocol::SEND_STATE) : {
             if(this->remConnections == 0){

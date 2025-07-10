@@ -15,7 +15,7 @@ namespace BlsLang {
             void setParentExecutionUnit(ExecutionUnit* ownerUnit);
             void setOblockOffset(size_t oblockOffset);
             std::vector<BlsType> transform(std::vector<BlsType> deviceStates);
-            std::vector<bool>& getModifiedStates();
+            std::vector<bool> getModifiedStates();
 
             friend struct BlsTrap::Impl;
 

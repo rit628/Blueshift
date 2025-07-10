@@ -146,7 +146,7 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
         }
 
         transformableStates = vm.transform(transformableStates);
-        auto& modifiedStates = vm.getModifiedStates();
+        auto modifiedStates = vm.getModifiedStates();
 
         std::vector<HeapMasterMessage> outGoingStates;  
 

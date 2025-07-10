@@ -103,8 +103,7 @@ void DeviceScheduler::receive(HeapMasterMessage &recvMsg){
                     auto& devProc = this->scheduledProcessMap[dev];  
                     
                     // Perform any time based schdueling algorithms etc
-
-
+                    
                     if(!devProc.QueueEmpty()){
                         auto nextReq = devProc.QueuePop(); 
                         nextReq.ps = PROCSTATE::LOADED; 

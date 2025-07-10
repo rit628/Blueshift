@@ -96,6 +96,11 @@ void ClientEM::run(std::stop_token st){
         auto ogMsg = this->clientReadLine.read(); 
         auto message = ogMsg.sm;
         switch(message.header.prot){
+            case Protocol::CALLBACK: {
+                std::cout<<"DECENTRALIZED CALLBACK RECEIEVED"<<std::endl; 
+                auto& devName = this->ident_data.intToDev[message.header.device_code]; 
+                this->deviceOutMaps.at(devName)->updateCallback(); 
+            }
             case Protocol::SEND_ARGUMENT: {
                 std::cout<<"Recieved arguemnt"<<std::endl; 
                 HeapMasterMessage hmm = getHMM(message, PROTOCOLS::SENDSTATES);
@@ -106,21 +111,18 @@ void ClientEM::run(std::stop_token st){
                 break; 
             }
             case Protocol::OWNER_GRANT : {
+                std::cout<<"Received Owner Grant"<<std::endl; 
                 HeapMasterMessage hmm = getHMM(message, PROTOCOLS::OWNER_GRANT);
                 this->clientScheduler->receive(hmm); 
                 break; 
             }
             case Protocol::OWNER_CONFIRM_OK : {
+                std::cout<<"Received Confirmation OK"<<std::endl; 
                 HeapMasterMessage hmm = getHMM(message, PROTOCOLS::OWNER_CONFIRM_OK);
                 this->clientScheduler->receive(hmm);
                 break; 
             }
-            case Protocol::CALLBACK : {
-                std::cout<<"DECENTRALIZED CALLBACK RECEIEVED"<<std::endl; 
-                auto& devName = this->ident_data.intToDev[message.header.device_code]; 
-                this->deviceOutMaps.at(devName)->updateCallback(); 
-                break; 
-            }
+        
             default: {
                 // Forward Packet
                 std::cout<<"MESSAGE PASS THROUGH CLIENT"<<std::endl; 
@@ -196,9 +198,9 @@ void ClientEU::run(std::stop_token st){
             heapMap[hmm.info.device] = hmm; 
         }
 
-        // Open and close the packet flow-through valve while waiting for confirm_oks
+        // Open and close the packet flow-through valve while waiting for confirm_oks (RN the local )
         this->EuCache.forwardPackets = true; 
-        this->clientScheduler->request(this->name, obj.priority);
+        //this->clientScheduler->request(this->name, obj.priority);
         this->EuCache.forwardPackets = false; 
 
         this->replaceCache(heapMap); 
@@ -226,6 +228,6 @@ void ClientEU::run(std::stop_token st){
             this->outLines.at(dev.device_name)->insertMessage(osm); 
         }  
 
-        this->clientScheduler->release(this->oinfo.name); 
+        //this->clientScheduler->release(this->oinfo.name); 
     }
 }
