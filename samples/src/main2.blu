@@ -1,5 +1,5 @@
-oblock task(LINE_WRITER lw, READ_FILE rfp, FILE_LOG log)
-: triggerOn({"id": "name1", "rule" : lw, "priority" : 20})
+oblock task(LINE_WRITER lw, READ_FILE rfp, FILE_LOG log, float v)
+: triggerOn({"id" : "name1", "rule" : lw, "priority" : 20})
 {
     string textMessage = lw.msg; 
     list<string> availNames = ["ROHAN ", "COLIN ", "TOMAS ", "THOMAS "]; 
@@ -27,36 +27,65 @@ oblock task(LINE_WRITER lw, READ_FILE rfp, FILE_LOG log)
 
 // Expecting multiple devices
 
-oblock task2(LINE_WRITER lw, FILE_LOG log1, int k)
-: triggerOn({"id":"basic", "rule" : lw, "priority" : 8}, {"rule" : k, "priority" : 4})
+oblock task2(LINE_WRITER lw, FILE_LOG log1, float k)
+: triggerOn({"id": "basic", "rule" : lw, "priority" : 8})
 {
+    print("RUNNING OBLOK"); 
     log1.add_msg = "This is from task2 (priority 8)"; 
 }
 
 
-oblock task3(LINE_WRITER lw, FILE_LOG fl, int k)
-: triggerOn({"id" : "t3", "rule" : lw, "priority" : 5}, {"rule" : k, "priority" : 8})
+oblock task3(LINE_WRITER lw, FILE_LOG fl, float k)
+: triggerOn({"id" : "t3", "rule" : lw, "priority" : 5}, {"id" : "vfloat", "rule" : k})
 {
-    fl.add_msg = "Im on crack " + lw.msg + " priority 5 "; 
+    if(getTrigger() == "t3"){
+        fl.add_msg = "Triggered by the t3 object (Priority 5)"; 
+    }
+    else if(getTrigger() == "vfloat"){
+        fl.add_msg = "Triggered by the k vfloat with value " + toString(k) + " (priority 1)"; 
+    }   
+    else{
+        print("Idk what has happened!"); 
+    }
 }
 
-oblock task4(READ_FILE omar, int k)
-: triggerOn(omar)
-{
-    k = k + 1; 
+
+
+oblock task5(READ_FILE Hello, FILE_LOG right, float k)
+: triggerOn({"rule" : k, "priority" : 10}){
+    right.add_msg = "Triggered by k: " + toString(k) + " priority 10"; 
+}
+
+oblock task6(READ_FILE omar, FILE_LOG log2, float k, LINE_WRITER lw)
+: triggerOn({"rule" : lw, "id" : "trig1"}, {"rule" : omar, "id" : "trig2"}) 
+{   
+    if(getTrigger() == "trig1"){
+        log2.add_msg = "The system was triggered by k: " + lw.msg; 
+        k += 5; 
+    }
+    else if(getTrigger() == "trig2"){
+        log2.add_msg = "The system was triggered by omar: " + omar.msg; 
+    }
+    else{
+        log2.add_msg = "The get trigger function is not working"; 
+    }
 }
 
 
 setup(){   
-    virtual int k; 
+    virtual float k; 
     LINE_WRITER lw = "CTL1::file-file1.txt";
     READ_FILE omar = "CTL1::file-omar.txt";
     READ_FILE hello = "CTL1::file-Hello.txt"; 
     FILE_LOG log = "CTL1::file-logfile.txt";
     FILE_LOG log2 = "CTL1::file-logfile2.txt"; 
+    READ_FILE_POLL rfp = "CTL1::file-Hello.txt"; 
 
-    task(lw, omar, log); 
+    task(lw, omar, log, k); 
     task2(lw, log, k); 
     task3(lw, log, k); 
-    task4(omar, k); 
+    task5(lw, log, k); 
+    task6(omar, log2, k, lw); 
+    //task7(rfp, log2); 
+
 }

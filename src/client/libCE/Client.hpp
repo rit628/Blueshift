@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include "libnetwork/Protocol.hpp"
 #include "libnetwork/Connection.hpp"
+#include "libClientGateway/ClientGateway.hpp"
 #include <set> 
 
 using boost::asio::ip::tcp; 
@@ -50,25 +51,10 @@ struct ClientSideReqComp{
 }; 
 
 
-// Receives the queue for each controller
-struct ControllerQueue{
-    private:  
-        std::priority_queue<ClientSideReq, std::vector<ClientSideReq>, ClientSideReqComp> schepq; 
-
-    public: 
-
-        bool currOwned = false; 
-        // The device owner is identified by the ctl_id, oblock_int
-        std::pair<cont_int, oblock_int> owner;     
-        std::priority_queue<ClientSideReq, std::vector<ClientSideReq>, ClientSideReqComp>& getQueue(){
-            return this->schepq; 
-        }
-};  
-
-
 struct ManagedDevice {
     DeviceHandle device;
-    ControllerQueue pendingRequests;
+    ControllerQueue<ClientSideReq, ClientSideReqComp> pendingRequests;
+    std::pair<cont_int, oblock_int> owner; 
     ManagedDevice(TYPE dtype, std::unordered_map<std::string, std::string> &config)
                         : device(dtype, config) {}
 }; 
@@ -91,7 +77,7 @@ class Client{
         // The client object 
         std::shared_ptr<Connection> client_connection; 
         // Input Thread safe queue
-        TSQ<OwnedSentMessage> in_queue; 
+        TSQ<OwnedSentMessage> connection_in_queue; 
         // Input Thread 
         TSQ<OwnedSentMessage>client_in_queue; 
 
@@ -99,39 +85,33 @@ class Client{
         /*
             Blueshift Client Stuff
         */
-
-        // Controller code (trade in for name)
-        uint8_t controller_alias; 
-       // Ticker Mutex; 
+  
+        uint8_t controller_alias;   
         std::shared_mutex ticker_mutex; 
-        // Contains the list of known devices
         std::unordered_map<int, ManagedDevice> deviceList;     
-        // client name used to identify controller
         std::string client_name; 
-        // Listens for incoming message and places it into the spot
-        std::jthread listenerThread; 
-        // use to keep track of the state 
+        std::jthread listenerThread;  
         ClientState curr_state; 
-        // sends a callback for a device
         void sendMessage(uint16_t device, Protocol prot, bool fromint, oblock_int oint, bool write_self);  
-        // Send a message
         void send(SentMessage &msg); 
-        // Updates the ticker table
         void updateTicker(); 
-        // Temp timers 
-        std::vector<Timer> start_timers; 
-        // Run the client listener
-        
-        // Error Sender: 
+        std::vector<Timer> start_timers;  
         std::unique_ptr<GenericBlsException> genBlsException; 
 
         /*
             State management information
         */
-                
-        // Ticker table
+
         std::unordered_map<uint16_t, DeviceTimer> client_ticker;
         std::vector<DeviceInterruptor> interruptors;
+
+        /*  
+            Client EU and routing for decentralization
+        */
+        std::unique_ptr<ClientEM> ClientExec; 
+        std::unordered_map<uint16_t, std::vector<std::string>> devRouteMap; 
+        std::unordered_map<std::string, int> devAliasMap;
+        jthread execManThread; 
 
 
     public: 

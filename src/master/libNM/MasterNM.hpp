@@ -60,7 +60,10 @@ class MasterNM{
         // Reader thread (writer thread not necessary as its done by boost asio)
         std::thread readerThread; 
         std::thread updateThread; 
-        bool in_operation = false; 
+        bool in_operation = false;
+        
+        // Targ char vectord
+        std::vector<char> bytecode; 
 
         void writeConfig(std::vector<OBlockDesc> &descs); 
 
@@ -83,7 +86,7 @@ class MasterNM{
         void sendInitialTicker(std::shared_ptr<Connection> &client_con); 
 
     public:     
-        MasterNM(std::vector<OBlockDesc> &descs, TSQ<DMM> &in_que, TSQ<DMM> &out_q); 
+        MasterNM(std::vector<OBlockDesc> &descs, TSQ<DMM> &in_que, TSQ<DMM> &out_q, std::vector<char> &bytecode); 
         ~MasterNM(); 
         bool start();
         void stop(); 

@@ -3,15 +3,18 @@
 #include "libDM/DynamicMessage.hpp"
 #include "libnetwork/Protocol.hpp"
 #include <algorithm>
+#include <cstdint>
 #include <exception>
+#include <unordered_map>
 
 
-MasterNM::MasterNM(std::vector<OBlockDesc> &desc_list, TSQ<DMM> &in_msg, TSQ<DMM> &out_q)
+MasterNM::MasterNM(std::vector<OBlockDesc> &desc_list, TSQ<DMM> &in_msg, TSQ<DMM> &out_q, std::vector<char> &bytecode)
 : master_socket(master_ctx), master_acceptor(master_ctx, tcp::endpoint(tcp::v4(), MASTER_PORT)), 
   EMM_in_queue(in_msg), EMM_out_queue(out_q), tickerTable(desc_list)
 {
     std::cout<<"Master started!"<<std::endl; 
     writeConfig(desc_list); 
+    this->bytecode = bytecode; 
 
 }
 
@@ -73,22 +76,28 @@ void MasterNM::writeConfig(std::vector<OBlockDesc> &desc_list){
 
 
     // Configure the controller config data once the mappings are made
+
     for(auto &oblock : desc_list){
         for(auto &dev : oblock.binded_devices){
             // used for debugging 
             this->dd_map[dev.device_name] = dev; 
+            auto devAlias = this->device_alias_map[dev.device_name]; 
             
-            this->ctl_configs[dev.controller].device_alias.push_back(this->device_alias_map[dev.device_name]); 
+            this->ctl_configs[dev.controller].device_alias.push_back(devAlias); 
+            this->ctl_configs[dev.controller].device_names.push_back(dev.device_name); 
             this->ctl_configs[dev.controller].type.push_back(dev.type); 
-            this->ctl_configs[dev.controller].srcs.push_back(dev.port_maps); 
-
+            this->ctl_configs[dev.controller].srcs.push_back(dev.port_maps);
+            this->ctl_configs[dev.controller].deviceDests[devAlias].insert(oblock.hostController); 
+             
             dev_list.insert(dev.device_name); 
             c_list.insert(dev.controller);
         }
         
         this->oblock_list.push_back(oblock.name); 
-        
     }
+
+
+
 }
 
 bool MasterNM::start(){
@@ -344,6 +353,7 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
             
             break; 
         }
+        case(Protocol::SEND_ARGUMENT): 
         case(Protocol::SEND_STATE_INIT) :
         case(Protocol::SEND_STATE) : {
             if(this->remConnections == 0){
@@ -442,7 +452,6 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
     }
 }
 
-
 // Creates the config message and send it to the client (assuming the target is found)
 bool MasterNM::confirmClient(std::shared_ptr<Connection> &con_obj){
     std::string c_name = con_obj->getName();
@@ -452,14 +461,27 @@ bool MasterNM::confirmClient(std::shared_ptr<Connection> &con_obj){
     // Device code doesnt matter 
     dev_sm.header.device_code = 0; 
 
-    // Copy the data: 
+    // Copy the data into the device destination map: 
     DynamicMessage dmsg; 
+    unordered_map<uint16_t, std::vector<std::string>> sendMap; 
+    for(auto& pair : this->ctl_configs[c_name].deviceDests){
+        sendMap[pair.first] = std::vector<std::string>(pair.second.begin(), pair.second.end()); 
+    }
 
+    std::cout<<"PORT MAPS for item"<<std::endl; 
+    for(auto& pair : sendMap){
+        std::cout<<"Device: "<<this->device_list.at(pair.first)<<std::endl; 
+        for(auto& dev : pair.second){std::cout<<dev<<",";}
+        std::cout<<std::endl; 
+    }
+   
     // Sends the configuration info for all the devices
     dmsg.createField("__DEV_ALIAS__" ,this->ctl_configs[c_name].device_alias); 
     dmsg.createField("__DEV_TYPES__" ,this->ctl_configs[c_name].type);
     dmsg.createField("__DEV_PORTS__" ,this->ctl_configs[c_name].srcs);  
-
+    dmsg.createField("__DEV_NAMES__", this->ctl_configs[c_name].device_names); 
+    dmsg.createField("__DEV_ROUTES__", sendMap); 
+    
     dev_sm.body = dmsg.Serialize(); 
     dev_sm.header.body_size = dev_sm.body.size(); 
 
@@ -468,7 +490,20 @@ bool MasterNM::confirmClient(std::shared_ptr<Connection> &con_obj){
 
     con_obj->send(dev_sm); 
 
+    /*
+        SENDING CODE OVER
+    */
 
+    std::cout<<"Sending code information"<<std::endl; 
+    SentMessage codeMsg; 
+    codeMsg.body = this->bytecode; 
+    codeMsg.header.prot = Protocol::CONFIG_OBLOCK; 
+    codeMsg.header.ctl_code = this->controller_alias_map[c_name]; 
+    codeMsg.header.body_size = this->bytecode.size(); 
+    // Device code doesnt matter 
+    codeMsg.header.device_code = 0; 
+    
+    con_obj->send(codeMsg);
 
     return true; 
 }

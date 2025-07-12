@@ -1,0 +1,33 @@
+/*  
+    This program testringss conditional writing 
+    with strings
+*/ 
+
+
+oblock hello(READ_FILE omar, READ_FILE reader, LINE_WRITER crack, int v)
+: triggerOn(omar)
+{
+    if(omar.msg == "write" && (reader.msg != crack.msg)){   
+        crack.msg = reader.msg; 
+    }
+
+}
+
+oblock trigger(LINE_WRITER jamar, FILE_LOG log2, int k)
+: triggerOn(jamar)
+{   
+    log2.add_msg = "File was written to"; 
+}
+
+
+
+setup(){
+    virtual int k; 
+    READ_FILE omar = "CTL1::file-omar.txt"; 
+    READ_FILE reader = "CTL1::file-Hello.txt"; 
+    LINE_WRITER crack = "CTL1::file-file1.txt"; 
+    FILE_LOG log2 = "CTL1::file-logfile2"; 
+
+    hello(omar, reader, crack, k); 
+    trigger(crack, log2, k); 
+}

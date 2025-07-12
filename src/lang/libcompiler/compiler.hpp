@@ -12,6 +12,8 @@
 #include "libdivider/divider.hpp"
 #include "token.hpp"
 #include <memory>
+#include <string>
+#include <unordered_map>
 #include <variant>
 #include <vector>
 
@@ -31,9 +33,10 @@ namespace BlsLang {
             auto& getOblockDescriptors() { return oblockDescriptors; }
             auto& getOblockDescriptorMap() { return analyzer.getOblockDescriptors(); }
             auto getOblockContexts(){return depGraph.getOblockMap();}
-            auto getGlobalContext() {return depGraph.getGlobalContext();}
             
         private:
+            void modifyOblockDesc(std::unordered_map<std::string, OBlockDesc>& oDescs,  GlobalContext gcx);
+
             std::vector<Token> tokens;
             std::unique_ptr<AstNode> ast;
             Lexer lexer;

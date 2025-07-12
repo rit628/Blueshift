@@ -1,5 +1,6 @@
 #include "EM.hpp"
 #include "include/Common.hpp"
+#include "include/reserved_tokens.hpp"
 #include "libMM/MM.hpp"
 #include "libScheduler/Scheduler.hpp"
 #include "libtype/bls_types.hpp"
@@ -16,7 +17,12 @@ ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<EMStateMes
 {
     this->OblockList = OblockList;
     for(auto &oblock : OblockList)
-    {
+    {   
+        std::cout<<"Oblock "<<oblock.hostController<<std::endl; 
+        if(oblock.hostController != BlsLang::RESERVED_MASTER){
+            continue; 
+        }
+
         string OblockName = oblock.name;
          vector<string> devices;
         vector<bool> isVtype;
@@ -89,6 +95,7 @@ void ExecutionUnit::replaceCachedStates(std::unordered_map<DeviceID, HeapMasterM
         HeapMasterMessage replaceHMM = item.second;; 
         cachedHMMs[devState] = replaceHMM; 
    }
+
 }
 
 
@@ -99,7 +106,11 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
 
         EMStateMessage currentHMMs = EUcache.read();
 
-        this->TriggerName = currentHMMs.TriggerName;  
+        if(currentHMMs.TriggerName.has_value()){
+            this->TriggerName = currentHMMs.TriggerName.value();  
+        }
+        
+        std::cout<<"Trigger: "<<this->TriggerName<<std::endl; 
 
         std::unordered_map<DeviceID, HeapMasterMessage> HMMs;
         
@@ -111,11 +122,12 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
 
         this->globalScheduler.request(this->Oblock.name, currentHMMs.priority); 
 
-        replaceCachedStates(HMMs); 
+        if(this->readForwardState){
+            replaceCachedStates(HMMs); 
+            this->readForwardState = false; 
+        }
         
         vector<BlsType> transformableStates;
-
-        std::cout<<"Trigger name: "<<TriggerName<<std::endl; 
 
         for(auto& deviceDesc : this->Oblock.binded_devices){
             DeviceID devName = deviceDesc.device_name; 
@@ -134,7 +146,7 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
         }
 
         transformableStates = vm.transform(transformableStates);
-        auto& modifiedStates = vm.getModifiedStates();
+        auto modifiedStates = vm.getModifiedStates();
 
         std::vector<HeapMasterMessage> outGoingStates;  
 
@@ -203,9 +215,11 @@ void ExecutionManager::running()
                 this->scheduler.receive(currentDMMs.dmm_list[0]); 
                 break; 
             }
-            case(PROTOCOLS::WAIT_STATE_FORWARD):{
+            case(PROTOCOLS::WAIT_STATE_FORWARD):{ 
                 HeapMasterMessage dmm = currentDMMs.dmm_list[0]; 
+                assignedUnit.readForwardState = true; 
                 assignedUnit.replacementCache.insert(dmm.info.device, dmm); 
+          
                 break; 
             }
             default:{

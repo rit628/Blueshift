@@ -50,7 +50,7 @@ class TriggerManager{
         // Device Constructor (created rules)
         TriggerManager(OBlockDesc& OBlockDesc){
             int i = 0; 
-            for(DeviceDescriptor& devDesc : OBlockDesc.inDevices){
+            for(DeviceDescriptor& devDesc : OBlockDesc.binded_devices){
                 if(!devDesc.isVtype){
                     stringMap[devDesc.device_name] = i; 
                     i++; 
@@ -66,7 +66,7 @@ class TriggerManager{
             for(auto& rule : OBlockDesc.triggers){
                 std::bitset<BITSET_SZ> king; 
                 for(auto& devName : rule.rule){
-                    king.set(this->stringMap[devName]); 
+                    king.set(this->stringMap.at(devName)); 
                 }       
                 ruleset.insert(king); 
             }
@@ -121,6 +121,7 @@ struct DeviceBox{
     std::shared_ptr<TSQ<HeapMasterMessage>> stateQueues;
     AtomicDMMContainer lastMessage; 
     bool devDropRead = false;  
+    bool devDropWrite = false; 
     std::string deviceName; 
 
     void insertState(HeapMasterMessage& dmm){
@@ -136,7 +137,7 @@ struct DeviceBox{
 struct ReaderBox
 {
     public:
-        std::unordered_map<DeviceID, DeviceBox> waitingQs;
+        std::unordered_map<DeviceID, DeviceBox> devMap;
         /* 
             Consists of the ordered list of all triggered events 
             to be queued up and sent to the execution manager
@@ -157,11 +158,11 @@ struct ReaderBox
         // Inserts the state into the object: 
         // the bool initEvent determines if the event is an initial event or not
         void insertState(HeapMasterMessage newDMM, TSQ<EMStateMessage>& sendEM){
-            if(!this->waitingQs.contains(newDMM.info.device)){
+            if(!this->devMap.contains(newDMM.info.device)){
                 return; 
             }
 
-            DeviceBox& targDev = this->waitingQs[newDMM.info.device];
+            DeviceBox& targDev = this->devMap[newDMM.info.device];
 
             if(forwardPackets && targDev.devDropRead){
                 EMStateMessage ems; 
@@ -183,7 +184,8 @@ struct ReaderBox
             bool writeTrig = this->triggerMan.processDevice(newDMM.info.device, triggerId); 
             if(writeTrig){
                 std::vector<HeapMasterMessage> trigEvent; 
-                for(auto& [name, devBox] : this->waitingQs){
+                std::cout<<"OBLOCK TRIGGERED"<<std::endl; 
+                for(auto& [name, devBox] : this->devMap){
                     if(devBox.stateQueues->isEmpty()){
                         trigEvent.push_back(devBox.stateQueues->read()); 
                     }
@@ -192,28 +194,17 @@ struct ReaderBox
                     }
                 }
 
-                this->triggerCache.push_back(trigEvent); 
+                EMStateMessage ems; 
+                ems.TriggerName = "NONE"; 
+                ems.dmm_list = trigEvent; 
+                ems.protocol = PROTOCOLS::SENDSTATES; 
+                ems.priority = 1; 
+                ems.oblockName = this->OblockName; 
+                sendEM.write(ems); 
             }
-        }
 
-        void handleRequest(TSQ<EMStateMessage>& sendEM){
-            // write for loop to handle requests
-            if(pending_requests){
-                int maxQueueSz = this->triggerCache.size() < MAX_EM_QUEUE_FILL?  triggerCache.size() : MAX_EM_QUEUE_FILL;     
-                for(int i = 0; i < maxQueueSz; i++){
-                    auto dmmVect = this->triggerCache.back(); 
-                    // Update when trigger naming comes 
-                    this->triggerCache.pop_back(); 
-                    EMStateMessage ems; 
-                    ems.TriggerName = "NONE"; 
-                    ems.dmm_list = dmmVect; 
-                    ems.protocol = PROTOCOLS::SENDSTATES; 
-                    ems.priority = 1; 
-                    ems.oblockName = this->OblockName; 
-                    sendEM.write(ems); 
-                }
-            }   
-        }   
+      
+        }
 
         ReaderBox(bool dropRead, bool dropWrite, std::string name,  OBlockDesc& odesc)
         : triggerMan(odesc)
@@ -221,6 +212,15 @@ struct ReaderBox
             this->dropRead = dropRead;
             this->dropWrite = dropWrite;
             this->OblockName = name;
+
+            for(auto& dev : odesc.binded_devices){
+                auto TSQPtr = make_shared<TSQ<HeapMasterMessage>>();
+                auto& db = this->devMap[dev.device_name]; 
+                db.stateQueues = TSQPtr; 
+                db.devDropRead = dev.dropRead; 
+                db.devDropWrite = dev.dropWrite; 
+                db.deviceName = dev.device_name; 
+            }
         }
     
 };

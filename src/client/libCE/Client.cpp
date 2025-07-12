@@ -5,13 +5,17 @@
 #include "libnetwork/Protocol.hpp"
 #include <functional>
 #include <exception>
+#include <memory>
 #include <ostream>
 #include <stdexcept>
 #include <sys/socket.h>
+#include <thread>
+#include <unordered_map>
 
 Client::Client(std::string c_name): bc_socket(client_ctx, udp::endpoint(udp::v4(), BROADCAST_PORT)), client_socket(client_ctx){
     this->client_name = c_name; 
     std::cout<<"Client Created: " << c_name <<std::endl; 
+    this->ClientExec = std::make_unique<ClientEM>(this->connection_in_queue, this->client_in_queue); 
 }
 
 void Client::start(){
@@ -24,7 +28,6 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
     // Write code for a callback
     SentMessage sm; 
     DynamicMessage dmsg; 
-
 
     switch(type){
         case(Protocol::OWNER_GRANT):{
@@ -63,27 +66,23 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
         }
     }
 
-    if(write_self){
-        OwnedSentMessage osm; 
-        osm.sm = sm; 
-        osm.connection = nullptr; 
-        this->in_queue.write(osm); 
-    }
-    else{
-        std::cout<<"State for device: "<<deviceCode<<std::endl; 
-        this->client_connection->send(sm); 
-    }
+
+    this->client_connection->send(sm); 
+        
 }
 
 void Client::listener(std::stop_token stoken){
     while(!stoken.stop_requested()){
 
-        auto inMsg = this->in_queue.read().sm; 
+        auto inMsg = this->client_in_queue.read().sm; 
         
         Protocol ptype = inMsg.header.prot; 
-
         DynamicMessage dmsg; 
-        dmsg.Capture(inMsg.body);
+
+        if(ptype != Protocol::CONFIG_OBLOCK){
+           
+            dmsg.Capture(inMsg.body);
+        }
 
         if(ptype == Protocol::CONFIG_OK){
             this->curr_state = ClientState::IN_OPERATION; 
@@ -99,26 +98,32 @@ void Client::listener(std::stop_token stoken){
             std::vector<uint16_t> device_alias; 
             std::vector<TYPE> device_types; 
             std::vector<std::unordered_map<std::string, std::string>> srcs;  
+            std::vector<std::string> device_names; 
             uint8_t controller_alias = inMsg.header.ctl_code; 
-
+        
             dmsg.unpack("__DEV_ALIAS__", device_alias);
             dmsg.unpack("__DEV_TYPES__", device_types); 
             dmsg.unpack("__DEV_PORTS__", srcs); 
-
+            dmsg.unpack("__DEV_NAMES__", device_names); 
+            dmsg.unpack("__DEV_ROUTES__", this->devRouteMap);
+            
             this->controller_alias = controller_alias; 
 
             // Check that all vectors are of equal size and more than 0 devices are configured: 
             int size = device_alias.size(); 
             bool b = device_types.size() == size; 
             bool c = srcs.size() == size; 
-            
+            bool d = device_names.size() == size; 
 
-            if(!(b && c)){
+            this->client_connection->setRoutes(this->devRouteMap); 
+
+            if(!(b && c && d)){
                 throw std::invalid_argument("Config vectors of different sizes what!"); 
             }
 
             for(int i = 0; i < size; i++){
                 try{      
+                    this->devAliasMap[device_names[i]] = device_alias[i]; 
                     deviceList.try_emplace(device_alias[i], device_types[i], srcs[i]);
                 }
                 catch(BlsExceptionClass& bec){
@@ -132,10 +137,16 @@ void Client::listener(std::stop_token stoken){
             sm.header.prot = Protocol::CONFIG_OK; 
             sm.header.ctl_code = this->controller_alias; 
             this->client_connection->send(sm); 
-        
 
             std::cout<<"Client side handshake complete!"<<std::endl; 
 
+        }
+        else if(ptype == Protocol::CONFIG_OBLOCK){
+            // Processing code instructions
+            std::cout<<"Received programming information"<<std::endl; 
+            auto code = inMsg.body; 
+            this->ClientExec->config(code, this->devAliasMap, 0); 
+ 
         }
         else if(ptype == Protocol::STATE_CHANGE){
         
@@ -143,8 +154,8 @@ void Client::listener(std::stop_token stoken){
                 auto dev_index = inMsg.header.device_code; 
 
                 // Check if the writer is the valid owner of the device (if applies)
-                auto& pendingReq = this->deviceList.at(dev_index).pendingRequests; 
-                if(pendingReq.currOwned){
+                auto& pendingReq = this->deviceList.at(dev_index);
+                if(pendingReq.pendingRequests.currOwned){
                     if((inMsg.header.ctl_code != pendingReq.owner.first) || (inMsg.header.oblock_id != pendingReq.owner.second)){
                         std::cout<<"OWNERSHIP WARNING: "<<std::endl; 
                         std::cout<<"CTL: "<<inMsg.header.ctl_code<<std::endl; 
@@ -206,6 +217,7 @@ void Client::listener(std::stop_token stoken){
 
             std::cout<<"CLIENT: Beginning sending process"<<std::endl; 
             this->curr_state = ClientState::IN_OPERATION; 
+            this->client_connection->connectionConfirm = true; 
 
             // Begin the timers only when the call is made
             for(Timer &timer : this->start_timers){
@@ -269,10 +281,10 @@ void Client::listener(std::stop_token stoken){
             
             dev_int targDevice = inMsg.header.device_code;
             if(!this->deviceList.at(targDevice).pendingRequests.currOwned){
-                    // Add the code to send the device grant here: 
-                    auto king = this->deviceList.at(targDevice).pendingRequests.getQueue().top(); 
-                    sendMessage(king.targetDevice, Protocol::OWNER_GRANT, false, king.requestorOblock); 
-                    this->deviceList.at(targDevice).pendingRequests.currOwned = true; 
+                // Add the code to send the device grant here: 
+                auto king = this->deviceList.at(targDevice).pendingRequests.getQueue().top(); 
+                sendMessage(king.targetDevice, Protocol::OWNER_GRANT, false, king.requestorOblock); 
+                this->deviceList.at(targDevice).pendingRequests.currOwned = true; 
             }
         }
 
@@ -287,8 +299,7 @@ void Client::listener(std::stop_token stoken){
             auto loadedProcess = pendingSet.top(); 
             if((loadedProcess.ctl == inMsg.header.ctl_code) && (loadedProcess.requestorOblock == inMsg.header.oblock_id)){
                 sendMessage(dev_id, Protocol::OWNER_CONFIRM_OK, false, inMsg.header.oblock_id);
-                devicePending.currOwned = true;
-                auto& devPair = this->deviceList.at(dev_id).pendingRequests.owner; 
+                auto& devPair = this->deviceList.at(dev_id).owner; 
                 devPair = {inMsg.header.ctl_code, inMsg.header.oblock_id}; 
                 std::cout<<"Confrm Before Erasure"<<std::endl; 
                 pendingSet.pop(); 
@@ -296,6 +307,9 @@ void Client::listener(std::stop_token stoken){
             }
             else{
                 std::cerr<<"PROTOCOL ERROR: INVALID OWNER CONFIRM FOR PROCESS THAT IS NOT A PRIME CANDIDATE"<<std::endl; 
+                std::cout<<"ERROR CTL_CODE: "<<inMsg.header.ctl_code<<" ERROR OBLOCK ID "<<inMsg.header.oblock_id<<std::endl; 
+                // Send a grant to the new oblock on top instead
+                sendMessage(loadedProcess.targetDevice, Protocol::OWNER_GRANT, false, loadedProcess.requestorOblock);
             }         
         }
         else if(ptype == Protocol::OWNER_RELEASE){
@@ -305,6 +319,7 @@ void Client::listener(std::stop_token stoken){
             std::cout<<"Size at release "<<devPendStruct.getQueue().size()<<std::endl; 
         
             if(!devPendStruct.getQueue().empty()){
+                devPendStruct.currOwned = true; 
                 auto& scheduleOrder = devPendStruct.getQueue();
                 auto nextProcess = scheduleOrder.top();
                 oblock_int o_id = nextProcess.requestorOblock;
@@ -333,7 +348,7 @@ void Client::broadcastListen(){
         if(attempt_name == this->client_name){
             auto master_address = master_endpoint.address().to_string(); 
             this->client_connection = std::make_shared<Connection>(
-                this->client_ctx, tcp::socket(this->client_ctx), Owner::CLIENT, this->in_queue, master_address
+                this->client_ctx, tcp::socket(this->client_ctx), Owner::CLIENT, this->connection_in_queue, master_address
             ); 
             this->client_connection->setName(this->client_name); 
             this->genBlsException = std::make_unique<GenericBlsException>(
@@ -355,6 +370,8 @@ bool Client::attemptConnection(boost::asio::ip::address master_address){
         this->listenerThread = std::jthread(std::bind(&Client::listener, std::ref(*this), std::placeholders::_1));
         this->ctxThread = std::jthread([this](){this->client_ctx.run();});   
 
+        this->execManThread  = jthread(std::bind( &ClientEM::run, std::ref(*this->ClientExec), std::placeholders::_1)); 
+
         if(this->listenerThread.joinable()){
             this->listenerThread.join(); 
         }
@@ -363,6 +380,8 @@ bool Client::attemptConnection(boost::asio::ip::address master_address){
         if(this->ctxThread.joinable()){
             this->ctxThread.join(); 
         }
+                   
+        
 
         std::cout<<this->client_name + " Connection successful!"<<std::endl; 
 
@@ -413,7 +432,7 @@ bool Client::disconnect(){
 
 
 TSQ<OwnedSentMessage>& Client::getInQueue(){
-    return this->in_queue; 
+    return this->client_in_queue; 
 }
 
 
