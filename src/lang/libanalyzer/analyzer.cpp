@@ -643,7 +643,8 @@ BlsObject Analyzer::visit(AstNode::Expression::Access& ast) {
         }
         auto& subscriptable = std::get<std::shared_ptr<HeapDescriptor>>(object);
         auto index = resolve(subscript->get()->accept(*this));
-        return std::ref(subscriptable->getSampleElement().at(0));
+        size_t elementIdx = (dynamic_cast<VectorDescriptor*>(subscriptable.get())) ? 0 : 1;
+        return std::ref(subscriptable->getSampleElement().at(elementIdx));
     }
     else {
         return std::ref(object);
