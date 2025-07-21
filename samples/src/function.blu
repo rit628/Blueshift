@@ -1,7 +1,63 @@
-int main(int i) {
-    return "a";
+oblock changeTask(LINE_WRITER lw, string message)
+: triggerOn(lw)
+{
+    if(lw.msg == "green" || lw.msg == "red"){
+        println("MODE CHANGED TO " + message);
+        message = lw.msg; 
+    }
 }
 
-setup() {
-    
+oblock buttonLog(BUTTON button, string mode, map<string, int> countMap, LINE_WRITER fl)
+: triggerOn(button)
+{
+    if(button.pressed){
+        int val = 0;
+        if(mode == "red"){
+            countMap["red"]++; 
+        }
+        else{
+            countMap["green"]++;
+        }
+
+        int greenCnt = countMap["green"];
+        int redCnt = countMap["red"];
+
+        fl.msg = "Green was pressed " + toString(greenCnt) + " times. " + "Red was pressed " + toString(redCnt) + " times."; 
+    }    
+}
+
+
+
+oblock buttonLight(BUTTON button, string mode, LIGHT redLight, LIGHT greenLight)
+: triggerOn(button)
+{
+    if(button.pressed){
+        if(mode == "red"){
+            redLight.on = true; 
+        }
+        else{
+            greenLight.on = true;
+        }
+    }
+    else{
+        redLight.on = false; 
+        greenLight.on = false; 
+    }
+}
+
+
+
+setup(){
+    LINE_WRITER lw = "CTL::file-file1.txt";
+    LINE_WRITER fl = "CTL::file-logfile.txt"; 
+    virtual string mode = "red";
+    virtual map<string, int> countMap = {"red" : 0, "green" : 0};
+
+    LIGHT redLight = "rpi::PIN-17";
+    LIGHT greenLight = "rpi::PIN-27";
+    BUTTON button = "rpi::PIN-21";
+
+    changeTask(lw, mode);
+    buttonLog(button, mode, countMap, fl);
+    buttonLight(button, mode, redLight, greenLight);
 }

@@ -203,7 +203,10 @@ struct ReaderBox
             bool writeTrig = this->triggerMan.processDevice(newDMM.info.device, triggerId); 
     
             if(writeTrig){
-                this->triggerSet.insert(this->OblockName); 
+                if(!this->forwardPackets){
+                    this->triggerSet.insert(this->OblockName); 
+                }
+               
                 auto& trigInfo = this->oblockDesc.triggers.at(triggerId);
                 std::vector<HeapMasterMessage> trigEvent; 
                 

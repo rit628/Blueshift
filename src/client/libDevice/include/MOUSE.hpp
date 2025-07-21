@@ -9,6 +9,8 @@
 #include <SDL3/SDL.h>
 #endif
 
+
+
 namespace Device {
     class MOUSE : public DeviceCore<TypeDef::MOUSE> {
         private:

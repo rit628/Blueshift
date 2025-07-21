@@ -125,19 +125,19 @@ setup() {
     KEYBOARD KBD = "ctl::mode-all";
     MOUSE MS = "ctl::mode-all";
     virtual string log = "";
-    //logKey(KBD, log);
+    logKey(KBD, log);
 
     virtual float maxX = 0;
     virtual float maxY = 0;
 
-    calibrateMouse(KBD, MS, maxX, maxY);
+    //calibrateMouse(KBD, MS, maxX, maxY);
 
     LIGHT Q1 = "rpi::PIN-21";
     LIGHT Q2 = "rpi::PIN-20";
     LIGHT Q3 = "rpi::PIN-18";
     LIGHT Q4 = "rpi::PIN-19";
 
-    quadrantLighter(MS, maxX, maxY, Q1, Q2, Q3, Q4);
+    //quadrantLighter(MS, maxX, maxY, Q1, Q2, Q3, Q4);
     
     //quadrantLogger(MS, maxX, maxY);
     

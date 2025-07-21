@@ -24,6 +24,7 @@ void VirtualMachine::setOblockOffset(size_t oblockOffset) {
 std::vector<BlsType> VirtualMachine::transform(std::vector<BlsType> deviceStates) {
     instruction = oblockOffset;
     signal = SIGNAL::START;
+    modifiedStates.clear(); 
     modifiedStates.resize(deviceStates.size(), false);
     cs.pushFrame(instruction, deviceStates);
     dispatch();
