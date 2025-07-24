@@ -19,9 +19,11 @@
 #include <variant>
 #include <vector>
 #include <thread>
+#include "include/ADC.hpp"
 #ifdef SDL_ENABLED
 #include <SDL3/SDL.h>
 #endif
+
 
 #define VOLATILITY_LIST_SIZE 10
 
@@ -66,13 +68,15 @@ class DeviceHandle {
         std::condition_variable_any cv;
         bool processing = false;
         bool watchersPaused = false;
+        
 
-        DeviceHandle(TYPE dtype, std::unordered_map<std::string, std::string> &config);
+        DeviceHandle(TYPE dtype, std::unordered_map<std::string, std::string> &config, std::shared_ptr<ADS7830> targetADC);
         void processStates(DynamicMessage input);
-        void init(std::unordered_map<std::string, std::string> &config);
+        void init(std::unordered_map<std::string, std::string> &config, std::shared_ptr<ADS7830> targetADC);
         void transmitStates(DynamicMessage &dmsg);
         bool hasInterrupt();
         std::vector<InterruptDescriptor>& getIdescList();
+
 };
 
 // Device Timer used for configuring polling rates dynamically; 
@@ -136,6 +140,7 @@ class DeviceInterruptor{
         #ifdef SDL_ENABLED
         void ISdlWatcher(std::stop_token stoken, std::function<bool(SDL_Event*)> handler);
         #endif
+
         
     public: 
         DeviceInterruptor(DeviceHandle& targDev, std::shared_ptr<Connection> conex, int ctl, int dd);

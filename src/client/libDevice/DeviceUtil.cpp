@@ -1,7 +1,9 @@
 #include "DeviceUtil.hpp"
 #include "DeviceCore.hpp"
+#include "include/ADC.hpp"
 #include <atomic>
 #include <functional>
+#include <memory>
 #include <stdexcept>
 #include <stop_token>
 #include <sys/inotify.h>
@@ -14,12 +16,15 @@
 template<class... Ts>
 struct overloads : Ts... { using Ts::operator()...; };
 
-DeviceHandle::DeviceHandle(TYPE dtype, std::unordered_map<std::string, std::string> &config) {
+DeviceHandle::DeviceHandle(TYPE dtype, std::unordered_map<std::string, std::string> &config, std::shared_ptr<ADS7830> usingADC) 
+{
+
+
     switch(dtype){
         #define DEVTYPE_BEGIN(name) \
         case TYPE::name: { \
             this->device.emplace<Device::name>(); \
-            this->init(config); \
+            this->init(config, usingADC); \
             break; \
         }
         #define ATTRIBUTE(...)
@@ -76,10 +81,11 @@ void DeviceHandle::processStates(DynamicMessage dmsg) {
     cv.notify_one();
 }
 
-void DeviceHandle::init(std::unordered_map<std::string, std::string> &config) {
+void DeviceHandle::init(std::unordered_map<std::string, std::string> &config, std::shared_ptr<ADS7830> adc) {
     std::visit(overloads {
         [](std::monostate&) {},
-        [&config](auto& dev) { dev.init(config); }
+        [&config, adc](auto& dev) { dev.init(config); dev.setADC(adc);}
+
     }, device);
 }
 

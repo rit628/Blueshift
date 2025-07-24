@@ -1,10 +1,12 @@
 #include "Client.hpp"
 #include "include/Common.hpp"
 #include "libDevice/DeviceUtil.hpp"
+#include "libDevice/include/ADC.hpp"
 #include "libnetwork/Connection.hpp"
 #include "libnetwork/Protocol.hpp"
 #include <functional>
 #include <exception>
+#include <memory>
 #include <ostream>
 #include <stdexcept>
 #include <sys/socket.h>
@@ -117,9 +119,12 @@ void Client::listener(std::stop_token stoken){
                 throw std::invalid_argument("Config vectors of different sizes what!"); 
             }
 
+            // Try for existance (replace with function to find connected ADCs when more are added)
+            this->adc = std::make_shared<ADS7830>();
+
             for(int i = 0; i < size; i++){
                 try{      
-                    deviceList.try_emplace(device_alias[i], device_types[i], srcs[i]);
+                    deviceList.try_emplace(device_alias[i], device_types[i], srcs[i], this->adc);
                 }
                 catch(BlsExceptionClass& bec){
                     this->genBlsException->SendGenericException(bec.what(), bec.type()); 
@@ -215,7 +220,7 @@ void Client::listener(std::stop_token stoken){
                     std::cout<<"build timer with period: "<<timer.period<<std::endl;
                     this->client_ticker.try_emplace(timer.id, this->client_ctx, device, this->client_connection, this->controller_alias, timer.device_num, timer.id);
                     this->client_ticker.at(timer.id).setPeriod(timer.period);
-                    sendMessage(timer.device_num, Protocol::SEND_STATE, false); 
+                    sendMessage(timer.device_num, Protocol::SEND_STATE_INIT, false); 
                 }
             }
 
@@ -250,6 +255,7 @@ void Client::listener(std::stop_token stoken){
         else if(ptype == Protocol::CONNECTION_LOST){
             std::cout<<"Connection lost detected by Client"<<std::endl; 
             this->disconnect(); 
+            this->adc->close();
         }
         else if(ptype == Protocol::OWNER_CANDIDATE_REQUEST){
             dev_int targDevice = inMsg.header.device_code;

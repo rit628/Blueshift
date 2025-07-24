@@ -1,5 +1,6 @@
 #include "DeviceCore.hpp"
 
+
 template<Driveable T>
 void DeviceCore<T>::addFileIWatch(std::string &fileName, std::function<bool()> handler) {
     hasInterrupt = true;
@@ -11,6 +12,7 @@ void DeviceCore<T>::addGPIOIWatch(uint8_t gpioPort, std::function<bool(int, int,
     hasInterrupt = true;
     this->Idesc_list.push_back(GpioInterruptor{gpioPort, handler}); 
 }
+
 
 #ifdef SDL_ENABLED
 template<Driveable T>

@@ -7,6 +7,7 @@
 #include <thread>
 #include <shared_mutex>
 #include <unordered_map>
+#include "libDevice/include/ADC.hpp"
 #include "libnetwork/Protocol.hpp"
 #include "libnetwork/Connection.hpp"
 #include <set> 
@@ -69,8 +70,8 @@ struct ControllerQueue{
 struct ManagedDevice {
     DeviceHandle device;
     ControllerQueue pendingRequests;
-    ManagedDevice(TYPE dtype, std::unordered_map<std::string, std::string> &config)
-                        : device(dtype, config) {}
+    ManagedDevice(TYPE dtype, std::unordered_map<std::string, std::string> &config, std::shared_ptr<ADS7830> targADC)
+                        : device(dtype, config, targADC) {}
 }; 
 
 class Client{
@@ -132,6 +133,7 @@ class Client{
         // Ticker table
         std::unordered_map<uint16_t, DeviceTimer> client_ticker;
         std::vector<DeviceInterruptor> interruptors;
+        std::shared_ptr<ADS7830> adc;
 
 
     public: 
