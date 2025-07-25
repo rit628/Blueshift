@@ -23,6 +23,10 @@ void POTENTIOMETER::init(std::unordered_map<std::string, std::string> &config){
         throw std::invalid_argument("Device Init failed!");
     }
 
+    if(!this->adc){
+        std::cout<<"WHAT! IS NULLPTR!"<<std::endl;
+    }
+
     if(!this->adc->isValid()){
         std::cout<<"INVALID ADC "<<std::endl;
         throw std::invalid_argument("Device Init failed!");
@@ -31,7 +35,7 @@ void POTENTIOMETER::init(std::unordered_map<std::string, std::string> &config){
 
 
 void POTENTIOMETER::transmitStates(DynamicMessage &dmsg){
-    states.value = this->adc->readByte(this->ADC_CHANNEL);
+    states.value = (int)this->adc->readByte(this->ADC_CHANNEL);
     dmsg.packStates(states);
 }
 

@@ -1,0 +1,31 @@
+oblock rgb_led(LINE_WRITER lw, RGB_LED led)
+: triggerOn(lw)
+{
+    if(lw.msg == "red"){
+        led.red_val = 250;
+        led.blue_val = 0;
+        led.green_val = 0;
+
+    }
+    else if(lw.msg == "blue"){
+        led.red_val = 0;
+        led.blue_val = 250;
+        led.green_val = 0;
+    }
+    else if(lw.msg == "green"){
+        led.red_val = 0;
+        led.blue_val = 0;
+        led.green_val = 250;
+    }
+    else{
+        led.red_val = 0;
+        led.blue_val = 0;
+        led.green_val = 0;
+    }
+}
+
+setup(){
+    LINE_WRITER lw = "ctl::file-file1.txt";
+    RGB_LED rgb = "rpi::BLUE_PIN-17,GREEN_PIN-27,RED_PIN-18"; 
+    rgb_led(lw, rgb);
+}

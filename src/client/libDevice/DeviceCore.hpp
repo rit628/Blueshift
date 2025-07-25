@@ -57,7 +57,10 @@ class DeviceCore {
         // Interrupt watch
         void addFileIWatch(std::string &fileName, std::function<bool()> handler = sendState);
         void addGPIOIWatch(uint8_t gpioPort, std::function<bool(int, int, uint32_t)> handler);
-        void setADC(std::shared_ptr<ADS7830> in_adc){this->adc = in_adc;}
+        void setADC(std::shared_ptr<ADS7830> in_adc){
+            std::cout<<"Setting the ADC!"<<std::endl;    
+            this->adc = in_adc;
+        }
     
         #ifdef SDL_ENABLED
         void addSDLIWatch(std::function<bool(SDL_Event* event)> handler);

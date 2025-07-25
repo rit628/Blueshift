@@ -21,6 +21,10 @@ class ADS7830{
         ADS7830(){
             this->handle = -1;
             #ifdef __RPI64__
+            if(gpioInitialise() < 0){
+                std::cout<<"Failed to initialse GPIO for ADC detection"<<std::endl;
+            }
+
             this->handle = i2cOpen(1, 0x4B, 0);
             if(this->handle < 0){
                 std::cerr<<"Could not find ADC device on RPI 64!"<<std::endl;
@@ -31,7 +35,8 @@ class ADS7830{
         int readByte(int fromChannel){
             #ifdef __RPI64__
             if(this->handle  != -1){
-                i2cWriteByte(this->handle, fromChannel);
+                i2cWriteByte(this->handle, channels[fromChannel]);
+                gpioDelay(1000);
                 return i2cReadByte(this->handle);
             }
             #endif
@@ -45,6 +50,6 @@ class ADS7830{
         }
 
         bool isValid(){
-            return this->handle < 0;
+            return this->handle >= 0;
         }
 }; 

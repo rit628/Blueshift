@@ -24,6 +24,7 @@ void FN_SERVO::init(std::unordered_map<std::string, std::string> &config){
     }
 
     gpioSetMode(this->SERVO_PIN, PI_OUTPUT);
+    addGPIOIWatch(this->SERVO_PIN, [](int, int, uint32_t) -> bool { return false; });
 }
 
 

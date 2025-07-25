@@ -120,6 +120,7 @@ void Client::listener(std::stop_token stoken){
             }
 
             // Try for existance (replace with function to find connected ADCs when more are added)
+        
             this->adc = std::make_shared<ADS7830>();
 
             for(int i = 0; i < size; i++){
@@ -163,12 +164,12 @@ void Client::listener(std::stop_token stoken){
     
                 auto state_change = std::jthread([dev_index, dmsg = std::move(dmsg), this](){
                 try{
-                    // std::cout << "processStates begin" << std::endl;
                     this->deviceList.at(dev_index).device.processStates(dmsg);
                     //Translation of the callback happens at the network manage
                     this->sendMessage(dev_index, Protocol::CALLBACK, false); 
                 }
                 catch(std::exception(e)){
+                    std::cout<<"Failure to change the state detected"<<std::endl;
                     std::cout<<e.what()<<std::endl; 
                 }
                 });

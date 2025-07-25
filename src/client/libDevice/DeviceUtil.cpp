@@ -84,7 +84,10 @@ void DeviceHandle::processStates(DynamicMessage dmsg) {
 void DeviceHandle::init(std::unordered_map<std::string, std::string> &config, std::shared_ptr<ADS7830> adc) {
     std::visit(overloads {
         [](std::monostate&) {},
-        [&config, adc](auto& dev) { dev.init(config); dev.setADC(adc);}
+        [&config, adc](auto& dev) { 
+            std::cout<<"Calling init"<<std::endl; 
+            dev.setADC(adc);
+            dev.init(config);}
 
     }, device);
 }

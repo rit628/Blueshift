@@ -19,11 +19,10 @@ void PWM_LED::init(std::unordered_map<std::string, std::string> &config){
     this->PIN = std::stoi(config["PIN"]);
     if(gpioInitialise() == PI_INIT_FAILED){
         std::cerr<<"Could not find device"<<std::endl;
-        return; 
     }
 
     gpioSetMode(this->PIN, PI_OUTPUT);
-    addGPIOIWatch(this->PIN, [](int, int, uint32_t){return true;});
+    addGPIOIWatch(this->PIN, [](int, int, uint32_t){return false;});
 }
 
 
