@@ -3,7 +3,7 @@
 
 
 oblock potentiometer(LINE_WRITER lw, POTENTIOMETER potent)
-: triggerOn(potent), constPollOn({potent : 250})
+: triggerOn(potent), constPollOn({potent : 500})
 {
     lw.msg = "the potentiometer's value is : " + toString(potent.value);
 }

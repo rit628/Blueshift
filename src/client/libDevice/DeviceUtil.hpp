@@ -68,6 +68,7 @@ class DeviceHandle {
         std::condition_variable_any cv;
         bool processing = false;
         bool watchersPaused = false;
+        bool isActuator = false;
         
 
         DeviceHandle(TYPE dtype, std::unordered_map<std::string, std::string> &config, std::shared_ptr<ADS7830> targetADC);

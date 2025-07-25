@@ -52,6 +52,7 @@ class DeviceCore {
     protected:
         T states;
         std::shared_ptr<ADS7830> adc;
+        bool isActuator;
         
         
         // Interrupt watch
@@ -60,6 +61,9 @@ class DeviceCore {
         void setADC(std::shared_ptr<ADS7830> in_adc){
             std::cout<<"Setting the ADC!"<<std::endl;    
             this->adc = in_adc;
+        }
+        bool getActuator(){
+            return this->isActuator;
         }
     
         #ifdef SDL_ENABLED

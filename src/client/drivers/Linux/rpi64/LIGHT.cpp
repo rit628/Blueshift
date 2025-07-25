@@ -17,6 +17,7 @@ void LIGHT::processStates(DynamicMessage &dmsg) {
 }
 
 void LIGHT::init(std::unordered_map<std::string, std::string> &config) {
+
     this->PIN = std::stoi(config["PIN"]);
     if (gpioInitialise() == PI_INIT_FAILED) {
             std::cerr << "GPIO setup failed" << std::endl;

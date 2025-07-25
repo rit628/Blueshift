@@ -346,6 +346,7 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
         }
         case(Protocol::SEND_STATE_INIT) :
         case(Protocol::SEND_STATE) : {
+            std::cout<<"Received STATE MESSAGE!"<<std::endl;
             if(this->remConnections == 0){
                 //std::cout<<"SEND STATE DEVICE RECEIVED"<<std::endl; 
 
@@ -358,6 +359,9 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
 
                 // insert the volatility into the ticker_table: 
                 if(!interrupt){
+                    std::cout<<"Received state of polling device"<<std::endl;
+
+
                     // Get the block from the timer_id
                     auto oblock_list = this->tickerTable.getOblocks(id); 
 

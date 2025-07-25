@@ -1,0 +1,14 @@
+oblock lamar(LINE_WRITER lw, LCD_SCREEN lcd)
+: triggerOn(lw)
+{
+    lcd.row = 1;
+    lcd.col = 4;
+    lcd.msg = lw.msg;
+}
+
+setup(){
+    LINE_WRITER lw = "ctl::file-file1.txt";
+    LCD_SCREEN lcd = "rpi::crack-adsad";
+
+    lamar(lw, lcd);
+}

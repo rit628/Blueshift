@@ -218,10 +218,12 @@ void Client::listener(std::stop_token stoken){
                 auto& device = this->deviceList.at(timer.device_num).device; 
 
                 if(!device.hasInterrupt()) {
-                    std::cout<<"build timer with period: "<<timer.period<<std::endl;
-                    this->client_ticker.try_emplace(timer.id, this->client_ctx, device, this->client_connection, this->controller_alias, timer.device_num, timer.id);
-                    this->client_ticker.at(timer.id).setPeriod(timer.period);
-                    sendMessage(timer.device_num, Protocol::SEND_STATE_INIT, false); 
+                    sendMessage(device.id, Protocol::SEND_STATE_INIT, true); 
+                    if(!device.isActuator){
+                        std::cout<<"build timer with period: "<<timer.period<<std::endl;
+                        this->client_ticker.try_emplace(timer.id, this->client_ctx, device, this->client_connection, this->controller_alias, timer.device_num, timer.id);
+                        this->client_ticker.at(timer.id).setPeriod(timer.period);
+                    }
                 }
             }
 

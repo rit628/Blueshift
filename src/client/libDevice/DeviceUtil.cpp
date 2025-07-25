@@ -84,10 +84,11 @@ void DeviceHandle::processStates(DynamicMessage dmsg) {
 void DeviceHandle::init(std::unordered_map<std::string, std::string> &config, std::shared_ptr<ADS7830> adc) {
     std::visit(overloads {
         [](std::monostate&) {},
-        [&config, adc](auto& dev) { 
+        [&config, adc, this](auto& dev) { 
             std::cout<<"Calling init"<<std::endl; 
             dev.setADC(adc);
-            dev.init(config);}
+            dev.init(config);
+            this->isActuator = dev.getActuator();}
 
     }, device);
 }
@@ -394,6 +395,7 @@ void DeviceInterruptor::ISdlWatcher(std::stop_token stoken, std::function<bool(S
 
     while (!stoken.stop_requested()) {
         signaler.wait(false);
+        std::cout<<"Hello"<<std::endl;
         this->sendMessage();
         signaler = false;
     }

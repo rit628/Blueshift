@@ -43,6 +43,11 @@ namespace Device {
 #include "include/FN_SERVO.hpp"
 #include "include/DC_MOTOR.hpp"
 #include "include/STEP_MOTOR.hpp"
+#include "include/DHT11.hpp"
+#include "include/LCD_SCREEN.hpp"
+#include "include/MOTION_SENSOR.hpp"
+#include "include/ULTRASONIC.hpp"
+
 
 
 template<typename T>
