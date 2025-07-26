@@ -6,9 +6,88 @@ oblock lamar(LINE_WRITER lw, LCD_SCREEN lcd)
     lcd.msg = lw.msg;
 }
 
+
+oblock amer(KEYBOARD kbd, LCD_SCREEN lcd, int row)
+: triggerOn(kbd)
+{
+    lcd.col = 0;
+
+    if(kbd.key == "Space"){
+        lcd.msg += " ";
+    }
+    else if(kbd.key == "Left Shift"){
+        lcd.row = 0;
+        lcd.msg = "";
+    }
+    else if(kbd.key == "Return") {
+        lcd.row = 1;
+    }
+    else{
+        lcd.msg += kbd.key;
+    }
+}
+
+
+oblock servoTest(KEYBOARD kbd, FN_SERVO servo)
+: triggerOn(kbd)
+{
+    int moveBy = 25;
+    if(kbd.key == "A"){
+        if(servo.angle > moveBy){
+            servo.angle -= moveBy;
+        }
+        else{
+            servo.angle = 0;
+        }
+        
+    }
+    else if(kbd.key == "D" && servo.angle < 180){
+        if(servo.angle < (180-moveBy)){
+            servo.angle += moveBy;
+        }
+        else{
+            servo.angle = 180;
+        }
+    }   
+
+}
+
+oblock mouseTest(MOUSE ms, LCD_SCREEN lcd, DC_MOTOR dcmot, int k)
+: triggerOn(ms)
+{
+    if((ms.scrollY == -1)  && (k < 255)){
+        k+=5;
+    }
+     if((ms.scrollY == 1)  && (k > 0)){
+        k-=5;
+    }
+
+    if(k != dcmot.pwr){
+        lcd.row = 0;
+        lcd.col = 0;
+        dcmot.pin1 = true;
+        dcmot.pin2 = false;
+
+        lcd.msg = "MOTOR PWR: " + toString(k);
+        
+        dcmot.pwr = k;
+    }
+   
+}
+
+
+
+
 setup(){
     LINE_WRITER lw = "ctl::file-file1.txt";
-    LCD_SCREEN lcd = "rpi::crack-adsad";
+    KEYBOARD crack = "ctl::mode-all";
+    DC_MOTOR dcmot = "rpi::PINA-17,PINB-27,ENABLE-22";
+    LCD_SCREEN lcd = "rpi::crack-omar";
 
-    lamar(lw, lcd);
+    MOUSE ms = "ctl::mode-all";
+    FN_SERVO serv = "rpi::PIN-18";
+    virtual int k;
+
+    mouseTest(ms, lcd, dcmot, k);
+    servoTest(crack, serv);
 }

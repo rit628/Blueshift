@@ -22,9 +22,10 @@ void DC_MOTOR::processStates(DynamicMessage &dmsg){
 }
 
 void DC_MOTOR::init(std::unordered_map<std::string, std::string> &config){
-    this->cw_pin1 = std::stoi(config["PIN1"]);
-    this->ccw_pin2 = std::stoi(config["PIN2"]);
+    this->cw_pin1 = std::stoi(config["PINA"]);
+    this->ccw_pin2 = std::stoi(config["PINB"]);
     this->enablePin = std::stoi(config["ENABLE"]);
+    this->isActuator = true;
 
     if(gpioInitialise() < 0){
         std::cout<<"GPIO failed to iniitalize"<<std::endl;
@@ -34,8 +35,6 @@ void DC_MOTOR::init(std::unordered_map<std::string, std::string> &config){
     gpioSetMode(this->cw_pin1, PI_OUTPUT);
     gpioSetMode(this->ccw_pin2, PI_OUTPUT);
     gpioSetMode(this->enablePin, PI_OUTPUT);
-
-    addGPIOIWatch(this->enablePin, [](int, int, uint32_t){return true;});
 }
 
 

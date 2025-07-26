@@ -44,6 +44,7 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
         default: {
             // Get the latest state from the dmsg
             try{
+                std::cout<<"ACCESING device: "<<deviceCode<<std::endl;
                 this->deviceList.at(deviceCode).device.transmitStates(dmsg); 
             }
             catch(BlsExceptionClass& bec){
@@ -125,9 +126,12 @@ void Client::listener(std::stop_token stoken){
 
             for(int i = 0; i < size; i++){
                 try{      
+                    std::cout<<"Emplacing: "<<device_alias[i]<<std::endl;
                     deviceList.try_emplace(device_alias[i], device_types[i], srcs[i], this->adc);
+                    std::cout<<"Emplace device: "<<device_alias[i]<<std::endl;
                 }
                 catch(BlsExceptionClass& bec){
+                    std::cout<<"Failed to emplace device"<<std::endl;
                     this->genBlsException->SendGenericException(bec.what(), bec.type()); 
                 }
             } 
@@ -215,15 +219,29 @@ void Client::listener(std::stop_token stoken){
 
             // Begin the timers only when the call is made
             for(Timer &timer : this->start_timers){
+                std::cout<<"Looking for device with timer: "<<timer.device_num<<std::endl;
+                std::cout<<"Dev list size: "<<this->deviceList.size()<<std::endl;
+                for(auto& king : this->deviceList){
+                    std::cout<<"id: "<<king.first<<std::endl;
+                    std::cout<<"omar: "<<king.second.device.id<<std::endl;
+                }
+                
+
+            
                 auto& device = this->deviceList.at(timer.device_num).device; 
+                
+                std::cout<<"Found device"<<std::endl;
 
                 if(!device.hasInterrupt()) {
-                    sendMessage(device.id, Protocol::SEND_STATE_INIT, true); 
+
                     if(!device.isActuator){
                         std::cout<<"build timer with period: "<<timer.period<<std::endl;
                         this->client_ticker.try_emplace(timer.id, this->client_ctx, device, this->client_connection, this->controller_alias, timer.device_num, timer.id);
                         this->client_ticker.at(timer.id).setPeriod(timer.period);
                     }
+                    std::cout<<"Setting the period"<<std::endl;
+                    sendMessage(timer.device_num, Protocol::SEND_STATE_INIT, true); 
+                    std::cout<<"SENT MESSAGE"<<std::endl;
                 }
             }
 

@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
     }
     auto client = Client(name);
     #ifdef SDL_ENABLED
-    /*
+
         if (!SDL_Init(SDL_INIT_VIDEO)) {
             std::cerr << "Failed to start SDL: " << SDL_GetError() << ". Some devices may not work properly." << std::endl;
         }
@@ -54,8 +54,8 @@ int main(int argc, char* argv[]) {
 
         SDL_Quit();
         clientEngine.join();
-        */
-        client.start();
+        
+        //client.start();
     #else
         client.start();
     #endif
