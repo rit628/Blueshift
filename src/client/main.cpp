@@ -20,8 +20,9 @@ int main(int argc, char* argv[]) {
     }
     auto client = Client(name);
     #ifdef SDL_ENABLED
-
+        bool sdlRunning = true;
         if (!SDL_Init(SDL_INIT_VIDEO)) {
+            sdlRunning = false;
             std::cerr << "Failed to start SDL: " << SDL_GetError() << ". Some devices may not work properly." << std::endl;
         }
 
@@ -29,6 +30,7 @@ int main(int argc, char* argv[]) {
         SDL_Renderer* renderer = nullptr;
         auto windowName = name + " Input Window";
         if (!SDL_CreateWindowAndRenderer(windowName.c_str(), 800, 600, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY, &window, &renderer)) {
+            sdlRunning = false;
             std::cerr << "Input window creation failed: " << SDL_GetError() << ". Some devices may not work properly." << std::endl;
         }
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
@@ -37,7 +39,7 @@ int main(int argc, char* argv[]) {
 
         std::jthread clientEngine(std::bind(&Client::start, std::ref(client)));
 
-        while (true) {
+        while (sdlRunning) {
             SDL_Event event;
             SDL_WaitEvent(&event);
             switch (event.type) {
@@ -54,8 +56,6 @@ int main(int argc, char* argv[]) {
 
         SDL_Quit();
         clientEngine.join();
-        
-        //client.start();
     #else
         client.start();
     #endif
