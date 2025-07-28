@@ -25,7 +25,7 @@ void MasterNM::broadcastIntro(){
         while(this->remConnections > 0){
             for(auto s : this->controller_list){
                 if(this->connection_map.find(s) == this->connection_map.end()){
-                    std::cout<<"Broadcasting for: "<<s<<std::endl; 
+                    //std::cout<<"Broadcasting for: "<<s<<std::endl; 
                     bcast.send_to(boost::asio::buffer(s.c_str(), s.size()), bcast_endpt); 
                 }
             }
@@ -110,7 +110,7 @@ bool MasterNM::start(){
 
     }
     catch(std::exception e){
-        std::cout<<"[SERVER START EXCEPTION] "<<e.what()<<std::endl; 
+        //std::cout<<"[SERVER START EXCEPTION] "<<e.what()<<std::endl; 
         return false; 
     }
 }
@@ -235,22 +235,22 @@ void MasterNM::masterRead(){
         // Add other communication MASERT_PROTOCOLS
         switch(new_state.protocol){
             case PROTOCOLS::OWNER_CANDIDATE_REQUEST : {
-                std::cout<<"Pushing owner candidate request for: "<<new_state.info.oblock<<" with id: "<<sm_main.header.oblock_id<<std::endl; 
+                //std::cout<<"Pushing owner candidate request for: "<<new_state.info.oblock<<" with id: "<<sm_main.header.oblock_id<<std::endl; 
                 sm_main.header.prot = Protocol::OWNER_CANDIDATE_REQUEST ;
                 break; 
             }
             case PROTOCOLS::OWNER_CONFIRM : {
-                std::cout<<"Pushing CONFIRM request for: "<<new_state.info.oblock<<" with id: "<<sm_main.header.oblock_id<<std::endl; 
+                //std::cout<<"Pushing CONFIRM request for: "<<new_state.info.oblock<<" with id: "<<sm_main.header.oblock_id<<std::endl; 
                 sm_main.header.prot = Protocol::OWNER_CONFIRM; 
                 break; 
             }
             case PROTOCOLS::OWNER_RELEASE : {  
-                std::cout<<"Pushing Release request for: "<<new_state.info.oblock<<" with id: "<<sm_main.header.oblock_id<<std::endl; 
+                //std::cout<<"Pushing Release request for: "<<new_state.info.oblock<<" with id: "<<sm_main.header.oblock_id<<std::endl; 
                 sm_main.header.prot = Protocol::OWNER_RELEASE; 
                 break; 
             }
             case PROTOCOLS::OWNER_CANDIDATE_REQUEST_CONCLUDE : {
-                std::cout<<"Pushing owner candidate request conclusion for device "<<new_state.info.device<<std::endl; 
+                //std::cout<<"Pushing owner candidate request conclusion for device "<<new_state.info.device<<std::endl; 
                 sm_main.header.prot = Protocol::OWNER_CANDIDATE_REQUEST_CONCLUDE; 
                 break; 
             }
@@ -346,7 +346,6 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
         }
         case(Protocol::SEND_STATE_INIT) :
         case(Protocol::SEND_STATE) : {
-            std::cout<<"Received STATE MESSAGE!"<<std::endl;
             if(this->remConnections == 0){
                 //std::cout<<"SEND STATE DEVICE RECEIVED"<<std::endl; 
 
@@ -359,9 +358,7 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
 
                 // insert the volatility into the ticker_table: 
                 if(!interrupt){
-                    std::cout<<"Received state of polling device"<<std::endl;
-
-
+                    
                     // Get the block from the timer_id
                     auto oblock_list = this->tickerTable.getOblocks(id); 
 

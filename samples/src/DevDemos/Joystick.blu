@@ -28,8 +28,8 @@ oblock amer(KEYBOARD kbd, LCD_SCREEN lcd, int row)
 }
 
 
-oblock servoTest(KEYBOARD kbd, FN_SERVO servo)
-: triggerOn(kbd)
+oblock servoTest(KEYBOARD kbd, FN_SERVO servo, DC_MOTOR dcmot, LCD_SCREEN lcd, int k)
+: triggerOn(kbd), dropReadOn(kbd)
 {
     int moveBy = 25;
     if(kbd.key == "A"){
@@ -49,6 +49,23 @@ oblock servoTest(KEYBOARD kbd, FN_SERVO servo)
             servo.angle = 180;
         }
     }   
+    
+     if((kbd.key == "W")  && (k < 255)){
+        k+=15;
+    }
+     if((kbd.key == "S")  && (k > 0)){
+        k-=15;
+    }
+
+    if(dcmot.pwr != k){
+        lcd.row = 0;
+        lcd.col = 0;
+        lcd.msg = "MOTOR PWR: " + toString(k);
+        
+        dcmot.pin1 = true;
+        dcmot.pin2 = false; 
+        dcmot.pwr = k;
+    }
 
 }
 
@@ -56,10 +73,10 @@ oblock mouseTest(MOUSE ms, LCD_SCREEN lcd, DC_MOTOR dcmot, int k)
 : triggerOn(ms)
 {
     if((ms.scrollY == -1)  && (k < 255)){
-        k+=5;
+        k+=15;
     }
      if((ms.scrollY == 1)  && (k > 0)){
-        k-=5;
+        k-=15;
     }
 
     if(k != dcmot.pwr){
@@ -76,6 +93,47 @@ oblock mouseTest(MOUSE ms, LCD_SCREEN lcd, DC_MOTOR dcmot, int k)
 }
 
 
+// Testing the drop read error: 
+oblock dropReadError(KEYBOARD kbd, LINE_WRITER lw)
+: triggerOn({"rule" : [kbd, lw]}), triggerOnInit() 
+{   
+   
+
+    println("SENT MESSAGE: ", lw.msg);
+
+    if(kbd.key == "Space"){
+        lw.msg += " ";
+    }   
+
+    else if(kbd.key == "Left Shift"){
+        lw.msg = "";
+    } 
+    else{
+        lw.msg += kbd.key;
+    }
+
+    if(kbd.key == "O"){
+        sleep(5);
+    }
+
+
+}
+
+
+oblock fileWriter(KEYBOARD kbd, LINE_WRITER lw)
+: triggerOn(kbd), readPolicy({kbd : all, lw : latest})
+{
+    if(kbd.key == "Space"){
+        lw.msg += " ";
+    }
+    else if(kbd.key == "Left Shift"){
+        lw.msg = "";
+    }
+    else{
+        lw.msg += kbd.key;
+    }
+}
+
 
 
 setup(){
@@ -86,8 +144,7 @@ setup(){
 
     MOUSE ms = "ctl::mode-all";
     FN_SERVO serv = "rpi::PIN-18";
-    virtual int k;
 
-    mouseTest(ms, lcd, dcmot, k);
-    servoTest(crack, serv);
+    //servoTest(crack, serv, dcmot, lcd, k);
+    dropReadError(crack, lw)  ;
 }

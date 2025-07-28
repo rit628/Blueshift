@@ -23,3 +23,7 @@ TRAP_END
 
 TRAP_BEGIN(time, string)
 TRAP_END
+
+TRAP_BEGIN(disableTrigger, void)
+    ARGUMENT(triggerID, string)
+TRAP_END

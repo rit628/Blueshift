@@ -61,6 +61,8 @@ class TriggerManager{
         std::vector<std::bitset<BITSET_SZ>> ruleset; 
         std::vector<TriggerData> trigData; 
         std::bitset<BITSET_SZ> defaultBitstring; 
+        std::set<int> excludedTriggers;
+
         
 
 
@@ -96,6 +98,10 @@ class TriggerManager{
                 int i = 0; 
                 int max_priority = -1; 
                 for(auto& ruleBit : this->ruleset){
+                    if(excludedTriggers.contains(i)){
+                        continue;
+                    }
+
                     if((this->currentBitmap & ruleBit) == ruleBit){
                         if(this->trigData[i].priority > max_priority){
                             max_priority = this->trigData[i].priority;
@@ -130,6 +136,8 @@ class TriggerManager{
                 }
                 return false; 
             }
+
+
 
             void debugPrintRules(){
                 for(auto& rule : this->ruleset){
@@ -172,6 +180,7 @@ struct ReaderBox
         bool pending_requests; 
         // used when forwarding packets to the EM when while the process is waiting for write permissions
         bool forwardPackets = false; 
+        bool inExec = false;
         OBlockDesc oblockDesc; 
 
 
@@ -184,17 +193,22 @@ struct ReaderBox
 
             DeviceBox& targDev = this->waitingQs[newDMM.info.device];
 
+            if(targDev.devDropRead && inExec){
+                std::cout<<"Process in Exection! Abandoned device"<<std::endl;
+                return;
+            }
+
+
             if(forwardPackets && targDev.devDropRead){
                 EMStateMessage ems; 
+                std::cout<<"Forwarding message"<<std::endl;
                 ems.protocol = PROTOCOLS::WAIT_STATE_FORWARD; 
                 ems.dmm_list = {newDMM}; 
                 sendEM.write(ems); 
                 return; 
             }
 
-            if(targDev.devDropRead){
-                targDev.stateQueues->clearQueue(); 
-            }
+            std::cout<<"Inserting the state"<<std::endl;
             targDev.stateQueues->write(newDMM); 
             targDev.lastMessage.replace(newDMM); 
 
@@ -249,6 +263,7 @@ struct ReaderBox
                 }
             }   
         }   
+
 
         ReaderBox(string name,  OBlockDesc& odesc, std::unordered_set<OblockID> &trigSet);
     

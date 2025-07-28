@@ -83,12 +83,13 @@ DynamicMasterMessage::DynamicMasterMessage(DynamicMessage DM, O_Info info, PROTO
 
 void ExecutionUnit::replaceCachedStates(std::unordered_map<DeviceID, HeapMasterMessage> &cachedHMMs){
 
-   auto replacementItems = this->replacementCache.getMap(); 
-   for(auto& item : replacementItems){
+    auto replacementItems = this->replacementCache.getMap(); 
+    for(auto& item : replacementItems){
+        std::cout<<"REPLACING CACHED STATES: "<<item.first<<std::endl;
         auto devState = item.first;
         HeapMasterMessage replaceHMM = item.second;; 
         cachedHMMs[devState] = replaceHMM; 
-   }
+    }
 }
 
 
@@ -115,20 +116,33 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
         
         vector<BlsType> transformableStates;
 
-        std::cout<<"Trigger name: "<<TriggerName<<std::endl; 
+        // Tell the mailbox that the process is in execution
+        HeapMasterMessage execMsg;
+        execMsg.info.oblock = this->Oblock.name;
+        execMsg.protocol = PROTOCOLS::PROCESS_EXEC; 
+        sendMM.write(execMsg);
+
 
         for(auto& deviceDesc : this->Oblock.binded_devices){
             DeviceID devName = deviceDesc.device_name; 
             if(HMMs.contains(devName)){
-                auto& state = HMMs.at(devName).heapTree;
+                auto state = HMMs.at(devName).heapTree;
                 if (std::holds_alternative<std::shared_ptr<HeapDescriptor>>(state)) {
-                    // make sure default is set to unmodified (may not be needed depending on serialization)
-                    std::get<std::shared_ptr<HeapDescriptor>>(state)->modified = false;
+                    // make sure default is set to unmodified (may not be needed depending on serialization
+                    auto desc = std::get<std::shared_ptr<HeapDescriptor>>(state)->clone();
+                    desc->modified = false;
+                    state = std::move(desc);
                 }
                 transformableStates.push_back(state); 
             }
             else{
                 auto defDevice = deviceDesc.initialValue; 
+                if (std::holds_alternative<std::shared_ptr<HeapDescriptor>>(defDevice)) {
+                    // make sure default is set to unmodified (may not be needed depending on serialization
+                    auto desc = std::get<std::shared_ptr<HeapDescriptor>>(defDevice)->clone();
+                    desc->modified = false;
+                    defDevice = std::move(desc);
+                }
                 transformableStates.push_back(defDevice); 
             }
         }
@@ -138,7 +152,6 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
 
         std::vector<HeapMasterMessage> outGoingStates;  
 
-        // SHIP ALL OUTGOING DEVICES (EVEN ONCE NOT ALTERED)
         for(auto& devDesc : this->Oblock.outDevices)
         {   
             size_t pos = this->devicePositionMap[devDesc.device_name];
@@ -151,8 +164,7 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
             newHMM.info.oblock = this->Oblock.name; 
             newHMM.protocol = PROTOCOLS::SENDSTATES;
             newHMM.isInterrupt = false; 
-            newHMM.heapTree = transformedState; 
-            
+            newHMM.heapTree = transformedState;
             outGoingStates.push_back(newHMM); 
         }
 

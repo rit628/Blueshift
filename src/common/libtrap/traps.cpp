@@ -57,3 +57,9 @@ std::string Impl::time(BytecodeProcessor* vm) {
     std::time_t result = std::time(nullptr);
     return std::asctime(std::localtime(&result));
 }
+
+
+std::monostate Impl::disableTrigger(std::string triggerID, BytecodeProcessor* vm){
+    std::cout<<"DISABLING TRIGGER: "<<triggerID<<std::endl;
+    return std::monostate();
+}

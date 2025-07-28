@@ -89,7 +89,7 @@ namespace BlsLang {
     }
 
     template<StackType T>
-    inline void CallStack<T>::pushFrame(size_t returnAddress, std::span<BlsType> arguments) requires IntAddressable<T> {
+    inline void CallStack<T>::pushFrame(size_t returnAddress, std::span<BlsType> arguments) requires IntAddressable<T> {    
         cs.push(Frame(returnAddress, arguments));
     }
 
