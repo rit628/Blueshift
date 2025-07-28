@@ -221,7 +221,7 @@ void MasterMailbox::assignEM(HeapMasterMessage DMM)
             }
 
             WriterBox &assignedBox = *deviceWriteMap.at(DMM.info.device);
-            bool dropWrite = correspondingReaderBox.dropWrite;
+            bool dropWrite = oblockReadMap.at(DMM.info.oblock)->waitingQs.at(DMM.info.device).devDropWrite;
 
             DynamicMasterMessage realDMM;
             realDMM.info = DMM.info;  
@@ -245,6 +245,7 @@ void MasterMailbox::assignEM(HeapMasterMessage DMM)
             }
             else if(dropWrite == false && assignedBox.waitingForCallback == true)
             {
+                std::cout<<"Added to waiting"<<std::endl;
                 assignedBox.waitingQ.write(realDMM);
             }
             else if(dropWrite == false && assignedBox.waitingForCallback == false)
