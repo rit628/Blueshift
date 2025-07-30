@@ -124,14 +124,14 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
                 this->oblockReadMap[oblockName]->handleRequest(this->sendEM); 
             }
 
-            OVERWRITE_POLICIES nextAction = this->ConfContainer.notifyRecievedCallback(devName); 
+            OVERWRITE_POLICY nextAction = this->ConfContainer.notifyRecievedCallback(devName); 
                 switch(nextAction){
-                    case(OVERWRITE_POLICIES::CLEAR):{
+                    case(OVERWRITE_POLICY::CLEAR):{
                         // Used for the clear option
                         deviceWriteMap.at(DMM.info.device)->waitingQ.clearQueue();               
                         break; 
                     }
-                    case(OVERWRITE_POLICIES::CURRENT):{
+                    case(OVERWRITE_POLICY::CURRENT):{
                         // Used for insertion into the front of a queue
                         deviceWriteMap.at(DMM.info.device)->isFrozen = true; 
                         break; 
@@ -262,7 +262,7 @@ void MasterMailbox::assignEM(HeapMasterMessage DMM)
 
             // Exit Overwrite Policies
             switch(owPolicy){
-                case(OVERWRITE_POLICIES::DISCARD):{
+                case(OVERWRITE_POLICY::DISCARD):{
                     if(assignedBox.waitingQ.isEmpty() && !assignedBox.waitingForCallback){
                         this->sendNM.write(realDMM);
                     }
@@ -271,7 +271,7 @@ void MasterMailbox::assignEM(HeapMasterMessage DMM)
                     }   
                     break; 
                 }
-                case(OVERWRITE_POLICIES::CURRENT):{
+                case(OVERWRITE_POLICY::CURRENT):{
                     this->sendNM.write(realDMM); 
                     this->deviceWriteMap.at(DMM.info.device)->isFrozen = false;
                     break; 

@@ -46,16 +46,16 @@ enum class PROTOCOLS
 
 };
 
-enum class READ_POLICIES{
+enum class READ_POLICY{
     ALL,
     ANY,
 };
 
-enum class OVERWRITE_POLICIES{
+enum class OVERWRITE_POLICY{
     CLEAR, 
     CURRENT, 
     DISCARD,
-    DEFAULT, 
+    NONE, 
 };
 
 enum class PORTTYPE{
@@ -76,8 +76,8 @@ struct DeviceDescriptor{
     bool isVtype = false;
 
     // Policy Codes
-    READ_POLICIES readPolicy = READ_POLICIES::ALL;
-    OVERWRITE_POLICIES overwritePolicy = OVERWRITE_POLICIES::DEFAULT;
+    READ_POLICY readPolicy = READ_POLICY::ALL;
+    OVERWRITE_POLICY overwritePolicy = OVERWRITE_POLICY::NONE;
     bool isYield = true; 
 
     /* Oblock Specific Attributes */

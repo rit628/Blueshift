@@ -154,8 +154,8 @@ class TriggerManager{
 struct DeviceBox{
     std::shared_ptr<TSQ<HeapMasterMessage>> stateQueues;
     AtomicDMMContainer lastMessage; 
-    READ_POLICIES readPolicy;
-    OVERWRITE_POLICIES overwritePolicy;
+    READ_POLICY readPolicy;
+    OVERWRITE_POLICY overwritePolicy;
     bool yields = true;
     std::string deviceName; 
 }; 
@@ -192,13 +192,13 @@ struct ReaderBox
 
             DeviceBox& targDev = this->waitingQs[newDMM.info.device];
 
-            if((targDev.readPolicy == READ_POLICIES::ANY) && inExec){
+            if((targDev.readPolicy == READ_POLICY::ANY) && inExec){
                 std::cout<<"Process in Exection! Abandoned device"<<std::endl;
                 return;
             }
 
 
-            if(forwardPackets && (targDev.readPolicy == READ_POLICIES::ANY)){
+            if(forwardPackets && (targDev.readPolicy == READ_POLICY::ANY)){
                 EMStateMessage ems; 
                 std::cout<<"Forwarding message"<<std::endl;
                 ems.protocol = PROTOCOLS::WAIT_STATE_FORWARD; 
@@ -296,14 +296,14 @@ class ConfirmContainer{
         bool emptyQueue = true; 
         bool expectingYield = true; 
         bool pendingSend = false;         
-        OVERWRITE_POLICIES action = OVERWRITE_POLICIES::DEFAULT; 
+        OVERWRITE_POLICY action = OVERWRITE_POLICY::NONE; 
     }; 
 
     // struct describing the actions that can be taking at a callback retrieval; 
     // NOTE: YIELD AND OVERWRITE POLICIES ARE MUTUALLY EXCLUSIVE
     struct OblockActionMetadata{
         bool yield = true; 
-        OVERWRITE_POLICIES policy; 
+        OVERWRITE_POLICY policy; 
     }; 
     
     private: 
@@ -357,13 +357,13 @@ class ConfirmContainer{
 
 
         // Since yield and (OW::CLEAR/OW::)
-        OVERWRITE_POLICIES notifyRecievedCallback(DeviceID& dev){
+        OVERWRITE_POLICY notifyRecievedCallback(DeviceID& dev){
             auto& state = loadedDevMap.at(dev);
             state.waitingForCallback = false; 
             if(attemptSendConfirm(state)){
                 return state.action;
             }
-            return OVERWRITE_POLICIES::DEFAULT; 
+            return OVERWRITE_POLICY::NONE; 
         }
 
         void notifySentMessage(DeviceID& dev){
