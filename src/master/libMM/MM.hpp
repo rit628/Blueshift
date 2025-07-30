@@ -9,6 +9,8 @@
 #include <bitset>
 #include <condition_variable>
 #include <mutex>
+#include <queue>
+#include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
 #include <memory>
@@ -23,6 +25,7 @@ using OblockID = std::string;
 using DeviceID = std::string; 
 
 # define MAX_EM_QUEUE_FILL 10 
+#define BITSET_SZ 32
  
 /*
     Contains a single dmsg (without needing the )
@@ -49,9 +52,6 @@ struct AtomicDMMContainer{
             return this->hasItem; 
         }
 }; 
-
-#define BITSET_SZ 32
-
 
 class TriggerManager{
     private:   
@@ -154,8 +154,9 @@ class TriggerManager{
 struct DeviceBox{
     std::shared_ptr<TSQ<HeapMasterMessage>> stateQueues;
     AtomicDMMContainer lastMessage; 
-    bool devDropRead = false; 
-    bool devDropWrite = false; 
+    READ_POLICIES readPolicy;
+    OVERWRITE_POLICIES overwritePolicy;
+    bool yields = true;
     std::string deviceName; 
 }; 
 
@@ -173,8 +174,6 @@ struct ReaderBox
         TriggerManager triggerMan; 
 
         bool callbackRecived;
-        bool dropRead = false;
-        bool dropWrite = true;
         bool statesRequested = false;
         string OblockName;
         bool pending_requests; 
@@ -193,13 +192,13 @@ struct ReaderBox
 
             DeviceBox& targDev = this->waitingQs[newDMM.info.device];
 
-            if(targDev.devDropRead && inExec){
+            if((targDev.readPolicy == READ_POLICIES::ANY) && inExec){
                 std::cout<<"Process in Exection! Abandoned device"<<std::endl;
                 return;
             }
 
 
-            if(forwardPackets && targDev.devDropRead){
+            if(forwardPackets && (targDev.readPolicy == READ_POLICIES::ANY)){
                 EMStateMessage ems; 
                 std::cout<<"Forwarding message"<<std::endl;
                 ems.protocol = PROTOCOLS::WAIT_STATE_FORWARD; 
@@ -269,15 +268,141 @@ struct ReaderBox
     
 };
 
+
+
+
+
 struct WriterBox
 {
     public:
     TSQ<DynamicMasterMessage> waitingQ;
     bool waitingForCallback = false;
     string deviceName;
+    bool isFrozen = false; 
+    
     WriterBox(string deviceName);
     WriterBox() = default;
+
 };
+
+
+// Holds confirmations based on the yeilding/callback policy
+class ConfirmContainer{
+ 
+    // Contains the currently held information about a device; 
+    struct DeviceState{
+        DynamicMasterMessage confirmDMM;
+        bool waitingForCallback = false; 
+        bool emptyQueue = true; 
+        bool expectingYield = true; 
+        bool pendingSend = false;         
+        OVERWRITE_POLICIES action = OVERWRITE_POLICIES::DEFAULT; 
+    }; 
+
+    // struct describing the actions that can be taking at a callback retrieval; 
+    // NOTE: YIELD AND OVERWRITE POLICIES ARE MUTUALLY EXCLUSIVE
+    struct OblockActionMetadata{
+        bool yield = true; 
+        OVERWRITE_POLICIES policy; 
+    }; 
+    
+    private: 
+        TSQ<DynamicMasterMessage>& sendNM; 
+        std::unordered_map<OblockID, std::unordered_map<DeviceID, OblockActionMetadata>> yieldPolicy; 
+        std::unordered_map<DeviceID, DeviceState> loadedDevMap; 
+
+        void queueConfirmation(const DynamicMasterMessage &dmm){
+            auto& state = this->loadedDevMap.at(dmm.info.device);
+            state.confirmDMM = dmm; 
+            state.pendingSend = true; 
+            auto& actionMetadata = this->yieldPolicy.at(dmm.info.oblock).at(dmm.info.device);
+
+            state.expectingYield = actionMetadata.yield;
+            
+            if(!state.expectingYield){
+               state.action = actionMetadata.policy; 
+            }
+
+        }
+
+        bool attemptSendConfirm(DeviceState& state){
+            if(state.pendingSend && !state.waitingForCallback){
+                if(state.expectingYield){
+                    if(state.emptyQueue){
+                        this->sendNM.write(state.confirmDMM);
+                        state.pendingSend = false; 
+                        return true;
+                    }
+                }
+                else{
+                    this->sendNM.write(state.confirmDMM);
+                     state.pendingSend = false; 
+                     return true; 
+                }
+            }
+            return false; 
+        }
+
+    public: 
+        ConfirmContainer(TSQ<DynamicMasterMessage>& sendNM, std::vector<OBlockDesc>& oblockDescs)
+        :sendNM(sendNM)  
+        {
+            for(auto& oblock : oblockDescs){
+                for(auto& devDesc : oblock.binded_devices){
+                    this->yieldPolicy[oblock.name][devDesc.device_name].yield = devDesc.isYield; 
+                    this->yieldPolicy[oblock.name][devDesc.device_name].policy = devDesc.overwritePolicy;
+                }
+            }  
+        }
+
+
+        // Since yield and (OW::CLEAR/OW::)
+        OVERWRITE_POLICIES notifyRecievedCallback(DeviceID& dev){
+            auto& state = loadedDevMap.at(dev);
+            state.waitingForCallback = false; 
+            if(attemptSendConfirm(state)){
+                return state.action;
+            }
+            return OVERWRITE_POLICIES::DEFAULT; 
+        }
+
+        void notifySentMessage(DeviceID& dev){
+            auto& state = loadedDevMap.at(dev);
+            state.waitingForCallback = true; 
+        }
+
+        // Means callback was received and 
+        void notifyEmpty(DeviceID& dev){
+            auto& state = loadedDevMap.at(dev);
+            state.emptyQueue = true; 
+            state.waitingForCallback = false; 
+            attemptSendConfirm(state);
+        }
+
+        void send(const DynamicMasterMessage &dmm){
+            auto& state = loadedDevMap.at(dmm.info.device);
+            if(state.pendingSend){
+                throw std::runtime_error("Overlapping oblock confirmation requests, should not be happening!");
+            }
+
+            if(state.waitingForCallback){
+                queueConfirmation(dmm); 
+                return; 
+            }
+
+            if(state.expectingYield){
+                if(state.emptyQueue){
+                    this->sendNM.write(dmm);
+                }
+                else{
+                    queueConfirmation(dmm);
+                }
+            }
+            else{
+                this->sendNM.write(dmm);
+            }
+        } 
+}; 
 
 
 
@@ -304,9 +429,14 @@ class MasterMailbox
     unordered_map<OblockID, unique_ptr<ReaderBox>> oblockReadMap;
     unordered_map<DeviceID, unique_ptr<WriterBox>> deviceWriteMap;
     unordered_map<DeviceID, std::vector<OblockID>> interruptName_map;
+    ConfirmContainer ConfContainer; 
 
 
     TSQ<std::string> readRequest; 
+
+    // Helper functions for sending items; 
+    void notifyCallback(); 
+    void notifyEmptyQueue();
 
     void assignNM(DynamicMasterMessage DMM);
     void assignEM(HeapMasterMessage DMM);

@@ -95,10 +95,8 @@ oblock mouseTest(MOUSE ms, LCD_SCREEN lcd, DC_MOTOR dcmot, int k)
 
 // Testing the drop read error: 
 oblock dropReadError(KEYBOARD kbd, LINE_WRITER lw)
-: triggerOn({"rule" : [kbd, lw]}), triggerOnInit() 
+: triggerOn({"rule" : kbd}), dropWriteOn(lw)
 {   
-   
-
     println("SENT MESSAGE: ", lw.msg);
 
     if(kbd.key == "Space"){
@@ -112,28 +110,9 @@ oblock dropReadError(KEYBOARD kbd, LINE_WRITER lw)
         lw.msg += kbd.key;
     }
 
-    if(kbd.key == "O"){
-        sleep(5);
-    }
 
-
+    //sleep(5);
 }
-
-
-oblock fileWriter(KEYBOARD kbd, LINE_WRITER lw)
-: triggerOn(kbd), readPolicy({kbd : all, lw : latest})
-{
-    if(kbd.key == "Space"){
-        lw.msg += " ";
-    }
-    else if(kbd.key == "Left Shift"){
-        lw.msg = "";
-    }
-    else{
-        lw.msg += kbd.key;
-    }
-}
-
 
 
 setup(){
@@ -146,5 +125,5 @@ setup(){
     FN_SERVO serv = "rpi::PIN-18";
 
     //servoTest(crack, serv, dcmot, lcd, k);
-    dropReadError(crack, lw)  ;
+    dropReadError(crack, lw) ;
 }

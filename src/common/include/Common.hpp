@@ -37,11 +37,25 @@ enum class PROTOCOLS
     //MM -> EM
     OWNER_GRANT, 
     OWNER_CONFIRM_OK, 
+    CALLBACK_UPDATE, 
+    QUEUE_EMPTY, 
 
     // MM->EM (Forward data to a waiting device)
     WAIT_STATE_FORWARD
    
 
+};
+
+enum class READ_POLICIES{
+    ALL,
+    ANY,
+};
+
+enum class OVERWRITE_POLICIES{
+    CLEAR, 
+    CURRENT, 
+    DISCARD,
+    DEFAULT, 
 };
 
 enum class PORTTYPE{
@@ -60,6 +74,11 @@ struct DeviceDescriptor{
     std::unordered_map<std::string, std::string> port_maps = {};
     BlsType initialValue = std::monostate();
     bool isVtype = false;
+
+    // Policy Codes
+    READ_POLICIES readPolicy = READ_POLICIES::ALL;
+    OVERWRITE_POLICIES overwritePolicy = OVERWRITE_POLICIES::DEFAULT;
+    bool isYield = true; 
 
     /* Oblock Specific Attributes */
     bool dropRead = false;

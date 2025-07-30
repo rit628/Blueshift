@@ -1,5 +1,6 @@
 #include "Scheduler.hpp"
 #include "include/Common.hpp"
+#include <mutex>
 
 
 /* 
@@ -66,6 +67,7 @@ void DeviceScheduler::request(OblockID& requestor, int priority){
 
     // Wait until the final message arrives: 
     std::unique_lock<std::mutex> lock(jamar.mtx); 
+
     jamar.cv.wait(lock, [&jamar](){return jamar.executeFlag;});    
 }
 
@@ -74,13 +76,14 @@ void DeviceScheduler::receive(HeapMasterMessage &recvMsg){
         case PROTOCOLS::OWNER_GRANT :  {
             auto& targOblock = recvMsg.info.oblock; 
             auto& targDevice = recvMsg.info.device; 
-            bool result = this->oblockWaitMap[targOblock].addDevice(targDevice); 
+            auto& requestor = this->oblockWaitMap.at(targOblock);
+            bool result = requestor.addDeviceGrant(targDevice); 
             if(result){
-              auto& devList = this->oblockWaitMap[targOblock].mustOwn;
-              for(auto dev : devList){
-                HeapMasterMessage confirmMsg = makeMessage(targOblock, dev, PROTOCOLS::OWNER_CONFIRM); 
-                this->handleMessage(confirmMsg); 
-              } 
+                auto& devList = this->oblockWaitMap[targOblock].mustOwn;
+                for(auto dev : devList){
+                    HeapMasterMessage confirmMsg = makeMessage(targOblock, dev, PROTOCOLS::OWNER_CONFIRM); 
+                    this->handleMessage(confirmMsg); 
+                } 
             }
             break; 
         }

@@ -51,16 +51,37 @@ struct DeviceQueue{
 
 // Loaded state info: 
 struct PendingStateInfo{
+
+
+    private: 
+
+        void triggerConfirm(){
+            {
+                std::lock_guard<std::mutex> lock(mtx); 
+                executeFlag = true;
+            }
+            cv.notify_one(); 
+        }
+
+        
+    public: 
+
     std::unordered_set<DeviceID> mustOwn; 
     int ownedCounter = 0; 
     int confirmedCounter = 0; 
     bool executeFlag = false; 
+    bool canConfirm = true; 
+    
 
 
     std::mutex mtx; 
+    std::mutex confirmMtx; 
     std::condition_variable cv; 
+    std::condition_variable sendConfirmCV;
 
-    bool addDevice(DeviceID &dev){
+    // Receiver functions(react to message)
+
+    bool addDeviceGrant(DeviceID &dev){
         if(mustOwn.contains(dev)){
            if(mustOwn.size() == ++this->ownedCounter){
             ownedCounter = 0;  
@@ -70,20 +91,14 @@ struct PendingStateInfo{
         return false; 
     }
 
-    // Used when device confirmation is received
     bool confirmDevice(DeviceID &dev){
         if(mustOwn.contains(dev)){
             if(mustOwn.size() == ++this->confirmedCounter){
                 this->confirmedCounter = 0; 
-                {
-                    std::lock_guard<std::mutex> lock(mtx); 
-                    executeFlag = true;
-                }
-                cv.notify_one(); 
+                this->triggerConfirm();
                 return true; 
             }
         }
-
         return false; 
     }
 }; 
