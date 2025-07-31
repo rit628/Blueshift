@@ -198,9 +198,9 @@ struct ReaderBox
             }
 
 
-            if(forwardPackets && (targDev.readPolicy == READ_POLICY::ANY)){
+            if(forwardPackets && targDev.yields){
                 EMStateMessage ems; 
-                std::cout<<"Forwarding message"<<std::endl;
+                std::cout<<"FORWARDING MESSAGE for device: "<<newDMM.info.device<<std::endl;
                 ems.protocol = PROTOCOLS::WAIT_STATE_FORWARD; 
                 ems.dmm_list = {newDMM}; 
                 sendEM.write(ems); 
@@ -297,6 +297,7 @@ class ConfirmContainer{
         bool expectingYield = true; 
         bool pendingSend = false;         
         OVERWRITE_POLICY action = OVERWRITE_POLICY::NONE; 
+
     }; 
 
     // struct describing the actions that can be taking at a callback retrieval; 
@@ -329,12 +330,14 @@ class ConfirmContainer{
             if(state.pendingSend && !state.waitingForCallback){
                 if(state.expectingYield){
                     if(state.emptyQueue){
+                        std::cout<<"SENDING STATE EMPTY"<<std::endl; 
                         this->sendNM.write(state.confirmDMM);
                         state.pendingSend = false; 
                         return true;
                     }
                 }
                 else{
+                    std::cout<<"SENDING STATE NORMAL"<<std::endl; 
                     this->sendNM.write(state.confirmDMM);
                      state.pendingSend = false; 
                      return true; 
@@ -351,6 +354,9 @@ class ConfirmContainer{
                 for(auto& devDesc : oblock.binded_devices){
                     this->yieldPolicy[oblock.name][devDesc.device_name].yield = devDesc.isYield; 
                     this->yieldPolicy[oblock.name][devDesc.device_name].policy = devDesc.overwritePolicy;
+                    if(!this->loadedDevMap.contains(devDesc.device_name)){
+                        this->loadedDevMap.emplace(devDesc.device_name, DeviceState{}); 
+                    }
                 }
             }  
         }
@@ -358,6 +364,7 @@ class ConfirmContainer{
 
         // Since yield and (OW::CLEAR/OW::)
         OVERWRITE_POLICY notifyRecievedCallback(DeviceID& dev){
+            std::cout<<"Notfied callback received"<<std::endl; 
             auto& state = loadedDevMap.at(dev);
             state.waitingForCallback = false; 
             if(attemptSendConfirm(state)){
@@ -367,12 +374,15 @@ class ConfirmContainer{
         }
 
         void notifySentMessage(DeviceID& dev){
+            std::cout<<"Notified sent message"<<std::endl; 
             auto& state = loadedDevMap.at(dev);
             state.waitingForCallback = true; 
+            state.emptyQueue = false; 
         }
 
         // Means callback was received and 
         void notifyEmpty(DeviceID& dev){
+            std::cout<<"Notified empty queue"<<std::endl; 
             auto& state = loadedDevMap.at(dev);
             state.emptyQueue = true; 
             state.waitingForCallback = false; 
@@ -386,15 +396,19 @@ class ConfirmContainer{
             }
 
             if(state.waitingForCallback){
+                std::cout<<"adding to queue to wait for callback"<<std::endl; 
                 queueConfirmation(dmm); 
                 return; 
             }
 
             if(state.expectingYield){
+                std::cout<<"Expecing yeild reached"<<std::endl; 
                 if(state.emptyQueue){
+                    std::cout<<"Writing state"<<std::endl; 
                     this->sendNM.write(dmm);
                 }
                 else{
+                    std::cout<<"Adding the queue to the result"<<std::endl; 
                     queueConfirmation(dmm);
                 }
             }
