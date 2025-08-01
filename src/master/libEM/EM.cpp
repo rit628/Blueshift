@@ -85,6 +85,7 @@ void ExecutionUnit::replaceCachedStates(std::unordered_map<DeviceID, HeapMasterM
 
     auto replacementItems = this->replacementCache.getMap(); 
     for(auto& item : replacementItems){
+        std::cout<<"Replacing the cache"<<std::endl; 
         std::cout<<"REPLACING CACHED STATES: "<<item.first<<std::endl;
         auto devState = item.first;
         HeapMasterMessage replaceHMM = item.second;; 
@@ -173,6 +174,8 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
             sendMM.write(hmm);
         }
 
+        // clear the replacement cache since the oblock ran successfully
+        this->replacementCache.clear();
         this->globalScheduler.release(this->Oblock.name); 
     }
 }

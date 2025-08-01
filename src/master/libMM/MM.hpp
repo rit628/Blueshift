@@ -207,7 +207,7 @@ struct ReaderBox
                 return; 
             }
 
-            std::cout<<"Inserting the state"<<std::endl;
+            std::cout<<"Inserting the state for: "<<newDMM.info.device<<std::endl;
             targDev.stateQueues->write(newDMM); 
             targDev.lastMessage.replace(newDMM); 
 

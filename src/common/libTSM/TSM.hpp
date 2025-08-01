@@ -45,4 +45,9 @@ class TSM
         std::shared_lock<std::shared_mutex> lock(this->mut); 
         return this->map; 
     }
+
+    void clear(){
+        std::shared_lock<std::shared_mutex> lock(this->mut);
+        this->map.clear();
+    }
 };

@@ -124,27 +124,28 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
                 this->oblockReadMap[oblockName]->handleRequest(this->sendEM); 
             }
 
-            OVERWRITE_POLICY nextAction = this->ConfContainer.notifyRecievedCallback(devName); 
-            switch(nextAction){
-                case(OVERWRITE_POLICY::CLEAR):{
-                    // Used for the clear option
-                    deviceWriteMap.at(DMM.info.device)->waitingQ.clearQueue();               
-                    break; 
-                }
-                case(OVERWRITE_POLICY::CURRENT):{
-                    // Used for insertion into the front of a queue
-                    deviceWriteMap.at(DMM.info.device)->isFrozen = true; 
-                    break; 
-                } 
-                default:{
-                    break; 
-                }
-            }
-           
-
             // Send the next device for items waiting for a callback 
             if(!deviceWriteMap.at(DMM.info.device)->waitingQ.isEmpty())
             {          
+                OVERWRITE_POLICY nextAction = this->ConfContainer.notifyRecievedCallback(devName);
+
+                 switch(nextAction){
+                    case(OVERWRITE_POLICY::CLEAR):{
+                        // Used for the clear option
+                        deviceWriteMap.at(DMM.info.device)->waitingQ.clearQueue();               
+                        break; 
+                    }
+                    case(OVERWRITE_POLICY::CURRENT):{
+                        // Used for insertion into the front of a queue
+                        deviceWriteMap.at(DMM.info.device)->isFrozen = true; 
+                        break; 
+                    } 
+                    default:{
+                        break; 
+                    }
+                }
+
+
                 if(!this->deviceWriteMap.at(DMM.info.device)->isFrozen){
                     DynamicMasterMessage DMMtoSend = deviceWriteMap.at(DMM.info.device)->waitingQ.read();
                     this->sendNM.write(DMMtoSend);
