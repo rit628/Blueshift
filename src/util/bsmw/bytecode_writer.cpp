@@ -71,8 +71,9 @@ DeviceDescriptor tag_invoke(const value_to_tag<DeviceDescriptor>&, value const& 
     desc.port_maps = value_to<std::unordered_map<std::string, std::string>>(obj.at("port_maps"));
     desc.initialValue = value_to<BlsType>(obj.at("initialValue"));
     desc.isVtype = value_to<bool>(obj.at("isVtype"));
-    desc.dropRead = value_to<bool>(obj.at("dropRead"));
-    desc.dropWrite = value_to<bool>(obj.at("dropWrite"));
+    desc.readPolicy = static_cast<READ_POLICY>(value_to<uint8_t>(obj.at("readPolicy")));
+    desc.overwritePolicy = static_cast<OVERWRITE_POLICY>(value_to<uint8_t>(obj.at("overwritePolicy")));
+    desc.isYield = value_to<bool>(obj.at("isYield"));
     desc.polling_period = value_to<int>(obj.at("polling_period"));
     desc.isConst = value_to<bool>(obj.at("isConst"));
     desc.isInterrupt = value_to<bool>(obj.at("isInterrupt"));

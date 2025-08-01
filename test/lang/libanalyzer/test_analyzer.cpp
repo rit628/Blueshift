@@ -1429,13 +1429,62 @@ namespace BlsLang {
                             }
                         ),
                         new AstNode::Initializer::Oblock(
-                            "dropReadOn",
+                            "processPolicy",
                             {
-                                new AstNode::Expression::Access(
-                                    "L1"
-                                ),
-                                new AstNode::Expression::Access(
-                                    "L3"
+                                new AstNode::Expression::Map(
+                                    {
+                                        {
+                                            new AstNode::Expression::Access(
+                                                "L1"
+                                            ),
+                                            new AstNode::Expression::Map(
+                                                {
+                                                    {
+                                                        new AstNode::Expression::Literal(
+                                                            std::string("read")
+                                                        ),
+                                                        new AstNode::Expression::Literal(
+                                                            std::string("any")
+                                                        )
+                                                    }
+                                                }
+                                            )
+                                        },
+                                        {
+                                            new AstNode::Expression::Access(
+                                                "L3"
+                                            ),
+                                            new AstNode::Expression::Map(
+                                                {
+                                                    {
+                                                        new AstNode::Expression::Literal(
+                                                            std::string("yield")
+                                                        ),
+                                                        new AstNode::Expression::Literal(
+                                                            bool(false)
+                                                        )
+                                                    }
+                                                }
+                                            )
+                                        },
+                                    }
+                                )
+                            }
+                        ),
+                        new AstNode::Initializer::Oblock(
+                            "overwritePolicy",
+                            {
+                                new AstNode::Expression::Map(
+                                    {
+                                        {
+                                            new AstNode::Expression::Access(
+                                                "L2"
+                                            ),
+                                            new AstNode::Expression::Literal(
+                                                std::string("clear")
+                                            )
+                                        }
+                                    }
                                 )
                             }
                         )
@@ -1544,7 +1593,7 @@ namespace BlsLang {
                             {"file", "f1.txt"}
                         },
                         .initialValue = createBlsType(TypeDef::LINE_WRITER()),
-                        .dropRead = true,
+                        .readPolicy = READ_POLICY::ANY,
                         .polling_period = 10,
                         .isConst = true
                     },
@@ -1556,6 +1605,7 @@ namespace BlsLang {
                             {"file", "f2.txt"}
                         },
                         .initialValue = createBlsType(TypeDef::LINE_WRITER()),
+                        .overwritePolicy = OVERWRITE_POLICY::CLEAR,
                         .polling_period = 6,
                         .isConst = true
                     },
@@ -1567,7 +1617,7 @@ namespace BlsLang {
                             {"file", "f3.txt"}
                         },
                         .initialValue = createBlsType(TypeDef::LINE_WRITER()),
-                        .dropRead = true
+                        .isYield = false
                     }
                 },
                 .hostController = "host-1",

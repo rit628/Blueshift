@@ -3,6 +3,7 @@
 #include "libtype/bls_types.hpp"
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/unordered_map.hpp>
+#include <cstdint>
 #include <exception>
 #include <stdexcept>
 #include <optional>
@@ -46,19 +47,19 @@ enum class PROTOCOLS
 
 };
 
-enum class READ_POLICY{
+enum class READ_POLICY : uint8_t {
     ALL,
     ANY,
 };
 
-enum class OVERWRITE_POLICY{
+enum class OVERWRITE_POLICY : uint8_t {
     CLEAR, 
     CURRENT, 
     DISCARD,
     NONE, 
 };
 
-enum class PORTTYPE{
+enum class PORTTYPE : uint8_t {
     GPIO, 
     I2C,
     UART, 
@@ -74,19 +75,16 @@ struct DeviceDescriptor{
     std::unordered_map<std::string, std::string> port_maps = {};
     BlsType initialValue = std::monostate();
     bool isVtype = false;
-
+    
+    /* Oblock Specific Attributes */
     // Policy Codes
     READ_POLICY readPolicy = READ_POLICY::ALL;
     OVERWRITE_POLICY overwritePolicy = OVERWRITE_POLICY::NONE;
     bool isYield = true; 
-
-    /* Oblock Specific Attributes */
-    bool dropRead = false;
-    bool dropWrite = false;
     int polling_period = 1000;
     bool isConst = true;
     /* 
-        If the device is registered as a trigger then the exeuction of 
+        If the device is registered as a trigger then the execution of 
         the oblock is binded to the arrival of the devices state. 
     */ 
 
@@ -102,8 +100,9 @@ struct DeviceDescriptor{
         ar & port_maps;
         ar & initialValue;
         ar & isVtype;
-        ar & dropRead;
-        ar & dropWrite;
+        ar & readPolicy;
+        ar & overwritePolicy;
+        ar & isYield;
         ar & polling_period;
         ar & isConst;
         ar & isInterrupt;

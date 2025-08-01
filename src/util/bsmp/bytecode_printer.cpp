@@ -20,8 +20,9 @@ void tag_invoke(const value_from_tag&, value& jv, DeviceDescriptor const & desc)
     obj.emplace("port_maps", value_from(desc.port_maps));
     obj.emplace("initialValue", value_from(desc.initialValue));
     obj.emplace("isVtype", value_from(desc.isVtype));
-    obj.emplace("dropRead", value_from(desc.dropRead));
-    obj.emplace("dropWrite", value_from(desc.dropWrite));
+    obj.emplace("readPolicy", value_from(static_cast<uint8_t>(desc.readPolicy)));
+    obj.emplace("overwritePolicy", value_from(static_cast<uint8_t>(desc.overwritePolicy)));
+    obj.emplace("isYield", value_from(desc.isYield));
     obj.emplace("polling_period", value_from(desc.polling_period));
     obj.emplace("isConst", value_from(desc.isConst));
     obj.emplace("isInterrupt", value_from(desc.isInterrupt));

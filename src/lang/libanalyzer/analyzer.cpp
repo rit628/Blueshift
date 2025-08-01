@@ -928,6 +928,7 @@ BlsObject Analyzer::visit(AstNode::Initializer::Oblock& ast) {
                 throw SemanticError("Polling rate values must be integers or floats.");
             }
             auto& param = paramExpr->getObject();
+            cs.getLocal(param); // check that param exists
             auto rate = resolve(rateExpr->accept(*this));
             literalPool.erase(rate);
             
@@ -936,27 +937,97 @@ BlsObject Analyzer::visit(AstNode::Initializer::Oblock& ast) {
             dev.isConst = true;
         }
     }
-    else if (option == "dropReadOn") {
-        if (args.empty()) {
-            throw SemanticError("dropReadOn takes at least one argument.");
+    else if (option == "processPolicy") {
+        if (args.size() != 1) {
+            throw SemanticError("Exactly one argument must be supplied to processPolicy.");
         }
-        for (auto&& arg : args) {
-            if (auto* parameter = dynamic_cast<AstNode::Expression::Access*>(arg.get())) {
-                auto& alias = parameter->getObject();
-                cs.getLocal(alias); // check that param exists
-                boundDevices.at(parameterIndices.at(alias)).dropRead = true;
+        auto* configMap = dynamic_cast<AstNode::Expression::Map*>(args.at(0).get());
+        if (!configMap) {
+            throw SemanticError("processPolicy must be supplied a mapping of oblock parameters to policy options.");
+        }
+        for (auto&& [key, value] : configMap->getElements()) {
+            auto* paramExpr = dynamic_cast<AstNode::Expression::Access*>(key.get());
+            auto* policyMap = dynamic_cast<AstNode::Expression::Map*>(value.get());
+            if (!paramExpr) {
+                throw SemanticError("Mapping keys must be oblock parameters.");
             }
+            if (!policyMap) {
+                throw SemanticError("Mapping values must be policy option mappings");
+            }
+
+            auto& param = paramExpr->getObject();
+            cs.getLocal(param); // check that param exists
+            auto& dev = boundDevices.at(parameterIndices.at(param));
+
+            for (auto&& [key, value] : policyMap->getElements()) {
+                auto* policyExpr = dynamic_cast<AstNode::Expression::Literal*>(key.get());
+                auto* optionExpr = dynamic_cast<AstNode::Expression::Literal*>(value.get());
+                if (!policyExpr || !std::holds_alternative<std::string>(policyExpr->getLiteral())) {
+                    throw SemanticError("Policy name must be a string literal.");
+                }
+                auto policy = std::get<std::string>(policyExpr->getLiteral());
+                if (policy == "read") {
+                    if (!optionExpr || !std::holds_alternative<std::string>(optionExpr->getLiteral())) {
+                        throw SemanticError("Read policy must be a string literal.");
+                    }
+                    auto option = std::get<std::string>(optionExpr->getLiteral());
+                    if (option == "all") {
+                        dev.readPolicy = READ_POLICY::ALL;
+                    }
+                    else if (option == "any") {
+                        dev.readPolicy = READ_POLICY::ANY;
+                    }
+                    else {
+                        throw SemanticError("Read policy must be either \"any\" or \"all\".");
+                    }
+                }
+                else if (policy == "yield") {
+                    if (!optionExpr || !std::holds_alternative<bool>(optionExpr->getLiteral())) {
+                        throw SemanticError("Read policy must be a bool literal.");
+                    }
+                    dev.isYield = std::get<bool>(optionExpr->getLiteral());
+                }
+                else {
+                    throw SemanticError("Invalid process policy supplied");
+                }
+            }
+            
         }
     }
-    else if (option == "dropWriteOn") {
-        if (args.empty()) {
-            throw SemanticError("dropWriteOn takes at least one argument.");
+    else if (option == "overwritePolicy") {
+        if (args.size() != 1) {
+            throw SemanticError("Exactly one argument must be supplied to overwritePolicy.");
         }
-        for (auto&& arg : args) {
-            if (auto* parameter = dynamic_cast<AstNode::Expression::Access*>(arg.get())) {
-                auto& alias = parameter->getObject();
-                cs.getLocal(alias); // check that param exists
-                boundDevices.at(parameterIndices.at(alias)).dropWrite = true;
+        auto* configMap = dynamic_cast<AstNode::Expression::Map*>(args.at(0).get());
+        if (!configMap) {
+            throw SemanticError("overwritePolicy must be supplied a mapping of oblock parameters to policy options.");
+        }
+        for (auto&& [key, value] : configMap->getElements()) {
+            auto* paramExpr = dynamic_cast<AstNode::Expression::Access*>(key.get());
+            auto* policyExpr = dynamic_cast<AstNode::Expression::Literal*>(value.get());
+            if (!paramExpr) {
+                throw SemanticError("Mapping keys must be oblock parameters.");
+            }
+            if (!policyExpr || !std::holds_alternative<std::string>(policyExpr->getLiteral())) {
+                throw SemanticError("Mapping values must be string literals");
+            }
+            
+            auto& param = paramExpr->getObject();
+            cs.getLocal(param); // check that param exists
+            auto& dev = boundDevices.at(parameterIndices.at(param));
+
+            auto policy = std::get<std::string>(policyExpr->getLiteral());
+            if (policy == "clear") {
+                dev.overwritePolicy = OVERWRITE_POLICY::CLEAR;
+            }
+            else if (policy == "current") {
+                dev.overwritePolicy = OVERWRITE_POLICY::CURRENT;
+            }
+            else if (policy == "discard") {
+                dev.overwritePolicy = OVERWRITE_POLICY::DISCARD;
+            }
+            else {
+                throw SemanticError("Overwrite policy must be either \"clear\", \"current\", or \"discard\".");
             }
         }
     }
