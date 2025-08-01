@@ -198,7 +198,7 @@ struct ReaderBox
             }
 
 
-            if(forwardPackets && targDev.yields){
+            if(forwardPackets && (targDev.readPolicy == READ_POLICY::ANY)){
                 EMStateMessage ems; 
                 std::cout<<"FORWARDING MESSAGE for device: "<<newDMM.info.device<<std::endl;
                 ems.protocol = PROTOCOLS::WAIT_STATE_FORWARD; 

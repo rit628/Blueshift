@@ -68,10 +68,11 @@ void LINE_WRITER::init(std::unordered_map<std::string, std::string> &config) {
 
 void LINE_WRITER::transmitStates(DynamicMessage &dmsg) {
     static int cnt = 0;
+
     if(cnt++ != 0){
         sleep(2);
     }
-
+     
     dmsg.packStates(states);
 }
 

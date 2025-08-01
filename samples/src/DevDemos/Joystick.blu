@@ -95,7 +95,7 @@ oblock mouseTest(MOUSE ms, LCD_SCREEN lcd, DC_MOTOR dcmot, int k)
 
 // Testing the drop read error: 
 oblock dropReadError(KEYBOARD kbd, LINE_WRITER lw)
-: triggerOn({"rule" : kbd}), dropWriteOn(lw)
+: triggerOn({"rule" : kbd})
 {   
     println("SENT MESSAGE: ", lw.msg);
 
@@ -110,9 +110,9 @@ oblock dropReadError(KEYBOARD kbd, LINE_WRITER lw)
         lw.msg += kbd.key;
     }
 
-
-    //sleep(5);
 }
+
+
 
 
 setup(){

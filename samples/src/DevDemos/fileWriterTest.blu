@@ -1,0 +1,26 @@
+oblock keyLogger(KEYBOARD kbd, LINE_WRITER lw)
+: 
+triggerOn(kbd), 
+processPolicy({
+    lw : {"read" : "any", "yield" : true}, 
+    kbd : {"read" : "all"}})
+{
+    if(kbd.key == "Left Shift"){
+        lw.msg = ""; 
+    }
+    else if(kbd.key == "Space"){
+        lw.msg += " "; 
+    }
+    else{
+        lw.msg += kbd.key; 
+    }
+
+    sleep(1); 
+}
+
+setup(){
+    KEYBOARD keything = "ctl::mode-all";
+    LINE_WRITER file = "ctl::file-file1.txt"; 
+
+    keyLogger(keything, file); 
+}

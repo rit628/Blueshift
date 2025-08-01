@@ -1,0 +1,56 @@
+oblock delegator(KEYBOARD kbd, LINE_WRITER lw, int counter, string msg1, string msg2)
+: triggerOn(kbd)
+{
+    
+    string writeKey = "";
+    
+    if(kbd.key == "Space"){
+        writeKey = " "; 
+    }
+    else if(kbd.key == "Left Shift"){
+        lw.msg = ""; 
+    }
+    else{
+        writeKey = kbd.key;
+    }
+
+    if(counter%2 == 0){
+        msg1 = writeKey; 
+    }
+    else{   
+        msg2 = writeKey; 
+    }
+
+    counter++; 
+}
+
+
+oblock vWrite(string msg1, FILE_LOG fl, LINE_WRITER lw)
+: triggerOn(msg1)
+{
+    fl.add_msg = "from v trigger: " + msg1; 
+    lw.msg += msg1; 
+}
+
+oblock kWrite(string msg2, FILE_LOG fl, LINE_WRITER lw)
+: triggerOn(msg2)
+{
+    fl.add_msg = "from k trigger: " + msg2; 
+    lw.msg += msg2; 
+}
+
+setup(){
+    virtual string msg1; 
+    virtual string msg2;
+    virtual int counter; 
+
+    LINE_WRITER lw = "ctl::file-file1.txt";
+    FILE_LOG fl = "ctl::file-logfile.txt";
+    KEYBOARD crack = "ctl::mode-all";
+
+    delegator(crack, lw, counter, msg1, msg2); 
+    vWrite(msg1, fl, lw); 
+    kWrite(msg2, fl, lw); 
+}
+
+
