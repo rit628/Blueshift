@@ -235,22 +235,22 @@ void MasterNM::masterRead(){
         // Add other communication MASERT_PROTOCOLS
         switch(new_state.protocol){
             case PROTOCOLS::OWNER_CANDIDATE_REQUEST : {
-                //std::cout<<"Pushing owner candidate request for: "<<new_state.info.oblock<<" with id: "<<sm_main.header.oblock_id<<std::endl; 
+                std::cout<<"Pushing owner candidate request for: "<<new_state.info.oblock<<" for device: "<<new_state.info.device<<std::endl; 
                 sm_main.header.prot = Protocol::OWNER_CANDIDATE_REQUEST ;
                 break; 
             }
             case PROTOCOLS::OWNER_CONFIRM : {
-                //std::cout<<"Pushing CONFIRM request for: "<<new_state.info.oblock<<" with id: "<<sm_main.header.oblock_id<<std::endl; 
+                std::cout<<"Pushing CONFIRM request for: "<<new_state.info.oblock<<" for device: "<<new_state.info.device<<std::endl; 
                 sm_main.header.prot = Protocol::OWNER_CONFIRM; 
                 break; 
             }
             case PROTOCOLS::OWNER_RELEASE : {  
-                //std::cout<<"Pushing Release request for: "<<new_state.info.oblock<<" with id: "<<sm_main.header.oblock_id<<std::endl; 
+                std::cout<<"Pushing Release request for: "<<new_state.info.oblock<<" for device: "<<new_state.info.device<<std::endl; 
                 sm_main.header.prot = Protocol::OWNER_RELEASE; 
                 break; 
             }
             case PROTOCOLS::OWNER_CANDIDATE_REQUEST_CONCLUDE : {
-                //std::cout<<"Pushing owner candidate request conclusion for device "<<new_state.info.device<<std::endl; 
+                std::cout<<"Pushing owner candidate request conclusion for device "<<" for device: "<<new_state.info.device<<std::endl;  
                 sm_main.header.prot = Protocol::OWNER_CANDIDATE_REQUEST_CONCLUDE; 
                 break; 
             }

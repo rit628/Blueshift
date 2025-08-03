@@ -8,6 +8,7 @@
 #include <unordered_map> 
 #include <unordered_set> 
 #include <vector>
+#include <algorithm>
 #include <set> 
 
 
@@ -67,17 +68,15 @@ struct PendingStateInfo{
     public: 
 
     std::unordered_set<DeviceID> mustOwn; 
+    std::unordered_set<DeviceID> ownedDevices; 
     int ownedCounter = 0; 
     int confirmedCounter = 0; 
     bool executeFlag = false; 
-    bool canConfirm = true; 
-    
+    OblockID oblockName; 
 
 
     std::mutex mtx; 
-    std::mutex confirmMtx; 
-    std::condition_variable cv; 
-    std::condition_variable sendConfirmCV;
+    std::condition_variable cv;
 
     // Receiver functions(react to message)
 
@@ -93,12 +92,24 @@ struct PendingStateInfo{
 
     bool confirmDevice(DeviceID &dev){
         if(mustOwn.contains(dev)){
+            this->ownedDevices.insert(dev);
             if(mustOwn.size() == ++this->confirmedCounter){
+                this->ownedDevices.clear(); 
                 this->confirmedCounter = 0; 
+                std::cout<<"we good! running oblock"<<std::endl; 
                 this->triggerConfirm();
                 return true; 
             }
         }
+
+
+        // Print out the remaining devices that need to confirm
+        for(auto& dev : mustOwn){
+            if(!ownedDevices.contains(dev)){
+                std::cout<<"Oblock Name: "<<oblockName<<" is still expecting "<<dev<<std::endl;
+            }
+        }
+
         return false; 
     }
 }; 

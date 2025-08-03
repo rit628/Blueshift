@@ -31,6 +31,7 @@ DeviceScheduler::DeviceScheduler(std::vector<OBlockDesc> &oblockDescList, std::f
                 if(this->scheduledProcessMap.contains(dev.device_name)){
                     this->scheduledProcessMap[dev.device_name]; 
                 }
+                this->oblockWaitMap[oblockName].oblockName = oblockName;
                 this->oblockWaitMap[oblockName].mustOwn.insert(dev.device_name); 
                 this->devControllerMap[dev.device_name] = dev.controller; 
             }

@@ -1,5 +1,5 @@
 oblock delegator(KEYBOARD kbd, LINE_WRITER lw, int counter, string msg1, string msg2)
-: triggerOn(kbd)
+: triggerOn(kbd), processPolicy({counter : {"read" : "any"}})
 {
     
     string writeKey = "";
@@ -26,14 +26,14 @@ oblock delegator(KEYBOARD kbd, LINE_WRITER lw, int counter, string msg1, string 
 
 
 oblock vWrite(string msg1, FILE_LOG fl, LINE_WRITER lw)
-: triggerOn(msg1)
+: triggerOn(msg1), processPolicy({lw : {"read" : "any"}})
 {
     fl.add_msg = "from v trigger: " + msg1; 
     lw.msg += msg1; 
 }
 
 oblock kWrite(string msg2, FILE_LOG fl, LINE_WRITER lw)
-: triggerOn(msg2)
+: triggerOn(msg2), processPolicy({lw : {"read" : "any"}})
 {
     fl.add_msg = "from k trigger: " + msg2; 
     lw.msg += msg2; 

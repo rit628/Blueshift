@@ -119,7 +119,7 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
                 }
             }
 
-            std::cout<<"UPDATING CALLBACKS FOR TRIGGERS"<<std::endl; 
+            std::cout<<"UPDATING CALLBACK FOR DEVICE: "<<DMM.info.device<<std::endl; 
             for(auto& oblockName : this->interruptName_map[devName]){
                 this->oblockReadMap[oblockName]->handleRequest(this->sendEM); 
             }
@@ -333,7 +333,7 @@ void MasterMailbox::assignEM(HeapMasterMessage DMM)
         case PROTOCOLS::OWNER_RELEASE:{
             auto oblockName = DMM.info.oblock; 
             this->oblockReadMap.at(DMM.info.oblock)->inExec = false; 
-            //std::cout<<"Mailbox Owner Release for the device: "<<DMM.info.device<<" from oblock "<<oblockName<<std::endl; 
+            std::cout<<"Mailbox Owner Release for the device: "<<DMM.info.device<<" from oblock "<<oblockName<<std::endl; 
             this->sendNM.write(MasterMailbox::buildDMM(DMM)); 
             break; 
         }

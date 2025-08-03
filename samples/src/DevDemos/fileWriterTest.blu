@@ -15,7 +15,7 @@ processPolicy({
         lw.msg += kbd.key; 
     }
 
-    sleep(1); 
+    //sleep(2); 
 }
 
 setup(){

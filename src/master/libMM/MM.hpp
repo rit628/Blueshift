@@ -311,6 +311,8 @@ class ConfirmContainer{
         TSQ<DynamicMasterMessage>& sendNM; 
         std::unordered_map<OblockID, std::unordered_map<DeviceID, OblockActionMetadata>> yieldPolicy; 
         std::unordered_map<DeviceID, DeviceState> loadedDevMap; 
+        // Necessary as the Confirm container is accessed by the read and write blocks
+        std::mutex mut; 
 
         void queueConfirmation(const DynamicMasterMessage &dmm){
             auto& state = this->loadedDevMap.at(dmm.info.device);
@@ -330,7 +332,7 @@ class ConfirmContainer{
             if(state.pendingSend && !state.waitingForCallback){
                 if(state.expectingYield){
                     if(state.emptyQueue){
-                        std::cout<<"SENDING STATE EMPTY"<<std::endl; 
+                        std::cout<<"SENDING STATE EMPTY for: "<<state.confirmDMM.info.device<<std::endl; 
                         this->sendNM.write(state.confirmDMM);
                         state.pendingSend = false; 
                         return true;
@@ -364,6 +366,7 @@ class ConfirmContainer{
 
         // Since yield and (OW::CLEAR/OW::)
         OVERWRITE_POLICY notifyRecievedCallback(DeviceID& dev){
+            std::lock_guard<std::mutex> lock(this->mut);
             std::cout<<"Notfied callback received"<<std::endl; 
             auto& state = loadedDevMap.at(dev);
             state.waitingForCallback = false; 
@@ -374,6 +377,7 @@ class ConfirmContainer{
         }
 
         void notifySentMessage(DeviceID& dev){
+            std::lock_guard<std::mutex> lock(this->mut);
             std::cout<<"Notified sent message"<<std::endl; 
             auto& state = loadedDevMap.at(dev);
             state.waitingForCallback = true; 
@@ -382,6 +386,7 @@ class ConfirmContainer{
 
         // Means callback was received and 
         void notifyEmpty(DeviceID& dev){
+            std::lock_guard<std::mutex> lock(this->mut);
             std::cout<<"Notified empty queue"<<std::endl; 
             auto& state = loadedDevMap.at(dev);
             state.emptyQueue = true; 
@@ -390,29 +395,31 @@ class ConfirmContainer{
         }
 
         void send(const DynamicMasterMessage &dmm){
+            std::lock_guard<std::mutex> lock(this->mut);
             auto& state = loadedDevMap.at(dmm.info.device);
             if(state.pendingSend){
                 throw std::runtime_error("Overlapping oblock confirmation requests, should not be happening!");
             }
 
             if(state.waitingForCallback){
-                std::cout<<"adding to queue to wait for callback"<<std::endl; 
+                std::cout<<"adding device "<<dmm.info.device<<" to queue to wait for callback"<<std::endl; 
                 queueConfirmation(dmm); 
                 return; 
             }
 
             if(state.expectingYield){
-                std::cout<<"Expecing yeild reached"<<std::endl; 
+                std::cout<<"Expecing yeild reached for device: "<<dmm.info.device<<std::endl; 
                 if(state.emptyQueue){
-                    std::cout<<"Writing state"<<std::endl; 
+                    std::cout<<"Writing state: "<<dmm.info.device<<std::endl; 
                     this->sendNM.write(dmm);
                 }
                 else{
-                    std::cout<<"Adding the queue to the result"<<std::endl; 
+                    std::cout<<"Adding the queue to the result: "<<dmm.info.device<<std::endl; 
                     queueConfirmation(dmm);
                 }
             }
             else{
+                std::cout<<"Sending straight out for device: "<<dmm.info.device<<std::endl; 
                 this->sendNM.write(dmm);
             }
         } 

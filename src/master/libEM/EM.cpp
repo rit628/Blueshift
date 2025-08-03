@@ -88,7 +88,7 @@ void ExecutionUnit::replaceCachedStates(std::unordered_map<DeviceID, HeapMasterM
         std::cout<<"Replacing the cache"<<std::endl; 
         std::cout<<"REPLACING CACHED STATES: "<<item.first<<std::endl;
         auto devState = item.first;
-        HeapMasterMessage replaceHMM = item.second;; 
+        HeapMasterMessage replaceHMM = item.second;
         cachedHMMs[devState] = replaceHMM; 
     }
 }
@@ -215,6 +215,7 @@ void ExecutionManager::running()
                 break;
             }
             case(PROTOCOLS::OWNER_CONFIRM_OK):{
+                std::cout<<"Passing owner confirm ok"<<std::endl; 
                 this->scheduler.receive(currentDMMs.dmm_list[0]); 
                 break; 
             }
