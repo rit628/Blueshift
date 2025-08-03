@@ -165,20 +165,18 @@ void Client::listener(std::stop_token stoken){
                     std::cout<<"Valid owner"<<std::endl; 
                 }
 
-    
-                auto state_change = std::jthread([dev_index, dmsg = std::move(dmsg), this](){
-                try{
-                    this->deviceList.at(dev_index).device.processStates(dmsg);
-                    //Translation of the callback happens at the network manage
-                    this->sendMessage(dev_index, Protocol::CALLBACK, false); 
-                }
-                catch(std::exception(e)){
-                    std::cout<<"Failure to change the state detected"<<std::endl;
-                    std::cout<<e.what()<<std::endl; 
-                }
-                });
 
-                state_change.detach(); 
+                // Trying out the thread pool: 
+                boost::asio::post(this->client_ctx,  [dev_index, dmsg = std::move(dmsg), this](){
+                    try{   
+                        this->deviceList.at(dev_index).device.processStates(dmsg);
+                        this->sendMessage(dev_index, Protocol::CALLBACK, false);
+                    }
+                    catch(std::exception(e)){
+                        std::cout<<"Failure to change the state detected"<<std::endl; 
+                        std::cout<<e.what()<<std::endl; 
+                    }
+                }); 
             }
             else{
                 std::cout<<"Cannot process state change until configuration is complete"<<std::endl; 
@@ -219,19 +217,8 @@ void Client::listener(std::stop_token stoken){
 
             // Begin the timers only when the call is made
             for(Timer &timer : this->start_timers){
-                std::cout<<"Looking for device with timer: "<<timer.device_num<<std::endl;
-                std::cout<<"Dev list size: "<<this->deviceList.size()<<std::endl;
-                for(auto& king : this->deviceList){
-                    std::cout<<"id: "<<king.first<<std::endl;
-                    std::cout<<"omar: "<<king.second.device.id<<std::endl;
-                }
-                
-
-            
                 auto& device = this->deviceList.at(timer.device_num).device; 
-                
-                std::cout<<"Found device"<<std::endl;
-
+            
                 if(!device.hasInterrupt()) {
 
                     if(!device.isActuator){
@@ -259,6 +246,7 @@ void Client::listener(std::stop_token stoken){
             for (auto&& interruptor : this->interruptors) {
                 interruptor.setupThreads();
             }
+
             #ifdef SDL_ENABLED
             // SDL_RunOnMainThread([](void*) -> void {
             //     auto window = SDL_GL_GetCurrentWindow();
@@ -272,6 +260,13 @@ void Client::listener(std::stop_token stoken){
             //     }
             // }, nullptr, true);
             #endif
+
+            // Start the threads
+            int num_threads = this->deviceList.size();
+            for(int i = 0; i < num_threads ; i++){
+                this->threadPool.emplace_back([this]{this->client_ctx.run();});
+            }
+
         }
         else if(ptype == Protocol::CONNECTION_LOST){
             std::cout<<"Connection lost detected by Client"<<std::endl; 
@@ -330,7 +325,7 @@ void Client::listener(std::stop_token stoken){
             }         
         }
         else if(ptype == Protocol::OWNER_RELEASE){
-            std::cout<<"Received device release"<<std::endl; 
+            std::cout<<"Received device release for device"<<std::endl; 
             auto& devPendStruct = this->deviceList.at(inMsg.header.device_code).pendingRequests; 
 
             std::cout<<"Size at release "<<devPendStruct.getQueue().size()<<std::endl; 
@@ -385,6 +380,7 @@ bool Client::attemptConnection(boost::asio::ip::address master_address){
 
         this->listenerThread = std::jthread(std::bind(&Client::listener, std::ref(*this), std::placeholders::_1));
         this->ctxThread = std::jthread([this](){this->client_ctx.run();});   
+        
 
         if(this->listenerThread.joinable()){
             this->listenerThread.join(); 
@@ -427,10 +423,13 @@ bool Client::disconnect(){
     client_ticker.clear();
 
     std::cout<<"Timers listeners killed"<<std::endl; 
-
-    // Stop the client and listener threads
+    
     this->client_ctx.stop(); 
+    for(auto &t : this->threadPool){
+        t.join();
+    }
     this->listenerThread.request_stop();
+
 
     std::cout<<"Context and client listener killed"<<std::endl;
 

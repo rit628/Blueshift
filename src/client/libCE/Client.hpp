@@ -106,7 +106,11 @@ class Client{
        // Ticker Mutex; 
         std::shared_mutex ticker_mutex; 
         // Contains the list of known devices
-        std::unordered_map<int, ManagedDevice> deviceList;     
+        std::unordered_map<int, ManagedDevice> deviceList; 
+        // thread pool for devices state change
+        std::vector<std::thread> threadPool;
+        
+
         // client name used to identify controller
         std::string client_name; 
         // Listens for incoming message and places it into the spot
@@ -121,7 +125,7 @@ class Client{
         void updateTicker(); 
         // Temp timers 
         std::vector<Timer> start_timers; 
-        // Run the client listener
+        
         
         // Error Sender: 
         std::unique_ptr<GenericBlsException> genBlsException; 
