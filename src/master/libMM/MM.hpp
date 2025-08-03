@@ -181,11 +181,15 @@ struct ReaderBox
         bool forwardPackets = false; 
         bool inExec = false;
         OBlockDesc oblockDesc; 
+        std::mutex read_mut; 
 
 
         // Inserts the state into the object: 
         // the bool initEvent determines if the event is an initial event or not
         void insertState(HeapMasterMessage newDMM, TSQ<EMStateMessage>& sendEM){
+            std::lock_guard<std::mutex> lock(this->read_mut); 
+
+
             if(!this->waitingQs.contains(newDMM.info.device)){
                 return; 
             }
@@ -250,15 +254,21 @@ struct ReaderBox
         }
 
         void handleRequest(TSQ<EMStateMessage>& sendEM){
+            std::lock_guard<std::mutex> lock(this->read_mut); 
+
             // write for loop to handle requests
             if(pending_requests){
                 int maxQueueSz = this->triggerCache.size() < MAX_EM_QUEUE_FILL?  triggerCache.size() : MAX_EM_QUEUE_FILL;     
                 for(int i = 0; i < maxQueueSz; i++){
-                    auto dmmVect = this->triggerCache.back(); 
                     // Update when trigger naming comes 
-                    auto ems = this->triggerCache.back(); 
-                    this->triggerCache.pop_back(); 
-                    sendEM.write(ems); 
+                    if(!triggerCache.empty()){
+                        auto ems = this->triggerCache.back(); 
+                        this->triggerCache.pop_back(); 
+                        sendEM.write(ems); 
+                    }
+                    else{
+                        std::cerr<<"Strange: Max queue size is empty but claims size: "<<maxQueueSz<<std::endl; 
+                    }
                 }
             }   
         }   
