@@ -22,7 +22,7 @@ MasterMailbox::MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMes
     // Creating the read line
     for(auto &oblock : this->OBlockList)
     {
-        oblockReadMap[oblock.name] = make_unique<ReaderBox>(oblock.name, oblock, this->triggerSet, this->sendEM);
+        oblockReadMap[oblock.name] = make_unique<ReaderBox>(oblock.name, oblock, this->triggerSet, sendEM);
 
         for(auto &devDesc : oblock.binded_devices)
         { 
@@ -85,7 +85,7 @@ DynamicMasterMessage MasterMailbox::buildDMM(HeapMasterMessage &hmm){
 }
 
 ReaderBox::ReaderBox(string name, OBlockDesc& oDesc, std::unordered_set<OblockID> &triggerSet, TSQ<EMStateMessage> &ems)
-: triggerSet(triggerSet), triggerMan(oDesc), sendEM(sendEM)
+: triggerSet(triggerSet), triggerMan(oDesc), sendEM(ems)
 {
     this->OblockName = name;
     this->oblockDesc = oDesc; 

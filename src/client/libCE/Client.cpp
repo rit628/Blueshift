@@ -147,7 +147,7 @@ void Client::listener(std::stop_token stoken){
             std::cout<<"Client side handshake complete!"<<std::endl; 
 
         }
-        else if(ptype == Protocol::STATE_CHANGE || ptype == Protocol::PUSH_REQUEST){
+        else if(ptype == Protocol::STATE_CHANGE){
         
             if(this->curr_state == ClientState::IN_OPERATION){
                 auto dev_index = inMsg.header.device_code; 
@@ -167,7 +167,7 @@ void Client::listener(std::stop_token stoken){
 
 
                 // Trying out the thread pool: 
-                boost::asio::post(this->client_ctx,  [ptype, dev_index, dmsg = std::move(dmsg), this](){
+                boost::asio::post(this->client_ctx,  [dev_index, dmsg = std::move(dmsg), this](){
                     try{   
                         this->deviceList.at(dev_index).device.processStates(dmsg);
                         this->sendMessage(dev_index, Protocol::CALLBACK, false);

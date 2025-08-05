@@ -412,6 +412,7 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
 
             DMM new_msg = this->makeDMM(in_msg.sm, PROTOCOLS::CALLBACKRECIEVED);
             new_msg.isInterrupt = in_msg.sm.header.fromInterrupt;
+            new_msg.DM = dmsg; 
             this->EMM_out_queue.write(new_msg);
 
             break; 
