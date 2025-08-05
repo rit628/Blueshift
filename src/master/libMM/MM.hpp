@@ -224,28 +224,34 @@ struct ReaderBox
                     this->triggerSet.insert(this->OblockName); 
                 }
                
-                auto& trigInfo = this->oblockDesc.triggers.at(triggerId);
+                std::string triggerName = "";
+                uint16_t priority = 1;
+                if (triggerId > -1) {
+                    auto& trigInfo = this->oblockDesc.triggers.at(triggerId);
+                    triggerName = trigInfo.id;
+                    priority = trigInfo.priority;
+                }
                 std::vector<HeapMasterMessage> trigEvent; 
                 
                 for(auto& [name, devBox] : this->waitingQs){
                     if(devBox.stateQueues->isEmpty()){
                         auto newHmm = devBox.stateQueues->read(); 
                         newHmm.info.oblock = this->OblockName; 
-                        newHmm.info.priority = trigInfo.priority; 
+                        newHmm.info.priority = priority; 
                         trigEvent.push_back(newHmm); 
                     }
                     else{
                         auto newHmm = devBox.lastMessage.get(); 
                         newHmm.info.oblock = this->OblockName; 
-                        newHmm.info.priority = trigInfo.priority; 
+                        newHmm.info.priority = priority; 
                         trigEvent.push_back(newHmm);
                     }
                 }
 
                 EMStateMessage ems; 
                 ems.dmm_list = trigEvent; 
-                ems.TriggerName = trigInfo.id;  
-                ems.priority = trigInfo.priority; 
+                ems.TriggerName = triggerName;
+                ems.priority = priority; 
                 ems.oblockName = this->OblockName; 
                 ems.protocol = PROTOCOLS::SENDSTATES; 
             
