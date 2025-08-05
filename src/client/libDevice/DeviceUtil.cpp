@@ -2,6 +2,7 @@
 #include "DeviceCore.hpp"
 #include "include/ADC.hpp"
 #include <atomic>
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <stdexcept>
@@ -24,6 +25,9 @@ DeviceHandle::DeviceHandle(TYPE dtype, std::unordered_map<std::string, std::stri
         #define DEVTYPE_BEGIN(name) \
         case TYPE::name: { \
             this->device.emplace<Device::name>(); \
+            if (config.contains("cooldown")) { \
+                cooldown = std::stoul(config.at("cooldown")); \
+            } \
             this->init(config, usingADC); \
             break; \
         }
@@ -219,8 +223,8 @@ void DeviceTimer::sendData() {
     Send(smsg); 
 }
 
-DeviceInterruptor::DeviceInterruptor(DeviceHandle& targDev, std::shared_ptr<Connection> conex, int ctl, int dd)
-                                    : device(targDev), client_connection(conex), ctl_code(ctl), device_code(dd) {}
+DeviceInterruptor::DeviceInterruptor(boost::asio::io_context &in_ctx, DeviceHandle& targDev, std::shared_ptr<Connection> conex, int ctl, int dd)
+                                    : device(targDev), client_connection(conex), cooldownTimer(in_ctx), ctl_code(ctl), device_code(dd) {}
 
 DeviceInterruptor::DeviceInterruptor(DeviceInterruptor&& other)
                                     : device(other.device)
@@ -228,6 +232,7 @@ DeviceInterruptor::DeviceInterruptor(DeviceInterruptor&& other)
                                     , watcherManagerThread(std::move(other.watcherManagerThread))
                                     , globalWatcherThreads(std::move(other.globalWatcherThreads))
                                     , watchDescriptors(std::move(other.watchDescriptors))
+                                    , cooldownTimer(std::move(other.cooldownTimer))
                                     , ctl_code(other.ctl_code)
                                     , device_code(other.device_code)
 {
@@ -241,6 +246,19 @@ DeviceInterruptor::DeviceInterruptor(DeviceInterruptor&& other)
 
 DeviceInterruptor::~DeviceInterruptor() {
     this->stopThreads();
+}
+
+void DeviceInterruptor::restartCooldown() {
+    if (device.cooldown == 0) return;
+    cooldownTimer.cancel();
+    cooldownTimer.expires_after(std::chrono::milliseconds(device.cooldown));
+}
+
+bool DeviceInterruptor::inCooldown() {
+    if (device.cooldown == 0) return false;
+    auto currentTime = std::chrono::steady_clock::now(); 
+    auto cooldownTime = cooldownTimer.expires_at(); 
+    return currentTime < cooldownTime;
 }
 
 void DeviceInterruptor::sendMessage() {
@@ -349,8 +367,9 @@ void DeviceInterruptor::IFileWatcher(std::stop_token stoken, std::string fname, 
             continue;
         }
         bool ret_val = handler(); 
-        if(ret_val && !this->device.processing){
+        if(ret_val && !this->device.processing && !inCooldown()){
             std::cerr<<"Sending message"<<std::endl;
+            restartCooldown();
             this->sendMessage();  
         }
     }
@@ -372,7 +391,10 @@ void DeviceInterruptor::IGpioWatcher(std::stop_token stoken, int portNum, std::f
 
     while (!stoken.stop_requested()) {
         signaler.wait(false);
-        this->sendMessage();
+        if (!inCooldown()) {
+            restartCooldown();
+            this->sendMessage();
+        }
         signaler = false;
     }
 }
@@ -395,8 +417,10 @@ void DeviceInterruptor::ISdlWatcher(std::stop_token stoken, std::function<bool(S
 
     while (!stoken.stop_requested()) {
         signaler.wait(false);
-        std::cout<<"Hello"<<std::endl;
-        this->sendMessage();
+        if (!inCooldown()) {
+            restartCooldown();
+            this->sendMessage();
+        }
         signaler = false;
     }
 }

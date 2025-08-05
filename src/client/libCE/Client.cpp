@@ -238,7 +238,7 @@ void Client::listener(std::stop_token stoken){
                 if(device.hasInterrupt()){
                     // Organizes the device interrupts
                     std::cout<<"Interrupt created!"<<std::endl;
-                    this->interruptors.emplace_back(device, this->client_connection, this->controller_alias, dev_id);
+                    this->interruptors.emplace_back(this->client_ctx, device, this->client_connection, this->controller_alias, dev_id);
                     std::cout<<"Sending Initial State"<<std::endl; 
                     sendMessage(dev_id, Protocol::SEND_STATE_INIT, true); 
                 }   

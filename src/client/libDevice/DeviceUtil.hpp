@@ -62,13 +62,14 @@ class DeviceHandle {
     
     public:
         uint16_t id;
+        uint32_t cooldown = 0;
         bool isTrigger;
+        bool isActuator = false;
 
         std::mutex m;
         std::condition_variable_any cv;
         bool processing = false;
         bool watchersPaused = false;
-        bool isActuator = false;
         
 
         DeviceHandle(TYPE dtype, std::unordered_map<std::string, std::string> &config, std::shared_ptr<ADS7830> targetADC);
@@ -127,10 +128,13 @@ class DeviceInterruptor{
         std::jthread watcherManagerThread;
         std::vector<std::jthread> globalWatcherThreads; 
         std::vector<std::tuple<int, int, std::string>> watchDescriptors; 
-        int ctl_code; 
+        boost::asio::steady_timer cooldownTimer; 
+        int ctl_code;
         int device_code;
 
 
+        void restartCooldown();
+        bool inCooldown();
         void sendMessage();
         void disableWatchers();
         void enableWatchers();
@@ -144,7 +148,7 @@ class DeviceInterruptor{
 
         
     public: 
-        DeviceInterruptor(DeviceHandle& targDev, std::shared_ptr<Connection> conex, int ctl, int dd);
+        DeviceInterruptor(boost::asio::io_context &in_ctx, DeviceHandle& targDev, std::shared_ptr<Connection> conex, int ctl, int dd);
         DeviceInterruptor(DeviceInterruptor&& other);
         ~DeviceInterruptor();
         // Setup Watcher Thread
