@@ -25,5 +25,19 @@ TRAP_BEGIN(time, string)
 TRAP_END
 
 TRAP_BEGIN(disableTrigger, void)
-    ARGUMENT(triggerID, string)
+    ARGUMENT(triggerName, string)
+    ARGUMENT(oblockID, string)
 TRAP_END
+
+TRAP_BEGIN(enableTrigger, void)
+    ARGUMENT(triggerName, string)
+    ARGUMENT(oblockID, string)
+TRAP_END
+
+TRAP_BEGIN(push, void)
+    VARIADIC(states)
+TRAP_END
+
+TRAP_BEGIN(pull, void)
+    VARIADIC(states)
+TRAP_END 

@@ -4,6 +4,8 @@
 #include "libtype/bls_types.hpp"
 #include <chrono>
 #include <concepts>
+#include <memory>
+#include <ranges>
 #include <cstdint>
 #include <sstream>
 #include <string>
@@ -59,7 +61,36 @@ std::string Impl::time(BytecodeProcessor* vm) {
 }
 
 
-std::monostate Impl::disableTrigger(std::string triggerID, BytecodeProcessor* vm){
-    std::cout<<"DISABLING TRIGGER: "<<triggerID<<std::endl;
+std::monostate Impl::disableTrigger(std::string triggerName, std::string oblockID, BytecodeProcessor* vm){
+    vm->ownerUnit->sendTriggerChange(triggerName, oblockID, false); 
     return std::monostate();
+}
+
+std::monostate Impl::enableTrigger(std::string triggerName, std::string oblockID, BytecodeProcessor* vm){
+    vm->ownerUnit->sendTriggerChange(triggerName, oblockID, true); 
+    return std::monostate(); 
+}
+
+std::monostate Impl::push(std::vector<BlsType> blsList, BytecodeProcessor *vm){
+    // imagine a push function here
+    vm->ownerUnit->sendPushState(blsList); 
+}
+
+
+std::monostate Impl::pull(std::vector<BlsType> blsList, BytecodeProcessor *vm){
+    auto newStates = vm->ownerUnit->sendPullState(blsList); 
+    int i = 0; 
+    for(auto oldVal : blsList){
+        if(std::holds_alternative<std::shared_ptr<HeapDescriptor>>(oldVal)){
+            auto old_hd = std::get<std::shared_ptr<HeapDescriptor>>(oldVal);
+            auto new_hd  = std::get<std::shared_ptr<HeapDescriptor>>(newStates.at(i));
+            *old_hd = *new_hd; 
+        }
+        else{
+            //  Wont work for now since blsList is copied by value
+            oldVal = blsList.at(i); 
+        }
+
+        i++; 
+    }
 }

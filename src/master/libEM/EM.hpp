@@ -6,6 +6,7 @@
 #include "libScheduler/Scheduler.hpp"
 #include "libtype/bls_types.hpp"
 #include "libTSM/TSM.hpp"
+#include <condition_variable>
 #include <unordered_map>
 #include <thread>
 #include <memory>
@@ -35,6 +36,16 @@ class ExecutionUnit
     // Get the trigger name
     std::string TriggerName = "";
     BlsLang::VirtualMachine vm;
+    TSQ<HeapMasterMessage> &sendMM; 
+
+
+    // Pulling stuff
+    int pullCounter = 0; 
+    std::mutex pullMutex; 
+    std::condition_variable pullCV;
+    std::vector<BlsType> pullStoreVector; 
+    std::unordered_map<DeviceID, int> pullPlacement; 
+
 
 
     ExecutionUnit(OBlockDesc OblockData
@@ -49,10 +60,18 @@ class ExecutionUnit
     
 
     
-    void running( TSQ<HeapMasterMessage> &sendMM);
+    void running();
     // Replaced cached states while devices are read from
     void replaceCachedStates(std::unordered_map<DeviceID, HeapMasterMessage> &cachedHMMs); 
    
+    // OS level Traps (should always be a ptr heap descriptor so fine to take as value)
+    void sendPushState(std::vector<BlsType> &pushStates);
+    std::vector<BlsType> sendPullState(std::vector<BlsType> &pullStates);
+    void pullVMArguments(HeapMasterMessage &hmm); 
+    // For the triggerChange message, the device is the trigger (workaround for now)
+    void sendTriggerChange(std::string& triggerID, OblockID& oblockID, bool isEnable); 
+
+
     ~ExecutionUnit();
 };
 

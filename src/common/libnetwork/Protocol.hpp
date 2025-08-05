@@ -34,6 +34,8 @@ enum class Protocol : uint8_t{
     OWNER_CANDIDATE_REQUEST_CONCLUDE, 
     OWNER_RELEASE, 
     OWNER_CONFIRM, 
+    PUSH_REQUEST, 
+    PULL_REQUEST, 
 
     // (Client -> Master)
     CONFIG_NAME, 
@@ -43,12 +45,12 @@ enum class Protocol : uint8_t{
     CLIENT_ERROR, 
     OWNER_GRANT, 
     OWNER_CONFIRM_OK,
+    PULL_RESPONSE, 
 
     // Controller to Controller (peer to peer) or self
     SEND_ARGUMENT, 
 
     
-
 
     // Client Loop back
     CONNECTION_LOST 
@@ -102,6 +104,9 @@ struct SentHeader{
     // Used to communicate about oblock ownership between master and client
     uint16_t oblock_id = 0;
     uint8_t oblock_priority = 0; 
+
+    // used to keep track of pushIDs
+    uint16_t pushID = 0; 
 
     bool fromInterrupt = false; 
 

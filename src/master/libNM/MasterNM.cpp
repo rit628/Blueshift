@@ -229,7 +229,7 @@ void MasterNM::masterRead(){
         sm_main.header.ctl_code = this->controller_alias_map[new_state.info.controller]; 
         sm_main.header.oblock_id = this->oblock_alias_map[new_state.info.oblock]; 
 
-        bool scheduling = true;
+        bool nonStateChange = true;
 
 
         // Add other communication MASERT_PROTOCOLS
@@ -254,9 +254,14 @@ void MasterNM::masterRead(){
                 sm_main.header.prot = Protocol::OWNER_CANDIDATE_REQUEST_CONCLUDE; 
                 break; 
             }
+            case PROTOCOLS::PULL_REQUEST:{
+                std::cout<<"Sending out pull request for oblock "<<new_state.info.oblock<<" for device: "<<new_state.info.device<<std::endl;
+                sm_main.header.prot = Protocol::PULL_REQUEST; 
+                break; 
+            }
             default : {
                 sm_main.header.prot = Protocol::STATE_CHANGE;
-                scheduling = false; 
+                nonStateChange = false; 
                 sm_main.body = new_state.DM.Serialize(); 
                 sm_main.header.body_size = sm_main.body.size(); 
             }
@@ -267,7 +272,7 @@ void MasterNM::masterRead(){
     
         messageClient(cont, sm_main); 
 
-        if(scheduling){
+        if(nonStateChange){
             continue; 
         }
         
@@ -405,14 +410,7 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
         }
         case(Protocol::CALLBACK): {
 
-            std::string device_name = this->device_list[in_msg.sm.header.device_code];
-
-            DMM new_msg; 
-
-            new_msg.info.controller = this->controller_list[in_msg.sm.header.ctl_code]; 
-            new_msg.info.device = device_name;         
-            new_msg.protocol = PROTOCOLS::CALLBACKRECIEVED; 
-            new_msg.DM = dmsg; 
+            DMM new_msg = this->makeDMM(in_msg.sm, PROTOCOLS::CALLBACKRECIEVED);
             new_msg.isInterrupt = in_msg.sm.header.fromInterrupt;
             this->EMM_out_queue.write(new_msg);
 
@@ -420,27 +418,37 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
         }
         // Add any other protocol involved in  
         case Protocol::OWNER_GRANT : {
-            DMM new_msg; 
-            new_msg.protocol = PROTOCOLS::OWNER_GRANT; 
-            new_msg.info.controller = this->controller_list[in_msg.sm.header.ctl_code]; 
-            new_msg.info.device = this->device_list[in_msg.sm.header.device_code]; 
-            new_msg.info.oblock =  this->oblock_list[in_msg.sm.header.oblock_id]; 
+            DMM new_msg = this->makeDMM(in_msg.sm, PROTOCOLS::OWNER_GRANT); 
             this->EMM_out_queue.write(new_msg); 
             break;  
         }
         case Protocol::OWNER_CONFIRM_OK : {
-            DMM new_msg; 
-            new_msg.protocol = PROTOCOLS::OWNER_CONFIRM_OK; 
-            new_msg.info.controller = this->controller_list[in_msg.sm.header.ctl_code]; 
-            new_msg.info.device = this->device_list[in_msg.sm.header.device_code]; 
-            new_msg.info.oblock =  this->oblock_list[in_msg.sm.header.oblock_id]; 
+            DMM new_msg = this->makeDMM(in_msg.sm, PROTOCOLS::OWNER_CONFIRM_OK); 
             this->EMM_out_queue.write(new_msg); 
+            break; 
+        }
+        case Protocol::PULL_RESPONSE:{
+            DMM new_msg = this->makeDMM(in_msg.sm, PROTOCOLS::PULL_RESPONSE);
+            new_msg.DM = dmsg; 
+            this->EMM_out_queue.write(new_msg);
             break; 
         }
         default:{
             std::cerr<<"MASTER NM unknown handle"<<std::endl; 
         }
     }
+}
+
+
+// helper function to fill out the info of a dmm object 
+DynamicMasterMessage MasterNM::makeDMM(SentMessage &in_msg, PROTOCOLS pcode){
+    DMM new_msg; 
+    new_msg.protocol = pcode;
+    new_msg.info.controller = this->controller_list[in_msg.header.ctl_code]; 
+    new_msg.info.device = this->device_list[in_msg.header.device_code]; 
+    new_msg.info.oblock =  this->oblock_list[in_msg.header.oblock_id]; 
+    
+    return new_msg; 
 }
 
 

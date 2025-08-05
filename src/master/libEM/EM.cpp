@@ -4,7 +4,9 @@
 #include "libScheduler/Scheduler.hpp"
 #include "libtype/bls_types.hpp"
 #include <memory>
+#include <mutex>
 #include <variant>
+#include <vector>
 
 // 
 
@@ -36,7 +38,7 @@ ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<EMStateMes
 
 ExecutionUnit::ExecutionUnit(OBlockDesc oblock, vector<string> devices, vector<bool> isVtype, vector<string> controllers,
     TSQ<HeapMasterMessage> &sendMM, size_t bytecodeOffset, std::vector<char>& bytecode, function<vector<BlsType>(vector<BlsType>)>  transform_function, DeviceScheduler &devScheduler)
-    : globalScheduler(devScheduler)
+    : globalScheduler(devScheduler), sendMM(sendMM)
 {
     this->Oblock = oblock;
     this->devices = devices;
@@ -94,7 +96,7 @@ void ExecutionUnit::replaceCachedStates(std::unordered_map<DeviceID, HeapMasterM
 }
 
 
-void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
+void ExecutionUnit::running()
 {
     while(true)
     {
@@ -121,7 +123,7 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
         HeapMasterMessage execMsg;
         execMsg.info.oblock = this->Oblock.name;
         execMsg.protocol = PROTOCOLS::PROCESS_EXEC; 
-        sendMM.write(execMsg);
+        this->sendMM.write(execMsg);
 
 
         for(auto& deviceDesc : this->Oblock.binded_devices){
@@ -171,7 +173,7 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
 
         for(HeapMasterMessage& hmm : outGoingStates)
         {
-            sendMM.write(hmm);
+            this->sendMM.write(hmm);
         }
 
         // clear the replacement cache since the oblock ran successfully
@@ -224,6 +226,16 @@ void ExecutionManager::running()
                 assignedUnit.replacementCache.insert(dmm.info.device, dmm); 
                 break; 
             }
+            case(PROTOCOLS::PULL_RESPONSE):{
+                HeapMasterMessage hmm = currentDMMs.dmm_list[0];
+                assignedUnit.pullVMArguments(hmm); 
+                // Allow the oblock to continue execution by unblocking the syscall
+                {
+                    std::lock_guard<std::mutex> lock(assignedUnit.pullMutex);
+                    assignedUnit.pullCounter--; 
+                }
+                assignedUnit.pullCV.notify_one();
+            }
             default:{
                 assignedUnit.EUcache.write(currentDMMs);
                 break; 
@@ -240,4 +252,66 @@ void ExecutionManager::running()
     
     }
 }
+
+// TRAP IMPLEMENTATIONS
+
+void ExecutionUnit::sendPushState(std::vector<BlsType> &typeList){
+        for(BlsType blsType : typeList){
+            HeapMasterMessage pushStateHmm; 
+            pushStateHmm.heapTree = blsType; 
+            pushStateHmm.protocol = PROTOCOLS::PUSH_REQUEST;
+            // TODO: CHANGE THIS TO USE THE ACTUAL NAME INSTEAD OF THE ALIAS
+            pushStateHmm.info.device = this->Oblock.binded_devices.at(blsType.index).device_name; 
+            pushStateHmm.info.oblock = this->Oblock.name; 
+            this->sendMM.write(pushStateHmm); 
+        }
+    }
+
+
+std::vector<BlsType> ExecutionUnit::sendPullState(std::vector<BlsType> &typeList){
+        this->pullStoreVector.clear(); 
+        int numPulls  = typeList.size(); 
+        this->pullStoreVector.resize(numPulls); 
+        this->pullCounter = numPulls; 
+        int i = 0; 
+        for(BlsType blsType : typeList){
+            HeapMasterMessage pullStateHmm; 
+            pullStateHmm.protocol = PROTOCOLS::PULL_REQUEST; 
+            // TODO: CHANGE THIS TO USE THE DEVICE ALIAS MAPPING
+            pullStateHmm.info.device = this->Oblock.binded_devices.at(blsType.index).device_name;
+            pullStateHmm.info.oblock = this->Oblock.name; 
+            this->sendMM.write(pullStateHmm); 
+            this->pullPlacement[pullStateHmm.info.device] = i; 
+            i++; 
+        }
+        std::unique_lock<std::mutex> lock(this->pullMutex);
+        this->pullCV.wait(lock, [this](){return this->pullCounter == 0;}); 
+        this->pullPlacement.clear(); 
+        return this->pullStoreVector; 
+    }
+
+
+// Finish this: 
+void ExecutionUnit::pullVMArguments(HeapMasterMessage &hmm){
+    DeviceID device = hmm.info.device; 
+    int pullPos = this->devicePositionMap.at(device);
+    this->pullStoreVector.at(pullPos) = hmm.heapTree; 
+}
+
+void ExecutionUnit::sendTriggerChange(std::string& triggerID, OblockID& oblockID, bool isEnable){
+        HeapMasterMessage trigChangeHmm; 
+        trigChangeHmm.info.oblock = oblockID; 
+        trigChangeHmm.info.device = triggerID; 
+        
+        if(isEnable){
+            trigChangeHmm.protocol = PROTOCOLS::ENABLE_TRIGGER; 
+        }   
+        else{
+            trigChangeHmm.protocol = PROTOCOLS::DISABLE_TRIGGER; 
+        }
+        
+        this->sendMM.write(trigChangeHmm); 
+    }
+
+
 

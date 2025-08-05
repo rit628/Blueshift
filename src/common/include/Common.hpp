@@ -29,8 +29,10 @@ enum class PROTOCOLS
     OWNER_RELEASE, 
     PROCESS_EXEC,
     DISABLE_TRIGGER,
-    
-
+    ENABLE_TRIGGER, 
+    PUSH_REQUEST, 
+    PULL_REQUEST, 
+    PULL_RESPONSE, 
 
     // NM -> MM
     CALLBACKRECIEVED,
@@ -38,13 +40,11 @@ enum class PROTOCOLS
     //MM -> EM
     OWNER_GRANT, 
     OWNER_CONFIRM_OK, 
-    CALLBACK_UPDATE, 
     QUEUE_EMPTY, 
 
     // MM->EM (Forward data to a waiting device)
     WAIT_STATE_FORWARD
    
-
 };
 
 enum class READ_POLICY : uint8_t {
@@ -169,6 +169,8 @@ struct DynamicMasterMessage
     DynamicMessage DM;
     bool isInterrupt;
     PROTOCOLS protocol;
+    int pushID = 0;
+
     DynamicMasterMessage() = default;
     DynamicMasterMessage(DynamicMessage DM, O_Info info, PROTOCOLS protocol, bool isInterrupt);
     
@@ -183,6 +185,7 @@ struct HeapMasterMessage
     PROTOCOLS protocol;
     bool isInterrupt;
     BlsType heapTree;
+    int pushID = 0;
 
     HeapMasterMessage() = default;
     HeapMasterMessage(std::shared_ptr<HeapDescriptor> heapTree, O_Info info, PROTOCOLS protocol, bool isInterrupt);
@@ -202,6 +205,7 @@ struct EMStateMessage{
     std::vector<HeapMasterMessage> dmm_list; 
     int priority; 
     PROTOCOLS protocol; 
+    int pushID; 
 }; 
 
 

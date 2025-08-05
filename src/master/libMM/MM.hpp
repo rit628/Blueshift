@@ -9,6 +9,7 @@
 #include <bitset>
 #include <condition_variable>
 #include <mutex>
+#include <optional>
 #include <queue>
 #include <stdexcept>
 #include <unordered_map>
@@ -61,7 +62,9 @@ class TriggerManager{
         std::vector<std::bitset<BITSET_SZ>> ruleset; 
         std::vector<TriggerData> trigData; 
         std::bitset<BITSET_SZ> defaultBitstring; 
-        std::set<int> excludedTriggers;
+        std::unordered_set<int> excludedTriggers;
+        // Maps trigger indices to integers
+        std::unordered_map<std::string, int> triggerIndexMap; 
 
         
 
@@ -78,7 +81,7 @@ class TriggerManager{
             // Add the default universal bitset (all 1s): 
             defaultBitstring = (1 << (i)) - 1; 
             this->trigData = OBlockDesc.triggers; 
-
+            i = 0;
             // Loop through rules; 
             for(auto& data : OBlockDesc.triggers)
             {
@@ -87,7 +90,9 @@ class TriggerManager{
                 for(auto& devName : rule){
                     king.set(this->stringMap[devName]); 
                 }       
+                this->triggerIndexMap[data.id] = i; 
                 ruleset.push_back(king); 
+                i++; 
             }
             
         }
@@ -148,6 +153,18 @@ class TriggerManager{
             void debugCurrentString(){
                 std::cout<<this->currentBitmap<<std::endl; 
             }
+
+            void disableTrigger(std::string &triggerName){
+                int index = this->triggerIndexMap.at(triggerName); 
+                this->excludedTriggers.insert(index); 
+            }
+
+            void enableTrigger(std::string &triggerName){
+                int index = this->triggerIndexMap.at(triggerName);
+                if(this->excludedTriggers.contains(index)){
+                    this->excludedTriggers.erase(index);
+                }
+            }
 }; 
 
 
@@ -158,11 +175,15 @@ struct DeviceBox{
     OVERWRITE_POLICY overwritePolicy;
     bool yields = true;
     std::string deviceName; 
+    bool waitingOnPull = false; 
+    int lastPush = 0; 
+    int requestPush = 0;
 }; 
 
 
 struct ReaderBox
 {
+
     public:
         std::unordered_map<DeviceID, DeviceBox> waitingQs;
         /* 
@@ -182,11 +203,12 @@ struct ReaderBox
         bool inExec = false;
         OBlockDesc oblockDesc; 
         std::mutex read_mut; 
+        TSQ<EMStateMessage> &sendEM; 
 
 
         // Inserts the state into the object: 
         // the bool initEvent determines if the event is an initial event or not
-        void insertState(HeapMasterMessage newDMM, TSQ<EMStateMessage>& sendEM){
+        void insertState(HeapMasterMessage newDMM){
             std::lock_guard<std::mutex> lock(this->read_mut); 
 
 
@@ -259,7 +281,7 @@ struct ReaderBox
             }
         }
 
-        void handleRequest(TSQ<EMStateMessage>& sendEM){
+        void handleRequest(){
             std::lock_guard<std::mutex> lock(this->read_mut); 
 
             // write for loop to handle requests
@@ -280,7 +302,7 @@ struct ReaderBox
         }   
 
 
-        ReaderBox(string name,  OBlockDesc& odesc, std::unordered_set<OblockID> &trigSet);
+        ReaderBox(string name,  OBlockDesc& odesc, std::unordered_set<OblockID> &trigSet, TSQ<EMStateMessage> &emMsg);
     
 };
 
@@ -423,7 +445,7 @@ class ConfirmContainer{
                 return; 
             }
 
-            if(state.expectingYield){
+            if(state.expectingYield || (dmm.protocol == PROTOCOLS::PULL_REQUEST)){
                 std::cout<<"Expecing yeild reached for device: "<<dmm.info.device<<std::endl; 
                 if(state.emptyQueue){
                     std::cout<<"Writing state: "<<dmm.info.device<<std::endl; 
