@@ -58,7 +58,7 @@ ExecutionUnit::ExecutionUnit(OBlockDesc oblock, vector<string> devices, vector<b
     }
 
     //this->running(vtypeHMMsMap, sendMM);
-    this->executionThread = thread(&ExecutionUnit::running, this,  ref(sendMM));
+    this->executionThread = thread(&ExecutionUnit::running, this);
 }
 
 ExecutionUnit::~ExecutionUnit()

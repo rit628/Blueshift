@@ -87,7 +87,7 @@ target_link_libraries(type ${BOOST_LIB_DEPS})
 file(GLOB_RECURSE LIBTRAP_SRC ${COMMON_SRC_DIR}/libtrap/*.cpp)
 add_library(trap STATIC ${LIBTRAP_SRC})
 target_include_directories(trap PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON} ${MASTER_SRC_DIR})
-target_link_libraries(trap type ${BOOST_LIB_DEPS})
+target_link_libraries(trap EM type ${BOOST_LIB_DEPS})
 
 file(GLOB_RECURSE LIBDM_SRC ${COMMON_SRC_DIR}/libDM/*.cpp)
 add_library(dynamic_message STATIC ${LIBDM_SRC})
