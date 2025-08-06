@@ -1,11 +1,8 @@
-oblock main(LINE_WRITER dev, dev2) {
-        
-
-
+oblock main(LINE_WRITER dev) {
 
 }
 
 setup() {
-    LINE_WRITER manat = "mamal::file-file1.txt";
+    LINE_WRITER manat = "ctl::file-file1.txt";
     main(manat);
 }

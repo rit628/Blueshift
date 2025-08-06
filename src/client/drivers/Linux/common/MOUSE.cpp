@@ -37,7 +37,6 @@ void MOUSE::init(std::unordered_map<std::string, std::string>& config) {
                 }
             }
             SDL_HideWindow(window);
-            SDL_SetHint("SDL_HINT_INPUT_WINDOW_REQUIRED", "true");
         };
         if (!SDL_RunOnMainThread(selectMouse, this, true)) {
             throw BlsExceptionClass("Failed to select mouse: " + std::string(SDL_GetError()), ERROR_T::DEVICE_FAILURE);
@@ -46,6 +45,7 @@ void MOUSE::init(std::unordered_map<std::string, std::string>& config) {
     else {
         throw BlsExceptionClass("Invalid mouse input mode.", ERROR_T::BAD_DEV_CONFIG);
     }
+    SDL_SetHint("SDL_HINT_INPUT_WINDOW_REQUIRED", "true");
     addSDLIWatch(std::bind(&MOUSE::handleMovement, std::ref(*this), std::placeholders::_1));
     addSDLIWatch(std::bind(&MOUSE::handleClick, std::ref(*this), std::placeholders::_1));
     addSDLIWatch(std::bind(&MOUSE::handleScroll, std::ref(*this), std::placeholders::_1));

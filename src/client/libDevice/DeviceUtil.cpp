@@ -1,13 +1,18 @@
 #include "DeviceUtil.hpp"
 #include "DeviceCore.hpp"
 #include "include/ADC.hpp"
+#include "libnetwork/Connection.hpp"
+#include "libnetwork/Protocol.hpp"
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <stdexcept>
 #include <stop_token>
 #include <sys/inotify.h>
+#include <tuple>
 #include <utility>
 #include <variant>
 #ifdef __RPI64__
@@ -19,8 +24,6 @@ struct overloads : Ts... { using Ts::operator()...; };
 
 DeviceHandle::DeviceHandle(TYPE dtype, std::unordered_map<std::string, std::string> &config, std::shared_ptr<ADS7830> usingADC) 
 {
-
-
     switch(dtype){
         #define DEVTYPE_BEGIN(name) \
         case TYPE::name: { \
@@ -236,10 +239,10 @@ DeviceInterruptor::DeviceInterruptor(DeviceInterruptor&& other)
                                     , ctl_code(other.ctl_code)
                                     , device_code(other.device_code)
 {
-    bool wasRunning = this->watcherManagerThread.joinable();
+    running = this->watcherManagerThread.joinable();
     this->stopThreads(); // cleanup old threads that reference other
     watchDescriptors.clear(); // remove old watch descriptors
-    if (wasRunning) { // restart threads
+    if (running) { // restart threads
         this->setupThreads();
     }
 }
@@ -284,19 +287,53 @@ void DeviceInterruptor::sendMessage() {
     this->client_connection->send(sm); 
 }
 
-void DeviceInterruptor::disableWatchers() { 
-    for (auto&& [fd, wd, filename] : watchDescriptors) {
-        inotify_rm_watch(fd, wd);
+void DeviceInterruptor::disableWatchers() {
+    for (auto&& descriptor : watchDescriptors) {
+        std::visit(overloads {
+            [](FileWatchDescriptor& desc) {
+                auto&& [fd, wd, filename] = desc;
+                inotify_rm_watch(fd, wd);
+            },
+            [](GpioWatchDescriptor& desc) {
+                #ifdef __RPI64__
+                auto&& [port, callback, callbackData] = desc;
+                gpioSetAlertFuncEx(port, NULL, callbackData);
+                #endif
+            },
+            #ifdef SDL_ENABLED
+            [](SdlWatchDescriptor& desc) {
+                auto&& [callback, callbackData] = desc;
+                SDL_RemoveEventWatch(callback, callbackData);
+            }
+            #endif
+        }, descriptor);
     }
 }
 
 void DeviceInterruptor::enableWatchers() {
-    for (auto& [fd, wd, filename] : watchDescriptors) {
-        wd = inotify_add_watch(fd, filename.c_str(), IN_CLOSE_WRITE); 
-        if(wd < 0){
-            std::cerr<<"Could not add watcher"<<std::endl; 
-            close(fd);
-        }
+    for (auto&& descriptor : watchDescriptors) {
+        std::visit(overloads {
+            [](FileWatchDescriptor& desc) {
+                auto&& [fd, wd, filename] = desc;
+                wd = inotify_add_watch(fd, filename.c_str(), IN_CLOSE_WRITE); 
+                if(wd < 0){
+                    std::cerr<<"Could not add watcher"<<std::endl; 
+                    close(fd);
+                }
+            },
+            [](GpioWatchDescriptor& desc) {
+                #ifdef __RPI64__
+                auto&& [port, callback, callbackData] = desc;
+                gpioSetAlertFuncEx(port, callback, callbackData);
+                #endif
+            },
+            #ifdef SDL_ENABLED
+            [](SdlWatchDescriptor& desc) {
+                auto&& [callback, callbackData] = desc;
+                SDL_AddEventWatch(callback, callbackData);
+            }
+            #endif
+        }, descriptor);
     }
 }
 
@@ -337,6 +374,8 @@ void DeviceInterruptor::manageWatchers(std::stop_token stoken) {
         cv.notify_one();
     }
     disableWatchers();
+    running = false;
+    running.notify_all();
 }
 
 void DeviceInterruptor::IFileWatcher(std::stop_token stoken, std::string fname, std::function<bool()> handler){
@@ -353,7 +392,7 @@ void DeviceInterruptor::IFileWatcher(std::stop_token stoken, std::string fname, 
         std::cerr<<"Could not perform an inotify event"<<std::endl; 
         close(fd); 
     }
-    watchDescriptors.push_back({fd, wd, fname});
+    watchDescriptors.push_back(FileWatchDescriptor{fd, wd, fname});
 
     // For now we can bypass the metadata and store data for the filesize and stuff;
     char event_buffer[sizeof(inotify_event) + 256]; 
@@ -366,63 +405,79 @@ void DeviceInterruptor::IFileWatcher(std::stop_token stoken, std::string fname, 
             std::cout << "drop removed watch event" << std::endl;
             continue;
         }
-        bool ret_val = handler(); 
-        if(ret_val && !this->device.processing && !inCooldown()){
+         
+        if(handler() && !inCooldown()){
             std::cerr<<"Sending message"<<std::endl;
             restartCooldown();
             this->sendMessage();  
         }
     }
+    running.wait(true); // terminate thread once watcher manager has shutdown
 }
 
 void DeviceInterruptor::IGpioWatcher(std::stop_token stoken, int portNum, std::function<bool(int, int , uint32_t)> handler) {
-    std::atomic_bool signaler = false;
-    std::pair<decltype(signaler)&, decltype(handler)&> signalerAndHandler = {signaler, handler};
-    using callback_data = decltype(signalerAndHandler);
-    auto callback = [](int gpio, int level, unsigned int tick, void* data) -> void {
-        auto& [signaler, handler] = *reinterpret_cast<callback_data*>(data);
-        signaler = handler(gpio, level, tick);
-        signaler.notify_one();
-    }; 
+    condition_variable_any cv;
+    std::mutex m;
+    bool handlerSignal = false;
+    using callback_data = std::tuple<condition_variable_any&, std::mutex&, bool&, decltype(handler)&>;
+    callback_data callbackData = {cv, m, handlerSignal, handler};
+    auto callback = [](int gpio, int level, unsigned int tick, void* callbackData) -> void {
+        auto& [cv, m, handlerSignal, handler] = *reinterpret_cast<callback_data*>(callbackData);
+        {
+            std::lock_guard lk(m);
+            handlerSignal = handler(gpio, level, tick);
+        }
+        cv.notify_one();
+    };
+    watchDescriptors.push_back(GpioWatchDescriptor{portNum, callback, &callbackData});
 
     #ifdef __RPI64__
-    gpioSetAlertFuncEx(portNum, callback, &signalerAndHandler);
+    gpioSetAlertFuncEx(portNum, callback, &callbackData);
     #endif
 
     while (!stoken.stop_requested()) {
-        signaler.wait(false);
-        if (!inCooldown()) {
+        std::unique_lock lk(m);
+        if (cv.wait(lk, stoken, [this, &handlerSignal] { return handlerSignal && !inCooldown(); })) {
             restartCooldown();
             this->sendMessage();
+            handlerSignal = false;
         }
-        signaler = false;
     }
+    running.wait(true); // terminate thread once watcher manager has shutdown
 }
 
 #ifdef SDL_ENABLED
 void DeviceInterruptor::ISdlWatcher(std::stop_token stoken, std::function<bool(SDL_Event*)> handler) {
-    std::atomic_bool signaler = false;
-    std::pair<decltype(signaler)&, decltype(handler)&> signalerAndHandler = {signaler, handler};
-    using filter_data = decltype(signalerAndHandler);
-    auto filter = [](void* signalerAndHandler, SDL_Event* event) -> bool {
-        auto& [signaler, handler] = *reinterpret_cast<filter_data*>(signalerAndHandler);
-        signaler = handler(event);
-        signaler.notify_one();
-        return signaler;
+    condition_variable_any cv;
+    std::mutex m;
+    bool handlerSignal = false;
+    using callback_data = std::tuple<condition_variable_any&, std::mutex&, bool&, decltype(handler)&>;
+    callback_data callbackData = {cv, m, handlerSignal, handler};
+    auto callback = [](void* callbackData, SDL_Event* event) -> bool {
+        auto& [cv, m, handlerSignal, handler] = *reinterpret_cast<callback_data*>(callbackData);
+        {
+            std::lock_guard lk(m);
+            handlerSignal = handler(event);
+        }
+        cv.notify_one();
+        return handlerSignal;
     };
 
-    if (!SDL_AddEventWatch(filter, &signalerAndHandler)) {
-        throw std::runtime_error("Failed to add SDL event watch: " + std::string(SDL_GetError()));
+    if (!SDL_AddEventWatch(callback, &callbackData)) {
+        throw BlsExceptionClass("Failed to add SDL event watch: " + std::string(SDL_GetError()), ERROR_T::DEVICE_FAILURE);
     }
 
+    watchDescriptors.push_back(SdlWatchDescriptor{callback, &callbackData});
+    
     while (!stoken.stop_requested()) {
-        signaler.wait(false);
-        if (!inCooldown()) {
+        std::unique_lock lk(m);
+        if (cv.wait(lk, stoken, [this, &handlerSignal] { return handlerSignal && !inCooldown(); })) {
             restartCooldown();
             this->sendMessage();
+            handlerSignal = false;
         }
-        signaler = false;
     }
+    running.wait(true); // terminate thread once watcher manager has shutdown
 }
 #endif
     
@@ -459,4 +514,5 @@ void DeviceInterruptor::stopThreads() {
         watcher.request_stop();
     }
     watcherManagerThread.request_stop();
+    globalWatcherThreads.clear();
 }

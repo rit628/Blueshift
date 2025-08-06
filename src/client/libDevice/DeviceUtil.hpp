@@ -122,15 +122,43 @@ class DeviceTimer{
     INTERRUPT STUFF
 */
 class DeviceInterruptor{
-    private: 
+    private:
+        struct FileWatchDescriptor {
+            int fd;
+            int wd;
+            std::string filename;
+        };
+
+        struct GpioWatchDescriptor {
+            int port;
+            void (*callback)(int, int, unsigned int, void*);
+            void* callbackData;
+        };
+
+        #ifdef SDL_ENABLED
+        struct SdlWatchDescriptor {
+            SDL_EventFilter callback;
+            void* callbackData;
+        };
+        #endif
+
+        using WatchDescriptor = std::variant<
+              FileWatchDescriptor
+            , GpioWatchDescriptor
+            #ifdef SDL_ENABLED
+            , SdlWatchDescriptor
+            #endif
+        >;
+
         DeviceHandle& device; 
         std::shared_ptr<Connection> client_connection; 
         std::jthread watcherManagerThread;
         std::vector<std::jthread> globalWatcherThreads; 
-        std::vector<std::tuple<int, int, std::string>> watchDescriptors; 
+        std::vector<WatchDescriptor> watchDescriptors;
         boost::asio::steady_timer cooldownTimer; 
         int ctl_code;
         int device_code;
+        std::atomic_bool running = true;
 
 
         void restartCooldown();

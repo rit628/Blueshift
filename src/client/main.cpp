@@ -9,8 +9,6 @@
 #endif
 
 int main(int argc, char* argv[]) {
-
-    
     std::string name;
     if (argc == 2) {
         name = argv[1];
@@ -31,7 +29,7 @@ int main(int argc, char* argv[]) {
         SDL_Window* window = nullptr;
         SDL_Renderer* renderer = nullptr;
         auto windowName = name + " Input Window";
-        if (!SDL_CreateWindowAndRenderer(windowName.c_str(), 800, 600, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY, &window, &renderer)) {
+        if (!SDL_CreateWindowAndRenderer(windowName.c_str(), 800, 600, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN | SDL_WINDOW_HIGH_PIXEL_DENSITY, &window, &renderer)) {
             sdlRunning = false;
             std::cerr << "Input window creation failed: " << SDL_GetError() << ". Some devices may not work properly." << std::endl;
         }

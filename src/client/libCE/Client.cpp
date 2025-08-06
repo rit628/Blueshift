@@ -81,7 +81,11 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
 void Client::listener(std::stop_token stoken){
     while(!stoken.stop_requested()){
 
-        auto inMsg = this->in_queue.read().sm; 
+        auto readResult = this->in_queue.read(stoken);
+
+        if (!readResult.has_value()) return;
+
+        auto inMsg = readResult->sm;
         
         Protocol ptype = inMsg.header.prot; 
 
@@ -177,7 +181,7 @@ void Client::listener(std::stop_token stoken){
                         std::cout<<"Failure to change the state detected"<<std::endl; 
                         std::cout<<e.what()<<std::endl; 
                     }
-                }); 
+                });
             }
             else{
                 std::cout<<"Cannot process state change until configuration is complete"<<std::endl; 
@@ -220,7 +224,7 @@ void Client::listener(std::stop_token stoken){
             for(Timer &timer : this->start_timers){
                 auto& device = this->deviceList.at(timer.device_num).device; 
             
-                if(!device.hasInterrupt()) {
+                if(!device.hasInterrupt()) { // remove once polling manager implemented
 
                     if(!device.isActuator){
                         std::cout<<"build timer with period: "<<timer.period<<std::endl;
@@ -249,21 +253,21 @@ void Client::listener(std::stop_token stoken){
             }
 
             #ifdef SDL_ENABLED
-            // SDL_RunOnMainThread([](void*) -> void {
-            //     auto window = SDL_GL_GetCurrentWindow();
-            //     if (SDL_GetHintBoolean("SDL_HINT_INPUT_WINDOW_REQUIRED", false)) {
-            //         SDL_ShowWindow(window);
-            //     }
-            //     else {
-            //         SDL_Event event;
-            //         event.type = SDL_EVENT_USER;
-            //         SDL_PushEvent(&event);
-            //     }
-            // }, nullptr, true);
+            SDL_RunOnMainThread([](void*) -> void {
+                auto window = SDL_GL_GetCurrentWindow();
+                if (SDL_GetHintBoolean("SDL_HINT_INPUT_WINDOW_REQUIRED", false)) {
+                    SDL_ShowWindow(window);
+                }
+                else {
+                    SDL_Event event;
+                    event.type = SDL_EVENT_USER;
+                    SDL_PushEvent(&event);
+                }
+            }, nullptr, true);
             #endif
 
             // Start the threads
-            int num_threads = this->deviceList.size();
+            int num_threads = std::thread::hardware_concurrency();
             for(int i = 0; i < num_threads ; i++){
                 this->threadPool.emplace_back([this]{this->client_ctx.run();});
             }
@@ -272,7 +276,6 @@ void Client::listener(std::stop_token stoken){
         else if(ptype == Protocol::CONNECTION_LOST){
             std::cout<<"Connection lost detected by Client"<<std::endl; 
             this->disconnect(); 
-            this->adc->close();
         }
         else if(ptype == Protocol::OWNER_CANDIDATE_REQUEST){
             dev_int targDevice = inMsg.header.device_code;
@@ -384,9 +387,10 @@ bool Client::attemptConnection(boost::asio::ip::address master_address){
         
         this->client_connection->connectToMaster(master_endpoint, this->client_name);
 
+        std::cout<<this->client_name + " Connection successful!"<<std::endl; 
+
         this->listenerThread = std::jthread(std::bind(&Client::listener, std::ref(*this), std::placeholders::_1));
         this->ctxThread = std::jthread([this](){this->client_ctx.run();});   
-        
 
         if(this->listenerThread.joinable()){
             this->listenerThread.join(); 
@@ -396,8 +400,6 @@ bool Client::attemptConnection(boost::asio::ip::address master_address){
         if(this->ctxThread.joinable()){
             this->ctxThread.join(); 
         }
-
-        std::cout<<this->client_name + " Connection successful!"<<std::endl; 
 
         return true;  
     }
@@ -414,28 +416,30 @@ bool Client::isConnected(){
 }
 
 bool Client::disconnect(){
+    if (curr_state == ClientState::SHUTDOWN) return true;
+    this->curr_state = ClientState::SHUTDOWN;
+
     // Closes the socket
     if(this->client_connection->isConnected()){
         this->client_connection->disconnect(); 
     }   
+    std::cout<<"Socket Closed"<<std::endl;
 
-    std::cout<<"Socket Closed"<<std::endl; 
 
     // Kills the device interruptor and timer threads
     interruptors.clear();
 
-    std::cout<<"Interrupt threads killed"<<std::endl; 
+    std::cout<<"Interruptors killed"<<std::endl; 
 
     client_ticker.clear();
 
-    std::cout<<"Timers listeners killed"<<std::endl; 
+    std::cout<<"Timers killed"<<std::endl; 
     
-    this->client_ctx.stop(); 
+    this->client_ctx.stop();
     for(auto &t : this->threadPool){
         t.join();
     }
     this->listenerThread.request_stop();
-
 
     std::cout<<"Context and client listener killed"<<std::endl;
 
@@ -443,6 +447,16 @@ bool Client::disconnect(){
     this->start_timers.clear();
     
     std::cout << "Client device data reset" << std::endl;
+
+    #ifdef SDL_ENABLED
+    if (SDL_WasInit(SDL_INIT_VIDEO) != 0) { // terminate sdl main thread
+        SDL_Event event;
+        event.type = SDL_EVENT_USER;
+        SDL_PushEvent(&event);
+    }
+    #endif
+
+    this->adc->close();
 
     return true; 
 }
