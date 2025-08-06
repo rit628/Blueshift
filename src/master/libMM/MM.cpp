@@ -67,6 +67,9 @@ MasterMailbox::MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMes
         for(auto &devDesc : oblock.binded_devices){
             string deviceName = devDesc.device_name;
             interruptName_map[deviceName].push_back(oblock.name);   
+            if(devDesc.isVtype){
+                this->vTypesSchedule.emplace(devDesc.device_name, ManagedVType{}); 
+            }
         }
     }
 }

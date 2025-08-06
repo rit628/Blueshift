@@ -157,9 +157,11 @@ void Client::listener(std::stop_token stoken){
                 auto dev_index = inMsg.header.device_code; 
 
                 // Check if the writer is the valid owner of the device (if applies)
-                auto& pendingReq = this->deviceList.at(dev_index).pendingRequests; 
+                auto& deviceData = this->deviceList.at(dev_index); 
+                auto& pendingReq = deviceData.pendingRequests;
+                
                 if(pendingReq.currOwned){
-                    if((inMsg.header.ctl_code != pendingReq.owner.first) || (inMsg.header.oblock_id != pendingReq.owner.second)){
+                    if((inMsg.header.ctl_code != deviceData.owner.first) || (inMsg.header.oblock_id != deviceData.owner.second)){
                         std::cout<<"OWNERSHIP WARNING: "<<std::endl; 
                         std::cout<<"CTL: "<<inMsg.header.ctl_code<<std::endl; 
                         std::cout<<"OBLOCK: "<<inMsg.header.device_code<<std::endl;
@@ -314,7 +316,7 @@ void Client::listener(std::stop_token stoken){
             if((loadedProcess.ctl == inMsg.header.ctl_code) && (loadedProcess.requestorOblock == inMsg.header.oblock_id)){
                 sendMessage(dev_id, Protocol::OWNER_CONFIRM_OK, false, inMsg.header.oblock_id);
                 devicePending.currOwned = true;
-                auto& devPair = this->deviceList.at(dev_id).pendingRequests.owner; 
+                auto& devPair = this->deviceList.at(dev_id).owner; 
                 devPair = {inMsg.header.ctl_code, inMsg.header.oblock_id}; 
                 std::cout<<"Confrm Before Erasure"<<std::endl; 
                 pendingSet.pop(); 

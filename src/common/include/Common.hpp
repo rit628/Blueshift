@@ -4,9 +4,7 @@
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/unordered_map.hpp>
 #include <cstdint>
-#include <exception>
-#include <stdexcept>
-#include <optional>
+#include <queue> 
 #include <string>
 #include <variant>
 #include <vector>
@@ -237,6 +235,18 @@ struct ReqComparator{
         return a.priority > b.priority; 
     }
 }; 
+
+// Receives the queue for each controller
+template <typename rtype, typename comp>
+struct ControllerQueue{
+    private:  
+        std::priority_queue<rtype, std::vector<rtype>, comp> schepq; 
+    public: 
+        bool currOwned = false; 
+        std::priority_queue<rtype, std::vector<rtype>, comp>& getQueue(){
+            return this->schepq; 
+        }
+};  
 
 
 

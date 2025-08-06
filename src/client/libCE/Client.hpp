@@ -50,26 +50,10 @@ struct ClientSideReqComp{
     }
 }; 
 
-
-// Receives the queue for each controller
-struct ControllerQueue{
-    private:  
-        std::priority_queue<ClientSideReq, std::vector<ClientSideReq>, ClientSideReqComp> schepq; 
-
-    public: 
-
-        bool currOwned = false; 
-        // The device owner is identified by the ctl_id, oblock_int
-        std::pair<cont_int, oblock_int> owner;     
-        std::priority_queue<ClientSideReq, std::vector<ClientSideReq>, ClientSideReqComp>& getQueue(){
-            return this->schepq; 
-        }
-};  
-
-
 struct ManagedDevice {
     DeviceHandle device;
-    ControllerQueue pendingRequests;
+    ControllerQueue<ClientSideReq, ClientSideReqComp> pendingRequests;
+    std::pair<cont_int, oblock_int> owner;  
     ManagedDevice(TYPE dtype, std::unordered_map<std::string, std::string> &config, std::shared_ptr<ADS7830> targADC)
                         : device(dtype, config, targADC) {}
 }; 

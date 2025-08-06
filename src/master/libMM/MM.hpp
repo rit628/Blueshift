@@ -181,6 +181,8 @@ struct DeviceBox{
 }; 
 
 
+
+
 struct ReaderBox
 {
 
@@ -305,9 +307,6 @@ struct ReaderBox
         ReaderBox(string name,  OBlockDesc& odesc, std::unordered_set<OblockID> &trigSet, TSQ<EMStateMessage> &emMsg);
     
 };
-
-
-
 
 
 struct WriterBox
@@ -463,7 +462,11 @@ class ConfirmContainer{
         } 
 }; 
 
+struct ManagedVType{
+    ControllerQueue<SchedulerReq, ReqComparator> queue; 
+    OblockID owner; 
 
+}; 
 
 class MasterMailbox
 {
@@ -488,6 +491,7 @@ class MasterMailbox
     unordered_map<OblockID, unique_ptr<ReaderBox>> oblockReadMap;
     unordered_map<DeviceID, unique_ptr<WriterBox>> deviceWriteMap;
     unordered_map<DeviceID, std::vector<OblockID>> interruptName_map;
+    unordered_map<DeviceID, ManagedVType> vTypesSchedule; 
     ConfirmContainer ConfContainer; 
 
 
