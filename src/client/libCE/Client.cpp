@@ -4,12 +4,14 @@
 #include "libDevice/include/ADC.hpp"
 #include "libnetwork/Connection.hpp"
 #include "libnetwork/Protocol.hpp"
+#include <cstdint>
 #include <functional>
 #include <exception>
 #include <memory>
 #include <ostream>
 #include <stdexcept>
 #include <sys/socket.h>
+#include <unordered_map>
 
 Client::Client(std::string c_name): bc_socket(client_ctx, udp::endpoint(udp::v4(), BROADCAST_PORT)), client_socket(client_ctx){
     this->client_name = c_name; 
@@ -193,8 +195,13 @@ void Client::listener(std::stop_token stoken){
             // Conifigure the the dynamic timers
             if(inMsg.header.body_size > 0){
                 std::vector<Timer> all_timers; 
-                dmsg.unpack("__TICKER_DATA__", all_timers); 
-                this->start_timers = all_timers; 
+                dmsg.unpack("__TICKER_DATA__", all_timers);
+                for (auto&& timer : all_timers) {
+                    if (!start_timers.contains(timer.device_num)) {
+                        start_timers.try_emplace(timer.device_num);
+                    }
+                    start_timers.at(timer.device_num).push_back(timer);
+                }
             }
         }
         else if(ptype == Protocol::TICKER_UPDATE){
@@ -208,7 +215,7 @@ void Client::listener(std::stop_token stoken){
                     if(this->client_ticker.find(new_timer.id) == this->client_ticker.end()){
                         std::cout<<"UH OH: "<<new_timer.id<<std::endl; 
                     }
-                    this->client_ticker.at(new_timer.id).setPeriod(new_timer.period);
+                    this->client_ticker.at(new_timer.id).get().setPeriod(new_timer.id, new_timer.period);
                 }
                 else{
                     std::cerr<<"Constant poll not supposed to be sent by update protocol"<<std::endl; 
@@ -222,33 +229,37 @@ void Client::listener(std::stop_token stoken){
             std::cout<<"CLIENT: Beginning sending process"<<std::endl; 
             this->curr_state = ClientState::IN_OPERATION; 
 
-            // Begin the timers only when the call is made
-            for(Timer &timer : this->start_timers){
-                auto& device = this->deviceList.at(timer.device_num).device; 
-            
-                if(!device.hasInterrupt()) { // remove once polling manager implemented
+            // create device pollers
+            for(auto&& [deviceNum, timerList] : this->start_timers){
+                auto& device = this->deviceList.at(deviceNum).device;
 
-                    if(!device.isActuator){
-                        std::cout<<"build timer with period: "<<timer.period<<std::endl;
-                        this->client_ticker.try_emplace(timer.id, this->client_ctx, device, this->client_connection, this->controller_alias, timer.device_num, timer.id);
-                        this->client_ticker.at(timer.id).setPeriod(timer.period);
+                if (!device.isActuator) {
+                    auto& poller = pollers.emplace_back(client_ctx, device, client_connection, controller_alias, deviceNum);
+                    for (auto&& timer : timerList) {
+                        poller.createTimer(timer.id, timer.period);
                     }
-                    std::cout<<"Setting the period"<<std::endl;
-                    sendMessage(timer.device_num, Protocol::SEND_STATE_INIT, true); 
-                    std::cout<<"SENT MESSAGE"<<std::endl;
                 }
+                sendMessage(deviceNum, Protocol::SEND_STATE_INIT, true); 
+                std::cout<<"SENT MESSAGE"<<std::endl;
             }
 
-             // populate the Device interruptors; 
+             // create device interruptors
             for(auto&& [dev_id, dev] : this->deviceList) {
                 auto& device = dev.device;
                 if(device.hasInterrupt()){
-                    // Organizes the device interrupts
                     std::cout<<"Interrupt created!"<<std::endl;
                     this->interruptors.emplace_back(this->client_ctx, device, this->client_connection, this->controller_alias, dev_id);
                     std::cout<<"Sending Initial State"<<std::endl; 
                     sendMessage(dev_id, Protocol::SEND_STATE_INIT, true); 
                 }   
+            }
+
+            // initiate pollers and interruptors
+            for (auto&& poller : this->pollers) {
+                for (auto&& id : poller.getTimerIds()) {
+                    this->client_ticker.emplace(id, poller);
+                }
+                poller.startTimers();
             }
             for (auto&& interruptor : this->interruptors) {
                 interruptor.setupThreads();
@@ -434,8 +445,9 @@ bool Client::disconnect(){
     std::cout<<"Interruptors killed"<<std::endl; 
 
     client_ticker.clear();
+    pollers.clear();
 
-    std::cout<<"Timers killed"<<std::endl; 
+    std::cout<<"Pollers killed"<<std::endl; 
     
     this->client_ctx.stop();
     for(auto &t : this->threadPool){

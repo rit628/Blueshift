@@ -2,6 +2,8 @@
 
 #include "include/Common.hpp"
 #include "libDevice/DeviceUtil.hpp"
+#include <cstdint>
+#include <functional>
 #include <memory>
 #include <queue>
 #include <thread>
@@ -11,6 +13,7 @@
 #include "libnetwork/Protocol.hpp"
 #include "libnetwork/Connection.hpp"
 #include <set> 
+#include <vector>
 
 using boost::asio::ip::tcp; 
 using boost::asio::ip::udp;
@@ -108,18 +111,19 @@ class Client{
         // Updates the ticker table
         void updateTicker(); 
         // Temp timers 
-        std::vector<Timer> start_timers; 
+        std::unordered_map<uint16_t, std::vector<Timer>> start_timers;
         
         
         // Error Sender: 
         std::unique_ptr<GenericBlsException> genBlsException; 
 
+        // Ticker table
+        std::unordered_map<uint16_t, std::reference_wrapper<DevicePoller>> client_ticker;
+        
         /*
             State management information
         */
-                
-        // Ticker table
-        std::unordered_map<uint16_t, DeviceTimer> client_ticker;
+        std::vector<DevicePoller> pollers;
         std::vector<DeviceInterruptor> interruptors;
         std::shared_ptr<ADS7830> adc;
 

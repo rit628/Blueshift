@@ -10,7 +10,7 @@
 #include <chrono> 
 #include "libnetwork/Connection.hpp"
 #include <memory>
-#include <mutex>
+#include <shared_mutex>
 #include <stop_token>
 #include <sys/inotify.h>
 #include <tuple>
@@ -66,10 +66,11 @@ class DeviceHandle {
         bool isTrigger;
         bool isActuator = false;
 
-        std::mutex m;
+        std::shared_mutex m;
         std::condition_variable_any cv;
         bool processing = false;
-        bool watchersPaused = false;
+        bool watchersPaused = true;
+        bool timersPaused = true;
         
 
         DeviceHandle(TYPE dtype, std::unordered_map<std::string, std::string> &config, std::shared_ptr<ADS7830> targetADC);
@@ -82,40 +83,50 @@ class DeviceHandle {
 };
 
 // Device Timer used for configuring polling rates dynamically; 
-class DeviceTimer{
-    private: 
-        DeviceHandle& device; 
-        std::unordered_map<std::string, std::deque<float>> attr_history;  
-        std::unordered_map<std::string, float> vol_map; 
-        int ctl_code; 
-        int device_code; 
-        int timer_id; 
-        // checks if the ticker is initialized
-        bool ticker_init; 
-        std::chrono::milliseconds period_time; 
+class DevicePoller{
+    private:
+        struct DeviceTimer {
+            int id;
+            int poll_period = -1;
+            std::chrono::milliseconds period_time;
+            std::unordered_map<std::string, std::deque<float>> attr_history;
+            std::unordered_map<std::string, float> vol_map;
+            boost::asio::steady_timer timer;
+            DevicePoller& manager;
+        
+            DeviceTimer(uint16_t id, int period, boost::asio::io_context& ctx, DevicePoller& manager);
+            std::chrono::milliseconds getRemainingTime();
+            float calculateStd(std::deque<float> &data);
+            void calcVolMap();
+            void timerCallback();
+            void setPeriod(int newPeriod);
+            void start();
+            void pause();
+            void resume();
+        };
 
+        DeviceHandle& device;
+        std::shared_ptr<Connection> conex;
+        boost::asio::io_context& ctx;
+        int ctl_code;
+        int device_code;
+        std::unordered_map<uint16_t, DeviceTimer> timers;
+        std::jthread timerManagerThread;
 
-        // Connection shard ptr
-        std::shared_ptr<Connection> conex; 
-
-        boost::asio::io_context &ctx; 
-        boost::asio::steady_timer timer; 
-
-        int poll_period = -1; 
-        bool is_set = false; 
-
-        std::chrono::milliseconds getRemainingTime();
+        void pauseTimers();
+        void resumeTimers();
+        void manageTimers(std::stop_token stoken);
 
     public: 
-        DeviceTimer(boost::asio::io_context &in_ctx, DeviceHandle& device, std::shared_ptr<Connection> cc, int ctl, int dev, int id);
-        ~DeviceTimer();
+        DevicePoller(boost::asio::io_context& ctx, DeviceHandle& device, std::shared_ptr<Connection> cc, int ctl, int dev);
+        DevicePoller(DevicePoller&& other);
+        ~DevicePoller();
 
-        void timerCallback();
-        void setPeriod(int new_period);
-        void Send(SentMessage &msg);
-        float calculateStd(std::deque<float> &data);
-        void calcVolMap();
-        void sendData();
+        void sendMessage(DeviceTimer& timer);
+        void setPeriod(uint16_t timerId, int newPeriod);
+        void createTimer(uint16_t timerId, int period);
+        std::vector<uint16_t> getTimerIds();
+        void startTimers();
 }; 
 
 /* 

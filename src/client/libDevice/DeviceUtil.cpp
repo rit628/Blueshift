@@ -6,6 +6,7 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -15,6 +16,7 @@
 #include <tuple>
 #include <utility>
 #include <variant>
+#include <boost/range/adaptor/map.hpp>
 #ifdef __RPI64__
 #include <pigpio.h>
 #endif
@@ -54,38 +56,25 @@ void DeviceHandle::processStatesImpl(DynamicMessage& input) {
 }
 
 void DeviceHandle::processStates(DynamicMessage dmsg) {
-    if (!hasInterrupt()) {
-        processStatesImpl(dmsg);
-        return;
-    }
-    // wait for interruptors to stop
+    // notify watchers and timers that message processing is about to begin
+    // std::cout << "step 1: waiting for processing to end" << std::endl;
     {
         std::unique_lock lk(m);
-        cv.wait(lk, [this]{ return !watchersPaused; });
-    }
-    // std::cout << "step 1: aquired lock from manageWatcher after unpausing" << std::endl;
-
-    {
-        std::lock_guard lk(m);
+        cv.wait(lk, [this]{ return !processing; }); // wait for previous message to process completely
         processing = true;
+        // std::cout << "step 2: notifying watchers and timers to pause" << std::endl;
     }
-    // std::cout << "step 2: processing to true, notify manageWatcher" << std::endl;
-    cv.notify_one();
+    cv.notify_all();
 
+    // wait until watchers and timers are paused then process message
     {
         std::unique_lock lk(m);
-        cv.wait(lk, [this]{ return watchersPaused; });
-    }
-    // std::cout << "step 5: aquired lock from manageWatcher after pausing" << std::endl;
-    
-    // tell interruptors to start again
-    {
-        std::lock_guard lk(m);
+        cv.wait(lk, [this]{ return watchersPaused && timersPaused; });
         processStatesImpl(dmsg);
         processing = false;
+        // std::cout << "step 4: processed states, notify watchers and timers to re-enable" << std::endl;
     }
-    // std::cout << "step 6: processing to false, notify manageWatcher" << std::endl;
-    cv.notify_one();
+    cv.notify_all(); // notify all watchers and timers to re-enable
 }
 
 void DeviceHandle::init(std::unordered_map<std::string, std::string> &config, std::shared_ptr<ADS7830> adc) {
@@ -121,9 +110,12 @@ std::vector<InterruptDescriptor>& DeviceHandle::getIdescList() {
     }, device);
 }
 
-std::chrono::milliseconds DeviceTimer::getRemainingTime() {
+DevicePoller::DeviceTimer::DeviceTimer(uint16_t id, int period, boost::asio::io_context& ctx, DevicePoller& manager)
+                                     : id(id), poll_period(period), timer(ctx), manager(manager) {}
+
+std::chrono::milliseconds DevicePoller::DeviceTimer::getRemainingTime() {
     auto now_time = std::chrono::steady_clock::now(); 
-    auto timer_exp = timer.expires_at(); 
+    auto timer_exp = timer.expires_at();
 
     if(now_time > timer_exp){
         auto difference = timer_exp - now_time; 
@@ -132,49 +124,7 @@ std::chrono::milliseconds DeviceTimer::getRemainingTime() {
     return std::chrono::milliseconds(0); 
 }
 
-DeviceTimer::DeviceTimer(boost::asio::io_context &in_ctx, DeviceHandle& device, std::shared_ptr<Connection> cc, int ctl, int dev, int id)
-                        : device(device), ctl_code(ctl), device_code(dev), timer_id(id), conex(cc), ctx(in_ctx), timer(ctx) {}
-
-DeviceTimer::~DeviceTimer() {
-    this->timer.cancel();
-}
-
-void DeviceTimer::timerCallback() {
-    this->timer.expires_after(this->period_time); 
-
-    this->timer.async_wait([this](const boost::system::error_code &ec){
-        if(!ec){
-            this->sendData(); 
-            timerCallback(); 
-        }
-    }); 
-}
-
-void DeviceTimer::setPeriod(int new_period) {
-    if(this->is_set == false){
-        this->is_set = true; 
-    }
-
-    auto remTime = getRemainingTime(); 
-    this->period_time = std::chrono::milliseconds(new_period); 
-
-    // If new intialization or if the newtime is less than the remaining time
-    if(this->period_time < remTime || this->poll_period == -1){
-
-        this->timer.cancel();
-
-        timerCallback(); 
-        
-        this->poll_period = new_period; 
-    }
-
-}
-
-void DeviceTimer::Send(SentMessage &msg) {
-    this->conex->send(msg); 
-}
-
-float DeviceTimer::calculateStd(std::deque<float> &data) {
+float DevicePoller::DeviceTimer::calculateStd(std::deque<float> &data) {
     // Calculate the sum first: 
     float sum = 0; 
     float std = 0; 
@@ -193,24 +143,139 @@ float DeviceTimer::calculateStd(std::deque<float> &data) {
     return sqrt(std/size); 
 }
 
-void DeviceTimer::calcVolMap() {
+void DevicePoller::DeviceTimer::calcVolMap() {
     for(auto &pair : this->attr_history){
         this->vol_map[pair.first] = calculateStd(pair.second);
     }
 }
 
-void DeviceTimer::sendData() {
+void DevicePoller::DeviceTimer::timerCallback() {
+    this->timer.expires_after(this->period_time); 
+
+    this->timer.async_wait([this](const boost::system::error_code &ec){
+        if(!ec){
+            manager.sendMessage(*this); 
+            timerCallback(); 
+        }
+    }); 
+}
+
+void DevicePoller::DeviceTimer::setPeriod(int newPeriod) {
+    auto remTime = getRemainingTime();
+    this->period_time = std::chrono::milliseconds(newPeriod);
+
+    // If new intialization or if the newtime is less than the remaining time
+    if(this->period_time < remTime || this->poll_period == -1){
+
+        this->timer.cancel();
+
+        timerCallback();
+        
+        this->poll_period = newPeriod;
+    }
+
+}
+
+void DevicePoller::DeviceTimer::start() {
+    this->period_time = std::chrono::milliseconds(this->poll_period);
+    this->timer.cancel();
+    timerCallback();
+}
+
+void DevicePoller::DeviceTimer::pause() {
+    this->period_time = getRemainingTime();
+    this->timer.cancel();
+}
+
+void DevicePoller::DeviceTimer::resume() {
+    timerCallback();
+    this->period_time = std::chrono::milliseconds(this->poll_period);
+}
+
+DevicePoller::DevicePoller(boost::asio::io_context &in_ctx, DeviceHandle& device, std::shared_ptr<Connection> cc, int ctl, int dev)
+                         : device(device), conex(cc), ctx(in_ctx), ctl_code(ctl), device_code(dev) {}
+
+DevicePoller::DevicePoller(DevicePoller&& other)
+                         : device(other.device)
+                         , conex(other.conex)
+                         , ctx(other.ctx)
+                         , ctl_code(other.ctl_code)
+                         , device_code(other.device_code)
+
+{
+    for (auto&& [id, timer] : other.timers) {
+        createTimer(id, timer.poll_period); // recreate timers other's timers to include reference to this
+    }
+    if (other.timerManagerThread.joinable()) { // restart timers
+        startTimers();
+    }
+}
+
+DevicePoller::~DevicePoller() {
+    if (timerManagerThread.joinable()) {
+        timerManagerThread.request_stop();
+        timerManagerThread.join();
+    }
+    this->timers.clear();
+}
+
+void DevicePoller::pauseTimers() {
+    for (auto&& [_, timer] : timers) {
+        timer.pause();
+    }
+}
+
+void DevicePoller::resumeTimers() {
+    for (auto&& [_, timer] : timers) {
+        timer.resume();
+    }
+}
+
+void DevicePoller::manageTimers(std::stop_token stoken) {
+    auto& m = this->device.m;
+    auto& cv = this->device.cv;
+    auto& processing = this->device.processing;
+    auto& timersPaused = this->device.timersPaused;
+    timersPaused = false;
+    while (!stoken.stop_requested()) {
+        // wait for device to receive a new message to process then disable timers
+        {
+            std::shared_lock lk(m);
+            if (!cv.wait(lk, stoken, [&processing] { return processing; })) {
+                break; // break early to avoid unnecessary lock aquisition overhead
+            }
+            pauseTimers();
+            timersPaused = true;
+            // std::cout << "step 3: paused timers, notifying processing to begin" << std::endl;
+        }
+        cv.notify_all();
+
+        // wait for message to process then re-enable timers
+        {
+            std::shared_lock lk(m);
+            if (!cv.wait(lk, stoken, [&processing] { return !processing; })) {
+                break; // break early to avoid unnecessary re-enabling
+            }
+            resumeTimers();
+            timersPaused = false;
+            // std::cout << "step 5: timers re-enabled" << std::endl;
+        }
+    }
+    pauseTimers();
+}
+
+void DevicePoller::sendMessage(DeviceTimer& timer) {
     SentMessage smsg; 
 
     DynamicMessage dmsg; 
     this->device.transmitStates(dmsg); 
 
     // Extract numerical data out the fields and add to the src: 
-    dmsg.getFieldVolatility(this->attr_history, VOLATILITY_LIST_SIZE); 
+    dmsg.getFieldVolatility(timer.attr_history, VOLATILITY_LIST_SIZE); 
 
-    if(this->attr_history.size() > 0){
-        calcVolMap(); 
-        dmsg.createField("__DEV_ATTR_VOLATILITY__", this->vol_map); 
+    if(timer.attr_history.size() > 0){
+        timer.calcVolMap(); 
+        dmsg.createField("__DEV_ATTR_VOLATILITY__", timer.vol_map); 
     }
 
     // Do some kind of data transformation here
@@ -218,12 +283,32 @@ void DeviceTimer::sendData() {
 
     smsg.header.ctl_code = this->ctl_code; 
     smsg.header.device_code = this->device_code; 
-    smsg.header.timer_id = this->timer_id; 
+    smsg.header.timer_id = timer.id; 
     smsg.header.prot = Protocol::SEND_STATE; 
     smsg.header.body_size = smsg.body.size(); 
     smsg.header.fromInterrupt = false; 
 
-    Send(smsg); 
+    this->conex->send(smsg);
+}
+
+void DevicePoller::setPeriod(uint16_t timerId, int newPeriod) {
+    timers.at(timerId).setPeriod(newPeriod);
+}
+
+void DevicePoller::createTimer(uint16_t timerId, int period) {
+    timers.try_emplace(timerId, timerId, period, ctx, *this);
+}
+
+std::vector<uint16_t> DevicePoller::getTimerIds() {
+    auto ids = boost::adaptors::keys(timers);
+    return {ids.begin(), ids.end()};
+}
+
+void DevicePoller::startTimers() {
+    timerManagerThread = std::jthread(std::bind(&DevicePoller::manageTimers, std::ref(*this), std::placeholders::_1));
+    for (auto&& [_, timer] : timers) {
+        timer.start();
+    }
 }
 
 DeviceInterruptor::DeviceInterruptor(boost::asio::io_context &in_ctx, DeviceHandle& targDev, std::shared_ptr<Connection> conex, int ctl, int dd)
@@ -232,16 +317,11 @@ DeviceInterruptor::DeviceInterruptor(boost::asio::io_context &in_ctx, DeviceHand
 DeviceInterruptor::DeviceInterruptor(DeviceInterruptor&& other)
                                     : device(other.device)
                                     , client_connection(other.client_connection)
-                                    , watcherManagerThread(std::move(other.watcherManagerThread))
-                                    , globalWatcherThreads(std::move(other.globalWatcherThreads))
-                                    , watchDescriptors(std::move(other.watchDescriptors))
                                     , cooldownTimer(std::move(other.cooldownTimer))
                                     , ctl_code(other.ctl_code)
                                     , device_code(other.device_code)
 {
-    running = this->watcherManagerThread.joinable();
-    this->stopThreads(); // cleanup old threads that reference other
-    watchDescriptors.clear(); // remove old watch descriptors
+    running = other.watcherManagerThread.joinable();
     if (running) { // restart threads
         this->setupThreads();
     }
@@ -342,36 +422,30 @@ void DeviceInterruptor::manageWatchers(std::stop_token stoken) {
     auto& cv = this->device.cv;
     auto& processing = this->device.processing;
     auto& watchersPaused = this->device.watchersPaused;
+    watchersPaused = false;
     while (!stoken.stop_requested()) {
-        // wait for device to receive a new message to process or for device reset
+        // wait for device to receive a new message to process then disable watchers
         {
-            std::unique_lock lk(m);
+            std::shared_lock lk(m);
             if (!cv.wait(lk, stoken, [&processing] { return processing; })) {
                 break; // break early to avoid unnecessary lock aquisition overhead
             }
-        }
-
-        // disable watchers before message processing
-        {
-            std::lock_guard lk(m);
             disableWatchers();
             watchersPaused = true;
+            // std::cout << "step 3: paused watchers, notifying processing to begin" << std::endl;
         }
-        cv.notify_one();
+        cv.notify_all();
 
-        // wait for message to process
+        // wait for message to process then re-enable watchers
         {
-            std::unique_lock lk(m);
-            cv.wait(lk, [&processing] { return !processing; });
-        }
-
-        // re-enable watchers
-        {
-            std::lock_guard lk(m);
+            std::shared_lock lk(m);
+            if (!cv.wait(lk, stoken, [&processing] { return !processing; })) {
+                break; // break early to avoid unnecessary re-enabling
+            }
             enableWatchers();
             watchersPaused = false;
+            // std::cout << "step 5: watchers re-enabled" << std::endl;
         }
-        cv.notify_one();
     }
     disableWatchers();
     running = false;
