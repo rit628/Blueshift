@@ -292,10 +292,12 @@ void DevicePoller::sendMessage(DeviceTimer& timer) {
 }
 
 void DevicePoller::setPeriod(uint16_t timerId, int newPeriod) {
+    newPeriod = (newPeriod < 0) ? 1000 : newPeriod; // change all negative periods to 1000ms
     timers.at(timerId).setPeriod(newPeriod);
 }
 
 void DevicePoller::createTimer(uint16_t timerId, int period) {
+    period = (period < 0) ? 1000 : period; // change all negative periods to 1000ms
     timers.try_emplace(timerId, timerId, period, ctx, *this);
 }
 

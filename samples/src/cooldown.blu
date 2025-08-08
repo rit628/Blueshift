@@ -1,4 +1,4 @@
-oblock recordMouse(MOUSE m)
+oblock recordMouse(MOUSE m) : constPollOn({m : 1000})
 {
     print("NEW MOUSE STATE:");
     print(m.x, m.y);

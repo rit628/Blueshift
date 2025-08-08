@@ -238,7 +238,13 @@ void Client::listener(std::stop_token stoken){
                 if (!device.isActuator) {
                     auto& poller = pollers.emplace_back(client_ctx, device, client_connection, controller_alias, deviceNum);
                     for (auto&& timer : timerList) {
+                        if (timer.period == -1 && device.hasInterrupt()) { // change condition to !isConst && hasInterrupt() once dynamic polling subsystem is enabled
+                            continue; // dont setup a dynamic polling timer if device already has an interrupt
+                        }
                         poller.createTimer(timer.id, timer.period);
+                    }
+                    if (poller.getTimerIds().empty()) {
+                        pollers.pop_back(); // remove pollers with no timers attached
                     }
                 }
                 sendMessage(deviceNum, Protocol::SEND_STATE_INIT, true); 

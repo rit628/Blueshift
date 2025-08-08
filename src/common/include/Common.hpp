@@ -79,8 +79,8 @@ struct DeviceDescriptor{
     READ_POLICY readPolicy = READ_POLICY::ALL;
     OVERWRITE_POLICY overwritePolicy = OVERWRITE_POLICY::NONE;
     bool isYield = true; 
-    int polling_period = 1000;
-    bool isConst = true;
+    int polling_period = -1; // dynamic polling doesnt need a period
+    bool isConst = true; // disable dynamic polling subsystem for now, default to 1000ms poll in client
     /* 
         If the device is registered as a trigger then the execution of 
         the oblock is binded to the arrival of the devices state. 
