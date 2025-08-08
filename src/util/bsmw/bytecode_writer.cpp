@@ -76,6 +76,7 @@ DeviceDescriptor tag_invoke(const value_to_tag<DeviceDescriptor>&, value const& 
     desc.isYield = value_to<bool>(obj.at("isYield"));
     desc.polling_period = value_to<int>(obj.at("polling_period"));
     desc.isConst = value_to<bool>(obj.at("isConst"));
+    desc.ignoreWriteBacks = value_to<bool>(obj.at("ignoreWriteBacks"));
     desc.isInterrupt = value_to<bool>(obj.at("isInterrupt"));
     desc.isCursor = value_to<bool>(obj.at("isCursor"));
     return desc;

@@ -104,6 +104,7 @@ struct DeviceDescriptor{
         ar & isYield;
         ar & polling_period;
         ar & isConst;
+        ar & ignoreWriteBacks;
         ar & isInterrupt;
         ar & isCursor;
     }

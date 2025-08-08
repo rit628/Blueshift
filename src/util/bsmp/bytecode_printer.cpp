@@ -25,6 +25,7 @@ void tag_invoke(const value_from_tag&, value& jv, DeviceDescriptor const & desc)
     obj.emplace("isYield", value_from(desc.isYield));
     obj.emplace("polling_period", value_from(desc.polling_period));
     obj.emplace("isConst", value_from(desc.isConst));
+    obj.emplace("ignoreWriteBacks", value_from(desc.ignoreWriteBacks));
     obj.emplace("isInterrupt", value_from(desc.isInterrupt));
     obj.emplace("isCursor", value_from(desc.isCursor));
 }

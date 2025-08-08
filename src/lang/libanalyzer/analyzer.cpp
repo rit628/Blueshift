@@ -983,9 +983,15 @@ BlsObject Analyzer::visit(AstNode::Initializer::Oblock& ast) {
                 }
                 else if (policy == "yield") {
                     if (!optionExpr || !std::holds_alternative<bool>(optionExpr->getLiteral())) {
-                        throw SemanticError("Read policy must be a bool literal.");
+                        throw SemanticError("Yield policy must be a bool literal.");
                     }
                     dev.isYield = std::get<bool>(optionExpr->getLiteral());
+                }
+                else if (policy == "ignoreWriteBacks") {
+                    if (!optionExpr || !std::holds_alternative<bool>(optionExpr->getLiteral())) {
+                        throw SemanticError("WriteBack processing policy must be a bool literal.");
+                    }
+                    dev.ignoreWriteBacks = std::get<bool>(optionExpr->getLiteral());
                 }
                 else {
                     throw SemanticError("Invalid process policy supplied");
