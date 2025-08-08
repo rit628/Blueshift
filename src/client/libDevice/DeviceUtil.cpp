@@ -27,7 +27,7 @@ struct overloads : Ts... { using Ts::operator()...; };
 DeviceHandle::DeviceHandle(TYPE dtype, std::unordered_map<std::string, std::string> &config, std::shared_ptr<ADS7830> usingADC) 
 {
     switch(dtype){
-        #define DEVTYPE_BEGIN(name) \
+        #define DEVTYPE_BEGIN(name, ...) \
         case TYPE::name: { \
             this->device.emplace<Device::name>(); \
             if (config.contains("cooldown")) { \

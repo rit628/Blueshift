@@ -360,7 +360,7 @@ class DynamicMessage{
     template <typename T>
     void packStates(T& states) {
         using namespace TypeDef;
-        #define DEVTYPE_BEGIN(name) \
+        #define DEVTYPE_BEGIN(name, ...) \
         if constexpr (std::same_as<T, name>) { 
         #define ATTRIBUTE(name, ...) \
             this->createField(#name, states.name);
@@ -473,7 +473,7 @@ class DynamicMessage{
     template <typename T>
     void unpackStates(T& states) {
         using namespace TypeDef;
-        #define DEVTYPE_BEGIN(name) \
+        #define DEVTYPE_BEGIN(name, ...) \
         if constexpr (std::same_as<T, name>) { 
         #define ATTRIBUTE(name, ...) \
             if (this->hasField(#name)) { \

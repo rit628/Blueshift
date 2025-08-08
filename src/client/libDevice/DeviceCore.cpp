@@ -22,7 +22,7 @@ void DeviceCore<T>::addSDLIWatch(std::function<bool(SDL_Event*)> handler) {
 }
 #endif
 
-#define DEVTYPE_BEGIN(name) \
+#define DEVTYPE_BEGIN(name, ...) \
 template class DeviceCore<TypeDef::name>;
 #define ATTRIBUTE(...)
 #define DEVTYPE_END

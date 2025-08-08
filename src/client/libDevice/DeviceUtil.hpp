@@ -46,7 +46,7 @@ class DeviceHandle {
     private:
         using device_t = std::variant<
         std::monostate
-        #define DEVTYPE_BEGIN(name) \
+        #define DEVTYPE_BEGIN(name, ...) \
         , Device::name
         #define ATTRIBUTE(...)
         #define DEVTYPE_END

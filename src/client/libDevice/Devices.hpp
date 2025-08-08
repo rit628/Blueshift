@@ -7,7 +7,7 @@
 #include <unordered_map>
 
 namespace Device {
-    #define DEVTYPE_BEGIN(name) \
+    #define DEVTYPE_BEGIN(name, ...) \
     class name;
     #define ATTRIBUTE(...)
     #define DEVTYPE_END
@@ -58,7 +58,7 @@ concept DeviceDriver = requires (T device, std::unordered_map<std::string, std::
     { device.transmitStates(dmsg) } -> std::same_as<void>;
 };
 
-#define DEVTYPE_BEGIN(name) \
+#define DEVTYPE_BEGIN(name, ...) \
 static_assert(boost::is_complete<Device::name>::value, "Device::" #name " must have a complete class definition (perhaps you made a typo or forgot to include the header here?)."); \
 static_assert(std::derived_from<Device::name, DeviceCore<TypeDef::name>>, "Device::" #name " must inherit from DeviceCore<TypeDef::" #name ">"); \
 static_assert(DeviceDriver<Device::name>, "Device::" #name " must implement init(), processStates(), and transmitStates()");

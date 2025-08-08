@@ -58,7 +58,7 @@ void tag_invoke(const value_from_tag&, value& jv, std::shared_ptr<HeapDescriptor
             jv = value_from(std::dynamic_pointer_cast<MapDescriptor>(hd)->getMap());
         break;
 
-        #define DEVTYPE_BEGIN(name) \
+        #define DEVTYPE_BEGIN(name, ...) \
         case TYPE::name: \
             jv = value_from(std::dynamic_pointer_cast<MapDescriptor>(hd)->getMap()); \
         break;

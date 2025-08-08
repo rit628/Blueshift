@@ -517,7 +517,7 @@ BlsObject Interpreter::visit(AstNode::Specifier::Type& ast) {
             return std::make_shared<MapDescriptor>(TYPE::ANY);
         break;
 
-        #define DEVTYPE_BEGIN(name) \
+        #define DEVTYPE_BEGIN(name, ...) \
         case TYPE::name: { \
             using namespace TypeDef; \
             auto devtype = std::make_shared<MapDescriptor>(TYPE::name, TYPE::string_t, TYPE::ANY); \

@@ -32,7 +32,7 @@ namespace BlsLang {
   constexpr auto CONTAINER_LIST                       ("list");
   constexpr auto CONTAINER_MAP                        ("map");
 
-  #define DEVTYPE_BEGIN(name) \
+  #define DEVTYPE_BEGIN(name, ...) \
   constexpr auto DEVTYPE_##name                                          (#name);
   #define ATTRIBUTE(...)
   #define DEVTYPE_END
@@ -55,7 +55,7 @@ enum class TYPE : uint32_t {
   , map_t
   , CONTAINERS_END
 
-  #define DEVTYPE_BEGIN(name) \
+  #define DEVTYPE_BEGIN(name, ...) \
   , name
   #define ATTRIBUTE(...)
   #define DEVTYPE_END 
@@ -283,7 +283,7 @@ BlsType createBlsType(const T& value) {
     }
     return map;
   }
-  #define DEVTYPE_BEGIN(name) \
+  #define DEVTYPE_BEGIN(name, ...) \
   else if constexpr (std::same_as<T, name>) {  \
       auto devtype = std::make_shared<MapDescriptor>(TYPE::name, TYPE::string_t, TYPE::ANY);
   #define ATTRIBUTE(name, ...) \
@@ -324,7 +324,7 @@ T createFromBlsType(const BlsType& value) {
     }
     return result;
   }
-  #define DEVTYPE_BEGIN(name) \
+  #define DEVTYPE_BEGIN(name, ...) \
   else if constexpr (std::same_as<T, name>) {  \
     T devtype; \
     auto& map = std::dynamic_pointer_cast<MapDescriptor>(std::get<std::shared_ptr<HeapDescriptor>>(value))->getMap();
@@ -374,7 +374,7 @@ constexpr TYPE getTypeFromName(const std::string& type) {
   if (type == BlsLang::CONTAINER_LIST) return TYPE::list_t;
   if (type == BlsLang::CONTAINER_MAP) return TYPE::map_t;
 
-  #define DEVTYPE_BEGIN(name) \
+  #define DEVTYPE_BEGIN(name, ...) \
   if (type == BlsLang::DEVTYPE_##name) return TYPE::name;
   #define ATTRIBUTE(...)
   #define DEVTYPE_END 
@@ -411,7 +411,7 @@ constexpr const std::string getTypeName(TYPE type) {
       return BlsLang::CONTAINER_MAP;
     break;
     
-    #define DEVTYPE_BEGIN(name) \
+    #define DEVTYPE_BEGIN(name, ...) \
     case TYPE::name: \
       return BlsLang::DEVTYPE_##name; \
     break;
@@ -488,7 +488,7 @@ inline void BlsType::serialize(Archive& ar, const unsigned int version) {
     }
     break;
 
-    #define DEVTYPE_BEGIN(name) \
+    #define DEVTYPE_BEGIN(name, ...) \
     case TYPE::name: { \
       if (std::holds_alternative<std::monostate>(*this)) { \
         *this = std::make_shared<MapDescriptor>(TYPE::name, TYPE::string_t, TYPE::ANY); \

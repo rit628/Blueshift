@@ -613,7 +613,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Access& ast) {
     ast.getLocalIndex() = cs.getLocalIndex(objectName);
     if (member.has_value()) {
         switch (getType(object)) {
-            #define DEVTYPE_BEGIN(name) \
+            #define DEVTYPE_BEGIN(name, ...) \
             case TYPE::name: \
                 if (false) { } // trick for short circuiting
             #define ATTRIBUTE(name, ...) \
@@ -809,7 +809,7 @@ BlsObject Analyzer::visit(AstNode::Specifier::Type& ast) {
         }
         break;
 
-        #define DEVTYPE_BEGIN(name) \
+        #define DEVTYPE_BEGIN(name, ...) \
         case TYPE::name: \
             using namespace TypeDef; \
             if (!typeArgs.empty()) throw SemanticError("Devtypes cannot include type arguments."); \
