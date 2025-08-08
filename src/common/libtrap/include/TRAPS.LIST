@@ -7,7 +7,7 @@ TRAP_BEGIN(println, void)
 TRAP_END
 
 TRAP_BEGIN(sleep, void)
-    ARGUMENT(seconds, int)
+    ARGUMENT(ms, int)
 TRAP_END
 
 TRAP_BEGIN(stoi, int)

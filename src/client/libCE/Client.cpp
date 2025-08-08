@@ -46,7 +46,7 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
         default: {
             // Get the latest state from the dmsg
             try{
-                std::cout<<"ACCESING device: "<<deviceCode<<std::endl;
+                //std::cout<<"ACCESING device: "<<deviceCode<<std::endl;
                 this->deviceList.at(deviceCode).device.transmitStates(dmsg); 
             }
             catch(BlsExceptionClass& bec){
@@ -57,6 +57,7 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
             // make message
             sm.body = dmsg.Serialize(); 
             sm.header.ctl_code = this->controller_alias;
+            sm.header.oblock_id = oint; 
             sm.header.prot = type; 
             sm.header.device_code = deviceCode; 
             sm.header.timer_id = -1; 
@@ -75,7 +76,7 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
         this->in_queue.write(osm); 
     }
     else{
-        std::cout<<"State for device: "<<deviceCode<<std::endl; 
+        //std::cout<<"State for device: "<<deviceCode<<std::endl; 
         this->client_connection->send(sm); 
     }
 }
@@ -177,6 +178,7 @@ void Client::listener(std::stop_token stoken){
                 // Trying out the thread pool: 
                 boost::asio::post(this->client_ctx,  [dev_index, dmsg = std::move(dmsg), this](){
                     try{   
+                        //std::cout<<"State change in progress"<<std::endl; 
                         this->deviceList.at(dev_index).device.processStates(dmsg);
                         this->sendMessage(dev_index, Protocol::CALLBACK, false);
                         
@@ -298,11 +300,11 @@ void Client::listener(std::stop_token stoken){
             csReq.targetDevice = targDevice; 
             csReq.requestorOblock = inMsg.header.oblock_id;  
             csReq.priority = inMsg.header.oblock_priority; 
-            std::cout<<"Adding request for obloc: "<<csReq.requestorOblock<<" with priority "<<csReq.priority<<std::endl; 
+            //std::cout<<"Adding request for obloc: "<<csReq.requestorOblock<<" for device "<<csReq.targetDevice<<" with priority "<<csReq.priority<<std::endl; 
             this->deviceList.at(csReq.targetDevice).pendingRequests.getQueue().push(csReq);
         }
         else if(ptype == Protocol::OWNER_CANDIDATE_REQUEST_CONCLUDE){
-            std::cout<<"CLIENT SIDE RECEIVED OWNER CANDIDATE REQUEST CONCLUDE"<<std::endl; 
+            //std::cout<<"CLIENT SIDE RECEIVED OWNER CANDIDATE REQUEST CONCLUDE"<<std::endl; 
             // Protocol message concludes that all requests have been made in response to a trigger event ()
             // TODO: add support for decentralization
             
@@ -310,14 +312,18 @@ void Client::listener(std::stop_token stoken){
             if(!this->deviceList.at(targDevice).pendingRequests.currOwned){
                     // Add the code to send the device grant here: 
                     auto king = this->deviceList.at(targDevice).pendingRequests.getQueue().top(); 
+                    //std::cout<<"sending the message for oblock id: "<<king.requestorOblock<<std::endl; 
                     sendMessage(king.targetDevice, Protocol::OWNER_GRANT, false, king.requestorOblock); 
                     this->deviceList.at(targDevice).pendingRequests.currOwned = true; 
+            }
+            else{
+                std::cout<<"Device is already owned not sending anything"<<std::endl;
             }
         }
 
         // Confirms the owner (all non owner attempts to access a device are blocked)
         else if(ptype == Protocol::OWNER_CONFIRM){
-            std::cout<<"Received confirmation"<<std::endl; 
+            //std::cout<<"Received confirmation"<<std::endl; 
             dev_int dev_id= inMsg.header.device_code; 
             auto& devicePending = this->deviceList.at(dev_id).pendingRequests; 
             
@@ -329,9 +335,9 @@ void Client::listener(std::stop_token stoken){
                 devicePending.currOwned = true;
                 auto& devPair = this->deviceList.at(dev_id).owner; 
                 devPair = {inMsg.header.ctl_code, inMsg.header.oblock_id}; 
-                std::cout<<"Confrm Before Erasure"<<std::endl; 
+                //std::cout<<"Confrm Before Erasure"<<std::endl; 
                 pendingSet.pop(); 
-                std::cout<<"Confirm After Erasure"<<std::endl; 
+                //std::cout<<"Confirm After Erasure"<<std::endl; 
             }
             else{
                 std::cerr<<"PROTOCOL ERROR: INVALID OWNER CONFIRM FOR PROCESS THAT IS NOT A PRIME CANDIDATE"<<std::endl; 
@@ -342,10 +348,10 @@ void Client::listener(std::stop_token stoken){
             }         
         }
         else if(ptype == Protocol::OWNER_RELEASE){
-            std::cout<<"Received device release for device"<<std::endl; 
+            //std::cout<<"Received device release for device"<<std::endl; 
             auto& devPendStruct = this->deviceList.at(inMsg.header.device_code).pendingRequests; 
 
-            std::cout<<"Size at release "<<devPendStruct.getQueue().size()<<std::endl; 
+            //std::cout<<"Size at release "<<devPendStruct.getQueue().size()<<std::endl; 
         
             if(!devPendStruct.getQueue().empty()){
                 auto& scheduleOrder = devPendStruct.getQueue();
@@ -360,6 +366,8 @@ void Client::listener(std::stop_token stoken){
         else if(ptype == Protocol::PULL_REQUEST){
             int dev_index = inMsg.header.device_code; 
             int oblockId = inMsg.header.oblock_id; 
+            //std::cout<<"PULL request made to device: "<<dev_index<<" for oblock: "<<oblockId<<std::endl; 
+            
             this->sendMessage(dev_index, Protocol::PULL_RESPONSE, false, oblockId);
         }
         else{
@@ -400,7 +408,7 @@ bool Client::attemptConnection(boost::asio::ip::address master_address){
         
         this->client_connection->connectToMaster(master_endpoint, this->client_name);
 
-        std::cout<<this->client_name + " Connection successful!"<<std::endl; 
+        //std::cout<<this->client_name + " Connection successful!"<<std::endl; 
 
         this->listenerThread = std::jthread(std::bind(&Client::listener, std::ref(*this), std::placeholders::_1));
         this->ctxThread = std::jthread([this](){this->client_ctx.run();});   

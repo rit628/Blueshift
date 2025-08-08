@@ -128,10 +128,16 @@ class TriggerManager{
             bool processDevice(std::string &object, int& trigger_id){
                 int filledMap = pow(2, stringMap.size()) - 1; 
                 if(this->initBitmap.to_ulong() != filledMap){
-                    this->initBitmap.set(this->stringMap[object]); 
+                    this->initBitmap.set(this->stringMap[object]);
+                    // force a trigger when the map is init bitmap is filled
+                    if(this->initBitmap.to_ulong() != filledMap){
+                        // Code for initial trigger
+                        trigger_id = -1; 
+                        return true; 
+                    } 
                     return false; 
                 }
-
+                
                 this->currentBitmap.set(this->stringMap[object]);         
                 bool found = this->testBit(trigger_id); 
                 if(found){
@@ -141,8 +147,6 @@ class TriggerManager{
                 }
                 return false; 
             }
-
-
 
             void debugPrintRules(){
                 for(auto& rule : this->ruleset){
@@ -179,9 +183,6 @@ struct DeviceBox{
     int lastPush = 0; 
     int requestPush = 0;
 }; 
-
-
-
 
 struct ReaderBox
 {
@@ -221,26 +222,28 @@ struct ReaderBox
             DeviceBox& targDev = this->waitingQs[newDMM.info.device];
 
             if((targDev.readPolicy == READ_POLICY::ANY) && inExec){
-                std::cout<<"Process in Exection! Abandoned device"<<std::endl;
+                //std::cout<<"Process in Exection! Abandoned device"<<std::endl;
                 return;
             }
 
-
             if(forwardPackets && (targDev.readPolicy == READ_POLICY::ANY)){
                 EMStateMessage ems; 
-                std::cout<<"FORWARDING MESSAGE for device: "<<newDMM.info.device<<std::endl;
+                //std::cout<<"FORWARDING MESSAGE for device: "<<newDMM.info.device<<std::endl;
                 ems.protocol = PROTOCOLS::WAIT_STATE_FORWARD; 
                 ems.dmm_list = {newDMM}; 
                 sendEM.write(ems); 
                 return; 
             }
 
-            std::cout<<"Inserting the state for: "<<newDMM.info.device<<std::endl;
+            //std::cout<<"Inserting the state for: "<<newDMM.info.device<<std::endl;
+            if(targDev.readPolicy == READ_POLICY::ANY){
+                targDev.stateQueues->clearQueue(); 
+            }
             targDev.stateQueues->write(newDMM); 
             targDev.lastMessage.replace(newDMM); 
 
             // Begin Trigger Analysis: 
-            int triggerId = -1; 
+            int triggerId = -2; 
             bool writeTrig = this->triggerMan.processDevice(newDMM.info.device, triggerId); 
     
             if(writeTrig){
@@ -250,18 +253,31 @@ struct ReaderBox
                
                 std::string triggerName = "";
                 uint16_t priority = 1;
-                if (triggerId > -1) {
-                    auto& trigInfo = this->oblockDesc.triggers.at(triggerId);
-                    triggerName = trigInfo.id;
-                    priority = trigInfo.priority;
+                if (triggerId > -2) {
+                    if(triggerId == -1){
+                        // initial trigger
+                        //std::cout<<"SETTING AN INIITAL TRIGGER"<<std::endl;  
+                        triggerName = "initial";
+                        priority = 1;
+                    }
+                    else{
+                        auto& trigInfo = this->oblockDesc.triggers.at(triggerId);
+                        triggerName = trigInfo.id;
+                        priority = trigInfo.priority;
+                    }
                 }
                 std::vector<HeapMasterMessage> trigEvent; 
                 
                 for(auto& [name, devBox] : this->waitingQs){
-                    if(devBox.stateQueues->isEmpty()){
+                    
+                    if(!devBox.stateQueues->isEmpty()){
                         auto newHmm = devBox.stateQueues->read(); 
                         newHmm.info.oblock = this->OblockName; 
                         newHmm.info.priority = priority; 
+                        if(!devBox.stateQueues->isEmpty()){
+                            int i = 0; 
+                            this->triggerMan.processDevice(devBox.deviceName, i);
+                        }
                         trigEvent.push_back(newHmm); 
                     }
                     else{
@@ -369,14 +385,12 @@ class ConfirmContainer{
             if(state.pendingSend && !state.waitingForCallback){
                 if(state.expectingYield){
                     if(state.emptyQueue){
-                        std::cout<<"SENDING STATE EMPTY for: "<<state.confirmDMM.info.device<<std::endl; 
                         this->sendNM.write(state.confirmDMM);
                         state.pendingSend = false; 
                         return true;
                     }
                 }
                 else{
-                    std::cout<<"SENDING STATE NORMAL"<<std::endl; 
                     this->sendNM.write(state.confirmDMM);
                      state.pendingSend = false; 
                      return true; 
@@ -404,7 +418,7 @@ class ConfirmContainer{
         // Since yield and (OW::CLEAR/OW::)
         OVERWRITE_POLICY notifyRecievedCallback(DeviceID& dev){
             std::lock_guard<std::mutex> lock(this->mut);
-            std::cout<<"Notfied callback received"<<std::endl; 
+            //std::cout<<"Notfied callback received"<<std::endl; 
             auto& state = loadedDevMap.at(dev);
             state.waitingForCallback = false; 
             if(attemptSendConfirm(state)){
@@ -415,7 +429,7 @@ class ConfirmContainer{
 
         void notifySentMessage(DeviceID& dev){
             std::lock_guard<std::mutex> lock(this->mut);
-            std::cout<<"Notified sent message"<<std::endl; 
+            //std::cout<<"Notified sent message"<<std::endl; 
             auto& state = loadedDevMap.at(dev);
             state.waitingForCallback = true; 
             state.emptyQueue = false; 
@@ -424,7 +438,7 @@ class ConfirmContainer{
         // Means callback was received and 
         void notifyEmpty(DeviceID& dev){
             std::lock_guard<std::mutex> lock(this->mut);
-            std::cout<<"Notified empty queue"<<std::endl; 
+            //std::cout<<"Notified empty queue"<<std::endl; 
             auto& state = loadedDevMap.at(dev);
             state.emptyQueue = true; 
             state.waitingForCallback = false; 
@@ -439,24 +453,24 @@ class ConfirmContainer{
             }
 
             if(state.waitingForCallback){
-                std::cout<<"adding device "<<dmm.info.device<<" to queue to wait for callback"<<std::endl; 
+                //std::cout<<"adding device "<<dmm.info.device<<" to queue to wait for callback"<<std::endl; 
                 queueConfirmation(dmm); 
                 return; 
             }
 
             if(state.expectingYield || (dmm.protocol == PROTOCOLS::PULL_REQUEST)){
-                std::cout<<"Expecing yeild reached for device: "<<dmm.info.device<<std::endl; 
+                //std::cout<<"Expecing yeild reached for device: "<<dmm.info.device<<std::endl; 
                 if(state.emptyQueue){
-                    std::cout<<"Writing state: "<<dmm.info.device<<std::endl; 
+                    //std::cout<<"Writing state: "<<dmm.info.device<<std::endl; 
                     this->sendNM.write(dmm);
                 }
                 else{
-                    std::cout<<"Adding the queue to the result: "<<dmm.info.device<<std::endl; 
+                    //std::cout<<"Adding the queue to the result: "<<dmm.info.device<<std::endl; 
                     queueConfirmation(dmm);
                 }
             }
             else{
-                std::cout<<"Sending straight out for device: "<<dmm.info.device<<std::endl; 
+                //std::cout<<"Sending straight out for device: "<<dmm.info.device<<std::endl; 
                 this->sendNM.write(dmm);
             }
         } 
@@ -464,7 +478,8 @@ class ConfirmContainer{
 
 struct ManagedVType{
     ControllerQueue<SchedulerReq, ReqComparator> queue; 
-    OblockID owner; 
+    OblockID owner;
+    bool isOwned = false;  
 
 }; 
 

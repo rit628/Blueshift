@@ -4,6 +4,7 @@
 #include "libnetwork/Protocol.hpp"
 #include <algorithm>
 #include <exception>
+#include <stdexcept>
 
 
 MasterNM::MasterNM(std::vector<OBlockDesc> &desc_list, TSQ<DMM> &in_msg, TSQ<DMM> &out_q)
@@ -84,10 +85,7 @@ void MasterNM::writeConfig(std::vector<OBlockDesc> &desc_list){
 
             dev_list.insert(dev.device_name); 
             c_list.insert(dev.controller);
-        }
-        
-        this->oblock_list.push_back(oblock.name); 
-        
+        }        
     }
 }
 
@@ -225,9 +223,14 @@ void MasterNM::masterRead(){
 
         std::string cont = new_state.info.controller; 
 
-        sm_main.header.device_code = this->device_alias_map[new_state.info.device]; 
-        sm_main.header.ctl_code = this->controller_alias_map[new_state.info.controller]; 
-        sm_main.header.oblock_id = this->oblock_alias_map[new_state.info.oblock]; 
+        try{
+            sm_main.header.device_code = this->device_alias_map.at(new_state.info.device); 
+            sm_main.header.ctl_code = this->controller_alias_map.at(new_state.info.controller); 
+            sm_main.header.oblock_id = this->oblock_alias_map.at(new_state.info.oblock); 
+        }
+        catch(std::out_of_range e){
+            throw std::runtime_error("Failed to find the physical information for a specified oblock");
+        }
 
         bool nonStateChange = true;
 
@@ -235,27 +238,27 @@ void MasterNM::masterRead(){
         // Add other communication MASERT_PROTOCOLS
         switch(new_state.protocol){
             case PROTOCOLS::OWNER_CANDIDATE_REQUEST : {
-                std::cout<<"Pushing owner candidate request for: "<<new_state.info.oblock<<" for device: "<<new_state.info.device<<std::endl; 
+               // std::cout<<"Pushing owner candidate request for: "<<new_state.info.oblock<<" for device: "<<new_state.info.device<<std::endl; 
                 sm_main.header.prot = Protocol::OWNER_CANDIDATE_REQUEST ;
                 break; 
             }
             case PROTOCOLS::OWNER_CONFIRM : {
-                std::cout<<"Pushing CONFIRM request for: "<<new_state.info.oblock<<" for device: "<<new_state.info.device<<std::endl; 
+                //std::cout<<"Pushing CONFIRM request for: "<<new_state.info.oblock<<" for device: "<<new_state.info.device<<std::endl; 
                 sm_main.header.prot = Protocol::OWNER_CONFIRM; 
                 break; 
             }
             case PROTOCOLS::OWNER_RELEASE : {  
-                std::cout<<"Pushing Release request for: "<<new_state.info.oblock<<" for device: "<<new_state.info.device<<std::endl; 
+                //std::cout<<"Pushing Release request for: "<<new_state.info.oblock<<" for device: "<<new_state.info.device<<std::endl; 
                 sm_main.header.prot = Protocol::OWNER_RELEASE; 
                 break; 
             }
             case PROTOCOLS::OWNER_CANDIDATE_REQUEST_CONCLUDE : {
-                std::cout<<"Pushing owner candidate request conclusion for device "<<" for device: "<<new_state.info.device<<std::endl;  
+                //std::cout<<"Pushing owner candidate request conclusion for device: "<<new_state.info.device<<" For oblock: "<<new_state.info.oblock<<std::endl;  
                 sm_main.header.prot = Protocol::OWNER_CANDIDATE_REQUEST_CONCLUDE; 
                 break; 
             }
             case PROTOCOLS::PULL_REQUEST:{
-                std::cout<<"Sending out pull request for oblock "<<new_state.info.oblock<<" for device: "<<new_state.info.device<<std::endl;
+                //std::cout<<"Sending out pull request for oblock "<<new_state.info.oblock<<" for device: "<<new_state.info.device<<std::endl;
                 sm_main.header.prot = Protocol::PULL_REQUEST; 
                 break; 
             }
@@ -445,9 +448,9 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
 DynamicMasterMessage MasterNM::makeDMM(SentMessage &in_msg, PROTOCOLS pcode){
     DMM new_msg; 
     new_msg.protocol = pcode;
-    new_msg.info.controller = this->controller_list[in_msg.header.ctl_code]; 
-    new_msg.info.device = this->device_list[in_msg.header.device_code]; 
-    new_msg.info.oblock =  this->oblock_list[in_msg.header.oblock_id]; 
+    new_msg.info.controller = this->controller_list.at(in_msg.header.ctl_code); 
+    new_msg.info.device = this->device_list.at(in_msg.header.device_code); 
+    new_msg.info.oblock =  this->oblock_list.at(in_msg.header.oblock_id); 
     
     return new_msg; 
 }

@@ -471,12 +471,12 @@ void DeviceInterruptor::IFileWatcher(std::stop_token stoken, std::string fname, 
     // For now we can bypass the metadata and store data for the filesize and stuff;
     char event_buffer[sizeof(inotify_event) + 256]; 
     while(!stoken.stop_requested()){
-        std::cout<<"Waiting for event"<<std::endl;
+        //std::cout<<"Waiting for event"<<std::endl;
         int read_length = read(fd, event_buffer, sizeof(event_buffer)); 
 
         auto* event = reinterpret_cast<struct inotify_event*>(event_buffer);
         if (event->mask == IN_IGNORED) {
-            std::cout << "drop removed watch event" << std::endl;
+            //std::cout << "drop removed watch event" << std::endl;
             continue;
         }
          

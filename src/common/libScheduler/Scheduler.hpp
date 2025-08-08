@@ -68,6 +68,8 @@ struct PendingStateInfo{
     public: 
 
     std::unordered_set<DeviceID> mustOwn; 
+
+    std::unordered_set<DeviceID> grantedDevices; 
     std::unordered_set<DeviceID> ownedDevices; 
     int ownedCounter = 0; 
     int confirmedCounter = 0; 
@@ -82,8 +84,10 @@ struct PendingStateInfo{
 
     bool addDeviceGrant(DeviceID &dev){
         if(mustOwn.contains(dev)){
+            grantedDevices.insert(dev); 
            if(mustOwn.size() == ++this->ownedCounter){
             ownedCounter = 0;  
+            //std::cout<<"CONFIRMED OWNER"<<std::endl; 
             return true;    
            } 
         }
@@ -96,17 +100,9 @@ struct PendingStateInfo{
             if(mustOwn.size() == ++this->confirmedCounter){
                 this->ownedDevices.clear(); 
                 this->confirmedCounter = 0; 
-                std::cout<<"we good! running oblock"<<std::endl; 
+                //std::cout<<"we good! running oblock"<<std::endl; 
                 this->triggerConfirm();
                 return true; 
-            }
-        }
-
-
-        // Print out the remaining devices that need to confirm
-        for(auto& dev : mustOwn){
-            if(!ownedDevices.contains(dev)){
-                std::cout<<"Oblock Name: "<<oblockName<<" is still expecting "<<dev<<std::endl;
             }
         }
 
@@ -127,7 +123,7 @@ class DeviceScheduler{
         std::unordered_map<OblockID, PendingStateInfo> oblockWaitMap; 
 
         // Utility Functions: 
-        HeapMasterMessage makeMessage(OblockID& oName, DeviceID& devName, PROTOCOLS pmsg, int priority); 
+        HeapMasterMessage makeMessage(OblockID& oName, DeviceID& devName, PROTOCOLS pmsg, int priority, bool vtype); 
 
         // Function
         function<void(HeapMasterMessage)> handleMessage; 

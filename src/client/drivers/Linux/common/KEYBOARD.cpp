@@ -54,7 +54,12 @@ void KEYBOARD::transmitStates(DynamicMessage& dmsg) {
 }
 
 bool KEYBOARD::handleInterrupt(SDL_Event* event) {
+
     if (event->type == SDL_EVENT_KEY_DOWN && (id == 0 || event->kdevice.which == id)) {
+
+        std::time_t result = std::time(nullptr);
+        std::cout<<"KEYPRESS: "<<result<<std::endl;
+    
         states.key = SDL_GetKeyName(event->key.key);
         return true;
     }

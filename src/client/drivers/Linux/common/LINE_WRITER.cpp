@@ -7,6 +7,11 @@
 using namespace Device;
 
 void LINE_WRITER::processStates(DynamicMessage& dmsg) {
+    std::time_t result = std::time(nullptr);
+    std::cout<<"WROTE TO FILE: "<<result<<std::endl;
+    
+
+
     dmsg.unpackStates(states);
 
     if (this->file_stream.is_open()) {
@@ -16,7 +21,7 @@ void LINE_WRITER::processStates(DynamicMessage& dmsg) {
     this->file_stream.open(this->filename, std::ios::out | std::ios::trunc);  // Open in truncate mode
     
     if (this->file_stream.is_open()) {
-        std::cout<<"Writing data"<<std::endl; 
+        std::cout<<"Writing data: "<<states.msg<<std::endl; 
         this->file_stream << states.msg; 
         this->file_stream.flush();  // Ensure data is written immediately
         this->file_stream.close();

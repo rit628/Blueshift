@@ -5,6 +5,7 @@
 #include "libtype/bls_types.hpp"
 #include <memory>
 #include <mutex>
+#include <stdexcept>
 #include <variant>
 #include <vector>
 
@@ -87,8 +88,8 @@ void ExecutionUnit::replaceCachedStates(std::unordered_map<DeviceID, HeapMasterM
 
     auto replacementItems = this->replacementCache.getMap(); 
     for(auto& item : replacementItems){
-        std::cout<<"Replacing the cache"<<std::endl; 
-        std::cout<<"REPLACING CACHED STATES: "<<item.first<<std::endl;
+        //std::cout<<"Replacing the cache"<<std::endl; 
+        //std::cout<<"REPLACING CACHED STATES: "<<item.first<<std::endl;
         auto devState = item.first;
         HeapMasterMessage replaceHMM = item.second;
         cachedHMMs[devState] = replaceHMM; 
@@ -104,6 +105,7 @@ void ExecutionUnit::running()
         EMStateMessage currentHMMs = EUcache.read();
 
         this->TriggerName = currentHMMs.TriggerName;  
+        //std::cout<<this->Oblock.name <<" TRIGGERED BY: "<<TriggerName<<std::endl; 
 
         std::unordered_map<DeviceID, HeapMasterMessage> HMMs;
         
@@ -125,16 +127,19 @@ void ExecutionUnit::running()
         execMsg.protocol = PROTOCOLS::PROCESS_EXEC; 
         this->sendMM.write(execMsg);
 
-
+        int i = 0; 
         for(auto& deviceDesc : this->Oblock.binded_devices){
             DeviceID devName = deviceDesc.device_name; 
+
             if(HMMs.contains(devName)){
                 auto state = HMMs.at(devName).heapTree;
                 if (std::holds_alternative<std::shared_ptr<HeapDescriptor>>(state)) {
                     // make sure default is set to unmodified (may not be needed depending on serialization
                     auto desc = std::get<std::shared_ptr<HeapDescriptor>>(state)->clone();
                     desc->modified = false;
+                    desc->index = i;  
                     state = std::move(desc);
+                    
                 }
                 transformableStates.push_back(state); 
             }
@@ -144,16 +149,21 @@ void ExecutionUnit::running()
                     // make sure default is set to unmodified (may not be needed depending on serialization
                     auto desc = std::get<std::shared_ptr<HeapDescriptor>>(defDevice)->clone();
                     desc->modified = false;
+                    desc->index = i; 
                     defDevice = std::move(desc);
                 }
                 transformableStates.push_back(defDevice); 
             }
+            i++; 
         }
 
         transformableStates = vm.transform(transformableStates);
         auto& modifiedStates = vm.getModifiedStates();
 
         std::vector<HeapMasterMessage> outGoingStates;  
+
+        // Release before retrieval
+        this->globalScheduler.release(this->Oblock.name);
 
         for(auto& devDesc : this->Oblock.outDevices)
         {   
@@ -177,8 +187,7 @@ void ExecutionUnit::running()
         }
 
         // clear the replacement cache since the oblock ran successfully
-        this->replacementCache.clear();
-        this->globalScheduler.release(this->Oblock.name); 
+        this->replacementCache.clear(); 
     }
 }
 
@@ -200,7 +209,7 @@ void ExecutionManager::running()
             for(auto& pair : EU_map)
             {
                 O_Info info = pair.second->info;
-                std::cout<<"Requesting States for : "<<info.oblock<<std::endl;
+                //std::cout<<"Requesting States for : "<<info.oblock<<std::endl;
                 HeapMasterMessage requestHMM(nullptr, info, PROTOCOLS::REQUESTINGSTATES, false);
                 this->sendMM.write(requestHMM);
 
@@ -217,7 +226,7 @@ void ExecutionManager::running()
                 break;
             }
             case(PROTOCOLS::OWNER_CONFIRM_OK):{
-                std::cout<<"Passing owner confirm ok"<<std::endl; 
+                //std::cout<<"Passing owner confirm ok"<<std::endl; 
                 this->scheduler.receive(currentDMMs.dmm_list[0]); 
                 break; 
             }
@@ -235,6 +244,7 @@ void ExecutionManager::running()
                     assignedUnit.pullCounter--; 
                 }
                 assignedUnit.pullCV.notify_one();
+                break; 
             }
             default:{
                 assignedUnit.EUcache.write(currentDMMs);
@@ -255,20 +265,30 @@ void ExecutionManager::running()
 
 // TRAP IMPLEMENTATIONS
 
-void ExecutionUnit::sendPushState(std::vector<BlsType> &typeList){
+void ExecutionUnit::sendPushState(std::vector<BlsType> typeList){
         for(BlsType blsType : typeList){
             HeapMasterMessage pushStateHmm; 
-            pushStateHmm.heapTree = blsType; 
-            pushStateHmm.protocol = PROTOCOLS::PUSH_REQUEST;
+       
+            pushStateHmm.protocol = PROTOCOLS::SENDSTATES;
+            int index = 0; 
+            if(std::holds_alternative<std::shared_ptr<HeapDescriptor>>(blsType)){
+                index = std::get<std::shared_ptr<HeapDescriptor>>(blsType)->index; 
+                pushStateHmm.heapTree = std::get<std::shared_ptr<HeapDescriptor>>(blsType)->clone(); 
+            }
+            else{
+                throw std::runtime_error("Support for pushing to non-primative devices is not yet implemented");
+            }
+
             // TODO: CHANGE THIS TO USE THE ACTUAL NAME INSTEAD OF THE ALIAS
-            pushStateHmm.info.device = this->Oblock.binded_devices.at(blsType.index).device_name; 
+            pushStateHmm.info.device = this->Oblock.binded_devices.at(index).device_name; 
             pushStateHmm.info.oblock = this->Oblock.name; 
+            pushStateHmm.info.controller = this->Oblock.binded_devices.at(index).controller; 
             this->sendMM.write(pushStateHmm); 
         }
     }
 
 
-std::vector<BlsType> ExecutionUnit::sendPullState(std::vector<BlsType> &typeList){
+std::vector<BlsType> ExecutionUnit::sendPullState(std::vector<BlsType> typeList){
         this->pullStoreVector.clear(); 
         int numPulls  = typeList.size(); 
         this->pullStoreVector.resize(numPulls); 
@@ -276,16 +296,32 @@ std::vector<BlsType> ExecutionUnit::sendPullState(std::vector<BlsType> &typeList
         int i = 0; 
         for(BlsType blsType : typeList){
             HeapMasterMessage pullStateHmm; 
+            int index = 0; 
+            if(std::holds_alternative<std::shared_ptr<HeapDescriptor>>(blsType)){
+                index = std::get<std::shared_ptr<HeapDescriptor>>(blsType)->index; 
+            }
+            else{
+                throw std::runtime_error("Suppose for pushing to non-primative device is not yet implemented");
+            }
+            auto& deviceName =  this->Oblock.binded_devices.at(index).device_name; 
+            auto& controllerName =  this->Oblock.binded_devices.at(index).controller; 
+
+            this->pullPlacement.emplace(deviceName, i); 
             pullStateHmm.protocol = PROTOCOLS::PULL_REQUEST; 
+     
             // TODO: CHANGE THIS TO USE THE DEVICE ALIAS MAPPING
-            pullStateHmm.info.device = this->Oblock.binded_devices.at(blsType.index).device_name;
+            pullStateHmm.info.device = deviceName; 
             pullStateHmm.info.oblock = this->Oblock.name; 
+            pullStateHmm.info.controller = controllerName; 
             this->sendMM.write(pullStateHmm); 
-            this->pullPlacement[pullStateHmm.info.device] = i; 
             i++; 
         }
-        std::unique_lock<std::mutex> lock(this->pullMutex);
-        this->pullCV.wait(lock, [this](){return this->pullCounter == 0;}); 
+
+        {
+            std::unique_lock<std::mutex> lock(this->pullMutex);
+            this->pullCV.wait(lock, [this](){return this->pullCounter == 0;}); 
+        }
+
         this->pullPlacement.clear(); 
         return this->pullStoreVector; 
     }
@@ -294,7 +330,7 @@ std::vector<BlsType> ExecutionUnit::sendPullState(std::vector<BlsType> &typeList
 // Finish this: 
 void ExecutionUnit::pullVMArguments(HeapMasterMessage &hmm){
     DeviceID device = hmm.info.device; 
-    int pullPos = this->devicePositionMap.at(device);
+    int pullPos = this->pullPlacement.at(device);
     this->pullStoreVector.at(pullPos) = hmm.heapTree; 
 }
 

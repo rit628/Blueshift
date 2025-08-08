@@ -34,8 +34,8 @@ std::monostate Impl::println(std::vector<BlsType> values, BytecodeProcessor* vm)
     return std::monostate();
 }
 
-std::monostate Impl::sleep(int64_t seconds, BytecodeProcessor* vm) {
-    std::this_thread::sleep_for(std::chrono::seconds(seconds));
+std::monostate Impl::sleep(int64_t ms, BytecodeProcessor* vm) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(ms));
     return std::monostate();
 }
 
@@ -74,6 +74,7 @@ std::monostate Impl::enableTrigger(std::string triggerName, std::string oblockID
 std::monostate Impl::push(std::vector<BlsType> blsList, BytecodeProcessor *vm){
     // imagine a push function here
     vm->ownerUnit->sendPushState(blsList); 
+    return std::monostate(); 
 }
 
 
@@ -82,9 +83,11 @@ std::monostate Impl::pull(std::vector<BlsType> blsList, BytecodeProcessor *vm){
     int i = 0; 
     for(auto oldVal : blsList){
         if(std::holds_alternative<std::shared_ptr<HeapDescriptor>>(oldVal)){
-            auto old_hd = std::get<std::shared_ptr<HeapDescriptor>>(oldVal);
-            auto new_hd  = std::get<std::shared_ptr<HeapDescriptor>>(newStates.at(i));
+            auto old_hd = std::dynamic_pointer_cast<MapDescriptor>(std::get<std::shared_ptr<HeapDescriptor>>(oldVal));
+            auto new_hd  = std::dynamic_pointer_cast<MapDescriptor>(std::get<std::shared_ptr<HeapDescriptor>>(newStates.at(i)));
+            new_hd->index = old_hd->index; 
             *old_hd = *new_hd; 
+            std::cout<<"Switched results"<<std::endl; 
         }
         else{
             //  Wont work for now since blsList is copied by value
@@ -93,4 +96,6 @@ std::monostate Impl::pull(std::vector<BlsType> blsList, BytecodeProcessor *vm){
 
         i++; 
     }
+
+    return std::monostate(); 
 }

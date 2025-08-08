@@ -6,7 +6,7 @@
 
 using namespace Device;
 
-void TIMER_TEST::processStates(DynamicMessage& dmsg) {
+void TIMER_TEST::processStates(DynamicMessage& dmsg) {  
     dmsg.unpackStates(states);
     write_file << std::to_string(this->states.test_val) << ",";  
     write_file.flush(); 

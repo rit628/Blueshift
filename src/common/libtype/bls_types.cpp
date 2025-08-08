@@ -451,6 +451,19 @@ MapDescriptor::MapDescriptor(std::initializer_list<std::pair<std::string, BlsTyp
     this->map->insert(elements.begin(), elements.end());
 }
 
+
+MapDescriptor::MapDescriptor(const MapDescriptor& other) {
+    if(other.map){
+        this->map = std::make_shared<std::unordered_map<std::string, BlsType>>();
+        *this->map = *other.map;
+    }
+}
+
+MapDescriptor& MapDescriptor::operator=(const MapDescriptor& rhs) {
+    this->map = rhs.map; 
+    return *this;
+}
+
 BlsType& MapDescriptor::access(BlsType &obj) {
     std::scoped_lock bob(mux); 
 

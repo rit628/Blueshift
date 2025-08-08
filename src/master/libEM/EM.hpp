@@ -48,6 +48,7 @@ class ExecutionUnit
 
 
 
+
     ExecutionUnit(OBlockDesc OblockData
                 , vector<string> devices
                 , vector<bool> isVtype
@@ -65,8 +66,8 @@ class ExecutionUnit
     void replaceCachedStates(std::unordered_map<DeviceID, HeapMasterMessage> &cachedHMMs); 
    
     // OS level Traps (should always be a ptr heap descriptor so fine to take as value)
-    void sendPushState(std::vector<BlsType> &pushStates);
-    std::vector<BlsType> sendPullState(std::vector<BlsType> &pullStates);
+    void sendPushState(std::vector<BlsType> pushStates);
+    std::vector<BlsType> sendPullState(std::vector<BlsType> pullStates);
     void pullVMArguments(HeapMasterMessage &hmm); 
     // For the triggerChange message, the device is the trigger (workaround for now)
     void sendTriggerChange(std::string& triggerID, OblockID& oblockID, bool isEnable); 

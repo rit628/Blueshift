@@ -1,33 +1,64 @@
 oblock delegator(KEYBOARD kbd, LINE_WRITER lw, int counter, string msg1, string msg2)
-: triggerOn(kbd), processPolicy({counter : {"read" : "any"}})
+: triggerOn({"rule": [kbd,counter], "id" : "delTrigger"} ), processPolicy({counter : {"read" : "any"}})
 {
     
+    list<string> words = ["Ready", "Set", "Go"]; 
+
     string writeKey = "";
-    
+
+    if(getTrigger() == "initial"){
+        // intialize the counter
+        counter = 0;
+        return; 
+    }
+ 
     if(kbd.key == "Space"){
         writeKey = " "; 
     }
     else if(kbd.key == "Left Shift"){
         lw.msg = ""; 
     }
+    else if(kbd.key == "."){
+        for(int i = 0; i < words.size(); i++){
+            lw.msg = words[i]; 
+            push(lw); 
+            lw.msg = "OMAR"; 
+            pull(lw); 
+            println("New state: ", lw.msg); 
+            sleep(1000); 
+        }
+        println("FINISHED THE SHIT"); 
+        counter = 0; 
+        return; 
+    }
     else{
         writeKey = kbd.key;
     }
 
     if(counter%2 == 0){
+        println("Wrote key to v: ", kbd.key); 
         msg1 = writeKey; 
     }
-    else{   
+    else{  
+        println("Wrote key to k: ", kbd.key);  
         msg2 = writeKey; 
     }
 
-    counter++; 
+    println("Wrote key: ", kbd.key); 
+    println("COUNTER: ", counter); 
+    counter++;  
 }
 
 
 oblock vWrite(string msg1, FILE_LOG fl, LINE_WRITER lw)
 : triggerOn(msg1), processPolicy({lw : {"read" : "any"}})
 {
+
+    if(getTrigger() == "initial"){
+        return; 
+    }
+
+
     fl.add_msg = "from v trigger: " + msg1; 
     lw.msg += msg1; 
 }
@@ -35,6 +66,10 @@ oblock vWrite(string msg1, FILE_LOG fl, LINE_WRITER lw)
 oblock kWrite(string msg2, FILE_LOG fl, LINE_WRITER lw)
 : triggerOn(msg2), processPolicy({lw : {"read" : "any"}})
 {
+    if(getTrigger() == "initial"){
+        return; 
+    }
+
     fl.add_msg = "from k trigger: " + msg2; 
     lw.msg += msg2; 
 }

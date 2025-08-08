@@ -65,7 +65,7 @@ void Connection::connectToServer(boost::asio::ip::tcp::resolver::results_type &r
     boost::asio::async_connect(this->socket, results, 
     [](boost::system::error_code ec, tcp::endpoint endpt){
         if(!ec){
-            std::cout<<"Read Header"<<std::endl; 
+            //std::cout<<"Read Header"<<std::endl; 
         }
     });
 }

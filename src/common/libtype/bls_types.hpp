@@ -82,7 +82,6 @@ class MapDescriptor;
 struct BlsType : std::variant<std::monostate, bool, int64_t, double, std::string, std::shared_ptr<HeapDescriptor>> {
   using std::variant<std::monostate, bool, int64_t, double, std::string, std::shared_ptr<HeapDescriptor>>::variant;
   // Strongly typed assignment for use in interpreter, analyzer, and vm (may be switched to assignment overload later) 
-  int index = 0;
   BlsType& assign(const BlsType& rhs);
   explicit operator bool() const;
   explicit operator double() const;
@@ -149,6 +148,7 @@ class HeapDescriptor {
 
   public:
     bool modified = false;
+    int index = -1; 
 
     HeapDescriptor() = default;
     virtual ~HeapDescriptor() = default;
@@ -179,6 +179,8 @@ class MapDescriptor : public HeapDescriptor{
     MapDescriptor(TYPE contType);
     MapDescriptor(TYPE objType, TYPE keyType, TYPE contType);
     MapDescriptor(std::initializer_list<std::pair<std::string, BlsType>> elements);
+    MapDescriptor& operator=(const MapDescriptor& rhs); 
+    MapDescriptor(const MapDescriptor& other); 
     // Add non-string handling later:
     BlsType& access(BlsType &obj) override;
 
@@ -202,6 +204,8 @@ class MapDescriptor : public HeapDescriptor{
     friend class boost::serialization::access;
     template<typename Archive>
     void serialize(Archive& ar, const unsigned int version);
+
+    
 };
 
 class VectorDescriptor : public HeapDescriptor, std::enable_shared_from_this<VectorDescriptor>{

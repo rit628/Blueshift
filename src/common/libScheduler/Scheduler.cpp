@@ -7,14 +7,15 @@
     HELPER FUNCTIONS\
 */
 
-HeapMasterMessage DeviceScheduler::makeMessage(OblockID& oName, DeviceID& devName, PROTOCOLS pmsg, int priority = 0){
+HeapMasterMessage DeviceScheduler::makeMessage(OblockID& oName, DeviceID& devName, PROTOCOLS pmsg, int priority = 0, bool vtype = false){
     HeapMasterMessage hmm; 
     hmm.info.device = devName; 
     hmm.info.oblock = oName; 
     if(this->devControllerMap.contains(devName)){
          hmm.info.controller = this->devControllerMap[devName]; 
     }
-    hmm.info.isVtype = false; // Idk this doesn't matter
+
+    hmm.info.isVtype = vtype; 
     hmm.protocol = pmsg; 
     hmm.info.priority = priority; 
 
@@ -27,7 +28,7 @@ DeviceScheduler::DeviceScheduler(std::vector<OBlockDesc> &oblockDescList, std::f
     for(auto& odesc : oblockDescList){
         auto& oblockName = odesc.name;
         for(DeviceDescriptor& dev : odesc.outDevices){
-            if(!dev.isCursor && !dev.isVtype){
+            if(!dev.isCursor){
                 if(this->scheduledProcessMap.contains(dev.device_name)){
                     this->scheduledProcessMap[dev.device_name]; 
                 }
@@ -45,15 +46,12 @@ DeviceScheduler::DeviceScheduler(std::vector<OBlockDesc> &oblockDescList, std::f
 */
 // Sends a request message for each device stae
 void DeviceScheduler::request(OblockID& requestor, int priority){
-    std::cout<<"priority: "<<std::endl;
     // get the out devices from the oblock: 
     auto& jamar = this->oblockWaitMap[requestor]; 
     auto& ownDevs = jamar.mustOwn;
     jamar.executeFlag = false; 
-    std::cout<<"Request made from oblock: "<<requestor<<std::endl; 
-
-    if(ownDevs.empty()){
-        std::cout<<"No devices left to own"<<std::endl; 
+    
+    if(ownDevs.empty()){ 
         std::string k = ""; 
         this->handleMessage(this->makeMessage(requestor, k, PROTOCOLS::OWNER_CANDIDATE_REQUEST_CONCLUDE)); 
         return; 
@@ -75,13 +73,18 @@ void DeviceScheduler::request(OblockID& requestor, int priority){
 void DeviceScheduler::receive(HeapMasterMessage &recvMsg){
     switch(recvMsg.protocol){
         case PROTOCOLS::OWNER_GRANT :  {
+            //std::cout<<"recieved grant for device: "<<recvMsg.info.device<<" for oblock: "<<recvMsg.info.oblock<<std::endl; 
             auto& targOblock = recvMsg.info.oblock; 
             auto& targDevice = recvMsg.info.device; 
             auto& requestor = this->oblockWaitMap.at(targOblock);
             bool result = requestor.addDeviceGrant(targDevice); 
+            //std::cout<<"Finished adding the grant"<<std::endl; 
+
             if(result){
+               // std::cout<<"ready to send"<<std::endl; 
                 auto& devList = this->oblockWaitMap[targOblock].mustOwn;
                 for(auto dev : devList){
+                   // std::cout<<"Sending confirm for device "<<dev<<" for oblock "<<targOblock<<std::endl; 
                     HeapMasterMessage confirmMsg = makeMessage(targOblock, dev, PROTOCOLS::OWNER_CONFIRM); 
                     this->handleMessage(confirmMsg); 
                 } 
@@ -121,7 +124,7 @@ void DeviceScheduler::receive(HeapMasterMessage &recvMsg){
 }
 
 void DeviceScheduler::release(OblockID& reqOblock){
-    std::cout<<"Releasing devices for "<<reqOblock<<std::endl; 
+    //std::cout<<"Releasing devices for "<<reqOblock<<std::endl; 
     auto& deviceList = this->oblockWaitMap[reqOblock].mustOwn;
     for(auto dev : deviceList){
         // Send each device that the oblock in question has ended its ownership
@@ -131,7 +134,7 @@ void DeviceScheduler::release(OblockID& reqOblock){
         // Send the new item
         auto& scheDev = this->scheduledProcessMap[dev]; 
         if(!scheDev.QueueEmpty()){
-            std::cout<<"Sending new state"<<std::endl; 
+            //std::cout<<"Sending new state"<<std::endl; 
             auto newReq = scheDev.QueuePop(); 
             HeapMasterMessage hmm = makeMessage(newReq.requestorOblock, dev, PROTOCOLS::OWNER_CANDIDATE_REQUEST); 
             this->handleMessage(hmm); 
