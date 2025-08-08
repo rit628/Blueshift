@@ -81,6 +81,7 @@ struct DeviceDescriptor{
     bool isYield = true; 
     int polling_period = -1; // dynamic polling doesnt need a period
     bool isConst = true; // disable dynamic polling subsystem for now, default to 1000ms poll in client
+    bool ignoreWriteBacks = false; 
     /* 
         If the device is registered as a trigger then the execution of 
         the oblock is binded to the arrival of the devices state. 

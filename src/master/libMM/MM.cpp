@@ -92,6 +92,11 @@ ReaderBox::ReaderBox(string name, OBlockDesc& oDesc, std::unordered_set<OblockID
 {
     this->OblockName = name;
     this->oblockDesc = oDesc; 
+
+    for(auto& desc : oDesc.binded_devices){
+        this->devDesc.emplace(desc.device_name, desc); 
+    }
+
 }
 
 WriterBox::WriterBox(string deviceName)
@@ -244,10 +249,10 @@ void MasterMailbox::assignEM(HeapMasterMessage DMM)
                     break; 
                 }
 
-
                 std::vector<OblockID> oblockList = this->interruptName_map.at(DMM.info.device); 
                 for(auto &name : oblockList){
-                     if(!this->oblockReadMap.contains(name)){break;}
+                    if(!this->oblockReadMap.contains(name)){break;}
+                    DMM.protocol = PROTOCOLS::CALLBACKRECIEVED; 
                     std::unique_ptr<ReaderBox>& reader = this->oblockReadMap[name]; 
                     reader->insertState(DMM); 
                 }   

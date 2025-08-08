@@ -174,13 +174,14 @@ void Client::listener(std::stop_token stoken){
                     std::cout<<"Valid owner"<<std::endl; 
                 }
 
-
+                oblock_int o_id = inMsg.header.oblock_id; 
+                
                 // Trying out the thread pool: 
-                boost::asio::post(this->client_ctx,  [dev_index, dmsg = std::move(dmsg), this](){
+                boost::asio::post(this->client_ctx,  [o_id, dev_index, dmsg = std::move(dmsg), this](){
                     try{   
                         //std::cout<<"State change in progress"<<std::endl; 
                         this->deviceList.at(dev_index).device.processStates(dmsg);
-                        this->sendMessage(dev_index, Protocol::CALLBACK, false);
+                        this->sendMessage(dev_index, Protocol::CALLBACK, false, o_id);
                         
                     }
                     catch(std::exception(e)){

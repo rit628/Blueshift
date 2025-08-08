@@ -62,13 +62,11 @@ class TriggerManager{
         std::vector<std::bitset<BITSET_SZ>> ruleset; 
         std::vector<TriggerData> trigData; 
         std::bitset<BITSET_SZ> defaultBitstring; 
-        std::unordered_set<int> excludedTriggers;
+        std::unordered_set<int> excludedTriggers; 
         // Maps trigger indices to integers
         std::unordered_map<std::string, int> triggerIndexMap; 
 
-        
-
-
+    
     public: 
         // Device Constructor (created rules)
         TriggerManager(OBlockDesc& OBlockDesc){
@@ -94,7 +92,6 @@ class TriggerManager{
                 ruleset.push_back(king); 
                 i++; 
             }
-            
         }
 
         private: 
@@ -130,7 +127,7 @@ class TriggerManager{
                 if(this->initBitmap.to_ulong() != filledMap){
                     this->initBitmap.set(this->stringMap[object]);
                     // force a trigger when the map is init bitmap is filled
-                    if(this->initBitmap.to_ulong() != filledMap){
+                    if(this->initBitmap.to_ulong() == filledMap){
                         // Code for initial trigger
                         trigger_id = -1; 
                         return true; 
@@ -207,6 +204,7 @@ struct ReaderBox
         OBlockDesc oblockDesc; 
         std::mutex read_mut; 
         TSQ<EMStateMessage> &sendEM; 
+        std::unordered_map<DeviceID, DeviceDescriptor> devDesc; 
 
 
         // Inserts the state into the object: 
@@ -214,8 +212,12 @@ struct ReaderBox
         void insertState(HeapMasterMessage newDMM){
             std::lock_guard<std::mutex> lock(this->read_mut); 
 
-
             if(!this->waitingQs.contains(newDMM.info.device)){
+                return; 
+            }
+
+            if(newDMM.protocol == PROTOCOLS::CALLBACKRECIEVED && (this->OblockName == newDMM.info.oblock) && this->devDesc.at(newDMM.info.device).ignoreWriteBacks){
+                std::cout<<"Write back ignored"<<std::endl; 
                 return; 
             }
 

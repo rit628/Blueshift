@@ -9,6 +9,7 @@ oblock delegator(KEYBOARD kbd, READ_FILE lw, int counter, string msg1, string ms
 
     if(getTrigger() == "initial"){
         // intialize the counter
+        println("OMAR"); 
         counter = 0;
         return; 
     }
@@ -57,6 +58,7 @@ oblock vWrite(string msg1, FILE_LOG fl, READ_FILE lw)
 : triggerOn(msg1), processPolicy({lw : {"read" : "any", "yield" : false}})
 {
     if(getTrigger() == "initial"){
+        println("vwrite omar"); 
         return; 
     }
 
@@ -68,6 +70,7 @@ oblock kWrite(string msg2, READ_FILE fl, READ_FILE lw)
 : triggerOn(msg2), processPolicy({lw : {"read" : "any", "yield" : false}})
 {
     if(getTrigger() == "initial"){
+        println("Kwrite OMAR"); 
         return; 
     }
 
