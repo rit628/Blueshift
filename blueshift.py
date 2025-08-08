@@ -201,7 +201,6 @@ def run(args):
             if context == "rootless":
                 raise PermissionError("Packet forwarding only possible in rootful context. Try running again with elevated privileges or perform a manual context switch before running.")
             os.environ["NETWORK_MODE"] = "host"
-            os.environ["PRIVILEGED_RUNTIME"] = "true"
             if args.udp_broadcast_forward:
                 Thread(target=broadcast_sniffer, daemon=True).start()
                 time.sleep(.25) # wait before running initialize_host() to ensure sniffing privilege is retained

@@ -500,10 +500,11 @@ void DeviceInterruptor::IGpioWatcher(std::stop_token stoken, int portNum, std::f
     auto callback = [](int gpio, int level, unsigned int tick, void* callbackData) -> void {
         auto& [cv, m, handlerSignal, handler] = *reinterpret_cast<callback_data*>(callbackData);
         {
-            std::lock_guard lk(m);
+            std::unique_lock lk(m);
+            cv.wait(lk, [&handlerSignal](){ return !handlerSignal; });
             handlerSignal = handler(gpio, level, tick);
         }
-        cv.notify_one();
+        cv.notify_all();
     };
     watchDescriptors.push_back(GpioWatchDescriptor{portNum, callback, &callbackData});
 
@@ -518,6 +519,7 @@ void DeviceInterruptor::IGpioWatcher(std::stop_token stoken, int portNum, std::f
             this->sendMessage();
             handlerSignal = false;
         }
+        cv.notify_one();
     }
     running.wait(true); // terminate thread once watcher manager has shutdown
 }
@@ -532,10 +534,11 @@ void DeviceInterruptor::ISdlWatcher(std::stop_token stoken, std::function<bool(S
     auto callback = [](void* callbackData, SDL_Event* event) -> bool {
         auto& [cv, m, handlerSignal, handler] = *reinterpret_cast<callback_data*>(callbackData);
         {
-            std::lock_guard lk(m);
+            std::unique_lock lk(m);
+            cv.wait(lk, [&handlerSignal](){ return !handlerSignal; });
             handlerSignal = handler(event);
         }
-        cv.notify_one();
+        cv.notify_all();
         return handlerSignal;
     };
 
@@ -552,6 +555,7 @@ void DeviceInterruptor::ISdlWatcher(std::stop_token stoken, std::function<bool(S
             this->sendMessage();
             handlerSignal = false;
         }
+        cv.notify_one();
     }
     running.wait(true); // terminate thread once watcher manager has shutdown
 }

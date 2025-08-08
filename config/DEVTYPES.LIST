@@ -14,6 +14,10 @@ DEVTYPE_BEGIN(FILE_LOG)
     ATTRIBUTE(add_msg, string)
 DEVTYPE_END
 
+DEVTYPE_BEGIN(READ_FILE_POLL)
+    ATTRIBUTE(msg, string)
+DEVTYPE_END
+
 DEVTYPE_BEGIN(LIGHT)
     ATTRIBUTE(on, bool)
 DEVTYPE_END
@@ -28,12 +32,12 @@ DEVTYPE_BEGIN(RGB_LED)
     ATTRIBUTE(blue_val, int)
 DEVTYPE_END
 
-DEVTYPE_BEGIN(ACTIVE_BUZZER)
-    ATTRIBUTE(active, bool)
-DEVTYPE_END
-
 DEVTYPE_BEGIN(BUTTON)
     ATTRIBUTE(pressed, bool)
+DEVTYPE_END
+
+DEVTYPE_BEGIN(ACTIVE_BUZZER)
+    ATTRIBUTE(active, bool)
 DEVTYPE_END
 
 DEVTYPE_BEGIN(PASSIVE_BUZZER)
@@ -74,12 +78,9 @@ DEVTYPE_BEGIN(STEP_MOTOR)
     ATTRIBUTE(move_steps, int)
 DEVTYPE_END
 
-DEVTYPE_BEGIN(ULTRASONIC)
-    ATTRIBUTE(distance, int)
-DEVTYPE_END
-
-DEVTYPE_BEGIN(MOTION_SENSOR)
-    ATTRIBUTE(detected, bool)
+DEVTYPE_BEGIN(DHT11)
+    ATTRIBUTE(humidity, int)
+    ATTRIBUTE(temperature, int)
 DEVTYPE_END
 
 DEVTYPE_BEGIN(LCD_SCREEN)
@@ -88,13 +89,12 @@ DEVTYPE_BEGIN(LCD_SCREEN)
     ATTRIBUTE(msg, string)
 DEVTYPE_END 
 
-DEVTYPE_BEGIN(DHT11)
-    ATTRIBUTE(humidity, int)
-    ATTRIBUTE(temperature, int)
+DEVTYPE_BEGIN(MOTION_SENSOR)
+    ATTRIBUTE(detected, bool)
 DEVTYPE_END
 
-DEVTYPE_BEGIN(READ_FILE_POLL)
-    ATTRIBUTE(msg, string)
+DEVTYPE_BEGIN(ULTRASONIC)
+    ATTRIBUTE(distance, int)
 DEVTYPE_END
 
 DEVTYPE_BEGIN(KEYBOARD)
@@ -109,4 +109,31 @@ DEVTYPE_BEGIN(MOUSE)
     ATTRIBUTE(middleClick, bool)
     ATTRIBUTE(scrollX, int)
     ATTRIBUTE(scrollY, int)
+DEVTYPE_END
+
+DEVTYPE_BEGIN(GAMEPAD)
+    ATTRIBUTE(a, bool)
+    ATTRIBUTE(b, bool)
+    ATTRIBUTE(x, bool)
+    ATTRIBUTE(y, bool)
+    ATTRIBUTE(dpadUp, bool)
+    ATTRIBUTE(dpadDown, bool)
+    ATTRIBUTE(dpadLeft, bool)
+    ATTRIBUTE(dpadRight, bool)
+    ATTRIBUTE(lsb, bool)
+    ATTRIBUTE(rsb, bool)
+    ATTRIBUTE(lb, bool)
+    ATTRIBUTE(rb, bool)
+    ATTRIBUTE(lt, int)
+    ATTRIBUTE(rt, int)
+    ATTRIBUTE(start, bool)
+    ATTRIBUTE(select, bool)
+    ATTRIBUTE(home, bool)
+    ATTRIBUTE(leftStickX, int)
+    ATTRIBUTE(leftStickY, int)
+    ATTRIBUTE(rightStickX, int)
+    ATTRIBUTE(rightStickY, int)
+    ATTRIBUTE(leftRumble, int)
+    ATTRIBUTE(rightRumble, int)
+    ATTRIBUTE(rumbleDuration, int)
 DEVTYPE_END

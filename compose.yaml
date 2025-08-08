@@ -29,7 +29,7 @@ services:
       - root
       - kmem
       - gpio
-    privileged: ${PRIVILEGED_RUNTIME}
+    privileged: true
     build:
       context: .
       dockerfile: .docker/builder/Dockerfile

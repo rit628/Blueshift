@@ -234,6 +234,7 @@ void Client::listener(std::stop_token stoken){
             // create device pollers
             for(auto&& [deviceNum, timerList] : this->start_timers){
                 auto& device = this->deviceList.at(deviceNum).device;
+                bool sendInit = true; // ensure interrupt only devices dont send initial state now
 
                 if (!device.isActuator) {
                     auto& poller = pollers.emplace_back(client_ctx, device, client_connection, controller_alias, deviceNum);
@@ -245,10 +246,13 @@ void Client::listener(std::stop_token stoken){
                     }
                     if (poller.getTimerIds().empty()) {
                         pollers.pop_back(); // remove pollers with no timers attached
+                        sendInit = false;
                     }
                 }
-                sendMessage(deviceNum, Protocol::SEND_STATE_INIT, true); 
-                std::cout<<"SENT MESSAGE"<<std::endl;
+                if (sendInit) {
+                    sendMessage(deviceNum, Protocol::SEND_STATE_INIT, true); 
+                    std::cout<<"SENT MESSAGE"<<std::endl;
+                }
             }
 
              // create device interruptors
@@ -477,7 +481,7 @@ bool Client::disconnect(){
     std::cout << "Client device data reset" << std::endl;
 
     #ifdef SDL_ENABLED
-    if (SDL_WasInit(SDL_INIT_VIDEO) != 0) { // terminate sdl main thread
+    if (SDL_WasInit(SDL_INIT_VIDEO)) { // terminate sdl main thread
         SDL_Event event;
         event.type = SDL_EVENT_USER;
         SDL_PushEvent(&event);
