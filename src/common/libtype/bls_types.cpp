@@ -613,3 +613,67 @@ std::string stringify(const BlsType& value) {
         [](const auto&) -> std::string { throw std::runtime_error("Heap Descriptor Stringification not implemented!"); }
     }, value);
 }
+
+BlsType tag_invoke(const boost::json::value_to_tag<BlsType>&, boost::json::value const& jv) {
+    using namespace boost::json;
+    if (jv.is_array()) {
+        auto list = std::make_shared<VectorDescriptor>(TYPE::ANY);
+        for (auto&& element : jv.get_array()) {
+            auto converted = value_to<BlsType>(element);
+            list->append(converted);
+        }
+        return list;
+    }
+    else if (jv.is_object()) {
+        auto map = std::make_shared<MapDescriptor>(TYPE::ANY);
+        for (auto&& [key, value] : jv.get_object()) {
+            auto convertedKey = BlsType(key);
+            auto convertedValue = value_to<BlsType>(value);
+            map->add(convertedKey, convertedValue);
+        }
+        return map;
+    }
+    else if (jv.is_bool()) {
+        return value_to<bool>(jv);
+    }
+    else if (jv.is_int64()) {
+        return value_to<int64_t>(jv);
+    }
+    else if (jv.is_double()) {
+        return value_to<double>(jv);
+    }
+    else if (jv.is_string()) {
+        return value_to<std::string>(jv);
+    }
+    else {
+        return std::monostate();
+    }
+}
+
+void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, std::shared_ptr<HeapDescriptor> const & hd) {
+    using namespace boost::json;
+    switch (hd->getType()) {
+        case TYPE::list_t:
+            jv = value_from(std::dynamic_pointer_cast<VectorDescriptor>(hd)->getVector());
+        break;
+
+        case TYPE::map_t:
+            jv = value_from(std::dynamic_pointer_cast<MapDescriptor>(hd)->getMap());
+        break;
+
+        #define DEVTYPE_BEGIN(name, ...) \
+        case TYPE::name: \
+            jv = value_from(std::dynamic_pointer_cast<MapDescriptor>(hd)->getMap()); \
+        break;
+        #define ATTRIBUTE(...)
+        #define DEVTYPE_END 
+        #include "DEVTYPES.LIST"
+        #undef DEVTYPE_BEGIN
+        #undef ATTRIBUTE
+        #undef DEVTYPE_END
+
+        default:
+            throw std::runtime_error("invalid heap descriptor");
+        break;
+    }
+}

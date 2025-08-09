@@ -1,0 +1,96 @@
+[
+    {
+        "name" : "printAppendedString",
+        "binded_devices" : [
+            {
+                "device_name" : "T1",
+                "type" : 9,
+                "controller" : "CTL",
+                "port_maps" : {
+                    "PWR" : "0"
+                },
+                "initialValue" : {
+                    "test_val" : 0E0
+                },
+                "isVtype" : false,
+                "readPolicy" : 0,
+                "overwritePolicy" : 3,
+                "isYield" : true,
+                "polling_period" : -1,
+                "isConst" : true,
+                "ignoreWriteBacks" : false,
+                "isInterrupt" : false,
+                "isCursor" : false
+            }
+        ],
+        "bytecode_offset" : 3,
+        "inDevices" : [
+
+        ],
+        "outDevices" : [
+
+        ],
+        "hostController" : "CTL",
+        "triggers" : [
+
+        ]
+    },
+    {
+        "name" : "printString",
+        "binded_devices" : [
+            {
+                "device_name" : "T1",
+                "type" : 9,
+                "controller" : "CTL",
+                "port_maps" : {
+                    "PWR" : "0"
+                },
+                "initialValue" : {
+                    "test_val" : 0E0
+                },
+                "isVtype" : false,
+                "readPolicy" : 0,
+                "overwritePolicy" : 3,
+                "isYield" : true,
+                "polling_period" : -1,
+                "isConst" : true,
+                "ignoreWriteBacks" : false,
+                "isInterrupt" : false,
+                "isCursor" : false
+            }
+        ],
+        "bytecode_offset" : 0,
+        "inDevices" : [
+
+        ],
+        "outDevices" : [
+
+        ],
+        "hostController" : "CTL",
+        "triggers" : [
+
+        ]
+    }
+]
+LITERALS_BEGIN
+[
+"A string.",
+" Another string."
+]
+BYTECODE_BEGIN
+_printString:
+PUSH 0
+TRAP 1 1
+EMIT 1
+_printAppendedString:
+MKTYPE 1 4
+PUSH 0
+STORE 1
+LOAD 1
+PUSH 1
+ADD
+STORE 1
+LOAD 1
+LOAD 1
+TRAP 1 1
+EMIT 1

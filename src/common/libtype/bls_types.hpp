@@ -19,6 +19,7 @@
 #include <boost/serialization/base_object.hpp>
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/unordered_map.hpp>
+#include <boost/json.hpp>
 
 /* define reserved words for types in lang */
 namespace BlsLang {
@@ -528,3 +529,6 @@ void VectorDescriptor::serialize(Archive & ar, const unsigned int version) {
   ar & boost::serialization::base_object<HeapDescriptor>(*this);
   ar & *vector.get();
 }
+
+BlsType tag_invoke(const boost::json::value_to_tag<BlsType>&, boost::json::value const& jv);
+void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, std::shared_ptr<HeapDescriptor> const & hd);

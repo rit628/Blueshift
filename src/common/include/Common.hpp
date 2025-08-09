@@ -8,6 +8,7 @@
 #include <string>
 #include <variant>
 #include <vector>
+#include <boost/json.hpp>
 
 using ControllerID = std::string; 
 using DeviceID = std::string; 
@@ -254,8 +255,88 @@ struct ControllerQueue{
         std::priority_queue<rtype, std::vector<rtype>, comp>& getQueue(){
             return this->schepq; 
         }
-};  
+};
 
+inline void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, DeviceDescriptor const & desc) {
+    using namespace boost::json;
+    auto& obj = jv.emplace_object();
+    obj.emplace("device_name", value_from(desc.device_name));
+    obj.emplace("type", value_from(static_cast<uint32_t>(desc.type)));
+    obj.emplace("controller", value_from(desc.controller));
+    obj.emplace("port_maps", value_from(desc.port_maps));
+    obj.emplace("initialValue", value_from(desc.initialValue));
+    obj.emplace("isVtype", value_from(desc.isVtype));
+    obj.emplace("readPolicy", value_from(static_cast<uint8_t>(desc.readPolicy)));
+    obj.emplace("overwritePolicy", value_from(static_cast<uint8_t>(desc.overwritePolicy)));
+    obj.emplace("isYield", value_from(desc.isYield));
+    obj.emplace("polling_period", value_from(desc.polling_period));
+    obj.emplace("isConst", value_from(desc.isConst));
+    obj.emplace("ignoreWriteBacks", value_from(desc.ignoreWriteBacks));
+    obj.emplace("isInterrupt", value_from(desc.isInterrupt));
+    obj.emplace("isCursor", value_from(desc.isCursor));
+}
 
+inline DeviceDescriptor tag_invoke(const boost::json::value_to_tag<DeviceDescriptor>&, boost::json::value const& jv) {
+    using namespace boost::json;
+    auto& obj = jv.as_object();
+    DeviceDescriptor desc;
+    desc.device_name = value_to<std::string>(obj.at("device_name"));
+    desc.type = static_cast<TYPE>(value_to<uint32_t>(obj.at("type")));
+    desc.controller = value_to<std::string>(obj.at("controller"));
+    desc.port_maps = value_to<std::unordered_map<std::string, std::string>>(obj.at("port_maps"));
+    desc.initialValue = value_to<BlsType>(obj.at("initialValue"));
+    desc.isVtype = value_to<bool>(obj.at("isVtype"));
+    desc.readPolicy = static_cast<READ_POLICY>(value_to<uint8_t>(obj.at("readPolicy")));
+    desc.overwritePolicy = static_cast<OVERWRITE_POLICY>(value_to<uint8_t>(obj.at("overwritePolicy")));
+    desc.isYield = value_to<bool>(obj.at("isYield"));
+    desc.polling_period = value_to<int>(obj.at("polling_period"));
+    desc.isConst = value_to<bool>(obj.at("isConst"));
+    desc.ignoreWriteBacks = value_to<bool>(obj.at("ignoreWriteBacks"));
+    desc.isInterrupt = value_to<bool>(obj.at("isInterrupt"));
+    desc.isCursor = value_to<bool>(obj.at("isCursor"));
+    return desc;
+}
 
+inline void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, TriggerData const & trigger) {
+    using namespace boost::json;
+    auto& obj = jv.emplace_object();
+    obj.emplace("rule", value_from(trigger.rule));
+    obj.emplace("id", value_from(trigger.id));
+    obj.emplace("priority", value_from(trigger.priority));
+}
 
+inline TriggerData tag_invoke(const boost::json::value_to_tag<TriggerData>&, boost::json::value const& jv) {
+    using namespace boost::json;
+    auto& obj = jv.as_object();
+    TriggerData trigger;
+    trigger.rule = value_to<std::vector<std::string>>(obj.at("rule"));
+    trigger.id = value_to<std::string>(obj.at("id"));
+    trigger.priority = value_to<uint8_t>(obj.at("priority"));
+    return trigger;
+}
+
+inline void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, OBlockDesc const & desc) {
+    using namespace boost::json;
+    auto& obj = jv.emplace_object();
+    obj.emplace("name", value_from(desc.name));
+    obj.emplace("binded_devices", value_from(desc.binded_devices));
+    obj.emplace("bytecode_offset", value_from(desc.bytecode_offset));
+    obj.emplace("inDevices", value_from(desc.inDevices));
+    obj.emplace("outDevices", value_from(desc.outDevices));
+    obj.emplace("hostController", value_from(desc.hostController));
+    obj.emplace("triggers", value_from(desc.triggers));
+}
+
+inline OBlockDesc tag_invoke(const boost::json::value_to_tag<OBlockDesc>&, boost::json::value const& jv) {
+    using namespace boost::json;
+    auto& obj = jv.as_object();
+    OBlockDesc desc;
+    desc.name = value_to<std::string>(obj.at("name"));
+    desc.binded_devices = value_to<std::vector<DeviceDescriptor>>(obj.at("binded_devices"));
+    desc.bytecode_offset = value_to<int>(obj.at("bytecode_offset"));
+    desc.inDevices = value_to<std::vector<DeviceDescriptor>>(obj.at("inDevices"));
+    desc.outDevices = value_to<std::vector<DeviceDescriptor>>(obj.at("outDevices"));
+    desc.hostController = value_to<std::string>(obj.at("hostController"));
+    desc.triggers = value_to<std::vector<TriggerData>>(obj.at("triggers"));
+    return desc;
+}
