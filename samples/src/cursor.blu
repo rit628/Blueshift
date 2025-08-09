@@ -1,0 +1,22 @@
+oblock fileAccess(TEXT_FILE txt, KEYBOARD cmd) : 
+triggerOn(cmd)
+{
+    if (cmd.key == "R") {
+        txt.index = 0;
+        txt.operation = "READ 7";
+    }
+    else if (cmd.key == "W") {
+        txt.operation = "WRITE ain't no way boy";
+    }
+    else {
+        println("Bad command issued.");
+    }
+
+    println(txt.readResult, txt.writeResult);
+}
+
+setup() {
+    TEXT_FILE TXT = "ctl::file-file3.txt";
+    KEYBOARD CMD = "ctl::mode-all";
+    fileAccess(TXT, CMD);
+}

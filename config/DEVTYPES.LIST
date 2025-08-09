@@ -137,3 +137,10 @@ DEVTYPE_BEGIN(GAMEPAD, INTERRUPT)
     ATTRIBUTE(rightRumble, int)
     ATTRIBUTE(rumbleDuration, int)
 DEVTYPE_END
+
+DEVTYPE_BEGIN(TEXT_FILE, CURSOR)
+    ATTRIBUTE(operation, string)
+    ATTRIBUTE(index, int)
+    ATTRIBUTE(readResult, string)
+    ATTRIBUTE(writeResult, bool)
+DEVTYPE_END

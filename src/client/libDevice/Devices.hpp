@@ -48,6 +48,7 @@ namespace Device {
 #include "include/KEYBOARD.hpp"
 #include "include/MOUSE.hpp"
 #include "include/GAMEPAD.hpp"
+#include "include/TEXT_FILE.hpp"
 
 
 
