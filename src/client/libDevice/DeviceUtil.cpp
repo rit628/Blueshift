@@ -138,7 +138,7 @@ std::chrono::milliseconds DevicePoller::DeviceTimer::getRemainingTime() {
     auto now_time = std::chrono::steady_clock::now(); 
     auto timer_exp = timer.expires_at();
 
-    if(now_time > timer_exp){
+    if(now_time < timer_exp){
         auto difference = timer_exp - now_time; 
         return std::chrono::duration_cast<std::chrono::milliseconds>(difference);
     }   

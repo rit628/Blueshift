@@ -31,7 +31,7 @@ oblock printPoll(TIMER_TEST tt, LINE_WRITER lw) : constPollOn({tt : 100}), trigg
     tt.test_val += 445;
 }
 
-oblock printPoll2(TIMER_TEST tt) {
+oblock printPoll2(TIMER_TEST tt) : processPolicy({tt : { "ignoreWriteBacks" : true }}) {
     println(tt.test_val);
     tt.test_val += 445;
 }
@@ -57,7 +57,9 @@ setup() {
     //printLine2(k4);
     //printPoll(L1, k2);
 
+    printPoll2(L1);
+
     virtual int ct = 0;
 
-    log(k2, ct);
+    //log(k2, ct);
 }
