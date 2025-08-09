@@ -180,9 +180,8 @@ void Client::listener(std::stop_token stoken){
                 boost::asio::post(this->client_ctx,  [o_id, dev_index, dmsg = std::move(dmsg), this](){
                     try{   
                         //std::cout<<"State change in progress"<<std::endl; 
-                        this->deviceList.at(dev_index).device.processStates(dmsg);
+                        this->deviceList.at(dev_index).device.processStates(dmsg, o_id);
                         this->sendMessage(dev_index, Protocol::CALLBACK, false, o_id);
-                        
                     }
                     catch(std::exception(e)){
                         std::cout<<"Failure to change the state detected"<<std::endl; 
@@ -235,36 +234,35 @@ void Client::listener(std::stop_token stoken){
             // create device pollers
             for(auto&& [deviceNum, timerList] : this->start_timers){
                 auto& device = this->deviceList.at(deviceNum).device;
-                bool sendInit = true; // ensure interrupt only devices dont send initial state now
+                auto deviceKind = device.getDeviceKind();
 
-                if (!device.isActuator) {
-                    auto& poller = pollers.emplace_back(client_ctx, device, client_connection, controller_alias, deviceNum);
-                    for (auto&& timer : timerList) {
-                        if (timer.period == -1 && device.hasInterrupt()) { // change condition to !isConst && hasInterrupt() once dynamic polling subsystem is enabled
-                            continue; // dont setup a dynamic polling timer if device already has an interrupt
-                        }
-                        poller.createTimer(timer.id, timer.period);
+                auto& poller = pollers.emplace_back(client_ctx, device, client_connection, controller_alias, deviceNum);
+                for (auto&& timer : timerList) {
+                    if (timer.period == -1 && deviceKind != DeviceKind::POLLING) { // change condition to !isConst once dynamic polling subsystem is enabled
+                        continue; // dont setup a dynamic polling timer if device is not a polling device
                     }
-                    if (poller.getTimerIds().empty()) {
-                        pollers.pop_back(); // remove pollers with no timers attached
-                        sendInit = false;
-                    }
+                    poller.createTimer(timer.id, timer.period);
                 }
-                if (sendInit) {
-                    sendMessage(deviceNum, Protocol::SEND_STATE_INIT, true); 
-                    std::cout<<"SENT MESSAGE"<<std::endl;
+                if (poller.getTimerIds().empty()) {
+                    pollers.pop_back(); // remove pollers with no timers attached
                 }
             }
 
-             // create device interruptors
             for(auto&& [dev_id, dev] : this->deviceList) {
                 auto& device = dev.device;
-                if(device.hasInterrupt()){
-                    std::cout<<"Interrupt created!"<<std::endl;
-                    this->interruptors.emplace_back(this->client_ctx, device, this->client_connection, this->controller_alias, dev_id);
-                    std::cout<<"Sending Initial State"<<std::endl; 
-                    sendMessage(dev_id, Protocol::SEND_STATE_INIT, true); 
-                }   
+                auto deviceKind = device.getDeviceKind();
+                switch (deviceKind) {
+                    case DeviceKind::ACTUATOR:
+                    case DeviceKind::POLLING:
+                    break;
+                    case DeviceKind::INTERRUPT:
+                        this->interruptors.emplace_back(this->client_ctx, device, this->client_connection, this->controller_alias, dev_id);
+                    break;
+                    case DeviceKind::CURSOR:
+                        this->cursors.emplace_back(device, this->client_connection, this->controller_alias, dev_id);
+                    break;
+                }
+                sendMessage(dev_id, Protocol::SEND_STATE_INIT, true);
             }
 
             // initiate pollers and interruptors
@@ -276,6 +274,9 @@ void Client::listener(std::stop_token stoken){
             }
             for (auto&& interruptor : this->interruptors) {
                 interruptor.setupThreads();
+            }
+            for (auto&& cursor : this->cursors) {
+                cursor.initialize();
             }
 
             #ifdef SDL_ENABLED
@@ -460,13 +461,14 @@ bool Client::disconnect(){
 
     // Kills the device interruptor and timer threads
     interruptors.clear();
-
     std::cout<<"Interruptors killed"<<std::endl; 
 
     client_ticker.clear();
     pollers.clear();
-
     std::cout<<"Pollers killed"<<std::endl; 
+
+    cursors.clear();
+    std::cout << "Cursor threads killed" << std::endl;
     
     this->client_ctx.stop();
     for(auto &t : this->threadPool){

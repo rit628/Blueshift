@@ -74,9 +74,6 @@ void LCD_SCREEN::lcdSetCursor(int col, int row) {
 void LCD_SCREEN::init(std::unordered_map<std::string, std::string> &config){
     // No arguments
 
-    // Sets the actuator
-    this->isActuator = true;
-
     if(gpioInitialise() < 0){
         std::cout<<"PI GPIO initialization failed!"<<std::endl;
         throw std::invalid_argument("PIGPIO init failed!");

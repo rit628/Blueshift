@@ -47,25 +47,15 @@ template <Driveable T>
 class DeviceCore {
     private:
         std::vector<InterruptDescriptor> Idesc_list;
-        bool hasInterrupt = false;
     
     protected:
         T states;
         std::shared_ptr<ADS7830> adc;
-        bool isActuator;
         
         
         // Interrupt watch
         void addFileIWatch(std::string &fileName, std::function<bool()> handler = sendState);
         void addGPIOIWatch(uint8_t gpioPort, std::function<bool(int, int, uint32_t)> handler);
-        void setADC(std::shared_ptr<ADS7830> in_adc){
-            //std::cout<<"Setting the ADC!"<<std::endl;    
-            this->adc = in_adc;
-        }
-        bool getActuator(){
-            return this->isActuator;
-        }
-    
         #ifdef SDL_ENABLED
         void addSDLIWatch(std::function<bool(SDL_Event* event)> handler);
         #endif

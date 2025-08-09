@@ -125,6 +125,7 @@ class Client{
         */
         std::vector<DevicePoller> pollers;
         std::vector<DeviceInterruptor> interruptors;
+        std::vector<DeviceCursor> cursors;
         std::shared_ptr<ADS7830> adc;
 
 

@@ -55,14 +55,20 @@ void DeviceHandle::processStatesImpl(DynamicMessage& input) {
     }, device);
 }
 
-void DeviceHandle::processStates(DynamicMessage dmsg) {
+void DeviceHandle::processStates(DynamicMessage dmsg, uint16_t oblockId) {
+    if (getDeviceKind() == DeviceKind::CURSOR) { // skip mutex locking
+        processStatesImpl(dmsg);
+        // lockfree queue may be faster than locking with a single oblockId variable
+        // and signaling to queryWatcher(); needs benchmarking though
+        modifiedOblockIds.push(oblockId);
+        return;
+    }
+
     // notify watchers and timers that message processing is about to begin
-    // std::cout << "step 1: waiting for processing to end" << std::endl;
     {
         std::unique_lock lk(m);
         cv.wait(lk, [this]{ return !processing; }); // wait for previous message to process completely
         processing = true;
-        // std::cout << "step 2: notifying watchers and timers to pause" << std::endl;
     }
     cv.notify_all();
 
@@ -72,7 +78,6 @@ void DeviceHandle::processStates(DynamicMessage dmsg) {
         cv.wait(lk, [this]{ return watchersPaused && timersPaused; });
         processStatesImpl(dmsg);
         processing = false;
-        // std::cout << "step 4: processed states, notify watchers and timers to re-enable" << std::endl;
     }
     cv.notify_all(); // notify all watchers and timers to re-enable
 }
@@ -80,11 +85,10 @@ void DeviceHandle::processStates(DynamicMessage dmsg) {
 void DeviceHandle::init(std::unordered_map<std::string, std::string> &config, std::shared_ptr<ADS7830> adc) {
     std::visit(overloads {
         [](std::monostate&) {},
-        [&config, adc, this](auto& dev) { 
-            std::cout<<"Calling init"<<std::endl; 
-            dev.setADC(adc);
+        [&config, adc](auto& dev) {
             dev.init(config);
-            this->isActuator = dev.getActuator();}
+            dev.adc = adc;
+        }
 
     }, device);
 }
@@ -96,10 +100,19 @@ void DeviceHandle::transmitStates(DynamicMessage &dmsg) {
     }, device);
 }
 
-bool DeviceHandle::hasInterrupt() {
+DeviceKind DeviceHandle::getDeviceKind() {
     return std::visit(overloads {
-        [](std::monostate&) { return false; },
-        [](auto& dev) { return dev.hasInterrupt; }
+        [](std::monostate&) -> DeviceKind { throw std::runtime_error("Attempt to access device kind for null device."); },
+        #define DEVTYPE_BEGIN(name, kind) \
+        [](Device::name& dev) -> DeviceKind { \
+            return DeviceKind::kind; \
+        },
+        #define ATTRIBUTE(...)
+        #define DEVTYPE_END
+        #include "DEVTYPES.LIST"
+        #undef DEVTYPE_BEGIN
+        #undef ATTRIBUTE
+        #undef DEVTYPE_END
     }, device);
 }
 
@@ -109,6 +122,14 @@ std::vector<InterruptDescriptor>& DeviceHandle::getIdescList() {
         [](auto& dev) -> std::vector<InterruptDescriptor>& { return dev.Idesc_list; }
     }, device);
 }
+
+template<typename T>
+DeviceControlInterface<T>::DeviceControlInterface(DeviceHandle& device, std::shared_ptr<Connection> clientConnection, int ctl_code, int device_code)
+                                                : device(device), clientConnection(clientConnection), ctl_code(ctl_code), device_code(device_code) {}
+
+template class DeviceControlInterface<DevicePoller>;
+template class DeviceControlInterface<DeviceInterruptor>;
+template class DeviceControlInterface<DeviceCursor>;
 
 DevicePoller::DeviceTimer::DeviceTimer(uint16_t id, int period, boost::asio::io_context& ctx, DevicePoller& manager)
                                      : id(id), poll_period(period), timer(ctx), manager(manager) {}
@@ -193,14 +214,16 @@ void DevicePoller::DeviceTimer::resume() {
 }
 
 DevicePoller::DevicePoller(boost::asio::io_context &in_ctx, DeviceHandle& device, std::shared_ptr<Connection> cc, int ctl, int dev)
-                         : device(device), conex(cc), ctx(in_ctx), ctl_code(ctl), device_code(dev) {}
+                         : DeviceControlInterface(device, cc, ctl, dev)
+                         , ctx(in_ctx) {}
 
 DevicePoller::DevicePoller(DevicePoller&& other)
-                         : device(other.device)
-                         , conex(other.conex)
+                         :
+    DeviceControlInterface(other.device
+                         , other.clientConnection
+                         , other.ctl_code
+                         , other.device_code)
                          , ctx(other.ctx)
-                         , ctl_code(other.ctl_code)
-                         , device_code(other.device_code)
 
 {
     for (auto&& [id, timer] : other.timers) {
@@ -246,7 +269,6 @@ void DevicePoller::manageTimers(std::stop_token stoken) {
             }
             pauseTimers();
             timersPaused = true;
-            // std::cout << "step 3: paused timers, notifying processing to begin" << std::endl;
         }
         cv.notify_all();
 
@@ -258,7 +280,6 @@ void DevicePoller::manageTimers(std::stop_token stoken) {
             }
             resumeTimers();
             timersPaused = false;
-            // std::cout << "step 5: timers re-enabled" << std::endl;
         }
     }
     pauseTimers();
@@ -288,7 +309,7 @@ void DevicePoller::sendMessage(DeviceTimer& timer) {
     smsg.header.body_size = smsg.body.size(); 
     smsg.header.fromInterrupt = false; 
 
-    this->conex->send(smsg);
+    this->clientConnection->send(smsg);
 }
 
 void DevicePoller::setPeriod(uint16_t timerId, int newPeriod) {
@@ -314,14 +335,16 @@ void DevicePoller::startTimers() {
 }
 
 DeviceInterruptor::DeviceInterruptor(boost::asio::io_context &in_ctx, DeviceHandle& targDev, std::shared_ptr<Connection> conex, int ctl, int dd)
-                                    : device(targDev), client_connection(conex), cooldownTimer(in_ctx), ctl_code(ctl), device_code(dd) {}
+                                    : DeviceControlInterface(targDev, conex, ctl, dd)
+                                    , cooldownTimer(in_ctx) {}
 
 DeviceInterruptor::DeviceInterruptor(DeviceInterruptor&& other)
-                                    : device(other.device)
-                                    , client_connection(other.client_connection)
+                                    : 
+              DeviceControlInterface(other.device
+                                    , other.clientConnection
+                                    , other.ctl_code
+                                    , other.device_code)
                                     , cooldownTimer(std::move(other.cooldownTimer))
-                                    , ctl_code(other.ctl_code)
-                                    , device_code(other.device_code)
 {
     running = other.watcherManagerThread.joinable();
     if (running) { // restart threads
@@ -366,7 +389,7 @@ void DeviceInterruptor::sendMessage() {
 
     sm.header.body_size = sm.body.size() ; 
 
-    this->client_connection->send(sm); 
+    this->clientConnection->send(sm); 
 }
 
 void DeviceInterruptor::disableWatchers() {
@@ -434,7 +457,6 @@ void DeviceInterruptor::manageWatchers(std::stop_token stoken) {
             }
             disableWatchers();
             watchersPaused = true;
-            // std::cout << "step 3: paused watchers, notifying processing to begin" << std::endl;
         }
         cv.notify_all();
 
@@ -446,7 +468,6 @@ void DeviceInterruptor::manageWatchers(std::stop_token stoken) {
             }
             enableWatchers();
             watchersPaused = false;
-            // std::cout << "step 5: watchers re-enabled" << std::endl;
         }
     }
     disableWatchers();
@@ -595,4 +616,63 @@ void DeviceInterruptor::stopThreads() {
     }
     watcherManagerThread.request_stop();
     globalWatcherThreads.clear();
+}
+
+DeviceCursor::DeviceCursor(DeviceHandle& device, std::shared_ptr<Connection> clientConnection, int ctl_code, int device_code)
+                          : DeviceControlInterface(device, clientConnection, ctl_code, device_code) {}
+
+DeviceCursor::DeviceCursor(DeviceCursor&& other)
+                          :
+    DeviceControlInterface(other.device
+                          , other.clientConnection
+                          , other.ctl_code
+                          , other.device_code)
+{
+    bool wasRunning = other.queryWatcherThread.joinable();
+    other.queryWatcherThread.request_stop();
+    if (wasRunning) {
+        this->initialize();
+    }
+}
+
+DeviceCursor::~DeviceCursor() {
+    this->queryWatcherThread.request_stop();
+}
+
+void DeviceCursor::queryWatcher(std::stop_token stoken) {
+    auto& modifiedOblockIds = this->device.modifiedOblockIds;
+    uint16_t oblockId;
+    while (!stoken.stop_requested()) {
+        if (modifiedOblockIds.pop(oblockId)) {
+            sendMessage(oblockId);
+        }        
+    }
+}
+
+void DeviceCursor::initialize() {
+    queryWatcherThread = std::jthread(std::bind(&DeviceCursor::queryWatcher, std::ref(*this), std::placeholders::_1));
+}
+
+void DeviceCursor::sendMessage(uint16_t oblockId) {
+    // Configure sent message header: 
+    SentMessage sm;
+    sm.header.ctl_code = this->ctl_code;
+    sm.header.device_code = this->device_code;
+    sm.header.prot = Protocol::SEND_STATE;
+    sm.header.fromInterrupt = true;
+    sm.header.oblock_id = oblockId;
+
+    // Change the timer_id specification: 
+    sm.header.timer_id = -1;
+
+    // Volatility does not need to be recorded
+    sm.header.volatility = 0; 
+
+    DynamicMessage dmsg; 
+    this->device.transmitStates(dmsg);
+    sm.body = dmsg.Serialize();
+
+    sm.header.body_size = sm.body.size();
+
+    this->clientConnection->send(sm);
 }

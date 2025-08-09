@@ -64,6 +64,12 @@ enum class PORTTYPE : uint8_t {
     SPI
 }; 
 
+enum class DeviceKind {
+    POLLING,
+    INTERRUPT,
+    CURSOR,
+    ACTUATOR
+};
 
 struct DeviceDescriptor{
     /* Binding/Declaration Attributes */

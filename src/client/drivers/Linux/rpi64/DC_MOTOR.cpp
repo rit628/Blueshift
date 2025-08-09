@@ -25,7 +25,6 @@ void DC_MOTOR::init(std::unordered_map<std::string, std::string> &config){
     this->cw_pin1 = std::stoi(config["PINA"]);
     this->ccw_pin2 = std::stoi(config["PINB"]);
     this->enablePin = std::stoi(config["ENABLE"]);
-    this->isActuator = true;
 
     if(gpioInitialise() < 0){
         std::cout<<"GPIO failed to iniitalize"<<std::endl;
