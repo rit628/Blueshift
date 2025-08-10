@@ -191,7 +191,8 @@ def initialize_vnc_display():
 
 def run(args):
     if args.local:
-        executable = Path(".", TARGET_OUTPUT_DIRECTORY, RUNTIME_OUTPUT_DIRECTORY, args.binary)
+        binary_folder = Path(REMOTE_OUTPUT_DIRECTORY, "target") if args.container_binary else TARGET_OUTPUT_DIRECTORY
+        executable = Path(".", binary_folder, RUNTIME_OUTPUT_DIRECTORY, args.binary)
         run_cmd([executable, *args.binary_args])
     else:
         if args.vnc:
@@ -224,6 +225,9 @@ def debug(args):
         run_cmd(["lldb-server", "platform", "--listen", f"*:{args.listen}", "--server",
                  "--min-gdbserver-port", args.min_server_port, "--max-gdbserver-port", args.max_server_port])
     elif args.local:
+        if args.container_binary:
+            executable = Path(REMOTE_OUTPUT_DIRECTORY, debug_target_path, RUNTIME_OUTPUT_DIRECTORY, args.binary)
+        
         if allow_visual: # debug locally with codelldb
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.connect(CODELLDB_ADDRESS)
@@ -449,6 +453,9 @@ run_parser.add_argument("binary_args",
 run_parser.add_argument("-l", "--local",
                         help="run selected binary on local host instead of in containerized environment",
                         action="store_true")
+run_parser.add_argument("-c", "--container-binary",
+                        help="when used with --local, run the container built binary instead of a locally built version.",
+                        action="store_true")
 run_parser.add_argument("-p", "--packet-forward",
                         help="forward all network packets from container LAN to host LAN",
                         action="store_true")
@@ -470,6 +477,9 @@ debug_parser.add_argument("binary_args",
                         default=None)
 debug_parser.add_argument("-l", "--local",
                         help="debug selected binary on local host instead of in containerized environment",
+                        action="store_true")
+debug_parser.add_argument("-c", "--container-binary",
+                        help="when used with --local, debug the container built binary instead of a locally built version.",
                         action="store_true")
 debug_parser.add_argument("-t", "--terminal",
                         help="force debugging through terminal alone",
