@@ -326,4 +326,8 @@ bool GAMEPAD::handleAnalogMovement(SDL_Event* event) {
     return false;
 }
 
+GAMEPAD::~GAMEPAD() {
+    SDL_CloseGamepad(gamepad);
+}
+
 #endif

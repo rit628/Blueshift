@@ -14,9 +14,9 @@
 namespace Device {
     class MOUSE : public DeviceCore<TypeDef::MOUSE> {
         private:
-        #ifdef SDL_ENABLED
+            #ifdef SDL_ENABLED
             SDL_MouseID id;
-        #endif
+            #endif
 
         public:
             ~MOUSE();
@@ -24,9 +24,9 @@ namespace Device {
             void init(std::unordered_map<std::string, std::string>& config);
             void transmitStates(DynamicMessage& dmsg);
             #ifdef SDL_ENABLED
-                bool handleMovement(SDL_Event* event);
-                bool handleClick(SDL_Event* event);
-                bool handleScroll(SDL_Event* event);
+            bool handleMovement(SDL_Event* event);
+            bool handleClick(SDL_Event* event);
+            bool handleScroll(SDL_Event* event);
             #endif
     };
 }

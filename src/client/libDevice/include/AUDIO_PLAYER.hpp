@@ -12,8 +12,8 @@ namespace Device {
             uint8_t* audioData;
             uint32_t audioLength;
             #ifdef SDL_ENABLED
-                SDL_AudioStream* stream = nullptr;
-                SDL_AudioSpec spec;
+            SDL_AudioStream* stream = nullptr;
+            SDL_AudioSpec spec;
             #endif
 
         public:

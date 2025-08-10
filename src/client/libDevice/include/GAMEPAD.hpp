@@ -13,10 +13,10 @@
 namespace Device {
     class GAMEPAD : public DeviceCore<TypeDef::GAMEPAD> {
         private:
-        #ifdef SDL_ENABLED
+            #ifdef SDL_ENABLED
             SDL_JoystickID id;
             SDL_Gamepad* gamepad;
-        #endif
+            #endif
 
         public:
             ~GAMEPAD();

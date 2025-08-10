@@ -66,4 +66,8 @@ void AUDIO_PLAYER::transmitStates(DynamicMessage& dmsg) {
     dmsg.packStates(states);
 }
 
+AUDIO_PLAYER::~AUDIO_PLAYER() {
+    SDL_DestroyAudioStream(stream);
+}
+
 #endif

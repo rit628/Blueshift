@@ -12,9 +12,9 @@
 namespace Device {
     class KEYBOARD : public DeviceCore<TypeDef::KEYBOARD> {
         private:
-        #ifdef SDL_ENABLED
+            #ifdef SDL_ENABLED
             SDL_KeyboardID id;
-        #endif
+            #endif
 
         public:
             ~KEYBOARD();
@@ -22,7 +22,7 @@ namespace Device {
             void init(std::unordered_map<std::string, std::string>& config);
             void transmitStates(DynamicMessage& dmsg);
             #ifdef SDL_ENABLED
-                bool handleInterrupt(SDL_Event* event);
+            bool handleInterrupt(SDL_Event* event);
             #endif
     };
 }
