@@ -211,6 +211,7 @@ def run(args):
 def debug(args):
     debug_target_path = "relwithdebinfo" if args.release else "debug"
     executable = Path(BUILD_OUTPUT_DIRECTORY, debug_target_path, RUNTIME_OUTPUT_DIRECTORY, args.binary)
+    sourceMap = ""
     allow_visual = not args.terminal and args.debugger == "lldb"
     stop_on_entry = "true" if args.stop_on_entry else "false"
     # use controller name as debug name for readability if debugging client
@@ -227,6 +228,7 @@ def debug(args):
     elif args.local:
         if args.container_binary:
             executable = Path(REMOTE_OUTPUT_DIRECTORY, debug_target_path, RUNTIME_OUTPUT_DIRECTORY, args.binary)
+            sourceMap = f"sourceMap: {{ {CONTAINER_MOUNT_DIRECTORY} : {os.getcwd()} }},"
         
         if allow_visual: # debug locally with codelldb
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -237,6 +239,7 @@ def debug(args):
                     token: blueshift,
                     terminal: console,
                     stopOnEntry: {stop_on_entry},
+                    {sourceMap}
                     program: {executable},
                     args: {args.binary_args}
                 }}
@@ -250,6 +253,7 @@ def debug(args):
         initialize_host()
         DEBUG_SERVER_PORT = get_free_port()
         remote_binary = Path(REMOTE_OUTPUT_DIRECTORY, debug_target_path, RUNTIME_OUTPUT_DIRECTORY, args.binary)
+        sourceMap = f"sourceMap: {{ {CONTAINER_MOUNT_DIRECTORY} : {os.getcwd()} }},"
         cwd = os.getcwd()
         # Initialize debug server
         run_cmd(["docker", "compose", "--profile", "debug", "run", "-d", "--no-deps",
@@ -269,7 +273,7 @@ def debug(args):
                     terminal: console,
                     request: attach,
                     stopOnEntry: {stop_on_entry},
-                    sourceMap: {{ {CONTAINER_MOUNT_DIRECTORY} : {cwd} }},
+                    {sourceMap}
                     targetCreateCommands: [target create {remote_binary}],
                     processCreateCommands: [gdb-remote localhost:{DEBUG_SERVER_PORT}]
                 }}
