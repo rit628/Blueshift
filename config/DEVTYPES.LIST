@@ -144,3 +144,8 @@ DEVTYPE_BEGIN(TEXT_FILE, CURSOR)
     ATTRIBUTE(readResult, string)
     ATTRIBUTE(writeResult, bool)
 DEVTYPE_END
+
+DEVTYPE_BEGIN(AUDIO_PLAYER, POLLING)
+    ATTRIBUTE(file, string)
+    ATTRIBUTE(paused, bool)
+DEVTYPE_END

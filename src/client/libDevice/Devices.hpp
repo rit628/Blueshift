@@ -49,6 +49,7 @@ namespace Device {
 #include "include/MOUSE.hpp"
 #include "include/GAMEPAD.hpp"
 #include "include/TEXT_FILE.hpp"
+#include "include/AUDIO_PLAYER.hpp"
 
 
 
