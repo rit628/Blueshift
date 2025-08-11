@@ -376,9 +376,6 @@ def build(args):
             # only update binary targets if built for current machine's arch
             symlink(TARGET_OUTPUT_DIRECTORY, Path(".", ARTIFACT_TYPE), True)
     else: # build binaries in remote container
-        initialize_host()
-        run_cmd(["docker", "compose", "run", "--rm", "builder",
-                        "build", "-l", *build_args, *args.make])
         @run_as_src_user
         def link_compile_commands():
             remote_target_path = Path(".", "remote", TARGET_PLATFORM, ARTIFACT_TYPE)
@@ -393,6 +390,9 @@ def build(args):
                 build_location = cross_target_path
 
             curr_db_path = Path(REMOTE_OUTPUT_DIRECTORY, TARGET_PLATFORM, ARTIFACT_TYPE, "compile_commands.json")
+            if not curr_db_path.exists():
+                return # If configuration failed, compile commands linking is not possible
+            
             with (curr_db_path.open("r") as db, COMPILE_DB_PATH.open("w") as out):
                 cwd = os.getcwd()
                 build_dir = str(Path(CONTAINER_MOUNT_DIRECTORY, ARTIFACT_DIR))
@@ -401,7 +401,10 @@ def build(args):
                     line = line.replace(build_dir, replacement_dir)  # replace build dir
                     line = line.replace(CONTAINER_MOUNT_DIRECTORY, cwd)  # replace source dir
                     out.write(line)
-        link_compile_commands()
+        atexit.register(link_compile_commands)
+        initialize_host()
+        run_cmd(["docker", "compose", "run", "--rm", "builder",
+                        "build", "-l", *build_args, *args.make])
 
 def test(args):
     os.environ["GTEST_COLOR"] = "1"
