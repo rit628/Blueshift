@@ -1,6 +1,7 @@
 #include "DeviceUtil.hpp"
 #include "DeviceCore.hpp"
 #include "include/ADC.hpp"
+#include "include/HttpListener.hpp"
 #include "libnetwork/Connection.hpp"
 #include "libnetwork/Protocol.hpp"
 #include <atomic>
@@ -409,8 +410,12 @@ void DeviceInterruptor::disableWatchers() {
             [](SdlWatchDescriptor& desc) {
                 auto&& [callback, callbackData] = desc;
                 SDL_RemoveEventWatch(callback, callbackData);
-            }
+            },
             #endif
+            [](HttpWatchDescriptor& desc){
+                auto&& [server, callback, endpoint] = desc;
+                server->removeHttpWatch(endpoint); 
+            }
         }, descriptor);
     }
 }
@@ -436,8 +441,13 @@ void DeviceInterruptor::enableWatchers() {
             [](SdlWatchDescriptor& desc) {
                 auto&& [callback, callbackData] = desc;
                 SDL_AddEventWatch(callback, callbackData);
-            }
+            }, 
             #endif
+            [](HttpWatchDescriptor&desc){
+                auto&& [server, callback, endpoint] = desc; 
+                server->addHttpWatch(endpoint, callback);
+            }
+
         }, descriptor);
     }
 }
@@ -581,6 +591,38 @@ void DeviceInterruptor::ISdlWatcher(std::stop_token stoken, std::function<bool(S
     running.wait(true); // terminate thread once watcher manager has shutdown
 }
 #endif
+
+void DeviceInterruptor::IHttpWatcher(std::stop_token stoken, std::shared_ptr<HttpListener> server, std::string endpoint, std::function<bool(int64_t, string, string)> handler){
+    condition_variable_any cv;  
+    std::mutex m; 
+    bool handlerSignal = false; 
+    auto callback = [&handlerSignal, &cv, &m, &handler](int64_t sessionID, std::string ip, std::string json){
+        {
+            std::unique_lock lk(m);
+            cv.wait(lk, [&handlerSignal](){return !handlerSignal; }); 
+            handlerSignal = handler(sessionID, ip, json); 
+        }
+
+        cv.notify_all(); 
+        return handlerSignal;
+    }; 
+
+    server->addHttpWatch(endpoint, callback);
+
+    watchDescriptors.push_back(HttpWatchDescriptor{.listener = server, .callback = callback, .endpoint = endpoint}); 
+
+    while (!stoken.stop_requested()) {
+    std::unique_lock lk(m);
+    if (cv.wait(lk, stoken, [this, &handlerSignal] { return handlerSignal && !inCooldown(); })) {
+        restartCooldown();
+        this->sendMessage();
+        handlerSignal = false;
+    }
+    cv.notify_one();
+    }
+    running.wait(true); // terminate thread once watcher manager has shutdown
+}
+
     
 void DeviceInterruptor::setupThreads() {
     for(auto& idesc : this->device.getIdescList()){
@@ -605,6 +647,13 @@ void DeviceInterruptor::setupThreads() {
                 );
             },
             #endif
+            [this](HttpInterruptor &idesc){
+                this->globalWatcherThreads.emplace_back(
+                    std::bind(&DeviceInterruptor::IHttpWatcher, std::ref(*this), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+                    idesc.server, idesc.endpoint, idesc.interruptCallback
+                );
+            }
+            
         }, idesc);
     }
     watcherManagerThread = std::jthread(std::bind(&DeviceInterruptor::manageWatchers, std::ref(*this), std::placeholders::_1));

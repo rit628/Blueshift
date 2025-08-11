@@ -138,6 +138,15 @@ DEVTYPE_BEGIN(GAMEPAD, INTERRUPT)
     ATTRIBUTE(rumbleDuration, int)
 DEVTYPE_END
 
+DEVTYPE_BEGIN(HTTP_ENDPOINT, INTERRUPT)
+    ATTRIBUTE(sessionID, int)
+    ATTRIBUTE(requestMethod, string)
+    ATTRIBUTE(requestJson, string)
+    
+    ATTRIBUTE(responseCode, int)
+    ATTRIBUTE(responseJson, string)
+DEVTYPE_END
+
 DEVTYPE_BEGIN(TEXT_FILE, CURSOR)
     ATTRIBUTE(operation, string)
     ATTRIBUTE(index, int)

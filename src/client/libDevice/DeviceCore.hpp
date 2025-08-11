@@ -1,6 +1,7 @@
 #pragma once
 
 #include "libDM/DynamicMessage.hpp"
+#include "include/HttpListener.hpp"
 #include "libtype/typedefs.hpp"
 #include <cstdint>
 #include <fstream>
@@ -32,12 +33,21 @@ struct SdlIoInterruptor {
 };
 #endif
 
+struct HttpInterruptor{
+    std::shared_ptr<HttpListener> server; 
+    std::string endpoint; 
+    std::function<bool(int, string, string)> interruptCallback;  
+}; 
+
+
 using InterruptDescriptor = std::variant<
       UnixFileInterruptor
     , GpioInterruptor
+    , HttpInterruptor
     #ifdef SDL_ENABLED
     , SdlIoInterruptor
     #endif
+
 >;
 
 template<typename T>
@@ -52,13 +62,14 @@ class DeviceCore {
         T states;
         std::shared_ptr<ADS7830> adc;
         
-        
         // Interrupt watch
         void addFileIWatch(std::string &fileName, std::function<bool()> handler = sendState);
         void addGPIOIWatch(uint8_t gpioPort, std::function<bool(int, int, uint32_t)> handler);
         #ifdef SDL_ENABLED
         void addSDLIWatch(std::function<bool(SDL_Event* event)> handler);
         #endif
+        std::shared_ptr<HttpListener> addEndpointIWatch(std::string endpoint, std::function<bool(int, string, string)> omar); 
+
 
         friend class DeviceHandle;
-};
+}; 

@@ -53,6 +53,8 @@ class Connection : public enable_shared_from_this<Connection>{
         void connectToClient(); 
         bool disconnect(); 
         bool isConnected() const; 
+        boost::asio::io_context& getContext(); 
+        
 
         std::string& getIP(); 
         void send(SentMessage sm); 

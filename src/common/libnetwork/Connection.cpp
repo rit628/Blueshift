@@ -31,6 +31,10 @@ void Connection::setName(std::string& cname){
     this->client_name = cname; 
 }
 
+boost::asio::io_context& Connection::getContext(){
+    return this->ctx; 
+}
+
 void Connection::connectToMaster(tcp::endpoint master_ep ,std::string &name){
     if(this->own == Owner::CLIENT){
         this->socket.async_connect(master_ep, 

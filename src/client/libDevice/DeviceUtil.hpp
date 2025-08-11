@@ -2,6 +2,7 @@
 
 #include "libDM/DynamicMessage.hpp"
 #include "include/ADC.hpp"
+#include "include/HttpListener.hpp"
 #include "libnetwork/Protocol.hpp"
 #include "Devices.hpp"
 #include <condition_variable>
@@ -16,6 +17,7 @@
 #include <sys/inotify.h>
 #include <tuple>
 #include <unistd.h> 
+#include <unordered_map>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -164,12 +166,19 @@ class DeviceInterruptor : public DeviceControlInterface<DeviceInterruptor> {
         };
         #endif
 
+        struct HttpWatchDescriptor{
+            std::shared_ptr<HttpListener> listener; 
+            std::function<bool(int64_t, string, string)> callback; 
+            std::string endpoint;
+        }; 
+
         using WatchDescriptor = std::variant<
               FileWatchDescriptor
             , GpioWatchDescriptor
             #ifdef SDL_ENABLED
             , SdlWatchDescriptor
             #endif
+            , HttpWatchDescriptor
         >;
 
         std::jthread watcherManagerThread;
@@ -191,8 +200,8 @@ class DeviceInterruptor : public DeviceControlInterface<DeviceInterruptor> {
         #ifdef SDL_ENABLED
         void ISdlWatcher(std::stop_token stoken, std::function<bool(SDL_Event*)> handler);
         #endif
+        void IHttpWatcher(std::stop_token stoken, std::shared_ptr<HttpListener> server, std::string endpoint, std::function<bool(int64_t, string, string)> handler); 
 
-        
     public: 
         DeviceInterruptor(boost::asio::io_context &in_ctx, DeviceHandle& targDev, std::shared_ptr<Connection> conex, int ctl, int dd);
         DeviceInterruptor(DeviceInterruptor&& other);

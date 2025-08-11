@@ -27,7 +27,7 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
 # Boost
-set(REQUIRED_BOOST_LIBS asio thread regex lockfree type_index math json serialization)
+set(REQUIRED_BOOST_LIBS asio thread regex lockfree type_index math json serialization beast url)
 list(TRANSFORM REQUIRED_BOOST_LIBS PREPEND Boost:: OUTPUT_VARIABLE BOOST_LIB_DEPS)
 FetchContent_Declare(
     Boost

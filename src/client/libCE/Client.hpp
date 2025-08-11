@@ -68,7 +68,7 @@ class Client{
             Connection stuff
         */
 
-        // Sets up the boost asio context: 
+        // thing created here
         boost::asio::io_context client_ctx; 
         // Context must run in its own thread
         std::jthread ctxThread; 
@@ -82,6 +82,7 @@ class Client{
         TSQ<OwnedSentMessage> in_queue; 
         // Input Thread 
         TSQ<OwnedSentMessage>client_in_queue; 
+    
 
 
         /*
@@ -144,6 +145,7 @@ class Client{
         /*
             Connection stuff
         */
+    
     
         void broadcastListen(); 
         bool attemptConnection(boost::asio::ip::address master_address);
