@@ -339,6 +339,7 @@ void DevicePoller::sendMessage(DeviceTimer& timer) {
     smsg.header.prot = Protocol::SEND_STATE; 
     smsg.header.body_size = smsg.body.size(); 
     smsg.header.fromInterrupt = false; 
+    smsg.header.kind = device.getDeviceKind(); 
 
     this->clientConnection->send(smsg);
 }
@@ -407,6 +408,7 @@ void DeviceInterruptor::sendMessage() {
     sm.header.device_code = this->device_code; 
     sm.header.prot = Protocol::SEND_STATE; 
     sm.header.fromInterrupt = true; 
+    sm.header.kind = device.getDeviceKind(); 
 
     // Change the timer_id specification: 
     sm.header.timer_id = -1;

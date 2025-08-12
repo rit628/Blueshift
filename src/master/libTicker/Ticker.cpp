@@ -23,7 +23,7 @@ MTicker::MTicker(std::vector<OBlockDesc> &OBlocks)
 
     for(auto &ob : OBlocks){
         for(auto &dev : ob.binded_devices){
-            if(dev.deviceKind == DeviceKind::INTERRUPT && !dev.isConst){
+            if((dev.deviceKind == DeviceKind::INTERRUPT) && !dev.isConst){
                 continue; 
             }
 

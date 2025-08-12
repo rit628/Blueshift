@@ -451,6 +451,7 @@ DynamicMasterMessage MasterNM::makeDMM(SentMessage &in_msg, PROTOCOLS pcode){
     new_msg.info.controller = this->controller_list.at(in_msg.header.ctl_code); 
     new_msg.info.device = this->device_list.at(in_msg.header.device_code); 
     new_msg.info.oblock =  this->oblock_list.at(in_msg.header.oblock_id); 
+    new_msg.isCursor = (in_msg.header.kind == DeviceKind::CURSOR);
     
     return new_msg; 
 }

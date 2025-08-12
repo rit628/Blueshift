@@ -31,7 +31,7 @@ void TEXT_FILE::processStates(DynamicMessage& dmsg) {
         query.writeResult = true;
     }
     else {
-        throw BlsExceptionClass("TEXT_FILE: BAD COMMAND: " + operation, ERROR_T::DEVICE_FAILURE);
+        std::cout<<"UNKWON COMMAND"<<std::endl; 
     }
     file.close();
     writeQueryResult(query);

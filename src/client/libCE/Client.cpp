@@ -46,8 +46,8 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
         default: {
             // Get the latest state from the dmsg
             sm.header.body_size = 0; 
+            auto& device = this->deviceList.at(deviceCode).device;
             try{
-                auto& device = this->deviceList.at(deviceCode).device;
                 //std::cout<<"ACCESING device: "<<deviceCode<<std::endl;
                 if(device.getDeviceKind() != DeviceKind::CURSOR){
                     device.transmitStates(dmsg); 
@@ -73,6 +73,7 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
             sm.header.volatility = -1; 
             sm.header.body_size = sm.body.size(); 
             sm.header.fromInterrupt = fromInt; 
+            sm.header.kind = device.getDeviceKind(); 
             
             break; 
         }

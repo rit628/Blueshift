@@ -99,6 +99,7 @@ struct SentHeader{
     uint8_t device_code = 0; 
     uint32_t body_size = 0; 
     uint16_t timer_id = 0;
+    DeviceKind kind; 
     ERROR_T ec = ERROR_T::BAD_DEV_CONFIG; 
 
     // Used to communicate about oblock ownership between master and client
@@ -112,7 +113,6 @@ struct SentHeader{
 
     // Set by client
     float volatility = 0; 
-    
 }; 
 
 // Sending message this is what is actually sent over the internet

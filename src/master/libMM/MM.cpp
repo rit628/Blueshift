@@ -53,13 +53,13 @@ MasterMailbox::MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMes
             if(devDesc.deviceKind == DeviceKind::CURSOR){
                 devName = devName + "::" + oblock.name; 
             } 
-            if(!emplaced_set.contains(devDesc.device_name)){
+            if(!emplaced_set.contains(devName)){
                 auto wb = std::make_unique<WriterBox>(devDesc,  sendNM, this->ConfContainer);
-                wb->deviceName = devDesc.device_name; 
+                wb->deviceName = devName; 
                 wb->waitingForCallback = false; 
-                this->parentCont[devDesc.device_name] = devDesc.controller; 
-                this->deviceWriteMap[devDesc.device_name] = std::move(wb); 
-                emplaced_set.insert(devDesc.device_name); 
+                this->parentCont[devName] = devDesc.controller; 
+                this->deviceWriteMap[devName] = std::move(wb); 
+                emplaced_set.insert(devName); 
             }
         }
     }
@@ -397,9 +397,10 @@ void MasterMailbox::assignEM(HeapMasterMessage DMM)
         case PROTOCOLS::PULL_REQUEST : {
             DynamicMasterMessage pullDMM; 
             pullDMM.info = DMM.info; 
+            pullDMM.isCursor = pullDMM.isCursor; 
             pullDMM.protocol = PROTOCOLS::PULL_REQUEST;
             if(DMM.isCursor){
-                this->ConfContainer.send(pullDMM, ""); 
+                this->ConfContainer.send(pullDMM, DMM.info.oblock); 
             }
             else{
                 this->ConfContainer.send(pullDMM); 

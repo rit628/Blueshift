@@ -358,8 +358,7 @@ class ConfirmContainer{
         // Necessary as the Confirm container is accessed by the read and write blocks
         std::mutex mut; 
 
-        void queueConfirmation(const DynamicMasterMessage &dmm){
-            DeviceID devName = dmm.info.device; 
+        void queueConfirmation(const DynamicMasterMessage &dmm, const std::string &devName){
             auto& state = this->loadedDevMap.at(devName);
             state.confirmDMM = dmm; 
             state.pendingSend = true; 
@@ -458,7 +457,7 @@ class ConfirmContainer{
 
             if(state.waitingForCallback){
                 //std::cout<<"adding device "<<dmm.info.device<<" to queue to wait for callback"<<std::endl; 
-                queueConfirmation(dmm); 
+                queueConfirmation(dmm, dev); 
                 return; 
             }
 
@@ -470,7 +469,7 @@ class ConfirmContainer{
                 }
                 else{
                     //std::cout<<"Adding the queue to the result: "<<dmm.info.device<<std::endl; 
-                    queueConfirmation(dmm);
+                    queueConfirmation(dmm, dev);
                 }
             }
             else{
@@ -524,7 +523,7 @@ struct WriterBox
     WriterBox(DeviceDescriptor& desc, TSQ<DynamicMasterMessage> &snm, ConfirmContainer &cc)
     : sendNM(snm), outHolder(cc)
     {
-        this->isCursor = desc.deviceKind == DeviceKind::CURSOR; 
+        this->isCursor = (desc.deviceKind == DeviceKind::CURSOR); 
         this->deviceName = desc.device_name; 
     }
 

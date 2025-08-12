@@ -178,7 +178,7 @@ void ExecutionUnit::running()
             newHMM.protocol = PROTOCOLS::SENDSTATES;
             newHMM.isInterrupt = false; 
             newHMM.heapTree = transformedState;
-            newHMM.isCursor = devDesc.deviceKind == DeviceKind::CURSOR;
+            newHMM.isCursor = (devDesc.deviceKind == DeviceKind::CURSOR);
             outGoingStates.push_back(newHMM); 
         }
 
@@ -286,6 +286,7 @@ void ExecutionUnit::sendPushState(std::vector<BlsType> typeList){
             pushStateHmm.info.device = this->Oblock.binded_devices.at(index).device_name; 
             pushStateHmm.info.oblock = this->Oblock.name; 
             pushStateHmm.info.controller = this->Oblock.binded_devices.at(index).controller; 
+            pushStateHmm.isCursor = (this->Oblock.binded_devices.at(index).deviceKind == DeviceKind::CURSOR); 
             this->sendMM.write(pushStateHmm); 
         }
     }
@@ -316,6 +317,7 @@ std::vector<BlsType> ExecutionUnit::sendPullState(std::vector<BlsType> typeList)
             pullStateHmm.info.device = deviceName; 
             pullStateHmm.info.oblock = this->Oblock.name; 
             pullStateHmm.info.controller = controllerName; 
+            pullStateHmm.isCursor = (this->Oblock.binded_devices.at(index).deviceKind == DeviceKind::CURSOR); 
             this->sendMM.write(pullStateHmm); 
             i++; 
         }
