@@ -75,6 +75,7 @@ class DeviceHandle {
         bool watchersPaused = true;
         bool timersPaused = true;
         boost::lockfree::queue<uint16_t> modifiedOblockIds = boost::lockfree::queue<uint16_t>(0);
+        std::atomic_bool viewProcessing = true;
 
         DeviceHandle(TYPE dtype, std::unordered_map<std::string, std::string> &config, std::shared_ptr<ADS7830> targetADC);
         void processStates(DynamicMessage input, uint16_t oblockId);

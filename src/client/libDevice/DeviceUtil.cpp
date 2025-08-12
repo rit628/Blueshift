@@ -63,6 +63,9 @@ void DeviceHandle::processStates(DynamicMessage dmsg, uint16_t oblockId) {
         // lockfree queue may be faster than locking with a single oblockId variable
         // and signaling to queryWatcher(); needs benchmarking though
         modifiedOblockIds.push(oblockId);
+        viewProcessing = true;
+        viewProcessing.notify_all();
+        viewProcessing.wait(true);
         return;
     }
 
@@ -715,10 +718,15 @@ DeviceCursor::~DeviceCursor() {
 void DeviceCursor::queryWatcher(std::stop_token stoken) {
     auto& modifiedOblockIds = this->device.modifiedOblockIds;
     uint16_t oblockId;
+    auto& viewProcessing = device.viewProcessing;
     while (!stoken.stop_requested()) {
         if (modifiedOblockIds.pop(oblockId)) {
             updateViewMap(oblockId);
-        }        
+        }
+        else if (viewProcessing) {
+            viewProcessing = false;
+            viewProcessing.notify_all();
+        }
     }
 }
 
