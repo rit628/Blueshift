@@ -52,6 +52,10 @@ using InterruptDescriptor = std::variant<
 
 >;
 
+#ifdef SDL_ENABLED
+    void showAndFocusWindow(SDL_Window* window);
+#endif
+
 template<typename T>
 concept Driveable = TypeDef::DEVTYPE<T>;
 

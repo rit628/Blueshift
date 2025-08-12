@@ -52,7 +52,7 @@ void GAMEPAD::init(std::unordered_map<std::string, std::string>& config) {
         }
         
         auto window = SDL_GL_GetCurrentWindow();
-        SDL_ShowWindow(window);
+        showAndFocusWindow(window);
         SDL_Log("Press a button on the gamepad you would like to use...\n");
         while (true) {
             SDL_Event event;
@@ -89,7 +89,7 @@ void GAMEPAD::init(std::unordered_map<std::string, std::string>& config) {
             std::string mapping = guidBuff + ","s + SDL_GetGamepadName(gamepad.gamepad) + ","s;
 
             auto window = SDL_GL_GetCurrentWindow();
-            SDL_ShowWindow(window);
+            showAndFocusWindow(window);
 
             auto mapButtonInput = [&gamepad, &mapping](std::string&& buttonName, SDL_GamepadButton button) {
                 SDL_Log("Press the %s button.\n", buttonName.c_str());

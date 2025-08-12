@@ -5,6 +5,18 @@
 
 #define HTTP_PORT 8080
 
+#ifdef SDL_ENABLED
+    void showAndFocusWindow(SDL_Window* window) {
+        auto renderer = SDL_GetRenderer(window);
+        if (SDL_WINDOW_HIDDEN & SDL_GetWindowFlags(window)) {
+            SDL_ShowWindow(window);
+            SDL_RenderClear(renderer);
+            SDL_RenderPresent(renderer);
+        }
+        SDL_RaiseWindow(window);
+    }
+#endif
+
 template<Driveable T>
 void DeviceCore<T>::addFileIWatch(std::string &fileName, std::function<bool()> handler) {
     this->Idesc_list.push_back(UnixFileInterruptor{fileName, handler}); 

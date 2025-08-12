@@ -25,7 +25,7 @@ void MOUSE::init(std::unordered_map<std::string, std::string>& config) {
         auto selectMouse = [](void* self) -> void {
             auto& mouse = *reinterpret_cast<MOUSE*>(self);
             auto window = SDL_GL_GetCurrentWindow();
-            SDL_ShowWindow(window);
+            showAndFocusWindow(window);
             SDL_Log("Waggle the mouse you would like to use...\n");
             while (true) {
                 SDL_Event event;

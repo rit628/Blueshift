@@ -34,13 +34,13 @@ int main(int argc, char* argv[]) {
             sdlRunning = false;
             std::cerr << "Input window creation failed: " << SDL_GetError() << ". Some devices may not work properly." << std::endl;
         }
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-        SDL_RenderClear(renderer);
-        SDL_RenderPresent(renderer);
+        SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
 
         std::jthread clientEngine(std::bind(&Client::start, std::ref(client)));
 
         while (sdlRunning) {
+            SDL_RenderClear(renderer);
+            SDL_RenderPresent(renderer);
             SDL_Event event;
             SDL_WaitEvent(&event);
             switch (event.type) {

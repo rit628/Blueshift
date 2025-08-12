@@ -25,7 +25,7 @@ void KEYBOARD::init(std::unordered_map<std::string, std::string>& config) {
         auto selectKeyboard = [](void* self) -> void {
             auto& keyboard = *reinterpret_cast<KEYBOARD*>(self);
             auto window = SDL_GL_GetCurrentWindow();
-            SDL_ShowWindow(window);
+            showAndFocusWindow(window);
             SDL_Log("Press a key on the keyboard you would like to use...\n");
             while (true) {
                 SDL_Event event;
