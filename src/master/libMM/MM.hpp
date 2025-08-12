@@ -403,7 +403,7 @@ class ConfirmContainer{
 
                     if(!this->loadedDevMap.contains(devDesc.device_name)){
                         DeviceID dev = devDesc.device_name; 
-                        if(devDesc.isCursor){
+                        if(devDesc.deviceKind == DeviceKind::CURSOR){
                             dev = devDesc.device_name + "::" + oblock.name; 
                         }
                         this->loadedDevMap.emplace(dev, DeviceState{}); 
@@ -524,7 +524,7 @@ struct WriterBox
     WriterBox(DeviceDescriptor& desc, TSQ<DynamicMasterMessage> &snm, ConfirmContainer &cc)
     : sendNM(snm), outHolder(cc)
     {
-        this->isCursor = desc.isCursor; 
+        this->isCursor = desc.deviceKind == DeviceKind::CURSOR; 
         this->deviceName = desc.device_name; 
     }
 

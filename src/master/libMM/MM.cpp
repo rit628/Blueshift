@@ -50,7 +50,7 @@ MasterMailbox::MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMes
         // Write the out devics
         for(auto& devDesc : oblock.binded_devices){
             DeviceID devName = devDesc.device_name;
-            if(devDesc.isCursor){
+            if(devDesc.deviceKind == DeviceKind::CURSOR){
                 devName = devName + "::" + oblock.name; 
             } 
             if(!emplaced_set.contains(devDesc.device_name)){

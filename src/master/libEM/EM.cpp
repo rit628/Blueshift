@@ -178,7 +178,7 @@ void ExecutionUnit::running()
             newHMM.protocol = PROTOCOLS::SENDSTATES;
             newHMM.isInterrupt = false; 
             newHMM.heapTree = transformedState;
-            newHMM.isCursor = devDesc.isCursor;
+            newHMM.isCursor = devDesc.deviceKind == DeviceKind::CURSOR;
             outGoingStates.push_back(newHMM); 
         }
 
