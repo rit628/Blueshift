@@ -545,9 +545,11 @@ void DeviceInterruptor::IGpioWatcher(std::stop_token stoken, int portNum, std::f
 
     while (!stoken.stop_requested()) {
         std::unique_lock lk(m);
-        if (cv.wait(lk, stoken, [this, &handlerSignal] { return handlerSignal && !inCooldown(); })) {
-            restartCooldown();
-            this->sendMessage();
+        if (cv.wait(lk, stoken, [&handlerSignal] { return handlerSignal; })) {
+            if (!inCooldown()) {
+                restartCooldown();
+                this->sendMessage();
+            }
             handlerSignal = false;
         }
         cv.notify_one();
@@ -581,9 +583,11 @@ void DeviceInterruptor::ISdlWatcher(std::stop_token stoken, std::function<bool(S
     
     while (!stoken.stop_requested()) {
         std::unique_lock lk(m);
-        if (cv.wait(lk, stoken, [this, &handlerSignal] { return handlerSignal && !inCooldown(); })) {
-            restartCooldown();
-            this->sendMessage();
+        if (cv.wait(lk, stoken, [&handlerSignal] { return handlerSignal; })) {
+            if (!inCooldown()) {
+                restartCooldown();
+                this->sendMessage();
+            }
             handlerSignal = false;
         }
         cv.notify_one();
@@ -612,13 +616,15 @@ void DeviceInterruptor::IHttpWatcher(std::stop_token stoken, std::shared_ptr<Htt
     watchDescriptors.push_back(HttpWatchDescriptor{.listener = server, .callback = callback, .endpoint = endpoint}); 
 
     while (!stoken.stop_requested()) {
-    std::unique_lock lk(m);
-    if (cv.wait(lk, stoken, [this, &handlerSignal] { return handlerSignal && !inCooldown(); })) {
-        restartCooldown();
-        this->sendMessage();
-        handlerSignal = false;
-    }
-    cv.notify_one();
+        std::unique_lock lk(m);
+        if (cv.wait(lk, stoken, [&handlerSignal] { return handlerSignal; })) {
+            if (!inCooldown()) {
+                restartCooldown();
+                this->sendMessage();
+            }
+            handlerSignal = false;
+        }
+        cv.notify_one();
     }
     running.wait(true); // terminate thread once watcher manager has shutdown
 }
