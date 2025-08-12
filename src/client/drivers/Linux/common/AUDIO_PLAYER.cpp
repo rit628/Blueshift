@@ -14,7 +14,9 @@ using namespace Device;
 
 void AUDIO_PLAYER::processStates(DynamicMessage& dmsg) {
     auto currentFile = states.file;
+    auto currentVolume = states.volume;
     dmsg.unpackStates(states);
+    
     if (states.file != "" && states.file != currentFile) {
         auto newFile = directory / states.file;
         std::cout << newFile << std::endl;
@@ -26,6 +28,11 @@ void AUDIO_PLAYER::processStates(DynamicMessage& dmsg) {
             SDL_SetAudioStreamFormat(stream, &spec, nullptr);
             SDL_PutAudioStreamData(stream, audioData, audioLength);
         }
+    }
+    if (states.volume != currentVolume) {
+        states.volume = max((int64_t)0, min(states.volume, (int64_t)100));
+        float newVolume = 100.0 / states.volume;
+        SDL_SetAudioStreamGain(stream, newVolume);
     }
     if (states.paused) {
         SDL_PauseAudioStreamDevice(stream);
@@ -63,6 +70,7 @@ void AUDIO_PLAYER::init(std::unordered_map<std::string, std::string>& config) {
 
 void AUDIO_PLAYER::transmitStates(DynamicMessage& dmsg) {
     states.paused = SDL_AudioStreamDevicePaused(stream);
+    states.volume = SDL_GetAudioStreamGain(stream) * 100;
     dmsg.packStates(states);
 }
 
