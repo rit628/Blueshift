@@ -430,7 +430,7 @@ MapDescriptor::MapDescriptor(TYPE objType, TYPE keyType, TYPE contType) {
         #define DEVTYPE_BEGIN(name, ...) \
             case(TYPE::name) : { 
             #define ATTRIBUTE(varName, type) \
-                this->map->emplace(#varName, BlsType(type())); 
+                this->map->emplace(#varName, createBlsType(type())); 
             #define DEVTYPE_END \
                 break; \
             }

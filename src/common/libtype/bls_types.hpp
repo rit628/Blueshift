@@ -289,7 +289,7 @@ BlsType createBlsType(const T& value) {
       auto devtype = std::make_shared<MapDescriptor>(TYPE::name, TYPE::string_t, TYPE::ANY);
   #define ATTRIBUTE(name, ...) \
       BlsType name##_key = #name; \
-      BlsType name##_val = value.name; \
+      BlsType name##_val = createBlsType(value.name); \
       devtype->add(name##_key, name##_val);
   #define DEVTYPE_END \
     return devtype; \

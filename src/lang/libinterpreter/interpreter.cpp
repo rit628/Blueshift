@@ -524,7 +524,7 @@ BlsObject Interpreter::visit(AstNode::Specifier::Type& ast) {
             BlsType attr, attrVal;
         #define ATTRIBUTE(name, type) \
             attr = BlsType(#name); \
-            attrVal = BlsType(type()); \
+            attrVal = createBlsType(type()); \
             devtype->add(attr, attrVal);
         #define DEVTYPE_END \
             return BlsType(devtype); \
