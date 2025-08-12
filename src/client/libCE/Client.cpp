@@ -45,9 +45,14 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
         }
         default: {
             // Get the latest state from the dmsg
+            sm.header.body_size = 0; 
             try{
                 //std::cout<<"ACCESING device: "<<deviceCode<<std::endl;
-                this->deviceList.at(deviceCode).device.transmitStates(dmsg); 
+                if(this->deviceList.at(deviceCode).device.getDeviceKind() != DeviceKind::CURSOR){
+                    this->deviceList.at(deviceCode).device.transmitStates(dmsg); 
+                    sm.body = dmsg.Serialize();
+                    sm.header.body_size = sm.body.size(); 
+                }
             }
             catch(BlsExceptionClass& bec){
                 this->genBlsException->SendGenericException(bec.what(), bec.type());
@@ -55,7 +60,7 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
             }
 
             // make message
-            sm.body = dmsg.Serialize(); 
+             
             sm.header.ctl_code = this->controller_alias;
             sm.header.oblock_id = oint; 
             sm.header.prot = type; 
