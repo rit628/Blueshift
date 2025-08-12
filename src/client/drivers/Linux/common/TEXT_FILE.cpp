@@ -33,22 +33,28 @@ void TEXT_FILE::processStates(DynamicMessage& dmsg) {
     else {
         throw BlsExceptionClass("TEXT_FILE: BAD COMMAND: " + operation, ERROR_T::DEVICE_FAILURE);
     }
+    file.close();
     queryResults.write(query);
 }
 
 void TEXT_FILE::init(std::unordered_map<std::string, std::string> &config) {
     this->filename = "./samples/client/" + config["file"];
-    std::fstream file(filename);
+    std::ofstream file(filename, ios::app);
     if(!file.is_open()){
-        std::cout << "Could not find file" << std::endl;
+        std::cout << "Could not find or create file" << std::endl;
         throw BlsExceptionClass("TEXT_FILE: " + this->filename, ERROR_T::BAD_DEV_CONFIG);
     }
-    queryResults.write(states);
+    file.close();
 }
 
 void TEXT_FILE::transmitStates(DynamicMessage &dmsg) {
-    auto result = this->queryResults.read();
-    dmsg.packStates(result);
+    auto result = this->queryResults.pop();
+    if (result.has_value()) {
+        dmsg.packStates(result.value());
+    }
+    else {
+        dmsg.packStates(states);
+    }
 }
 
 TEXT_FILE::~TEXT_FILE() {

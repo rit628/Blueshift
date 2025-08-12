@@ -3,6 +3,7 @@
 #include "libDM/DynamicMessage.hpp"
 #include "include/ADC.hpp"
 #include "include/HttpListener.hpp"
+#include "libTSM/TSM.hpp"
 #include "libnetwork/Protocol.hpp"
 #include "Devices.hpp"
 #include <condition_variable>
@@ -79,6 +80,7 @@ class DeviceHandle {
         void processStates(DynamicMessage input, uint16_t oblockId);
         void init(std::unordered_map<std::string, std::string> &config, std::shared_ptr<ADS7830> targetADC);
         void transmitStates(DynamicMessage &dmsg);
+        void transmitDefaultStates(DynamicMessage &dmsg);
         DeviceKind getDeviceKind();
         std::vector<InterruptDescriptor>& getIdescList();
 
@@ -215,14 +217,16 @@ class DeviceInterruptor : public DeviceControlInterface<DeviceInterruptor> {
 class DeviceCursor : public DeviceControlInterface<DeviceCursor> {
     private:
         std::jthread queryWatcherThread;
+        TSM<uint16_t, DynamicMessage> viewMap;
 
         void queryWatcher(std::stop_token stoken);
+        void updateViewMap(uint16_t oblockId);
 
     public:
         DeviceCursor(DeviceHandle& device, std::shared_ptr<Connection> clientConnection, int ctl_code, int device_code);
         DeviceCursor(DeviceCursor&& other);
         ~DeviceCursor();
         void initialize();
-        void sendMessage(uint16_t oblockId);
+        DynamicMessage getLatestOblockView(uint16_t oblockId);
 
 };

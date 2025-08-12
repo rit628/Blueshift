@@ -37,6 +37,16 @@ public:
         sharedQueue.pop();
         return data;
     }
+    
+    std::optional<T> pop() {
+        std::lock_guard<std::mutex> lock(mut);
+        if (sharedQueue.empty()) {
+            return std::nullopt;
+        }
+        T data = sharedQueue.front();
+        sharedQueue.pop();
+        return data;
+    }
 
     // Peek at the front item without removing it (blocking if empty)
     T peek() {

@@ -2,6 +2,7 @@
 #include "DeviceCore.hpp"
 #include "include/ADC.hpp"
 #include "include/HttpListener.hpp"
+#include "libDM/DynamicMessage.hpp"
 #include "libnetwork/Connection.hpp"
 #include "libnetwork/Protocol.hpp"
 #include <atomic>
@@ -98,6 +99,23 @@ void DeviceHandle::transmitStates(DynamicMessage &dmsg) {
     std::visit(overloads {
         [](std::monostate&) {},
         [&dmsg](auto& dev) { dev.transmitStates(dmsg); }
+    }, device);
+}
+
+void DeviceHandle::transmitDefaultStates(DynamicMessage &dmsg) {
+    std::visit(overloads {
+        [](std::monostate&) -> void { throw std::runtime_error("Attempt to access device kind for null device."); },
+        #define DEVTYPE_BEGIN(name, kind) \
+        [&dmsg](Device::name& dev) -> void { \
+            auto fallback = TypeDef::name(); \
+            dmsg.packStates(fallback); \
+        },
+        #define ATTRIBUTE(...)
+        #define DEVTYPE_END
+        #include "DEVTYPES.LIST"
+        #undef DEVTYPE_BEGIN
+        #undef ATTRIBUTE
+        #undef DEVTYPE_END
     }, device);
 }
 
@@ -699,35 +717,26 @@ void DeviceCursor::queryWatcher(std::stop_token stoken) {
     uint16_t oblockId;
     while (!stoken.stop_requested()) {
         if (modifiedOblockIds.pop(oblockId)) {
-            sendMessage(oblockId);
+            updateViewMap(oblockId);
         }        
     }
+}
+
+void DeviceCursor::updateViewMap(uint16_t oblockId) {
+    DynamicMessage dmsg;
+    this->device.transmitStates(dmsg);
+    viewMap.insert(oblockId, dmsg);
 }
 
 void DeviceCursor::initialize() {
     queryWatcherThread = std::jthread(std::bind(&DeviceCursor::queryWatcher, std::ref(*this), std::placeholders::_1));
 }
 
-void DeviceCursor::sendMessage(uint16_t oblockId) {
-    // Configure sent message header: 
-    SentMessage sm;
-    sm.header.ctl_code = this->ctl_code;
-    sm.header.device_code = this->device_code;
-    sm.header.prot = Protocol::SEND_STATE;
-    sm.header.fromInterrupt = true;
-    sm.header.oblock_id = oblockId;
-
-    // Change the timer_id specification: 
-    sm.header.timer_id = -1;
-
-    // Volatility does not need to be recorded
-    sm.header.volatility = 0; 
-
-    DynamicMessage dmsg; 
-    this->device.transmitStates(dmsg);
-    sm.body = dmsg.Serialize();
-
-    sm.header.body_size = sm.body.size();
-
-    this->clientConnection->send(sm);
+DynamicMessage DeviceCursor::getLatestOblockView(uint16_t oblockId) {
+    auto dmsg = viewMap.get(oblockId);
+    if (!dmsg.has_value()) {
+        dmsg.emplace();
+        device.transmitDefaultStates(dmsg.value());
+    }
+    return dmsg.value();
 }

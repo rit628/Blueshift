@@ -47,12 +47,16 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
             // Get the latest state from the dmsg
             sm.header.body_size = 0; 
             try{
+                auto& device = this->deviceList.at(deviceCode).device;
                 //std::cout<<"ACCESING device: "<<deviceCode<<std::endl;
-                if(this->deviceList.at(deviceCode).device.getDeviceKind() != DeviceKind::CURSOR){
-                    this->deviceList.at(deviceCode).device.transmitStates(dmsg); 
-                    sm.body = dmsg.Serialize();
-                    sm.header.body_size = sm.body.size(); 
+                if(device.getDeviceKind() != DeviceKind::CURSOR){
+                    device.transmitStates(dmsg); 
                 }
+                else {
+                    dmsg = cursors.at(deviceCode).getLatestOblockView(oint);
+                }
+                sm.body = dmsg.Serialize();
+                sm.header.body_size = sm.body.size(); 
             }
             catch(BlsExceptionClass& bec){
                 this->genBlsException->SendGenericException(bec.what(), bec.type());
@@ -184,6 +188,7 @@ void Client::listener(std::stop_token stoken){
                 // Trying out the thread pool: 
                 boost::asio::post(this->client_ctx,  [o_id, dev_index, dmsg = std::move(dmsg), this](){
                     try{   
+                        // make this a strand (race condition with multiple pushes)
                         //std::cout<<"State change in progress"<<std::endl; 
                         this->deviceList.at(dev_index).device.processStates(dmsg, o_id);
                         this->sendMessage(dev_index, Protocol::CALLBACK, false, o_id);
@@ -265,7 +270,7 @@ void Client::listener(std::stop_token stoken){
                         this->interruptors.emplace_back(this->client_ctx, device, this->client_connection, this->controller_alias, dev_id);
                     break;
                     case DeviceKind::CURSOR:
-                        this->cursors.emplace_back(device, this->client_connection, this->controller_alias, dev_id);
+                        this->cursors.try_emplace(dev_id, device, this->client_connection, this->controller_alias, dev_id);
                     break;
                 }
                 sendMessage(dev_id, Protocol::SEND_STATE_INIT, true);
@@ -281,7 +286,7 @@ void Client::listener(std::stop_token stoken){
             for (auto&& interruptor : this->interruptors) {
                 interruptor.setupThreads();
             }
-            for (auto&& cursor : this->cursors) {
+            for (auto&& [_, cursor] : this->cursors) {
                 cursor.initialize();
             }
 
