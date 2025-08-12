@@ -15,6 +15,12 @@ oblock playSound(KEYBOARD kbd, AUDIO_PLAYER ap) : triggerOn(kbd), processPolicy(
         println("SETTING AUDIO TO SECOND.WAV");
         ap.file = "second.wav";
     }
+    else if (kbd.key == "U") {
+        ap.volume += 5;
+    }
+    else if (kbd.key == "D") {
+        ap.volume -= 5;
+    }
 }
 
 

@@ -31,7 +31,9 @@ void AUDIO_PLAYER::processStates(DynamicMessage& dmsg) {
     }
     if (states.volume != currentVolume) {
         states.volume = max((int64_t)0, min(states.volume, (int64_t)100));
-        float newVolume = 100.0 / states.volume;
+        std::cout << "VOLUME: " << states.volume << std::endl;
+        float newVolume =  states.volume / 100.0;
+        std::cout << "NEW VOLUME: " << newVolume << std::endl;
         SDL_SetAudioStreamGain(stream, newVolume);
     }
     if (states.paused) {
