@@ -274,7 +274,6 @@ void Client::listener(std::stop_token stoken){
                     case DeviceKind::POLLING:
                     break;
                     case DeviceKind::INTERRUPT:
-        
                         this->interruptors.emplace_back(this->client_ctx, device, this->client_connection, this->controller_alias, dev_id);
                     break;
                     case DeviceKind::CURSOR:

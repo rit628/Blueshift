@@ -171,6 +171,20 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
             devDesc.device_name = name;
             devDesc.type = type;
             devDesc.initialValue = devtypeObj;
+            switch (type) {                
+                #define DEVTYPE_BEGIN(name, kind) \
+                case TYPE::name: \
+                    devDesc.deviceKind = DeviceKind::kind; \
+                break;
+                #define ATTRIBUTE(...)
+                #define DEVTYPE_END
+                #include "DEVTYPES.LIST"
+                #undef DEVTYPE_BEGIN
+                #undef ATTRIBUTE
+                #undef DEVTYPE_END
+                default:
+                break;
+            }
             deviceDescriptors.emplace(name, devDesc);
         }
         else if (auto* statementExpression = dynamic_cast<AstNode::Statement::Expression*>(statement.get())) {
@@ -205,6 +219,7 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
                     dev.controller = declaredDev.controller;
                     dev.port_maps = declaredDev.port_maps;
                     dev.isVtype = declaredDev.isVtype;
+                    dev.deviceKind = declaredDev.deviceKind;
                     if (decentralizable) {
                         if (desc.hostController == RESERVED_MASTER) {
                             desc.hostController = dev.controller;

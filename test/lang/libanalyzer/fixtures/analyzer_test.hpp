@@ -35,8 +35,7 @@ namespace BlsLang {
                     EXPECT_EQ(desc.isYield, expectedDesc.isYield);
                     EXPECT_EQ(desc.polling_period, expectedDesc.polling_period);
                     EXPECT_EQ(desc.isConst, expectedDesc.isConst);
-                    EXPECT_EQ(desc.isInterrupt, expectedDesc.isInterrupt);
-                    EXPECT_EQ(desc.isCursor, expectedDesc.isCursor);
+                    EXPECT_EQ(desc.deviceKind, expectedDesc.deviceKind);
                 };
 
                 static auto compareOblockDescriptors = [](const OBlockDesc& desc, const OBlockDesc& expectedDesc) {

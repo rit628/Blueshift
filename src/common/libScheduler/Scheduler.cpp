@@ -28,7 +28,7 @@ DeviceScheduler::DeviceScheduler(std::vector<OBlockDesc> &oblockDescList, std::f
     for(auto& odesc : oblockDescList){
         auto& oblockName = odesc.name;
         for(DeviceDescriptor& dev : odesc.outDevices){
-            if(!dev.isCursor){
+            if(dev.deviceKind != DeviceKind::CURSOR){
                 if(this->scheduledProcessMap.contains(dev.device_name)){
                     this->scheduledProcessMap[dev.device_name]; 
                 }

@@ -66,7 +66,7 @@ enum class PORTTYPE : uint8_t {
     SPI
 }; 
 
-enum class DeviceKind {
+enum class DeviceKind : uint8_t {
     POLLING,
     INTERRUPT,
     CURSOR,
@@ -96,8 +96,7 @@ struct DeviceDescriptor{
     */ 
 
     /* Driver Configuration Attributes */
-    bool isInterrupt = false;
-    bool isCursor = false;
+    DeviceKind deviceKind = DeviceKind::POLLING;
 
     template<typename Archive>
     void serialize(Archive& ar, const unsigned int version) {
@@ -113,8 +112,7 @@ struct DeviceDescriptor{
         ar & polling_period;
         ar & isConst;
         ar & ignoreWriteBacks;
-        ar & isInterrupt;
-        ar & isCursor;
+        ar & deviceKind;
     }
 
     bool operator==(const DeviceDescriptor&) const = default;
@@ -291,8 +289,7 @@ inline void tag_invoke(const boost::json::value_from_tag&, boost::json::value& j
     obj.emplace("polling_period", value_from(desc.polling_period));
     obj.emplace("isConst", value_from(desc.isConst));
     obj.emplace("ignoreWriteBacks", value_from(desc.ignoreWriteBacks));
-    obj.emplace("isInterrupt", value_from(desc.isInterrupt));
-    obj.emplace("isCursor", value_from(desc.isCursor));
+    obj.emplace("deviceKind", value_from(static_cast<uint8_t>(desc.deviceKind)));
 }
 
 inline DeviceDescriptor tag_invoke(const boost::json::value_to_tag<DeviceDescriptor>&, boost::json::value const& jv) {
@@ -311,8 +308,7 @@ inline DeviceDescriptor tag_invoke(const boost::json::value_to_tag<DeviceDescrip
     desc.polling_period = value_to<int>(obj.at("polling_period"));
     desc.isConst = value_to<bool>(obj.at("isConst"));
     desc.ignoreWriteBacks = value_to<bool>(obj.at("ignoreWriteBacks"));
-    desc.isInterrupt = value_to<bool>(obj.at("isInterrupt"));
-    desc.isCursor = value_to<bool>(obj.at("isCursor"));
+    desc.deviceKind = static_cast<DeviceKind>(value_to<uint8_t>(obj.at("deviceKind")));
     return desc;
 }
 

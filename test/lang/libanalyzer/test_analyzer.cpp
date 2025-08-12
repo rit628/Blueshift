@@ -1274,7 +1274,8 @@ namespace BlsLang {
                 .port_maps = {
                     {"file", "f1.txt"}
                 },
-                .initialValue = createBlsType(TypeDef::LINE_WRITER())
+                .initialValue = createBlsType(TypeDef::LINE_WRITER()),
+                .deviceKind = DeviceKind::INTERRUPT
             }},
             {"writer_2", DeviceDescriptor{
                 .device_name = "writer_2",
@@ -1284,7 +1285,8 @@ namespace BlsLang {
                     {"file", "f2.txt"}
                 },
                 .initialValue = createBlsType(TypeDef::LINE_WRITER()),
-                .isVtype = true
+                .isVtype = true,
+                .deviceKind = DeviceKind::INTERRUPT
             }},
             {"signaler", DeviceDescriptor{
                 .device_name = "signaler",
@@ -1307,7 +1309,8 @@ namespace BlsLang {
                         .port_maps = {
                             {"file", "f1.txt"}
                         },
-                        .initialValue = createBlsType(TypeDef::LINE_WRITER())
+                        .initialValue = createBlsType(TypeDef::LINE_WRITER()),
+                        .deviceKind = DeviceKind::INTERRUPT
                     },
                     DeviceDescriptor{
                         .device_name = "writer_2",
@@ -1317,7 +1320,8 @@ namespace BlsLang {
                             {"file", "f2.txt"}
                         },
                         .initialValue = createBlsType(TypeDef::LINE_WRITER()),
-                        .isVtype = true
+                        .isVtype = true,
+                        .deviceKind = DeviceKind::INTERRUPT
                     },
                     DeviceDescriptor{
                         .device_name = "signaler",
@@ -1559,7 +1563,8 @@ namespace BlsLang {
                 .port_maps = {
                     {"file", "f1.txt"}
                 },
-                .initialValue = createBlsType(TypeDef::LINE_WRITER())
+                .initialValue = createBlsType(TypeDef::LINE_WRITER()),
+                .deviceKind = DeviceKind::INTERRUPT
             }},
             {"writer_2", DeviceDescriptor{
                 .device_name = "writer_2",
@@ -1568,7 +1573,8 @@ namespace BlsLang {
                 .port_maps = {
                     {"file", "f2.txt"}
                 },
-                .initialValue = createBlsType(TypeDef::LINE_WRITER())
+                .initialValue = createBlsType(TypeDef::LINE_WRITER()),
+                .deviceKind = DeviceKind::INTERRUPT
             }},
             {"writer_3", DeviceDescriptor{
                 .device_name = "writer_3",
@@ -1577,7 +1583,8 @@ namespace BlsLang {
                 .port_maps = {
                     {"file", "f3.txt"}
                 },
-                .initialValue = createBlsType(TypeDef::LINE_WRITER())
+                .initialValue = createBlsType(TypeDef::LINE_WRITER()),
+                .deviceKind = DeviceKind::INTERRUPT
             }}
         };
 
@@ -1595,7 +1602,8 @@ namespace BlsLang {
                         .initialValue = createBlsType(TypeDef::LINE_WRITER()),
                         .readPolicy = READ_POLICY::ANY,
                         .polling_period = 10,
-                        .isConst = true
+                        .isConst = true,
+                        .deviceKind = DeviceKind::INTERRUPT
                     },
                     DeviceDescriptor{
                         .device_name = "writer_2",
@@ -1607,7 +1615,8 @@ namespace BlsLang {
                         .initialValue = createBlsType(TypeDef::LINE_WRITER()),
                         .overwritePolicy = OVERWRITE_POLICY::CLEAR,
                         .polling_period = 6,
-                        .isConst = true
+                        .isConst = true,
+                        .deviceKind = DeviceKind::INTERRUPT
                     },
                     DeviceDescriptor{
                         .device_name = "writer_3",
@@ -1617,7 +1626,8 @@ namespace BlsLang {
                             {"file", "f3.txt"}
                         },
                         .initialValue = createBlsType(TypeDef::LINE_WRITER()),
-                        .isYield = false
+                        .isYield = false,
+                        .deviceKind = DeviceKind::INTERRUPT
                     }
                 },
                 .hostController = "host-1",
