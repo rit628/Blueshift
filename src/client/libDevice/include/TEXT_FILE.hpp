@@ -9,7 +9,6 @@ namespace Device {
     class TEXT_FILE : public DeviceCore<TypeDef::TEXT_FILE> {
         private:
             std::string filename;
-            TSQ<TypeDef::TEXT_FILE> queryResults;
             std::shared_mutex m;
 
         public:

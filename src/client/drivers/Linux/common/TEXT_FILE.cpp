@@ -34,7 +34,7 @@ void TEXT_FILE::processStates(DynamicMessage& dmsg) {
         throw BlsExceptionClass("TEXT_FILE: BAD COMMAND: " + operation, ERROR_T::DEVICE_FAILURE);
     }
     file.close();
-    queryResults.write(query);
+    writeQueryResult(query);
 }
 
 void TEXT_FILE::init(std::unordered_map<std::string, std::string> &config) {
@@ -48,13 +48,8 @@ void TEXT_FILE::init(std::unordered_map<std::string, std::string> &config) {
 }
 
 void TEXT_FILE::transmitStates(DynamicMessage &dmsg) {
-    auto result = this->queryResults.pop();
-    if (result.has_value()) {
-        dmsg.packStates(result.value());
-    }
-    else {
-        dmsg.packStates(states);
-    }
+    auto lastState = getLastQueryResult();
+    dmsg.packStates(lastState);
 }
 
 TEXT_FILE::~TEXT_FILE() {

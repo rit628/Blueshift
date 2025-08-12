@@ -1,6 +1,7 @@
 #include "DeviceCore.hpp"
 #include "include/HttpListener.hpp"
 #include <memory>
+#include <thread>
 
 #define HTTP_PORT 8080
 
@@ -28,6 +29,23 @@ std::shared_ptr<HttpListener> DeviceCore<T>::addEndpointIWatch(std::string ep, s
     std::cout<<"adding ep: "<<ep<<std::endl; 
     this->Idesc_list.push_back(HttpInterruptor{.server = king, .endpoint = ep, .interruptCallback=handler, }); 
     return king; 
+}
+
+template<Driveable T>
+void DeviceCore<T>::writeQueryResult(T& states) {
+    std::pair<std::thread::id, T> queryResult = {std::this_thread::get_id(), states};
+    queryQueue.write(queryResult);
+}
+
+template<Driveable T>
+T DeviceCore<T>::getLastQueryResult() {
+    auto result = this->queryQueue.pop();
+    if (result.has_value()) {
+        return result.value().second;
+    }
+    else {
+        return states;
+    }
 }
 
 #define DEVTYPE_BEGIN(name, ...) \

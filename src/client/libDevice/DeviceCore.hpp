@@ -2,6 +2,7 @@
 
 #include "libDM/DynamicMessage.hpp"
 #include "include/HttpListener.hpp"
+#include "libTSQ/TSQ.hpp"
 #include "libtype/typedefs.hpp"
 #include <cstdint>
 #include <fstream>
@@ -9,6 +10,7 @@
 #include <memory>
 #include <string>
 #include <concepts>
+#include <utility>
 #include <variant>
 #include "include/ADC.hpp"
 #ifdef SDL_ENABLED
@@ -57,6 +59,7 @@ template <Driveable T>
 class DeviceCore {
     private:
         std::vector<InterruptDescriptor> Idesc_list;
+        TSQ<std::pair<std::thread::id, T>> queryQueue;
     
     protected:
         T states;
@@ -69,6 +72,8 @@ class DeviceCore {
         void addSDLIWatch(std::function<bool(SDL_Event* event)> handler);
         #endif
         std::shared_ptr<HttpListener> addEndpointIWatch(std::string endpoint, std::function<bool(int, string, string)> omar); 
+        void writeQueryResult(T& states);
+        T getLastQueryResult();
 
 
         friend class DeviceHandle;

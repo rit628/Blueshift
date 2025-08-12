@@ -12,9 +12,11 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <stdexcept>
 #include <stop_token>
 #include <sys/inotify.h>
+#include <thread>
 #include <tuple>
 #include <utility>
 #include <variant>
@@ -60,12 +62,6 @@ void DeviceHandle::processStatesImpl(DynamicMessage& input) {
 void DeviceHandle::processStates(DynamicMessage dmsg, uint16_t oblockId) {
     if (getDeviceKind() == DeviceKind::CURSOR) { // skip mutex locking
         processStatesImpl(dmsg);
-        // lockfree queue may be faster than locking with a single oblockId variable
-        // and signaling to queryWatcher(); needs benchmarking though
-        modifiedOblockIds.push(oblockId);
-        viewProcessing = true;
-        viewProcessing.notify_all();
-        viewProcessing.wait(true);
         return;
     }
 
@@ -142,6 +138,19 @@ std::vector<InterruptDescriptor>& DeviceHandle::getIdescList() {
     return std::visit(overloads {
         [](std::monostate&) -> std::vector<InterruptDescriptor>& { throw std::runtime_error("Attempt to access Idesc List for null device."); },
         [](auto& dev) -> std::vector<InterruptDescriptor>& { return dev.Idesc_list; }
+    }, device);
+}
+
+std::optional<std::thread::id> DeviceHandle::getLatestCompletedHandlerId(std::stop_token stoken) {
+    return std::visit(overloads {
+        [](std::monostate&) -> std::optional<std::thread::id> { throw std::runtime_error("Attempt to access Idesc List for null device."); },
+        [&stoken](auto& dev) -> std::optional<std::thread::id> {
+            auto lastQueryResult = dev.queryQueue.peek(stoken);
+            if (lastQueryResult.has_value()) {
+                return lastQueryResult.value().first;
+            }
+            return std::nullopt;
+        }
     }, device);
 }
 
@@ -716,24 +725,21 @@ DeviceCursor::~DeviceCursor() {
 }
 
 void DeviceCursor::queryWatcher(std::stop_token stoken) {
-    auto& modifiedOblockIds = this->device.modifiedOblockIds;
-    uint16_t oblockId;
-    auto& viewProcessing = device.viewProcessing;
     while (!stoken.stop_requested()) {
-        if (modifiedOblockIds.pop(oblockId)) {
-            updateViewMap(oblockId);
+        auto lastCompletedHandler = device.getLatestCompletedHandlerId(stoken);
+        if (!lastCompletedHandler.has_value()) {
+            break; // stop requested, end watcher
         }
-        else if (viewProcessing) {
-            viewProcessing = false;
-            viewProcessing.notify_all();
-        }
+        auto handlerId = lastCompletedHandler.value();
+        updateView(queryHandlers.get(handlerId).value());
+        queryHandlers.remove(handlerId); // signals query completion
     }
 }
 
-void DeviceCursor::updateViewMap(uint16_t oblockId) {
+void DeviceCursor::updateView(uint16_t oblockId) {
     DynamicMessage dmsg;
     this->device.transmitStates(dmsg);
-    viewMap.insert(oblockId, dmsg);
+    currentViews.insert(oblockId, dmsg);
 }
 
 void DeviceCursor::initialize() {
@@ -741,10 +747,24 @@ void DeviceCursor::initialize() {
 }
 
 DynamicMessage DeviceCursor::getLatestOblockView(uint16_t oblockId) {
-    auto dmsg = viewMap.get(oblockId);
+    auto dmsg = currentViews.get(oblockId);
     if (!dmsg.has_value()) {
         dmsg.emplace();
         device.transmitDefaultStates(dmsg.value());
     }
     return dmsg.value();
+}
+
+void DeviceCursor::addQueryHandler(uint16_t oblockId) {
+    auto handlerId = std::this_thread::get_id();
+    queryHandlers.insert(handlerId, oblockId);
+}
+
+void DeviceCursor::awaitQueryCompletion(std::stop_token stoken) {
+    auto handlerId = std::this_thread::get_id();
+    while (!stoken.stop_requested()) {
+        if (!queryHandlers.contains(handlerId)) {
+            return; // this function should not be waiting that long so its ok to busy wait
+        }
+    }
 }

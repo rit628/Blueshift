@@ -6,6 +6,7 @@
 #include "libTSM/TSM.hpp"
 #include "libnetwork/Protocol.hpp"
 #include "Devices.hpp"
+#include <atomic>
 #include <condition_variable>
 #include <cstdint>
 #include <functional>
@@ -23,7 +24,6 @@
 #include <variant>
 #include <vector>
 #include <thread>
-#include <boost/lockfree/queue.hpp>
 #ifdef SDL_ENABLED
 #include <SDL3/SDL.h>
 #endif
@@ -74,8 +74,6 @@ class DeviceHandle {
         bool processing = false;
         bool watchersPaused = true;
         bool timersPaused = true;
-        boost::lockfree::queue<uint16_t> modifiedOblockIds = boost::lockfree::queue<uint16_t>(0);
-        std::atomic_bool viewProcessing = true;
 
         DeviceHandle(TYPE dtype, std::unordered_map<std::string, std::string> &config, std::shared_ptr<ADS7830> targetADC);
         void processStates(DynamicMessage input, uint16_t oblockId);
@@ -84,6 +82,7 @@ class DeviceHandle {
         void transmitDefaultStates(DynamicMessage &dmsg);
         DeviceKind getDeviceKind();
         std::vector<InterruptDescriptor>& getIdescList();
+        std::optional<std::thread::id> getLatestCompletedHandlerId(std::stop_token stoken);
 
 };
 
@@ -218,10 +217,11 @@ class DeviceInterruptor : public DeviceControlInterface<DeviceInterruptor> {
 class DeviceCursor : public DeviceControlInterface<DeviceCursor> {
     private:
         std::jthread queryWatcherThread;
-        TSM<uint16_t, DynamicMessage> viewMap;
+        TSM<uint16_t, DynamicMessage> currentViews;
+        TSM<std::thread::id, uint16_t> queryHandlers;
 
         void queryWatcher(std::stop_token stoken);
-        void updateViewMap(uint16_t oblockId);
+        void updateView(uint16_t oblockId);
 
     public:
         DeviceCursor(DeviceHandle& device, std::shared_ptr<Connection> clientConnection, int ctl_code, int device_code);
@@ -229,5 +229,7 @@ class DeviceCursor : public DeviceControlInterface<DeviceCursor> {
         ~DeviceCursor();
         void initialize();
         DynamicMessage getLatestOblockView(uint16_t oblockId);
+        void addQueryHandler(uint16_t oblockId);
+        void awaitQueryCompletion(std::stop_token stoken);
 
 };
