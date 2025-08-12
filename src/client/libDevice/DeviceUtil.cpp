@@ -630,11 +630,14 @@ void DeviceInterruptor::IHttpWatcher(std::stop_token stoken, std::shared_ptr<Htt
     condition_variable_any cv;  
     std::mutex m; 
     bool handlerSignal = false; 
-    auto callback = [&handlerSignal, &cv, &m, &handler](int64_t sessionID, std::string ip, std::string json){
+    int s_id = 0; 
+    auto callback = [&handlerSignal, &cv, &m, &handler, &s_id](int64_t sessionID, std::string ip, std::string json){
         {
             std::unique_lock lk(m);
             cv.wait(lk, [&handlerSignal](){return !handlerSignal; }); 
+            s_id = sessionID; 
             handlerSignal = handler(sessionID, ip, json); 
+
         }
 
         cv.notify_all(); 

@@ -13,7 +13,7 @@
 
 MasterMailbox::MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMessage> &readNM, 
     TSQ<HeapMasterMessage> &readEM, TSQ<DynamicMasterMessage> &sendNM, TSQ<EMStateMessage> &sendEM)
-: readNM(readNM), readEM(readEM), sendNM(sendNM), sendEM(sendEM), ConfContainer(sendNM ,OBlockList)
+: readNM(readNM), readEM(readEM), sendEM(sendEM), sendNM(sendNM),  ConfContainer(sendNM ,OBlockList)
 {
     this->OBlockList = OBlockList;
     std::unordered_set<std::string> emplaced_set; 
@@ -49,8 +49,12 @@ MasterMailbox::MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMes
 
         // Write the out devics
         for(auto& devDesc : oblock.binded_devices){
+            DeviceID devName = devDesc.device_name;
+            if(devDesc.isCursor){
+                devName = devName + "::" + oblock.name; 
+            } 
             if(!emplaced_set.contains(devDesc.device_name)){
-                auto wb = std::make_unique<WriterBox>();
+                auto wb = std::make_unique<WriterBox>(devDesc,  sendNM, this->ConfContainer);
                 wb->deviceName = devDesc.device_name; 
                 wb->waitingForCallback = false; 
                 this->parentCont[devDesc.device_name] = devDesc.controller; 
@@ -96,14 +100,7 @@ ReaderBox::ReaderBox(string name, OBlockDesc& oDesc, std::unordered_set<OblockID
     for(auto& desc : oDesc.binded_devices){
         this->devDesc.emplace(desc.device_name, desc); 
     }
-
 }
-
-WriterBox::WriterBox(string deviceName)
-{
-    this->deviceName = deviceName;
-}
-
 
 
 void MasterMailbox::assignNM(DynamicMasterMessage DMM)
@@ -115,10 +112,11 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
         {   
             DeviceID devName = DMM.info.device; 
 
+
+        if(!DMM.isCursor){
             // For now we count callbacks to update the state in the mailbox (CHECK IF CALLBACK DEV IN READ LIST)
             for(auto &oblockName : this->interruptName_map[devName]){
                 if(this->oblockReadMap.at(oblockName)->waitingQs.contains(devName)){  
-                    
                     DMM.info.oblock = oblockName; 
                     HeapMasterMessage hmm; 
                     hmm.protocol = PROTOCOLS::CALLBACKRECIEVED; 
@@ -127,47 +125,21 @@ void MasterMailbox::assignNM(DynamicMasterMessage DMM)
                     this->oblockReadMap[oblockName]->insertState(hmm); 
                 }
             }
-
-            //std::cout<<"UPDATING CALLBACK FOR DEVICE: "<<DMM.info.device<<std::endl; 
-
-            // Update with the handleRequest
             for(auto& oblockName : this->interruptName_map[devName]){
                 this->oblockReadMap[oblockName]->handleRequest(); 
-            }
+            } 
+        }
+        else{
+            auto& readMap = this->oblockReadMap.at(DMM.info.oblock); 
+            readMap->insertState(DMM); 
+            readMap->handleRequest(); 
+        }  
 
-            // Send the next device for items waiting for a callback 
-            if(!deviceWriteMap.at(DMM.info.device)->waitingQ.isEmpty())
-            {          
-                OVERWRITE_POLICY nextAction = this->ConfContainer.notifyRecievedCallback(devName);
-
-                 switch(nextAction){
-                    case(OVERWRITE_POLICY::CLEAR):{
-                        // Used for the clear option
-                        deviceWriteMap.at(DMM.info.device)->waitingQ.clearQueue();               
-                        break; 
-                    }
-                    case(OVERWRITE_POLICY::CURRENT):{
-                        // Used for insertion into the front of a queue
-                        deviceWriteMap.at(DMM.info.device)->isFrozen = true; 
-                        break; 
-                    } 
-                    default:{
-                        break; 
-                    }
-                }
-
-
-                if(!this->deviceWriteMap.at(DMM.info.device)->isFrozen){
-                    DynamicMasterMessage DMMtoSend = deviceWriteMap.at(DMM.info.device)->waitingQ.read();
-                    this->sendNM.write(DMMtoSend);
-                }
-            }
-            else
-            {
-                this->ConfContainer.notifyEmpty(devName);
-                deviceWriteMap.at(DMM.info.device)->waitingForCallback = false;
-            }
-
+        if(DMM.isCursor){
+            devName = devName + "::" + DMM.info.oblock; 
+        }
+        deviceWriteMap.at(devName)->notifyCallBack(); 
+        
             break;
         }
         case PROTOCOLS::SENDSTATES:
@@ -241,7 +213,9 @@ void MasterMailbox::assignEM(HeapMasterMessage DMM)
         }
         case PROTOCOLS::PUSH_REQUEST: 
         case PROTOCOLS::SENDSTATES:
+
         {
+            DeviceID dev = DMM.info.device; 
             if(DMM.info.isVtype){
                 // Notify the relevant devices (store into the slots for the master devices)
                 if(this->vTypesSchedule.at(DMM.info.device).owner != DMM.info.oblock){
@@ -266,53 +240,14 @@ void MasterMailbox::assignEM(HeapMasterMessage DMM)
                 break; 
             }
 
-            WriterBox &assignedBox = *deviceWriteMap.at(DMM.info.device);
+            if(DMM.isCursor){
+                dev = dev + "::" + DMM.info.oblock; 
+            }
+
+            WriterBox &assignedBox = *deviceWriteMap.at(dev);
             auto owPolicy = oblockReadMap.at(DMM.info.oblock)->waitingQs.at(DMM.info.device).overwritePolicy;
 
-            DynamicMasterMessage realDMM;
-            realDMM.info = DMM.info;  
-            realDMM.protocol = PROTOCOLS::SENDSTATES; 
-            realDMM.isInterrupt = DMM.isInterrupt; 
-
-            DynamicMessage dm; 
-            if(std::holds_alternative<std::shared_ptr<HeapDescriptor>>(DMM.heapTree)){
-                dm.makeFromRoot(std::get<std::shared_ptr<HeapDescriptor>>(DMM.heapTree)); 
-            }
-            else{
-                throw std::invalid_argument("Attempting to serialize Non-Heap Descriptor state for state sending!"); 
-            }
-
-            realDMM.DM = dm; 
-
-            // Exit Overwrite Policies
-            switch(owPolicy){
-                case(OVERWRITE_POLICY::DISCARD):{
-                    if(assignedBox.waitingQ.isEmpty() && !assignedBox.waitingForCallback){
-                        this->sendNM.write(realDMM);
-                    }
-                    else{
-                        std::cout<<"Failed to overwrite system"<<std::endl;
-                    }   
-                    break; 
-                }
-                case(OVERWRITE_POLICY::CURRENT):{
-                    this->sendNM.write(realDMM); 
-                    this->deviceWriteMap.at(DMM.info.device)->isFrozen = false;
-                    break; 
-                }
-                default:{
-                    if(assignedBox.waitingForCallback){
-                        assignedBox.waitingQ.write(realDMM);
-                    }
-                    else{
-                        this->sendNM.write(realDMM);
-                        assignedBox.waitingForCallback = true; 
-                    }
-                }
-            }
-
-            ConfContainer.notifySentMessage(DMM.info.device); 
-
+            assignedBox.writeOut(DMM, owPolicy, PROTOCOLS::SENDSTATES); 
             break;
         }
         case PROTOCOLS::OWNER_CANDIDATE_REQUEST:{   
@@ -463,7 +398,13 @@ void MasterMailbox::assignEM(HeapMasterMessage DMM)
             DynamicMasterMessage pullDMM; 
             pullDMM.info = DMM.info; 
             pullDMM.protocol = PROTOCOLS::PULL_REQUEST;
-            this->ConfContainer.send(pullDMM); 
+            if(DMM.isCursor){
+                this->ConfContainer.send(pullDMM, ""); 
+            }
+            else{
+                this->ConfContainer.send(pullDMM); 
+            }
+          
             break; 
         }
         default:

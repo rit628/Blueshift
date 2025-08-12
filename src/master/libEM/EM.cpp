@@ -178,6 +178,7 @@ void ExecutionUnit::running()
             newHMM.protocol = PROTOCOLS::SENDSTATES;
             newHMM.isInterrupt = false; 
             newHMM.heapTree = transformedState;
+            newHMM.isCursor = devDesc.isCursor;
             outGoingStates.push_back(newHMM); 
         }
 
@@ -278,6 +279,8 @@ void ExecutionUnit::sendPushState(std::vector<BlsType> typeList){
             else{
                 throw std::runtime_error("Support for pushing to non-primative devices is not yet implemented");
             }
+
+            this->vm.getModifiedStates()[index] = false; 
 
             // TODO: CHANGE THIS TO USE THE ACTUAL NAME INSTEAD OF THE ALIAS
             pushStateHmm.info.device = this->Oblock.binded_devices.at(index).device_name; 

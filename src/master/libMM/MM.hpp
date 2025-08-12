@@ -327,32 +327,20 @@ struct ReaderBox
 };
 
 
-struct WriterBox
-{
-    public:
-    TSQ<DynamicMasterMessage> waitingQ;
-    bool waitingForCallback = false;
-    string deviceName;
-    bool isFrozen = false; 
-    
-    WriterBox(string deviceName);
-    WriterBox() = default;
-
-};
-
-
 // Holds confirmations based on the yeilding/callback policy
 class ConfirmContainer{
  
     // Contains the currently held information about a device; 
+
     struct DeviceState{
         DynamicMasterMessage confirmDMM;
+        // Cursors can store the pulls for confirmations
+
         bool waitingForCallback = false; 
         bool emptyQueue = true; 
         bool expectingYield = true; 
         bool pendingSend = false;         
         OVERWRITE_POLICY action = OVERWRITE_POLICY::NONE; 
-
     }; 
 
     // struct describing the actions that can be taking at a callback retrieval; 
@@ -366,11 +354,13 @@ class ConfirmContainer{
         TSQ<DynamicMasterMessage>& sendNM; 
         std::unordered_map<OblockID, std::unordered_map<DeviceID, OblockActionMetadata>> yieldPolicy; 
         std::unordered_map<DeviceID, DeviceState> loadedDevMap; 
+ 
         // Necessary as the Confirm container is accessed by the read and write blocks
         std::mutex mut; 
 
         void queueConfirmation(const DynamicMasterMessage &dmm){
-            auto& state = this->loadedDevMap.at(dmm.info.device);
+            DeviceID devName = dmm.info.device; 
+            auto& state = this->loadedDevMap.at(devName);
             state.confirmDMM = dmm; 
             state.pendingSend = true; 
             auto& actionMetadata = this->yieldPolicy.at(dmm.info.oblock).at(dmm.info.device);
@@ -409,8 +399,14 @@ class ConfirmContainer{
                 for(auto& devDesc : oblock.binded_devices){
                     this->yieldPolicy[oblock.name][devDesc.device_name].yield = devDesc.isYield; 
                     this->yieldPolicy[oblock.name][devDesc.device_name].policy = devDesc.overwritePolicy;
+                  
+
                     if(!this->loadedDevMap.contains(devDesc.device_name)){
-                        this->loadedDevMap.emplace(devDesc.device_name, DeviceState{}); 
+                        DeviceID dev = devDesc.device_name; 
+                        if(devDesc.isCursor){
+                            dev = devDesc.device_name + "::" + oblock.name; 
+                        }
+                        this->loadedDevMap.emplace(dev, DeviceState{}); 
                     }
                 }
             }  
@@ -430,6 +426,7 @@ class ConfirmContainer{
         }
 
         void notifySentMessage(DeviceID& dev){
+          
             std::lock_guard<std::mutex> lock(this->mut);
             //std::cout<<"Notified sent message"<<std::endl; 
             auto& state = loadedDevMap.at(dev);
@@ -438,7 +435,8 @@ class ConfirmContainer{
         }
 
         // Means callback was received and 
-        void notifyEmpty(DeviceID& dev){
+        void notifyEmpty(DeviceID& dev){ 
+         
             std::lock_guard<std::mutex> lock(this->mut);
             //std::cout<<"Notified empty queue"<<std::endl; 
             auto& state = loadedDevMap.at(dev);
@@ -447,9 +445,13 @@ class ConfirmContainer{
             attemptSendConfirm(state);
         }
 
-        void send(const DynamicMasterMessage &dmm){
+        void send(const DynamicMasterMessage &dmm, OblockID ns = ""){
             std::lock_guard<std::mutex> lock(this->mut);
-            auto& state = loadedDevMap.at(dmm.info.device);
+            DeviceID dev = dmm.info.device; 
+            if(ns != ""){
+                dev = dev + "::" + ns; 
+            }
+            auto& state = loadedDevMap.at(dev);
             if(state.pendingSend){
                 throw std::runtime_error("Overlapping oblock confirmation requests, should not be happening!");
             }
@@ -484,6 +486,104 @@ struct ManagedVType{
     bool isOwned = false;  
 
 }; 
+
+
+struct WriterBox
+{
+    private: 
+       void procOverwrite(OVERWRITE_POLICY ow, TSQ<DynamicMasterMessage> &wQ){
+            switch(ow){
+                case(OVERWRITE_POLICY::CLEAR):{
+                    wQ.clearQueue();               
+                    break; 
+                }
+                case(OVERWRITE_POLICY::CURRENT):{
+                    isFrozen = true; 
+                    break; 
+                }
+                default:{
+                    break; 
+                }
+            }
+        }
+
+
+    public:
+    // Single Channel for Non-Cursor devices
+    TSQ<DynamicMasterMessage> waitingQ;
+    bool waitingForCallback = false;
+    // Per-Oblock multi-channel map for oblock devices
+
+    string deviceName;
+    bool isFrozen = false;
+    bool isCursor = false; 
+    TSQ<DynamicMasterMessage> &sendNM; 
+    ConfirmContainer &outHolder; 
+    std::mutex m; 
+
+    WriterBox(DeviceDescriptor& desc, TSQ<DynamicMasterMessage> &snm, ConfirmContainer &cc)
+    : sendNM(snm), outHolder(cc)
+    {
+        this->isCursor = desc.isCursor; 
+        this->deviceName = desc.device_name; 
+    }
+
+    WriterBox(string deviceName, TSQ<DynamicMasterMessage> &dmm);
+
+
+
+    void writeOut(HeapMasterMessage& hmm, OVERWRITE_POLICY ow, PROTOCOLS pcode){
+        std::unique_lock<std::mutex> lock(m); 
+        DynamicMasterMessage dmm = hmm.buildDMM(); 
+        dmm.protocol = pcode; 
+        // Logic for non-cursor devices
+        switch(ow){
+            case(OVERWRITE_POLICY::DISCARD):{
+                if(waitingQ.isEmpty() && !waitingForCallback){
+                    this->sendNM.write(dmm);
+                }   
+                break; 
+            }
+            case(OVERWRITE_POLICY::CURRENT):{
+                this->sendNM.write(hmm.buildDMM()); 
+                this->isFrozen = false;
+                break; 
+            }
+            default:{
+                if(!this->waitingForCallback){
+                    this->sendNM.write(dmm); 
+                    this->waitingForCallback = true; 
+                }
+                else{
+                    this->waitingQ.write(dmm); 
+                }
+            }
+        }
+    
+        outHolder.notifySentMessage(this->deviceName); 
+    }
+
+
+    void notifyCallBack(){
+        std::unique_lock<std::mutex> lock(m); 
+        if(!waitingQ.isEmpty()){
+            OVERWRITE_POLICY ow  = this->outHolder.notifyRecievedCallback(this->deviceName); 
+            procOverwrite(ow, this->waitingQ); 
+            if(!isFrozen){
+                this->sendNM.write(this->waitingQ.read());
+            }
+        }
+        else{
+            this->outHolder.notifyEmpty(this->deviceName); 
+            this->waitingForCallback = false;
+
+        }
+    }
+};
+
+
+
+
 
 class MasterMailbox
 {
@@ -523,3 +623,4 @@ class MasterMailbox
     void runningNM();
     void runningEM();
 }; 
+

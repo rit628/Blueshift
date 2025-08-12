@@ -17,8 +17,36 @@ oblock playSound(KEYBOARD kbd, AUDIO_PLAYER ap) : triggerOn(kbd), processPolicy(
     }
 }
 
+
+oblock playSoundHttp(HTTP_ENDPOINT endpt, AUDIO_PLAYER ap) 
+: triggerOn(endpt), processPolicy({ap : { "read" : "any" }, endpt : {"ignoreWriteBacks" : true}})
+{
+
+    if(getTrigger() == "initial"){
+        println("Hit initial"); 
+        return; 
+    }
+
+    if(endpt.requestMethod == "POST"){
+        if(endpt.requestJson == "pause"){
+            ap.paused = true; 
+        }
+        else if(endpt.requestJson == "resume"){
+            ap.paused = false;
+        }
+        else{
+            ap.paused = false; 
+            ap.file = endpt.requestJson + ".wav"; 
+        }
+    }
+    endpt.responseCode = 200;
+}
+
 setup() {
+
+    HTTP_ENDPOINT king = "ctl::endpoint-/api/play"; 
     AUDIO_PLAYER AP = "ctl::directory-samples/client";
     KEYBOARD KBD = "ctl::mode-all";
     playSound(KBD, AP);
+    playSoundHttp(king, AP); 
 }

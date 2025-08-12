@@ -4,6 +4,7 @@
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/unordered_map.hpp>
 #include <cstdint>
+#include <memory>
 #include <queue> 
 #include <string>
 #include <variant>
@@ -168,13 +169,13 @@ struct O_Info
     int priority; 
 };
 
-
 struct DynamicMasterMessage
 {
     public:
     O_Info info;
     DynamicMessage DM;
-    bool isInterrupt;
+    bool isInterrupt = false;
+    bool isCursor = false; 
     PROTOCOLS protocol;
     int pushID = 0;
 
@@ -190,9 +191,11 @@ struct HeapMasterMessage
     public:
     O_Info info;
     PROTOCOLS protocol;
-    bool isInterrupt;
+    bool isInterrupt = false;
+    bool isCursor = false; 
     BlsType heapTree;
     int pushID = 0;
+
 
     HeapMasterMessage() = default;
     HeapMasterMessage(std::shared_ptr<HeapDescriptor> heapTree, O_Info info, PROTOCOLS protocol, bool isInterrupt);
@@ -203,8 +206,24 @@ struct HeapMasterMessage
         this->protocol = DMM.protocol; 
     }
 
+    DynamicMasterMessage buildDMM(){
+        DynamicMasterMessage dmm;
+        dmm.info = this->info; 
+        dmm.isCursor = this->isCursor; 
+        dmm.isInterrupt = this->isInterrupt; 
+        dmm.protocol = this->protocol; 
+        dmm.pushID = this->pushID; 
+        if(std::holds_alternative<std::shared_ptr<HeapDescriptor>>(this->heapTree)){
+            dmm.DM.makeFromRoot(std::get<std::shared_ptr<HeapDescriptor>>(this->heapTree)); 
+        }
+        return dmm; 
+    }
+
+
     ~HeapMasterMessage() = default;
 };
+
+
 
 struct EMStateMessage{
     std::string TriggerName; 
