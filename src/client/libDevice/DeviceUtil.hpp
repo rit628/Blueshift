@@ -76,7 +76,7 @@ class DeviceHandle {
         bool timersPaused = true;
 
         DeviceHandle(TYPE dtype, std::unordered_map<std::string, std::string> &config, std::shared_ptr<ADS7830> targetADC);
-        void processStates(DynamicMessage input, uint16_t oblockId);
+        void processStates(DynamicMessage input);
         void init(std::unordered_map<std::string, std::string> &config, std::shared_ptr<ADS7830> targetADC);
         void transmitStates(DynamicMessage &dmsg);
         void transmitDefaultStates(DynamicMessage &dmsg);

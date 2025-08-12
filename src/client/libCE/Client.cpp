@@ -195,7 +195,7 @@ void Client::listener(std::stop_token stoken){
                         if (deviceKind == DeviceKind::CURSOR) {
                             cursors.at(dev_index).addQueryHandler(o_id);
                         }
-                        device.processStates(dmsg, o_id);
+                        device.processStates(dmsg);
                         if (deviceKind == DeviceKind::CURSOR) {
                             cursors.at(dev_index).awaitQueryCompletion(stoken);
                         }

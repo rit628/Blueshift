@@ -59,7 +59,7 @@ void DeviceHandle::processStatesImpl(DynamicMessage& input) {
     }, device);
 }
 
-void DeviceHandle::processStates(DynamicMessage dmsg, uint16_t oblockId) {
+void DeviceHandle::processStates(DynamicMessage dmsg) {
     if (getDeviceKind() == DeviceKind::CURSOR) { // skip mutex locking
         processStatesImpl(dmsg);
         return;
