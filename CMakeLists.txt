@@ -45,6 +45,10 @@ if(NOT DISABLE_SDL)
     set(SYSTEM_LINK_LIBRARIES ${SYSTEM_LINK_LIBRARIES} SDL3::SDL3)
 endif()
 
+if(NOT DISABLE_OPENSSL)
+    set(BOOST_LIB_DEPS ${BOOST_LIB_DEPS} ssl crypto)
+endif()
+
 set(CMAKE_CXX_FLAGS "-w") # Disable warnings for fetched content
 FetchContent_MakeAvailable(googletest Boost ${FETCHCONTENT_OPTIONAL})
 
