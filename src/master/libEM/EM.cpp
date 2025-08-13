@@ -11,7 +11,7 @@
 
 // 
 
-ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<EMStateMessage> &readMM, 
+ExecutionManager::ExecutionManager(std::vector<OBlockDesc> OblockList, TSQ<EMStateMessage> &readMM, 
     TSQ<HeapMasterMessage> &sendMM,
     std::vector<char>& bytecode,
     std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks)
@@ -20,10 +20,10 @@ ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<EMStateMes
     this->OblockList = OblockList;
     for(auto &oblock : OblockList)
     {
-        string OblockName = oblock.name;
-         vector<string> devices;
-        vector<bool> isVtype;
-        vector<string> controllers;
+        std::string OblockName = oblock.name;
+        std::vector<std::string> devices;
+        std::vector<bool> isVtype;
+        std::vector<std::string> controllers;
         for(int j = 0; j < oblock.binded_devices.size(); j++)
         {
             devices.push_back(oblock.binded_devices.at(j).device_name);
@@ -37,8 +37,8 @@ ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<EMStateMes
     }
 }
 
-ExecutionUnit::ExecutionUnit(OBlockDesc oblock, vector<string> devices, vector<bool> isVtype, vector<string> controllers,
-    TSQ<HeapMasterMessage> &sendMM, size_t bytecodeOffset, std::vector<char>& bytecode, function<vector<BlsType>(vector<BlsType>)>  transform_function, DeviceScheduler &devScheduler)
+ExecutionUnit::ExecutionUnit(OBlockDesc oblock, std::vector<std::string> devices, std::vector<bool> isVtype, std::vector<std::string> controllers,
+    TSQ<HeapMasterMessage> &sendMM, size_t bytecodeOffset, std::vector<char>& bytecode, std::function<std::vector<BlsType>(std::vector<BlsType>)>  transform_function, DeviceScheduler &devScheduler)
     : globalScheduler(devScheduler), sendMM(sendMM)
 {
     this->Oblock = oblock;
@@ -59,7 +59,7 @@ ExecutionUnit::ExecutionUnit(OBlockDesc oblock, vector<string> devices, vector<b
     }
 
     //this->running(vtypeHMMsMap, sendMM);
-    this->executionThread = thread(&ExecutionUnit::running, this);
+    this->executionThread = std::thread(&ExecutionUnit::running, this);
 }
 
 ExecutionUnit::~ExecutionUnit()
@@ -67,7 +67,7 @@ ExecutionUnit::~ExecutionUnit()
     this->executionThread.join();
 }
 
-HeapMasterMessage::HeapMasterMessage(shared_ptr<HeapDescriptor> heapTree, O_Info info, PROTOCOLS protocol, bool isInterrupt)
+HeapMasterMessage::HeapMasterMessage(std::shared_ptr<HeapDescriptor> heapTree, O_Info info, PROTOCOLS protocol, bool isInterrupt)
 {
     this->heapTree = heapTree;
     this->info = info;
@@ -119,7 +119,7 @@ void ExecutionUnit::running()
 
         replaceCachedStates(HMMs); 
         
-        vector<BlsType> transformableStates;
+        std::vector<BlsType> transformableStates;
 
         // Tell the mailbox that the process is in execution
         HeapMasterMessage execMsg;

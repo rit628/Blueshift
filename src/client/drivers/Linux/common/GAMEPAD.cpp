@@ -12,6 +12,7 @@
 #include <SDL3/SDL.h>
 
 using namespace Device;
+using namespace std::string_literals;
 
 void GAMEPAD::processStates(DynamicMessage& dmsg) {
     // rumble attributes are the only writeable states
@@ -20,10 +21,10 @@ void GAMEPAD::processStates(DynamicMessage& dmsg) {
     dmsg.unpack("rumbleDuration", states.rumbleDuration);
 
     static auto clampIntensity = [](int64_t intensity) -> uint16_t {
-        return max((int64_t)0, min(intensity, (int64_t)UINT16_MAX));
+        return std::max((int64_t)0, std::min(intensity, (int64_t)UINT16_MAX));
     };
     static auto clampDuration = [](int64_t duration) -> uint32_t {
-        return max((int64_t)0, min(duration, (int64_t)UINT32_MAX));
+        return std::max((int64_t)0, std::min(duration, (int64_t)UINT32_MAX));
     };
 
     SDL_RumbleGamepad(gamepad

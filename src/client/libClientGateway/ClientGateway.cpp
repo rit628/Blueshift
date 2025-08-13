@@ -129,7 +129,7 @@ SentMessage ClientEU::createSentMessage(BlsType &newData, DeviceDescriptor &devD
 
     DynamicMessage dm; 
     if(std::holds_alternative<std::shared_ptr<HeapDescriptor>>(newData)){
-        dm.makeFromRoot(std::get<shared_ptr<HeapDescriptor>>(newData)); 
+        dm.makeFromRoot(std::get<std::shared_ptr<HeapDescriptor>>(newData)); 
         sm.body = dm.Serialize(); 
         sm.header.body_size = sm.body.size(); 
     }

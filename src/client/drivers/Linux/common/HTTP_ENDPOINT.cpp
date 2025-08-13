@@ -10,7 +10,7 @@ void HTTP_ENDPOINT::processStates(DynamicMessage &dmsg){
     this->listener->write(states.sessionID, states.responseJson , states.responseCode);
 }
 
-bool HTTP_ENDPOINT::handleRequest(int sessionID, string ip, string json){
+bool HTTP_ENDPOINT::handleRequest(int sessionID, std::string ip, std::string json){
     states.requestJson = json; 
     states.requestMethod = ip;  
     states.sessionID = sessionID; 

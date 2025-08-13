@@ -61,7 +61,7 @@ void DeviceScheduler::request(OblockID& requestor, int priority){
         this->handleMessage(this->makeMessage(requestor, dev, PROTOCOLS::OWNER_CANDIDATE_REQUEST, priority)); 
     }
 
-    string k = ""; 
+    std::string k = ""; 
     this->handleMessage(this->makeMessage(requestor, k, PROTOCOLS::OWNER_CANDIDATE_REQUEST_CONCLUDE)); 
 
     // Wait until the final message arrives: 

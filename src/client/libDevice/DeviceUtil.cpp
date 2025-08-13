@@ -555,10 +555,10 @@ void DeviceInterruptor::IFileWatcher(std::stop_token stoken, std::string fname, 
 }
 
 void DeviceInterruptor::IGpioWatcher(std::stop_token stoken, int portNum, std::function<bool(int, int , uint32_t)> handler) {
-    condition_variable_any cv;
+    std::condition_variable_any cv;
     std::mutex m;
     bool handlerSignal = false;
-    using callback_data = std::tuple<condition_variable_any&, std::mutex&, bool&, decltype(handler)&>;
+    using callback_data = std::tuple<std::condition_variable_any&, std::mutex&, bool&, decltype(handler)&>;
     callback_data callbackData = {cv, m, handlerSignal, handler};
     auto callback = [](int gpio, int level, unsigned int tick, void* callbackData) -> void {
         auto& [cv, m, handlerSignal, handler] = *reinterpret_cast<callback_data*>(callbackData);
@@ -591,10 +591,10 @@ void DeviceInterruptor::IGpioWatcher(std::stop_token stoken, int portNum, std::f
 
 #ifdef SDL_ENABLED
 void DeviceInterruptor::ISdlWatcher(std::stop_token stoken, std::function<bool(SDL_Event*)> handler) {
-    condition_variable_any cv;
+    std::condition_variable_any cv;
     std::mutex m;
     bool handlerSignal = false;
-    using callback_data = std::tuple<condition_variable_any&, std::mutex&, bool&, decltype(handler)&>;
+    using callback_data = std::tuple<std::condition_variable_any&, std::mutex&, bool&, decltype(handler)&>;
     callback_data callbackData = {cv, m, handlerSignal, handler};
     auto callback = [](void* callbackData, SDL_Event* event) -> bool {
         auto& [cv, m, handlerSignal, handler] = *reinterpret_cast<callback_data*>(callbackData);
@@ -628,8 +628,8 @@ void DeviceInterruptor::ISdlWatcher(std::stop_token stoken, std::function<bool(S
 }
 #endif
 
-void DeviceInterruptor::IHttpWatcher(std::stop_token stoken, std::shared_ptr<HttpListener> server, std::string endpoint, std::function<bool(int64_t, string, string)> handler){
-    condition_variable_any cv;  
+void DeviceInterruptor::IHttpWatcher(std::stop_token stoken, std::shared_ptr<HttpListener> server, std::string endpoint, std::function<bool(int64_t, std::string, std::string)> handler){
+    std::condition_variable_any cv;  
     std::mutex m; 
     bool handlerSignal = false; 
     int s_id = 0; 

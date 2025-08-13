@@ -126,11 +126,11 @@ class DeviceScheduler{
         HeapMasterMessage makeMessage(OblockID& oName, DeviceID& devName, PROTOCOLS pmsg, int priority, bool vtype); 
 
         // Function
-        function<void(HeapMasterMessage)> handleMessage; 
+        std::function<void(HeapMasterMessage)> handleMessage; 
         
 
     public: 
-        DeviceScheduler(std::vector<OBlockDesc> &oblockDescList, function<void(HeapMasterMessage)> dmm_message); 
+        DeviceScheduler(std::vector<OBlockDesc> &oblockDescList, std::function<void(HeapMasterMessage)> dmm_message); 
         void request(OblockID& oblockName, int priority); 
         void receive(HeapMasterMessage &DMM); 
         void release(OblockID &reqOblock); 

@@ -38,7 +38,7 @@ struct SdlIoInterruptor {
 struct HttpInterruptor{
     std::shared_ptr<HttpListener> server; 
     std::string endpoint; 
-    std::function<bool(int, string, string)> interruptCallback;  
+    std::function<bool(int, std::string, std::string)> interruptCallback;  
 }; 
 
 
@@ -75,7 +75,7 @@ class DeviceCore {
         #ifdef SDL_ENABLED
         void addSDLIWatch(std::function<bool(SDL_Event* event)> handler);
         #endif
-        std::shared_ptr<HttpListener> addEndpointIWatch(std::string endpoint, std::function<bool(int, string, string)> omar); 
+        std::shared_ptr<HttpListener> addEndpointIWatch(std::string endpoint, std::function<bool(int, std::string, std::string)> omar); 
         void writeQueryResult(T& states);
         T getLastQueryResult();
 

@@ -16,6 +16,6 @@ namespace Device {
             void processStates(DynamicMessage& dmsg);
             void init(std::unordered_map<std::string, std::string> &config);
             void transmitStates(DynamicMessage &dmsg);
-            bool handleRequest(int sessionID, string ip, string json); 
+            bool handleRequest(int sessionID, std::string ip, std::string json); 
     };
 }

@@ -170,7 +170,7 @@ class DeviceInterruptor : public DeviceControlInterface<DeviceInterruptor> {
 
         struct HttpWatchDescriptor{
             std::shared_ptr<HttpListener> listener; 
-            std::function<bool(int64_t, string, string)> callback; 
+            std::function<bool(int64_t, std::string, std::string)> callback; 
             std::string endpoint;
         }; 
 
@@ -202,7 +202,7 @@ class DeviceInterruptor : public DeviceControlInterface<DeviceInterruptor> {
         #ifdef SDL_ENABLED
         void ISdlWatcher(std::stop_token stoken, std::function<bool(SDL_Event*)> handler);
         #endif
-        void IHttpWatcher(std::stop_token stoken, std::shared_ptr<HttpListener> server, std::string endpoint, std::function<bool(int64_t, string, string)> handler); 
+        void IHttpWatcher(std::stop_token stoken, std::shared_ptr<HttpListener> server, std::string endpoint, std::function<bool(int64_t, std::string, std::string)> handler); 
 
     public: 
         DeviceInterruptor(boost::asio::io_context &in_ctx, DeviceHandle& targDev, std::shared_ptr<Connection> conex, int ctl, int dd);

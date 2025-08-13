@@ -18,7 +18,7 @@ enum class Owner{
 
 struct OwnedSentMessage; 
 
-class Connection : public enable_shared_from_this<Connection>{
+class Connection : public std::enable_shared_from_this<Connection>{
     private: 
         boost::asio::io_context &ctx; 
         tcp::socket socket;

@@ -20,8 +20,6 @@
 
 
 
-using namespace std;
-
 using OblockID = std::string;
 using DeviceID = std::string; 
 
@@ -196,7 +194,7 @@ struct ReaderBox
 
         bool callbackRecived;
         bool statesRequested = false;
-        string OblockName;
+        std::string OblockName;
         bool pending_requests; 
         // used when forwarding packets to the EM when while the process is waiting for write permissions
         bool forwardPackets = false; 
@@ -322,7 +320,7 @@ struct ReaderBox
         }   
 
 
-        ReaderBox(string name,  OBlockDesc& odesc, std::unordered_set<OblockID> &trigSet, TSQ<EMStateMessage> &emMsg);
+        ReaderBox(std::string name,  OBlockDesc& odesc, std::unordered_set<OblockID> &trigSet, TSQ<EMStateMessage> &emMsg);
     
 };
 
@@ -513,7 +511,7 @@ struct WriterBox
     bool waitingForCallback = false;
     // Per-Oblock multi-channel map for oblock devices
 
-    string deviceName;
+    std::string deviceName;
     bool isFrozen = false;
     bool isCursor = false; 
     TSQ<DynamicMasterMessage> &sendNM; 
@@ -527,7 +525,7 @@ struct WriterBox
         this->deviceName = desc.device_name; 
     }
 
-    WriterBox(string deviceName, TSQ<DynamicMasterMessage> &dmm);
+    WriterBox(std::string deviceName, TSQ<DynamicMasterMessage> &dmm);
 
 
 
@@ -591,10 +589,10 @@ class MasterMailbox
     TSQ<HeapMasterMessage> &readEM;
     TSQ<EMStateMessage> &sendEM;
     TSQ<DynamicMasterMessage> &sendNM;
-    MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMessage> &readNM, TSQ<HeapMasterMessage> &readEM,
+    MasterMailbox(std::vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMessage> &readNM, TSQ<HeapMasterMessage> &readEM,
          TSQ<DynamicMasterMessage> &sendNM, TSQ<EMStateMessage> &sendEM);
-    vector<OBlockDesc> OBlockList;
-    unordered_map<DeviceID, ControllerID> parentCont; 
+    std::vector<OBlockDesc> OBlockList;
+    std::unordered_map<DeviceID, ControllerID> parentCont; 
     static DynamicMasterMessage buildDMM(HeapMasterMessage &hmm); 
     
     // List of oblocks that were triggered (used to ensure intended-order execution for trigger groups)
@@ -604,10 +602,10 @@ class MasterMailbox
     // number of found requests 
     int requestCount = 0;
 
-    unordered_map<OblockID, unique_ptr<ReaderBox>> oblockReadMap;
-    unordered_map<DeviceID, unique_ptr<WriterBox>> deviceWriteMap;
-    unordered_map<DeviceID, std::vector<OblockID>> interruptName_map;
-    unordered_map<DeviceID, ManagedVType> vTypesSchedule; 
+    std::unordered_map<OblockID, std::unique_ptr<ReaderBox>> oblockReadMap;
+    std::unordered_map<DeviceID, std::unique_ptr<WriterBox>> deviceWriteMap;
+    std::unordered_map<DeviceID, std::vector<OblockID>> interruptName_map;
+    std::unordered_map<DeviceID, ManagedVType> vTypesSchedule; 
     ConfirmContainer ConfContainer; 
 
 

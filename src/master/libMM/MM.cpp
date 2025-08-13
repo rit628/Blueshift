@@ -11,7 +11,7 @@
 #include <variant>
 
 
-MasterMailbox::MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMessage> &readNM, 
+MasterMailbox::MasterMailbox(std::vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMessage> &readNM, 
     TSQ<HeapMasterMessage> &readEM, TSQ<DynamicMasterMessage> &sendNM, TSQ<EMStateMessage> &sendEM)
 : readNM(readNM), readEM(readEM), sendEM(sendEM), sendNM(sendNM),  ConfContainer(sendNM ,OBlockList)
 {
@@ -26,8 +26,8 @@ MasterMailbox::MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMes
 
         for(auto &devDesc : oblock.binded_devices)
         { 
-            string deviceName = devDesc.device_name;
-            auto TSQPtr = make_shared<TSQ<HeapMasterMessage>>();
+            std::string deviceName = devDesc.device_name;
+            auto TSQPtr = std::make_shared<TSQ<HeapMasterMessage>>();
             auto& db =oblockReadMap[oblock.name]->waitingQs[deviceName];
             db.stateQueues = TSQPtr; 
             db.readPolicy = devDesc.readPolicy;
@@ -69,7 +69,7 @@ MasterMailbox::MasterMailbox(vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMes
     for(auto &oblock : OBlockList)
     {
         for(auto &devDesc : oblock.binded_devices){
-            string deviceName = devDesc.device_name;
+            std::string deviceName = devDesc.device_name;
             interruptName_map[deviceName].push_back(oblock.name);   
             if(devDesc.isVtype){
                 this->vTypesSchedule.emplace(devDesc.device_name, ManagedVType{}); 
@@ -91,7 +91,7 @@ DynamicMasterMessage MasterMailbox::buildDMM(HeapMasterMessage &hmm){
     return dmm;
 }
 
-ReaderBox::ReaderBox(string name, OBlockDesc& oDesc, std::unordered_set<OblockID> &triggerSet, TSQ<EMStateMessage> &ems)
+ReaderBox::ReaderBox(std::string name, OBlockDesc& oDesc, std::unordered_set<OblockID> &triggerSet, TSQ<EMStateMessage> &ems)
 : triggerSet(triggerSet), triggerMan(oDesc), sendEM(ems)
 {
     this->OblockName = name;

@@ -5,7 +5,6 @@
 #include <mutex>
 #include <condition_variable>
 #include <stop_token>
-using namespace std;
 
 template<class T>
 class TSQ {

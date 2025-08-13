@@ -39,7 +39,7 @@ void TEXT_FILE::processStates(DynamicMessage& dmsg) {
 
 void TEXT_FILE::init(std::unordered_map<std::string, std::string> &config) {
     this->filename = "./samples/client/" + config["file"];
-    std::ofstream file(filename, ios::app);
+    std::ofstream file(filename, std::ios::app);
     if(!file.is_open()){
         std::cout << "Could not find or create file" << std::endl;
         throw BlsExceptionClass("TEXT_FILE: " + this->filename, ERROR_T::BAD_DEV_CONFIG);

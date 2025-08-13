@@ -72,7 +72,7 @@ struct HttpSession : public std::enable_shared_from_this<HttpSession>{
     private: 
         tcp::socket socket;
         beast::flat_buffer buffer;  
-        std::unordered_map<std::string, std::function<bool(int, string, string)>> &callbackMap; 
+        std::unordered_map<std::string, std::function<bool(int, std::string, std::string)>> &callbackMap; 
         std::unordered_map<SessionID, bool> &awaitingResponse; 
         http::request<http::string_body> req; 
         int sessionID; 
