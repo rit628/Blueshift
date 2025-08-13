@@ -126,6 +126,13 @@ void DeviceScheduler::receive(HeapMasterMessage &recvMsg){
 void DeviceScheduler::release(OblockID& reqOblock){
     //std::cout<<"Releasing devices for "<<reqOblock<<std::endl; 
     auto& deviceList = this->oblockWaitMap[reqOblock].mustOwn;
+    if(deviceList.empty()){
+        std::string nullDev; 
+        HeapMasterMessage newDMM = makeMessage(reqOblock, nullDev, PROTOCOLS::OWNER_RELEASE_NULL); 
+        this->handleMessage(newDMM); 
+    }
+
+
     for(auto dev : deviceList){
         // Send each device that the oblock in question has ended its ownership
         HeapMasterMessage newDMM = makeMessage(reqOblock, dev,PROTOCOLS::OWNER_RELEASE); 

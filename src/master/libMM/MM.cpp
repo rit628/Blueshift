@@ -343,6 +343,11 @@ void MasterMailbox::assignEM(HeapMasterMessage DMM)
             this->ConfContainer.send(MasterMailbox::buildDMM(DMM));
             break; 
         }
+        case PROTOCOLS::OWNER_RELEASE_NULL:{
+            auto oblockName = DMM.info.oblock; 
+            this->oblockReadMap.at(DMM.info.oblock)->inExec = false; 
+            break; 
+        }
         case PROTOCOLS::OWNER_RELEASE:{
             auto oblockName = DMM.info.oblock; 
             this->oblockReadMap.at(DMM.info.oblock)->inExec = false; 
