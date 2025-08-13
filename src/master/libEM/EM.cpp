@@ -33,13 +33,13 @@ ExecutionManager::ExecutionManager(std::vector<OBlockDesc> OblockList, TSQ<EMSta
 
         auto function = oblocks[OblockName];
         auto bytecodeOffset = oblock.bytecode_offset;
-        EU_map[OblockName] = std::make_unique<ExecutionUnit>(oblock, devices, isVtype, controllers, this->sendMM, bytecodeOffset, bytecode, function, this->scheduler);
+        EU_map[OblockName] = std::make_unique<ExecutionUnit>(oblock, devices, isVtype, controllers, this->sendMM, bytecodeOffset, bytecode, function, this->scheduler, eu_ctx);
     }
 }
 
 ExecutionUnit::ExecutionUnit(OBlockDesc oblock, std::vector<std::string> devices, std::vector<bool> isVtype, std::vector<std::string> controllers,
-    TSQ<HeapMasterMessage> &sendMM, size_t bytecodeOffset, std::vector<char>& bytecode, std::function<std::vector<BlsType>(std::vector<BlsType>)>  transform_function, DeviceScheduler &devScheduler)
-    : globalScheduler(devScheduler), sendMM(sendMM)
+    TSQ<HeapMasterMessage> &sendMM, size_t bytecodeOffset, std::vector<char>& bytecode, std::function<std::vector<BlsType>(std::vector<BlsType>)>  transform_function, DeviceScheduler &devScheduler, asio::io_context &ctx)
+    : globalScheduler(devScheduler), sendMM(sendMM), ctx(ctx)
 {
     this->Oblock = oblock;
     this->devices = devices;

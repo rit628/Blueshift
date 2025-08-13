@@ -13,7 +13,9 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <boost/asio.hpp>
 
+namespace asio = boost::asio; 
 
 class ExecutionUnit
 {
@@ -36,6 +38,7 @@ class ExecutionUnit
     std::string TriggerName = "";
     BlsLang::VirtualMachine vm;
     TSQ<HeapMasterMessage> &sendMM; 
+    asio::io_context &ctx; 
 
 
     // Pulling stuff
@@ -45,9 +48,6 @@ class ExecutionUnit
     std::vector<BlsType> pullStoreVector; 
     std::unordered_map<DeviceID, int> pullPlacement; 
 
-
-
-
     ExecutionUnit(OBlockDesc OblockData
                 , std::vector<std::string> devices
                 , std::vector<bool> isVtype
@@ -56,7 +56,8 @@ class ExecutionUnit
                 , size_t bytecodeOffset
                 , std::vector<char>& bytecode
                 , std::function<std::vector<BlsType>(std::vector<BlsType>)> transform_function
-                , DeviceScheduler &devSchedule);
+                , DeviceScheduler &devSchedule, 
+                asio::io_context &ctx);
     
 
     
@@ -74,9 +75,6 @@ class ExecutionUnit
 
     ~ExecutionUnit();
 };
-
-
-
 
 class ExecutionManager
 {
@@ -97,5 +95,6 @@ class ExecutionManager
     std::unordered_map<std::string, std::unique_ptr<ExecutionUnit>> EU_map;
     std::vector<OBlockDesc> OblockList;
     DeviceScheduler scheduler; 
+    boost::asio::io_context eu_ctx; 
 };
 

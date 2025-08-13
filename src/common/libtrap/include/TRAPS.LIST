@@ -42,6 +42,10 @@ TRAP_BEGIN(pull, void)
     VARIADIC(states)
 TRAP_END 
 
+TRAP_BEGIN(sync, void)
+    VARIADIC(states)
+TRAP_END
+
 TRAP_BEGIN(loadJson, any)
     ARGUMENT(json, string)
 TRAP_END
@@ -49,3 +53,12 @@ TRAP_END
 TRAP_BEGIN(jsonify, string)
     ARGUMENT(value, any)
 TRAP_END
+
+TRAP_BEGIN(httpRequest, string)
+    ARGUMENT(method, string) 
+    ARGUMENT(host, string)
+    ARGUMENT(target, string) 
+    ARGUMENT(body, string)
+TRAP_END
+
+

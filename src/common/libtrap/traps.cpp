@@ -4,6 +4,7 @@
 #include "libtype/bls_types.hpp"
 #include <chrono>
 #include <concepts>
+#include <exception>
 #include <memory>
 #include <ranges>
 #include <cstdint>
@@ -13,8 +14,14 @@
 #include <variant>
 #include <vector>
 #include <boost/range/iterator_range_core.hpp>
+#include <boost/beast.hpp> 
+#include <boost/asio.hpp>
 
 using namespace BlsTrap;
+namespace asio = boost::asio; 
+namespace beast = boost::beast; 
+namespace http = beast::http; 
+namespace ssl = asio::ssl;
 
 std::monostate Impl::print(std::vector<BlsType> values, BytecodeProcessor* vm) {
     if (values.size() > 0) {
@@ -92,12 +99,63 @@ std::monostate Impl::pull(std::vector<BlsType> blsList, BytecodeProcessor *vm){
             //  Wont work for now since blsList is copied by value
             oldVal = blsList.at(i); 
         }
-
         i++; 
     }
 
     return std::monostate(); 
 }
+
+std::monostate Impl::sync(std::vector<BlsType> blsList, BytecodeProcessor *vm){
+    Impl::push(blsList); 
+    return Impl::pull(blsList);
+}
+
+
+
+std::string Impl::httpRequest(std::string method, std::string host, std::string target, std::string body, BytecodeProcessor *vm){
+    
+    
+        asio::ip::tcp::resolver res(vm->ownerUnit->ctx); 
+        beast::tcp_stream stream(vm->ownerUnit->ctx); 
+        int version = 11; 
+
+        auto const results = res.resolve(host, "80"); 
+        stream.connect(results); 
+
+        http::request<http::string_body> req{
+            method == "POST" ? http::verb::post : http::verb::get,  
+            target, 
+            version 
+        }; 
+
+        req.set(http::field::host, host); 
+        req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING); 
+
+        if(method == "POST"){
+            req.set(http::field::content_type, "application/json");
+            req.body() = body;
+            req.prepare_payload();
+        }
+
+        http::write(stream, req);
+
+        beast::flat_buffer buffer;
+        http::response<http::string_body> response;
+        http::read(stream, buffer, response);
+
+
+        stream.socket().shutdown(asio::ip::tcp::socket::shutdown_both);
+
+        return response.body();
+
+
+}
+
+
+
+
+
+
 
 BlsType Impl::loadJson(std::string json, BytecodeProcessor* vm) {
     using namespace boost::json;
