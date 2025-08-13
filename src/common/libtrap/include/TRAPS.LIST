@@ -61,4 +61,7 @@ TRAP_BEGIN(httpRequest, string)
     ARGUMENT(body, string)
 TRAP_END
 
-
+TRAP_BEGIN(containsType, bool)
+    ARGUMENT(value, any)
+    ARGUMENT(typeName, string)
+TRAP_END

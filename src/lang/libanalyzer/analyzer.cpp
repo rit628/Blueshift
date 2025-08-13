@@ -549,6 +549,14 @@ BlsObject Analyzer::visit(AstNode::Expression::Method& ast) {
     auto& methodArgs = ast.getArguments();
     auto objType = getType(object);
     ast.getLocalIndex() = cs.getLocalIndex(objectName);
+
+    if (objType == TYPE::ANY) { // skip every check for now (may cause issues)
+        for (auto&& arg : methodArgs) {
+            arg->accept(*this);
+        }
+        return object;
+    }
+
     if (objType < TYPE::PRIMITIVES_END || objType > TYPE::CONTAINERS_END) {
         throw SemanticError("Methods may only be applied on container type objects.");
     }
@@ -623,11 +631,23 @@ BlsObject Analyzer::visit(AstNode::Expression::Function& ast) {
 BlsObject Analyzer::visit(AstNode::Expression::Access& ast) {
     auto& objectName = ast.getObject();
     auto& object = cs.getLocal(objectName);
+    auto objType = getType(object);
     auto& member = ast.getMember();
     auto& subscript = ast.getSubscript();
     ast.getLocalIndex() = cs.getLocalIndex(objectName);
+
+    if (objType == TYPE::ANY) { // skip every check for now (may cause issues)
+        if (member.has_value()) {
+            addToPool(BlsType(member.value()));
+        }
+        else if (subscript.has_value()) {
+            subscript->get()->accept(*this);
+        }
+        return std::ref(object);
+    }
+
     if (member.has_value()) {
-        switch (getType(object)) {
+        switch (objType) {
             #define DEVTYPE_BEGIN(name, ...) \
             case TYPE::name: \
                 if (false) { } // trick for short circuiting
@@ -652,7 +672,6 @@ BlsObject Analyzer::visit(AstNode::Expression::Access& ast) {
         return std::ref(accessible->access(memberName));
     }
     else if (subscript.has_value()) {
-        auto objType = getType(object);
         if (objType < TYPE::PRIMITIVES_END || objType > TYPE::CONTAINERS_END) {
             throw SemanticError("Subscript access only possible on container type objects");
         }

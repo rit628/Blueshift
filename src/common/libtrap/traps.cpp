@@ -9,6 +9,7 @@
 #include <ranges>
 #include <cstdint>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <thread>
 #include <variant>
@@ -110,53 +111,6 @@ std::monostate Impl::sync(std::vector<BlsType> blsList, BytecodeProcessor *vm){
     return Impl::pull(blsList);
 }
 
-
-
-std::string Impl::httpRequest(std::string method, std::string host, std::string target, std::string body, BytecodeProcessor *vm){
-    
-    
-        asio::ip::tcp::resolver res(vm->ownerUnit->ctx); 
-        beast::tcp_stream stream(vm->ownerUnit->ctx); 
-        int version = 11; 
-
-        auto const results = res.resolve(host, "80"); 
-        stream.connect(results); 
-
-        http::request<http::string_body> req{
-            method == "POST" ? http::verb::post : http::verb::get,  
-            target, 
-            version 
-        }; 
-
-        req.set(http::field::host, host); 
-        req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING); 
-
-        if(method == "POST"){
-            req.set(http::field::content_type, "application/json");
-            req.body() = body;
-            req.prepare_payload();
-        }
-
-        http::write(stream, req);
-
-        beast::flat_buffer buffer;
-        http::response<http::string_body> response;
-        http::read(stream, buffer, response);
-
-
-        stream.socket().shutdown(asio::ip::tcp::socket::shutdown_both);
-
-        return response.body();
-
-
-}
-
-
-
-
-
-
-
 BlsType Impl::loadJson(std::string json, BytecodeProcessor* vm) {
     using namespace boost::json;
     return value_to<BlsType>(parse(json));
@@ -165,4 +119,88 @@ BlsType Impl::loadJson(std::string json, BytecodeProcessor* vm) {
 std::string Impl::jsonify(BlsType value, BytecodeProcessor* vm) {
     using namespace boost::json;
     return serialize(value_from(value));
+}
+
+std::string Impl::httpRequest(std::string method, std::string host, std::string target, std::string body, BytecodeProcessor *vm){
+    
+    
+    asio::ip::tcp::resolver res(vm->ownerUnit->ctx); 
+    beast::tcp_stream stream(vm->ownerUnit->ctx); 
+    int version = 11; 
+
+    auto const results = res.resolve(host, "80"); 
+    stream.connect(results); 
+
+    http::request<http::string_body> req{
+        method == "POST" ? http::verb::post : http::verb::get,  
+        target, 
+        version 
+    }; 
+
+    req.set(http::field::host, host); 
+    req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING); 
+
+    if(method == "POST"){
+        req.set(http::field::content_type, "application/json");
+        req.body() = body;
+        req.prepare_payload();
+    }
+
+    http::write(stream, req);
+
+    beast::flat_buffer buffer;
+    http::response<http::string_body> response;
+    http::read(stream, buffer, response);
+
+
+    stream.socket().shutdown(asio::ip::tcp::socket::shutdown_both);
+
+    return response.body();
+
+
+}
+
+bool Impl::containsType(BlsType value, std::string typeName, BytecodeProcessor* vm) {
+    auto type = getTypeFromName(typeName);
+
+    switch (type) {
+        case TYPE::void_t:
+        case TYPE::COUNT:
+            throw std::runtime_error("Invalid type name provided.");
+        break;
+
+        case TYPE::ANY:
+            return true;
+        break;
+
+        case TYPE::bool_t:
+            return std::holds_alternative<bool>(value);
+        break;
+
+        case TYPE::int_t:
+            return std::holds_alternative<int64_t>(value);
+        break;
+        
+        case TYPE::float_t:
+            return std::holds_alternative<double>(value);
+        break;
+
+        case TYPE::string_t:
+            return std::holds_alternative<std::string>(value);
+        break;
+
+        case TYPE::list_t:
+            return std::holds_alternative<std::shared_ptr<HeapDescriptor>>(value)
+                && std::dynamic_pointer_cast<VectorDescriptor>(std::get<std::shared_ptr<HeapDescriptor>>(value));
+        break;
+
+        case TYPE::map_t:
+            return std::holds_alternative<std::shared_ptr<HeapDescriptor>>(value)
+                && std::dynamic_pointer_cast<MapDescriptor>(std::get<std::shared_ptr<HeapDescriptor>>(value));
+        break;
+        
+        default:
+            return false; // for now ignore devtypes
+        break;
+    }
 }

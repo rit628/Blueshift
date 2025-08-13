@@ -2,6 +2,9 @@ oblock test(KEYBOARD kbd) {
     any json = loadJson("{\"a\" : 2.4}");
     print(json);
     print(jsonify(json));
+    if (containsType(json, "map")) {
+        print(containsType(json["a"], "float"));
+    }
 }
 
 setup() {
