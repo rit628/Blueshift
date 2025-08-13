@@ -385,6 +385,13 @@ BlsObject Analyzer::visit(AstNode::Expression::Binary& ast) {
     auto& lhs = resolve(leftResult);
     auto& rhs = resolve(rightResult);
 
+    if (getType(lhs) == TYPE::ANY) {
+        return lhs;
+    }
+    if (getType(rhs) == TYPE::ANY) {
+        return rhs;
+    }
+
     if (!typeCompatible(lhs, rhs)) {
         throw SemanticError("Invalid operands for binary expression");
     }
@@ -496,6 +503,10 @@ BlsObject Analyzer::visit(AstNode::Expression::Unary& ast) {
         if (std::holds_alternative<BlsType>(expression)) {
             throw SemanticError("Assignments to temporary not permitted");
         }
+    }
+
+    if (getType(object) == TYPE::ANY) {
+        return object;
     }
     
     // operator type checking done by overload specialization
