@@ -90,6 +90,8 @@ namespace BlsLang {
         #undef DEVTYPE_BEGIN
         #undef ATTRIBUTE
         #undef DEVTYPE_END
+
+        , SPECIAL_ANY
     };
 
     const static std::unordered_set<std::string> MODIFIERS {

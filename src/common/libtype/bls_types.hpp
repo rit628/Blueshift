@@ -1,5 +1,6 @@
 #pragma once
 #include "typedefs.hpp"
+#include <any>
 #include <cmath>
 #include <concepts>
 #include <cstddef>
@@ -41,6 +42,8 @@ namespace BlsLang {
   #undef DEVTYPE_BEGIN
   #undef ATTRIBUTE
   #undef DEVTYPE_END
+
+  constexpr auto SPECIAL_ANY                          ("any");
 
 };
 
@@ -108,12 +111,17 @@ struct BlsType : std::variant<std::monostate, bool, int64_t, double, std::string
 };
 
 namespace TypeDef {
+
+  using any = std::any;
+
   template<typename T>
-  concept BlueshiftConstructible = BlueshiftType<T> || std::same_as<std::remove_cv_t<std::remove_reference_t<T>>, BlsType>;
+  concept BlueshiftConstructible = BlueshiftType<T>
+                                || std::same_as<std::remove_cv_t<std::remove_reference_t<T>>, BlsType>
+                                || std::same_as<std::remove_cv_t<std::remove_reference_t<T>>, any>;
 
   template<BlueshiftConstructible T>
   struct Resolve {
-    using type = T;
+    using type = BlsType;
   };
 
   template<BlueshiftType T>
@@ -298,6 +306,9 @@ BlsType createBlsType(const T& value) {
   #undef DEVTYPE_BEGIN
   #undef ATTRIBUTE
   #undef DEVTYPE_END
+  else if constexpr (std::same_as<T, std::any>) {
+    return std::any_cast<BlsType>(value);
+  }
   else {
     return value;
   }
@@ -344,7 +355,7 @@ T createFromBlsType(const BlsType& value) {
 }
 
 template<TypeDef::BlueshiftConstructible T>
-constexpr T resolveBlsType(const BlsType& value) {
+TypeDef::resolved_t<T> resolveBlsType(const BlsType& value) {
   using namespace TypeDef;
   if constexpr (Void<T> || Boolean<T> || String<T>) {
     return std::get<resolved_t<T>>(value);
@@ -358,7 +369,14 @@ constexpr T resolveBlsType(const BlsType& value) {
     }
   }
   else if constexpr (List<T> || Map<T>) {
+    // may need to change this to modify sample elements to maintain type adherence
     return std::dynamic_pointer_cast<resolved_t<T>>(std::get<std::shared_ptr<HeapDescriptor>>(value));
+  }
+  else if constexpr (std::same_as<std::remove_cv_t<std::remove_reference_t<T>>, any>) {
+    if (std::holds_alternative<std::monostate>(value)) { // default construct any as map descriptor
+      return BlsType(std::make_shared<MapDescriptor>(TYPE::ANY, TYPE::ANY, TYPE::ANY));
+    }
+    return value;
   }
   else {
     return value;
@@ -384,7 +402,7 @@ constexpr TYPE getTypeFromName(const std::string& type) {
   #undef ATTRIBUTE
   #undef DEVTYPE_END
 
-  if (type == "ANY") return TYPE::ANY;
+  if (type == BlsLang::SPECIAL_ANY) return TYPE::ANY;
   return TYPE::COUNT;
 }
 
@@ -423,8 +441,12 @@ constexpr const std::string getTypeName(TYPE type) {
     #undef ATTRIBUTE
     #undef DEVTYPE_END
 
+    case TYPE::ANY:
+      return BlsLang::SPECIAL_ANY;
+    break;
+
     default:
-      return "ANY";
+      return "NONE";
     break;
   }
 }

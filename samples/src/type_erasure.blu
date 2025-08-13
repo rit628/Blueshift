@@ -1,0 +1,10 @@
+oblock test(KEYBOARD kbd) {
+    any json = loadJson("{\"a\" : 2.4}");
+    print(json);
+    print(jsonify(json));
+}
+
+setup() {
+    KEYBOARD KBD = "ctl::mode-all";
+    test(KBD);
+}

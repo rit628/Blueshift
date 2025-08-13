@@ -287,6 +287,10 @@ BlsType operator^(const BlsType& lhs, const BlsType& rhs) {
 }
 
 bool typeCompatible(const BlsType& lhs, const BlsType& rhs) {
+    if (getType(lhs) == TYPE::ANY || getType(rhs) == TYPE::ANY) {
+        return true;
+    }
+    
     const static auto compareTypes = [](TYPE a, TYPE b)  {
         switch (a) {
             case TYPE::int_t:
@@ -671,6 +675,10 @@ void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, std:
         #undef DEVTYPE_BEGIN
         #undef ATTRIBUTE
         #undef DEVTYPE_END
+
+        case TYPE::ANY:
+            jv = value_from(std::dynamic_pointer_cast<MapDescriptor>(hd)->getMap());
+        break;
 
         default:
             throw std::runtime_error("invalid heap descriptor");

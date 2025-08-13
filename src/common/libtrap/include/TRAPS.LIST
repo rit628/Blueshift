@@ -41,3 +41,11 @@ TRAP_END
 TRAP_BEGIN(pull, void)
     VARIADIC(states)
 TRAP_END 
+
+TRAP_BEGIN(loadJson, any)
+    ARGUMENT(json, string)
+TRAP_END
+
+TRAP_BEGIN(jsonify, string)
+    ARGUMENT(value, any)
+TRAP_END

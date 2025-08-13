@@ -837,6 +837,10 @@ BlsObject Analyzer::visit(AstNode::Specifier::Type& ast) {
         #undef ATTRIBUTE
         #undef DEVTYPE_END
 
+        case TYPE::ANY:
+            return BlsType(std::make_shared<MapDescriptor>(TYPE::ANY, TYPE::ANY, TYPE::ANY));
+        break;
+
         default:
             throw SemanticError("Invalid type: " + ast.getName());
         break;

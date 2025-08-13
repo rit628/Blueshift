@@ -46,10 +46,7 @@ namespace BlsLang {
                         } \
                     }
                     #define VARIADIC(...)
-                    #define ARGUMENT(argName, argType...) \
-                    if (!std::holds_alternative<converted_t<argType>>(args.at(argnum::argName))) { \
-                        throw RuntimeError("Invalid type for argument " #argName "."); \
-                    }
+                    #define ARGUMENT(...)
                     #define TRAP_END \
                     return executeTrap<callnum>(args); \
                 }},

@@ -77,7 +77,6 @@ std::monostate Impl::push(std::vector<BlsType> blsList, BytecodeProcessor *vm){
     return std::monostate(); 
 }
 
-
 std::monostate Impl::pull(std::vector<BlsType> blsList, BytecodeProcessor *vm){
     auto newStates = vm->ownerUnit->sendPullState(blsList); 
     int i = 0; 
@@ -98,4 +97,14 @@ std::monostate Impl::pull(std::vector<BlsType> blsList, BytecodeProcessor *vm){
     }
 
     return std::monostate(); 
+}
+
+BlsType Impl::loadJson(std::string json, BytecodeProcessor* vm) {
+    using namespace boost::json;
+    return value_to<BlsType>(parse(json));
+}
+
+std::string Impl::jsonify(BlsType value, BytecodeProcessor* vm) {
+    using namespace boost::json;
+    return serialize(value_from(value));
 }

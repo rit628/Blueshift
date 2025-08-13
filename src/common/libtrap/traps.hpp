@@ -73,11 +73,11 @@ namespace BlsTrap {
 
         #define TRAP_BEGIN(trapName, retType...) \
         namespace trapName { \
-            static BlsType returnType = createBlsType(converted_t<retType>()); \
+            static BlsType returnType = resolveBlsType<retType>(resolved_t<retType>()); \
             static std::initializer_list<BlsType> parameterTypes = {
                 #define VARIADIC(...)
                 #define ARGUMENT(argName, argType...) \
-                createBlsType(converted_t<argType>()),
+                resolveBlsType<argType>(resolved_t<argType>()),
                 #define TRAP_END \
             }; \
         }
@@ -149,7 +149,7 @@ namespace BlsTrap {
             return BlsTrap::Impl::name(
                 #define VARIADIC(...) \
                 args,
-                #define ARGUMENT(argName, argType) \
+                #define ARGUMENT(argName, argType...) \
                 resolveBlsType<argType>(std::move(args[argnum::argName])),
                 #define TRAP_END \
                 vm \

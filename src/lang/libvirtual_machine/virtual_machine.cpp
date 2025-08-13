@@ -85,6 +85,9 @@ void VirtualMachine::MKTYPE(uint8_t index, uint8_t type, int) {
         case TYPE::map_t:
             value = std::make_shared<MapDescriptor>(TYPE::ANY);
         break;
+        case TYPE::ANY:
+            value = BlsType(std::make_shared<MapDescriptor>(TYPE::ANY, TYPE::ANY, TYPE::ANY));
+        break;
         default:
             value = std::monostate();
         break;
