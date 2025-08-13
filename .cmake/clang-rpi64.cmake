@@ -33,7 +33,7 @@ add_compile_definitions(__RPI64__)
 
 # DISABLED LIBS
 set(DISABLE_SDL true)
-set(DISABLE_OPENSSL true)
+set(DISABLE_CURL true)
 
 # REQUIRED LIBS
 set(SYSTEM_LINK_LIBRARIES pigpio)
