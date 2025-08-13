@@ -13,7 +13,7 @@
 #include <sys/socket.h>
 #include <unordered_map>
 
-Client::Client(std::string c_name): bc_socket(client_ctx, udp::endpoint(udp::v4(), BROADCAST_PORT)), client_socket(client_ctx){
+Client::Client(std::string c_name): bc_socket(client_ctx, udp::endpoint(udp::v4(), BROADCAST_PORT)), client_socket(client_ctx), threadPool(std::thread::hardware_concurrency()){
     this->client_name = c_name; 
     std::cout<<"Client Created: " << c_name <<std::endl; 
 }
@@ -184,29 +184,44 @@ void Client::listener(std::stop_token stoken){
                     std::cout<<"Valid owner"<<std::endl; 
                 }
 
-                oblock_int o_id = inMsg.header.oblock_id; 
-                
-                // Trying out the thread pool: 
-                boost::asio::post(this->client_ctx,  [o_id, dev_index, dmsg = std::move(dmsg), stoken, this](){
-                    try{   
-                        // make this a strand (race condition with multiple pushes)
-                        //std::cout<<"State change in progress"<<std::endl;
-                        auto& device = this->deviceList.at(dev_index).device;
-                        auto deviceKind = device.getDeviceKind();
-                        if (deviceKind == DeviceKind::CURSOR) {
+                oblock_int o_id = inMsg.header.oblock_id;
+
+                if (deviceData.device.getDeviceKind() == DeviceKind::CURSOR) {
+                    auto& cursorStrands = cursorViewStrands.at(dev_index);
+                    if (!cursorStrands.contains(o_id)) {
+                        cursorStrands.emplace(o_id, boost::asio::make_strand(threadPool));
+                    }
+                    auto& viewStrand = cursorStrands.at(o_id);
+
+                    boost::asio::post(viewStrand,  [o_id, dev_index, dmsg = std::move(dmsg), stoken, this](){
+                        try{   
+                            auto& device = this->deviceList.at(dev_index).device;
                             cursors.at(dev_index).addQueryHandler(o_id);
-                        }
-                        device.processStates(dmsg);
-                        if (deviceKind == DeviceKind::CURSOR) {
+                            device.processStates(dmsg);
                             cursors.at(dev_index).awaitQueryCompletion(stoken);
+                            this->sendMessage(dev_index, Protocol::CALLBACK, false, o_id);
                         }
-                        this->sendMessage(dev_index, Protocol::CALLBACK, false, o_id);
-                    }
-                    catch(std::exception(e)){
-                        std::cout<<"Failure to change the state detected"<<std::endl; 
-                        std::cout<<e.what()<<std::endl; 
-                    }
-                });
+                        catch(std::exception(e)){
+                            std::cout<<"Failure to change the state detected"<<std::endl; 
+                            std::cout<<e.what()<<std::endl; 
+                        }
+                    });
+                }
+                else {
+                    auto& deviceStrand = deviceStrands.at(dev_index);
+    
+                    boost::asio::post(deviceStrand,  [o_id, dev_index, dmsg = std::move(dmsg), stoken, this](){
+                        try{   
+                            auto& device = this->deviceList.at(dev_index).device;
+                            device.processStates(dmsg);
+                            this->sendMessage(dev_index, Protocol::CALLBACK, false, o_id);
+                        }
+                        catch(std::exception(e)){
+                            std::cout<<"Failure to change the state detected"<<std::endl; 
+                            std::cout<<e.what()<<std::endl; 
+                        }
+                    });
+                }
             }
             else{
                 std::cout<<"Cannot process state change until configuration is complete"<<std::endl; 
@@ -273,12 +288,15 @@ void Client::listener(std::stop_token stoken){
                 switch (deviceKind) {
                     case DeviceKind::ACTUATOR:
                     case DeviceKind::POLLING:
+                        deviceStrands.emplace(dev_id, boost::asio::make_strand(threadPool));
                     break;
                     case DeviceKind::INTERRUPT:
                         this->interruptors.emplace_back(this->client_ctx, device, this->client_connection, this->controller_alias, dev_id);
+                        deviceStrands.emplace(dev_id, boost::asio::make_strand(threadPool));
                     break;
                     case DeviceKind::CURSOR:
                         this->cursors.try_emplace(dev_id, device, this->client_connection, this->controller_alias, dev_id);
+                        cursorViewStrands.try_emplace(dev_id);
                     break;
                 }
                 sendMessage(dev_id, Protocol::SEND_STATE_INIT, true);
@@ -311,12 +329,6 @@ void Client::listener(std::stop_token stoken){
                 }
             }, nullptr, true);
             #endif
-
-            // Start the threads
-            int num_threads = std::thread::hardware_concurrency();
-            for(int i = 0; i < num_threads ; i++){
-                this->threadPool.emplace_back([this]{this->client_ctx.run();});
-            }
 
         }
         else if(ptype == Protocol::CONNECTION_LOST){
@@ -490,9 +502,7 @@ bool Client::disconnect(){
     std::cout << "Cursor threads killed" << std::endl;
     
     this->client_ctx.stop();
-    for(auto &t : this->threadPool){
-        t.join();
-    }
+    this->threadPool.stop();
     this->listenerThread.request_stop();
 
     std::cout<<"Context and client listener killed"<<std::endl;

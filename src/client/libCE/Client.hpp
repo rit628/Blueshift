@@ -96,7 +96,9 @@ class Client{
         // Contains the list of known devices
         std::unordered_map<int, ManagedDevice> deviceList; 
         // thread pool for devices state change
-        std::vector<std::thread> threadPool;
+        boost::asio::thread_pool threadPool;
+        std::unordered_map<dev_int, boost::asio::strand<boost::asio::thread_pool::executor_type>> deviceStrands;
+        std::unordered_map<dev_int, std::unordered_map<oblock_int, boost::asio::strand<boost::asio::thread_pool::executor_type>>> cursorViewStrands;
         
 
         // client name used to identify controller
