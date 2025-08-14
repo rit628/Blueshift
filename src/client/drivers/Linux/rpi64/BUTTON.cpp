@@ -48,7 +48,7 @@ void BUTTON::transmitStates(DynamicMessage &dmsg) {
 }
 
 BUTTON::~BUTTON() {
-    gpioTerminate();
+    
 }
 
 #endif

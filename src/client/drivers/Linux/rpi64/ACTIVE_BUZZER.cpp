@@ -32,7 +32,7 @@ void ACTIVE_BUZZER::transmitStates(DynamicMessage &dmsg){
 }
 
 ACTIVE_BUZZER::~ACTIVE_BUZZER(){
-    gpioTerminate();
+    
 }
 
 #endif

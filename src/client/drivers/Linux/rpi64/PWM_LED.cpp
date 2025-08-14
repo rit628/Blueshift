@@ -31,7 +31,7 @@ void PWM_LED::transmitStates(DynamicMessage &dmsg){
 }
 
 PWM_LED::~PWM_LED(){
-    gpioTerminate();
+    
 }
 
 #endif

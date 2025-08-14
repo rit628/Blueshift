@@ -511,6 +511,12 @@ bool Client::disconnect(){
     this->start_timers.clear();
     
     std::cout << "Client device data reset" << std::endl;
+    
+    this->adc->close();
+
+    #ifdef __RPI64__
+    gpioTerminate();
+    #endif
 
     #ifdef SDL_ENABLED
     if (SDL_WasInit(SDL_INIT_VIDEO)) { // terminate sdl main thread
@@ -520,7 +526,6 @@ bool Client::disconnect(){
     }
     #endif
 
-    this->adc->close();
 
     return true; 
 }

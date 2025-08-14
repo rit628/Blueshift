@@ -50,7 +50,7 @@ void RGB_LED::transmitStates(DynamicMessage &dmsg){
 }
 
 RGB_LED::~RGB_LED(){
-    gpioTerminate();
+    
 }
 
 #endif

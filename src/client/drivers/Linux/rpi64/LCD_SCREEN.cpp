@@ -82,7 +82,6 @@ void LCD_SCREEN::init(std::unordered_map<std::string, std::string> &config){
     this->handle = i2cOpen(1, PCF8574_ADDR, 0);
     if(handle < 0){
         std::cout<<"Could not open I2C for LCD"<<std::endl;
-        gpioTerminate();
         throw std::invalid_argument( "Could not open I2C for LCD");
     }
 

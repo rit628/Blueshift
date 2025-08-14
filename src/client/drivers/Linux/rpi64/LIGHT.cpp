@@ -32,7 +32,7 @@ void LIGHT::transmitStates(DynamicMessage &dmsg) {
 }
 
 LIGHT::~LIGHT() {
-    gpioTerminate();
+    
 }
 
 #endif

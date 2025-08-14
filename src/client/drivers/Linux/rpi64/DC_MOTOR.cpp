@@ -46,8 +46,6 @@ DC_MOTOR::~DC_MOTOR(){
     gpioWrite(this->cw_pin1, 0);
     gpioWrite(this->ccw_pin2, 0);
     gpioPWM(enablePin, 0);
-
-    gpioTerminate();
 }
 
 

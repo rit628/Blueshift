@@ -43,7 +43,7 @@ void FN_JOYSTICK::transmitStates(DynamicMessage &dmsg){
 }
 
 FN_JOYSTICK::~FN_JOYSTICK(){
-    gpioTerminate();
+    
 }
 
 #endif

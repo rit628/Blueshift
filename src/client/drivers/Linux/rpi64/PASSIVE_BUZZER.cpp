@@ -28,7 +28,7 @@ void PASSIVE_BUZZER::transmitStates(DynamicMessage &dmsg){
 }
 
 PASSIVE_BUZZER::~PASSIVE_BUZZER(){
-    gpioTerminate();
+    
 }
 
 #endif

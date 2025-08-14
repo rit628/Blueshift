@@ -60,9 +60,8 @@ void STEP_MOTOR::transmitStates(DynamicMessage &dmsg){
     dmsg.packStates(states);
 }
 
-STEP_MOTOR::~STEP_MOTOR(){
-    // Turn off the motor when object is destroyed: 
-    gpioTerminate();
+STEP_MOTOR::~STEP_MOTOR(){ 
+
 }
 
 #endif

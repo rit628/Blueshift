@@ -33,7 +33,7 @@ void FN_SERVO::transmitStates(DynamicMessage &dmsg){
 }
 
 FN_SERVO::~FN_SERVO(){
-    gpioTerminate();
+    
 }
 
 #endif

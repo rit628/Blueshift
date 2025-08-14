@@ -44,6 +44,7 @@ class ADS7830{
         } 
 
         void close(){
+            if (!isValid()) return;
             #ifdef __RPI64__
             i2cClose(this->handle);
             #endif

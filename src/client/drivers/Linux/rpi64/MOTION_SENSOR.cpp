@@ -47,7 +47,7 @@ void MOTION_SENSOR::transmitStates(DynamicMessage &dmsg) {
 }
 
 MOTION_SENSOR::~MOTION_SENSOR() {
-    gpioTerminate();
+    
 }
 
 #endif
