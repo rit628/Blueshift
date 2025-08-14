@@ -87,8 +87,9 @@ void DeviceHandle::init(std::unordered_map<std::string, std::string> &config, st
     std::visit(overloads {
         [](std::monostate&) {},
         [&config, adc](auto& dev) {
-            dev.init(config);
+            // SET ADC BEFORE INIT ALWAYS
             dev.adc = adc;
+            dev.init(config);
         }
 
     }, device);
