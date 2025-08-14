@@ -363,6 +363,9 @@ BlsObject Analyzer::visit(AstNode::Statement::Declaration& ast) {
     auto typedObj = resolve(ast.getType()->accept(*this));
     auto& name = ast.getName();
     auto& value = ast.getValue();
+    if (cs.checkLocalInFrame(name)) {
+        throw SemanticError("Redeclaration of variable \"" + name + "\".");
+    }
     if (value.has_value()) {
         auto literal = resolve(value->get()->accept(*this));
         if (!typeCompatible(typedObj, literal)) {

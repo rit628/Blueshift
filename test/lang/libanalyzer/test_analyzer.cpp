@@ -1,4 +1,5 @@
 #include "ast.hpp"
+#include "call_stack.hpp"
 #include "error_types.hpp"
 #include "fixtures/analyzer_test.hpp"
 #include "include/Common.hpp"
@@ -64,6 +65,24 @@ namespace BlsLang {
             )
         ));
         EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, TypeTests, Redeclaration) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Declaration(
+            "x",
+            {},
+            new AstNode::Specifier::Type(
+                PRIMITIVE_STRING,
+                {}
+            )
+            ,
+            new AstNode::Expression::Literal(
+                "string"
+            )
+        ));
+        CallStack<std::string> cs(CallStack<std::string>::Frame::Context::FUNCTION);
+        cs.addLocal("x", "assigned");
+        EXPECT_THROW(TEST_ANALYZE(ast, ast, Metadata(), cs), SemanticError);
     }
 
     GROUP_TEST_F(AnalyzerTest, TypeTests, InvalidTypename) {

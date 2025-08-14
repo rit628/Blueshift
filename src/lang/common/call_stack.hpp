@@ -61,6 +61,7 @@ namespace BlsLang {
             BlsType& getLocal(T index);
             Frame::container_t&& extractLocals() requires IntAddressable<T>;
             bool checkContext(Frame::Context context) requires StringAddressable<T>;
+            bool checkLocalInFrame(T index) requires StringAddressable<T>;
             const std::string& getFrameName() requires StringAddressable<T>;
             uint8_t getLocalIndex(T index) requires StringAddressable<T>;
 
@@ -174,6 +175,11 @@ namespace BlsLang {
             }
         }
         return false;
+    }
+
+    template<StackType T>
+    inline bool CallStack<T>::checkLocalInFrame(T index) requires StringAddressable<T> {
+        return cs.back().locals.contains(index);
     }
 
     template<StackType T>
