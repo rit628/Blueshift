@@ -68,14 +68,19 @@ concept Divisible = requires(T a, U b) {
 && BinaryOperable<T, U>;
 
 BlsType& BlsType::assign(const BlsType& rhs) {
-    std::visit([](auto& a, const auto& b) -> void {
-        if constexpr (WeaklyComparable<decltype(a), decltype(b)>) {
-            a = b;
-        }
-        else {
-            throw std::runtime_error("Lhs and Rhs are not assignable.");
-        }
-    }, *this, rhs);
+    if (getType(*this) == TYPE::ANY) {
+        *this = rhs;
+    }
+    else {
+        std::visit([](auto& a, const auto& b) -> void {
+            if constexpr (WeaklyComparable<decltype(a), decltype(b)>) {
+                a = b;
+            }
+            else {
+                throw std::runtime_error("Lhs and Rhs are not assignable.");
+            }
+        }, *this, rhs);
+    }
     return *this;
 }
 

@@ -6,6 +6,10 @@ oblock test(KEYBOARD kbd) {
         print(containsType(json["a"], "float"));
         print(json["a"] + 17);
     }
+
+    string x = "as";
+    any k = x;
+    print(k);
 }
 
 setup() {
