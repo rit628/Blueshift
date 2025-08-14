@@ -497,7 +497,7 @@ class DynamicMessage{
     */
 
     std::shared_ptr<HeapDescriptor> toTree(){
-        auto global_map = std::make_shared<MapDescriptor>(TYPE::DEVTYPES_END, TYPE::string_t, TYPE::NONE);
+        auto global_map = std::make_shared<MapDescriptor>(TYPE::ANY, TYPE::string_t, TYPE::NONE);
 
         for(auto obj : this->attributeMap){ 
             uint32_t descIndex = obj.second; 

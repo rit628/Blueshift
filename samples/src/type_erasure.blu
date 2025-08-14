@@ -10,6 +10,11 @@ oblock test(KEYBOARD kbd) {
     string x = "as";
     any k = x;
     print(k);
+
+    any k = "999";
+    //toString(k);
+
+    print(jsonify(kbd));
 }
 
 setup() {

@@ -368,7 +368,9 @@ BlsObject Analyzer::visit(AstNode::Statement::Declaration& ast) {
         if (!typeCompatible(typedObj, literal)) {
             throw SemanticError("Invalid initialization for declaration");
         }
-        typedObj.assign(literal);
+        if (getType(typedObj) != TYPE::ANY) {
+            typedObj.assign(literal);
+        }
     }
     cs.addLocal(name, typedObj);
     ast.getLocalIndex() = cs.getLocalIndex(name);

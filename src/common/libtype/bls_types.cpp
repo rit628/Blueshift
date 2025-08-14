@@ -686,7 +686,7 @@ void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, std:
         break;
 
         default:
-            throw std::runtime_error("invalid heap descriptor");
+            throw std::runtime_error("invalid heap descriptor: " + getTypeName(hd->getType()));
         break;
     }
 }
