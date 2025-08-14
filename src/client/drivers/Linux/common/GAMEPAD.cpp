@@ -37,7 +37,7 @@ void GAMEPAD::init(std::unordered_map<std::string, std::string>& config) {
     auto selectGamepad = [](void* self) -> void {
         auto& gamepad = *reinterpret_cast<GAMEPAD*>(self);
 
-        if (!SDL_WasInit(SDL_INIT_GAMEPAD) && !SDL_InitSubSystem(SDL_INIT_GAMEPAD)) {
+        if (!SDL_WasInit(SDL_INIT_GAMEPAD | SDL_INIT_SENSOR) && !SDL_InitSubSystem(SDL_INIT_GAMEPAD | SDL_INIT_SENSOR)) {
             throw BlsExceptionClass("Failed to initialize SDL gamepad subsystem: " + std::string(SDL_GetError()), ERROR_T::DEVICE_FAILURE);
         }
         
@@ -77,6 +77,12 @@ void GAMEPAD::init(std::unordered_map<std::string, std::string>& config) {
     }
 
     auto& mapping = config.at("mapping");
+    if (config.contains("stickDeadzone")) {
+        stickDeadzone = std::stoul(config.at("stickDeadzone"));
+    }
+    if (config.contains("gyroDeadzone")) {
+        gyroDeadzone = std::stod(config.at("gyroDeadzone"));
+    }
 
     if (mapping == "automatic") {
         SDL_Log("Button mappings automatically configured.");
@@ -178,6 +184,11 @@ void GAMEPAD::init(std::unordered_map<std::string, std::string>& config) {
     }
     addSDLIWatch(std::bind(&GAMEPAD::handleButtonPress, std::ref(*this), std::placeholders::_1));
     addSDLIWatch(std::bind(&GAMEPAD::handleAnalogMovement, std::ref(*this), std::placeholders::_1));
+    if (SDL_GamepadHasSensor(gamepad, SDL_SENSOR_ACCEL) && SDL_GamepadHasSensor(gamepad, SDL_SENSOR_GYRO)) {
+        SDL_SetGamepadSensorEnabled(gamepad, SDL_SENSOR_ACCEL, true);
+        SDL_SetGamepadSensorEnabled(gamepad, SDL_SENSOR_GYRO, true);
+        addSDLIWatch(std::bind(&GAMEPAD::handleSensorUpdate, std::ref(*this), std::placeholders::_1));
+    }
 }
 
 void GAMEPAD::transmitStates(DynamicMessage& dmsg) {
@@ -301,6 +312,8 @@ bool GAMEPAD::handleButtonPress(SDL_Event* event) {
 bool GAMEPAD::handleAnalogMovement(SDL_Event* event) {
     if (event->type == SDL_EVENT_GAMEPAD_AXIS_MOTION && event->gaxis.which == id) {
         auto value = event->gaxis.value;
+        auto inDeadzone = [this](int16_t value) { return std::abs(value) < stickDeadzone; };
+        auto computeStickVal = [this](int16_t value) { return (value > 0) ? value - stickDeadzone : value + stickDeadzone; };
         switch (event->gaxis.axis) {
             case SDL_GAMEPAD_AXIS_LEFT_TRIGGER:
                 states.lt = value;
@@ -310,19 +323,59 @@ bool GAMEPAD::handleAnalogMovement(SDL_Event* event) {
             break;
             
             case SDL_GAMEPAD_AXIS_LEFTX:
-                states.leftStickX = value;
+                if (inDeadzone(value)) return false;
+                states.leftStickX = computeStickVal(value);
             break;
             case SDL_GAMEPAD_AXIS_LEFTY:
-                states.leftStickY = value;
+                if (inDeadzone(value)) return false;
+                states.leftStickY = computeStickVal(value);
             break;
             case SDL_GAMEPAD_AXIS_RIGHTX:
-                states.rightStickX = value;
+                if (inDeadzone(value)) return false;
+                states.rightStickX = computeStickVal(value);
             break;
             case SDL_GAMEPAD_AXIS_RIGHTY:
-                states.rightStickY = value;
+                if (inDeadzone(value)) return false;
+                states.rightStickY = computeStickVal(value);
             break;
         }
         return true;
+    }
+    return false;
+}
+
+bool GAMEPAD::handleSensorUpdate(SDL_Event* event) {
+    if (event->type == SDL_EVENT_GAMEPAD_SENSOR_UPDATE && event->gsensor.which == id && event->gsensor.sensor == SDL_SENSOR_GYRO) {
+        uint64_t currSensorTimestamp = event->gsensor.sensor_timestamp;
+        double dt = 0.01;
+        if (prevSensorTimestamp != 0) {
+            dt = (currSensorTimestamp - prevSensorTimestamp) * 1e-9;
+        }
+
+        auto prevPitch = states.pitch;
+        auto prevRoll = states.roll;
+
+        float gx = event->gsensor.data[0];
+        float gy = event->gsensor.data[1];
+
+        rollRadians += gx * dt;
+        pitchRadians += gy * dt;
+
+        float accel[3] = {0};
+        SDL_GetGamepadSensorData(gamepad, SDL_SENSOR_ACCEL, accel, 3);
+        double accelRoll = atan2(-accel[0], sqrt(accel[1]*accel[1] + accel[2]*accel[2]));
+        double accelPitch = atan2( accel[1], sqrt(accel[0]*accel[0] + accel[2]*accel[2]));
+        rollRadians = gyroCoeff * rollRadians  + (1.0 - gyroCoeff) * accelRoll;
+        pitchRadians = gyroCoeff * pitchRadians + (1.0 - gyroCoeff) * accelPitch;
+
+        states.pitch = pitchRadians * 180.0 / M_PI;
+        states.roll = rollRadians * 180.0 / M_PI;
+
+        auto pitchDiff = std::abs(states.pitch - prevPitch);
+        auto rollDiff = std::abs(states.roll - prevRoll);
+
+        prevSensorTimestamp = currSensorTimestamp;
+        return (pitchDiff > gyroDeadzone) && (rollDiff > gyroDeadzone);
     }
     return false;
 }

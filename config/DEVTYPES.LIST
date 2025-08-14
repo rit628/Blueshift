@@ -136,6 +136,8 @@ DEVTYPE_BEGIN(GAMEPAD, INTERRUPT)
     ATTRIBUTE(leftRumble, int)
     ATTRIBUTE(rightRumble, int)
     ATTRIBUTE(rumbleDuration, int)
+    ATTRIBUTE(pitch, float)
+    ATTRIBUTE(roll, float)
 DEVTYPE_END
 
 DEVTYPE_BEGIN(HTTP_ENDPOINT, INTERRUPT)

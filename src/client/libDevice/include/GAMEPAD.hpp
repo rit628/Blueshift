@@ -16,6 +16,11 @@ namespace Device {
             #ifdef SDL_ENABLED
             SDL_JoystickID id;
             SDL_Gamepad* gamepad;
+            uint64_t prevSensorTimestamp = 0;
+            uint16_t stickDeadzone = 4000;
+            double gyroDeadzone = 0.01;
+            double pitchRadians = 0, rollRadians = 0;
+            const float gyroCoeff = .98;
             #endif
 
         public:
@@ -26,6 +31,7 @@ namespace Device {
             #ifdef SDL_ENABLED
             bool handleButtonPress(SDL_Event* event);
             bool handleAnalogMovement(SDL_Event* event);
+            bool handleSensorUpdate(SDL_Event* event);
             #endif
     };
 }
