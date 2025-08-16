@@ -1,0 +1,67 @@
+oblock trafficLight(GAMEPAD gp, LIGHT green, LIGHT yellow, LIGHT red)
+: triggerOn(gp),
+processPolicy({
+    gp : {
+        "read" : "any"
+    }
+})
+{
+    if (getTrigger() == "initial") {
+        red.on = true;
+        return;
+    }
+
+    if (!gp.start) {
+        return;
+    }
+
+    green.on = true;
+    yellow.on = false;
+    red.on = false;
+    push(green, yellow, red);
+    sleep(1000);
+
+
+    green.on = false;
+    yellow.on = true;
+    push(green, yellow);
+    sleep(1000);
+
+    yellow.on = false;
+    red.on = true;
+}
+
+oblock stopDetector(GAMEPAD gp, LIGHT red)
+: triggerOn(gp),
+processPolicy({
+    gp : {
+        "read" : "any"
+    }
+})
+{
+    if (getTrigger() == "initial") {
+        return;
+    }
+
+    if ((gp.a && red.on) || (!gp.a && !red.on)) {
+        gp.leftRumble = 99999;
+        gp.rightRumble = 99999;
+        gp.rumbleDuration = 100;
+    }
+    else {
+        gp.leftRumble = 0;
+        gp.rightRumble = 0;
+        gp.rumbleDuration = 0;
+    }
+}
+
+setup() {
+    GAMEPAD GP = "localhost::mapping-automatic";
+
+    LIGHT RED = "rpi::PIN-21";
+    LIGHT YELLOW = "rpi::PIN-20";
+    LIGHT GREEN = "rpi::PIN-26";
+
+    trafficLight(GP, GREEN, YELLOW, RED);
+    stopDetector(GP, RED);
+}

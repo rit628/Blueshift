@@ -1,0 +1,17 @@
+oblock fileLight(LINE_WRITER lw, LIGHT light)
+: triggerOn(lw)
+{
+    if (lw.msg == "ON") {
+        light.on = true;
+    }
+    else {
+        light.on = false;
+    }
+}
+
+setup() {
+    LINE_WRITER commandFile = "localhost::file-file1.txt";
+    LIGHT rpiLight = "rpi::PIN-21";
+
+    fileLight(commandFile, rpiLight);
+}

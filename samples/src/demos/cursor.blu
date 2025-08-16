@@ -1,0 +1,55 @@
+oblock fileAccess(TEXT_FILE txt, KEYBOARD cmd) : 
+triggerOn(cmd)
+{
+    if (getTrigger() == "initial") {
+        return;
+    }
+
+    if (cmd.key == "R") {
+        txt.index = 0;
+        txt.operation = "READ 17";
+        print("read command issued.");
+    }
+    else if (cmd.key == "W") {
+        txt.operation = "WRITE this is a message from fileAccess!";
+        print("write command issued.");
+    }
+    else {
+        println("Bad command issued.");
+    }
+    push(txt);
+    pull(txt);
+
+    println("fileAccess view: ", txt.readResult, txt.writeResult);
+}
+
+oblock fileAccess2(TEXT_FILE txt, KEYBOARD cmd) : 
+triggerOn(cmd)
+{
+    if (getTrigger() == "initial") {
+        return;
+    }
+
+    if (cmd.key == "R") {
+        txt.index = 0;
+        txt.operation = "READ 4";
+        print("read command issued.");
+    }
+    else if (cmd.key == "W") {
+        print("write command issued in fileAccess2; ignore.");
+    }
+    else {
+        println("Bad command issued.");
+    }
+    push(txt);
+    pull(txt);
+
+    println("fileAccess2 view: ", txt.readResult, txt.writeResult);
+}
+
+setup() {
+    TEXT_FILE TXT = "localhost::file-file3.txt";
+    KEYBOARD CMD = "localhost::mode-all";
+    fileAccess(TXT, CMD);
+    fileAccess2(TXT, CMD);
+}
