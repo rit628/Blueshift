@@ -32,7 +32,7 @@ void LIGHT::transmitStates(DynamicMessage &dmsg) {
 }
 
 LIGHT::~LIGHT() {
-    
+    gpioWrite(this->PIN, PI_OFF);
 }
 
 #endif
