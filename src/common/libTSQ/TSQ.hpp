@@ -1,16 +1,17 @@
 #pragma once
 
+#include <optional>
 #include <queue>
 #include <mutex>
 #include <condition_variable>
-using namespace std;
+#include <stop_token>
 
 template<class T>
 class TSQ {
 private:
     std::queue<T> sharedQueue;
     std::mutex mut;
-    std::condition_variable cv;
+    std::condition_variable_any cv;
 
 public:
     TSQ() = default;
@@ -25,10 +26,40 @@ public:
         return data;
     }
 
+    std::optional<T> read(std::stop_token& stoken) {
+        std::unique_lock<std::mutex> lock(mut);
+        if (!cv.wait(lock, stoken, [this]() { return !sharedQueue.empty(); })) {
+            return std::nullopt;
+        }
+
+        T data = sharedQueue.front();
+        sharedQueue.pop();
+        return data;
+    }
+    
+    std::optional<T> pop() {
+        std::lock_guard<std::mutex> lock(mut);
+        if (sharedQueue.empty()) {
+            return std::nullopt;
+        }
+        T data = sharedQueue.front();
+        sharedQueue.pop();
+        return data;
+    }
+
     // Peek at the front item without removing it (blocking if empty)
     T peek() {
         std::unique_lock<std::mutex> lock(mut);
         cv.wait(lock, [this]() { return !sharedQueue.empty(); });
+
+        return sharedQueue.front();
+    }
+
+    std::optional<T> peek(std::stop_token& stoken) {
+        std::unique_lock<std::mutex> lock(mut);
+        if (!cv.wait(lock, stoken, [this]() { return !sharedQueue.empty(); })) {
+            return std::nullopt;
+        }
 
         return sharedQueue.front();
     }

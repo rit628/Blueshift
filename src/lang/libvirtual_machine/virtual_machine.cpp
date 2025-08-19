@@ -24,6 +24,7 @@ void VirtualMachine::setOblockOffset(size_t oblockOffset) {
 std::vector<BlsType> VirtualMachine::transform(std::vector<BlsType> deviceStates) {
     instruction = oblockOffset;
     signal = SIGNAL::START;
+    modifiedStates.clear(); 
     modifiedStates.resize(deviceStates.size(), false);
     cs.pushFrame(instruction, deviceStates);
     dispatch();
@@ -83,6 +84,9 @@ void VirtualMachine::MKTYPE(uint8_t index, uint8_t type, int) {
         break;
         case TYPE::map_t:
             value = std::make_shared<MapDescriptor>(TYPE::ANY);
+        break;
+        case TYPE::ANY:
+            value = BlsType(std::make_shared<MapDescriptor>(TYPE::ANY, TYPE::ANY, TYPE::ANY));
         break;
         default:
             value = std::monostate();

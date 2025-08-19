@@ -82,7 +82,7 @@ namespace BlsLang {
         , CONTAINER_LIST
         , CONTAINER_MAP
 
-        #define DEVTYPE_BEGIN(name) \
+        #define DEVTYPE_BEGIN(name, ...) \
         , DEVTYPE_##name
         #define ATTRIBUTE(...)
         #define DEVTYPE_END
@@ -90,6 +90,8 @@ namespace BlsLang {
         #undef DEVTYPE_BEGIN
         #undef ATTRIBUTE
         #undef DEVTYPE_END
+
+        , SPECIAL_ANY
     };
 
     const static std::unordered_set<std::string> MODIFIERS {

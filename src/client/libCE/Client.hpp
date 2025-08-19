@@ -2,14 +2,18 @@
 
 #include "include/Common.hpp"
 #include "libDevice/DeviceUtil.hpp"
+#include <cstdint>
+#include <functional>
 #include <memory>
 #include <queue>
 #include <thread>
 #include <shared_mutex>
 #include <unordered_map>
+#include "libDevice/include/ADC.hpp"
 #include "libnetwork/Protocol.hpp"
 #include "libnetwork/Connection.hpp"
 #include <set> 
+#include <vector>
 
 using boost::asio::ip::tcp; 
 using boost::asio::ip::udp;
@@ -49,28 +53,12 @@ struct ClientSideReqComp{
     }
 }; 
 
-
-// Receives the queue for each controller
-struct ControllerQueue{
-    private:  
-        std::priority_queue<ClientSideReq, std::vector<ClientSideReq>, ClientSideReqComp> schepq; 
-
-    public: 
-
-        bool currOwned = false; 
-        // The device owner is identified by the ctl_id, oblock_int
-        std::pair<cont_int, oblock_int> owner;     
-        std::priority_queue<ClientSideReq, std::vector<ClientSideReq>, ClientSideReqComp>& getQueue(){
-            return this->schepq; 
-        }
-};  
-
-
 struct ManagedDevice {
     DeviceHandle device;
-    ControllerQueue pendingRequests;
-    ManagedDevice(TYPE dtype, std::unordered_map<std::string, std::string> &config)
-                        : device(dtype, config) {}
+    ControllerQueue<ClientSideReq, ClientSideReqComp> pendingRequests;
+    std::pair<cont_int, oblock_int> owner;  
+    ManagedDevice(TYPE dtype, std::unordered_map<std::string, std::string> &config, std::shared_ptr<ADS7830> targADC)
+                        : device(dtype, config, targADC) {}
 }; 
 
 class Client{
@@ -80,7 +68,7 @@ class Client{
             Connection stuff
         */
 
-        // Sets up the boost asio context: 
+        // thing created here
         boost::asio::io_context client_ctx; 
         // Context must run in its own thread
         std::jthread ctxThread; 
@@ -94,6 +82,7 @@ class Client{
         TSQ<OwnedSentMessage> in_queue; 
         // Input Thread 
         TSQ<OwnedSentMessage>client_in_queue; 
+    
 
 
         /*
@@ -105,7 +94,13 @@ class Client{
        // Ticker Mutex; 
         std::shared_mutex ticker_mutex; 
         // Contains the list of known devices
-        std::unordered_map<int, ManagedDevice> deviceList;     
+        std::unordered_map<int, ManagedDevice> deviceList; 
+        // thread pool for devices state change
+        boost::asio::thread_pool threadPool;
+        std::unordered_map<dev_int, boost::asio::strand<boost::asio::thread_pool::executor_type>> deviceStrands;
+        std::unordered_map<dev_int, std::unordered_map<oblock_int, boost::asio::strand<boost::asio::thread_pool::executor_type>>> cursorViewStrands;
+        
+
         // client name used to identify controller
         std::string client_name; 
         // Listens for incoming message and places it into the spot
@@ -119,19 +114,22 @@ class Client{
         // Updates the ticker table
         void updateTicker(); 
         // Temp timers 
-        std::vector<Timer> start_timers; 
-        // Run the client listener
+        std::unordered_map<uint16_t, std::vector<Timer>> start_timers;
+        
         
         // Error Sender: 
         std::unique_ptr<GenericBlsException> genBlsException; 
 
+        // Ticker table
+        std::unordered_map<uint16_t, std::reference_wrapper<DevicePoller>> client_ticker;
+        
         /*
             State management information
         */
-                
-        // Ticker table
-        std::unordered_map<uint16_t, DeviceTimer> client_ticker;
+        std::vector<DevicePoller> pollers;
         std::vector<DeviceInterruptor> interruptors;
+        std::unordered_map<uint16_t, DeviceCursor> cursors;
+        std::shared_ptr<ADS7830> adc;
 
 
     public: 
@@ -149,6 +147,7 @@ class Client{
         /*
             Connection stuff
         */
+    
     
         void broadcastListen(); 
         bool attemptConnection(boost::asio::ip::address master_address);

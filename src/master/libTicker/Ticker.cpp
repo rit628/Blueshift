@@ -1,4 +1,5 @@
 #include "Ticker.hpp"
+#include "include/Common.hpp"
 #include <boost/math/distributions/normal.hpp>
 #include <functional> 
 
@@ -22,7 +23,7 @@ MTicker::MTicker(std::vector<OBlockDesc> &OBlocks)
 
     for(auto &ob : OBlocks){
         for(auto &dev : ob.binded_devices){
-            if(dev.isInterrupt){
+            if((dev.deviceKind == DeviceKind::INTERRUPT) && !dev.isConst){
                 continue; 
             }
 

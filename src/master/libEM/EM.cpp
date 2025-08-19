@@ -4,11 +4,14 @@
 #include "libScheduler/Scheduler.hpp"
 #include "libtype/bls_types.hpp"
 #include <memory>
+#include <mutex>
+#include <stdexcept>
 #include <variant>
+#include <vector>
 
 // 
 
-ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<EMStateMessage> &readMM, 
+ExecutionManager::ExecutionManager(std::vector<OBlockDesc> OblockList, TSQ<EMStateMessage> &readMM, 
     TSQ<HeapMasterMessage> &sendMM,
     std::vector<char>& bytecode,
     std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks)
@@ -17,10 +20,10 @@ ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<EMStateMes
     this->OblockList = OblockList;
     for(auto &oblock : OblockList)
     {
-        string OblockName = oblock.name;
-         vector<string> devices;
-        vector<bool> isVtype;
-        vector<string> controllers;
+        std::string OblockName = oblock.name;
+        std::vector<std::string> devices;
+        std::vector<bool> isVtype;
+        std::vector<std::string> controllers;
         for(int j = 0; j < oblock.binded_devices.size(); j++)
         {
             devices.push_back(oblock.binded_devices.at(j).device_name);
@@ -30,13 +33,13 @@ ExecutionManager::ExecutionManager(vector<OBlockDesc> OblockList, TSQ<EMStateMes
 
         auto function = oblocks[OblockName];
         auto bytecodeOffset = oblock.bytecode_offset;
-        EU_map[OblockName] = std::make_unique<ExecutionUnit>(oblock, devices, isVtype, controllers, this->sendMM, bytecodeOffset, bytecode, function, this->scheduler);
+        EU_map[OblockName] = std::make_unique<ExecutionUnit>(oblock, devices, isVtype, controllers, this->sendMM, bytecodeOffset, bytecode, function, this->scheduler, eu_ctx);
     }
 }
 
-ExecutionUnit::ExecutionUnit(OBlockDesc oblock, vector<string> devices, vector<bool> isVtype, vector<string> controllers,
-    TSQ<HeapMasterMessage> &sendMM, size_t bytecodeOffset, std::vector<char>& bytecode, function<vector<BlsType>(vector<BlsType>)>  transform_function, DeviceScheduler &devScheduler)
-    : globalScheduler(devScheduler)
+ExecutionUnit::ExecutionUnit(OBlockDesc oblock, std::vector<std::string> devices, std::vector<bool> isVtype, std::vector<std::string> controllers,
+    TSQ<HeapMasterMessage> &sendMM, size_t bytecodeOffset, std::vector<char>& bytecode, std::function<std::vector<BlsType>(std::vector<BlsType>)>  transform_function, DeviceScheduler &devScheduler, asio::io_context &ctx)
+    : globalScheduler(devScheduler), sendMM(sendMM), ctx(ctx)
 {
     this->Oblock = oblock;
     this->devices = devices;
@@ -56,7 +59,7 @@ ExecutionUnit::ExecutionUnit(OBlockDesc oblock, vector<string> devices, vector<b
     }
 
     //this->running(vtypeHMMsMap, sendMM);
-    this->executionThread = thread(&ExecutionUnit::running, this,  ref(sendMM));
+    this->executionThread = std::thread(&ExecutionUnit::running, this);
 }
 
 ExecutionUnit::~ExecutionUnit()
@@ -64,7 +67,7 @@ ExecutionUnit::~ExecutionUnit()
     this->executionThread.join();
 }
 
-HeapMasterMessage::HeapMasterMessage(shared_ptr<HeapDescriptor> heapTree, O_Info info, PROTOCOLS protocol, bool isInterrupt)
+HeapMasterMessage::HeapMasterMessage(std::shared_ptr<HeapDescriptor> heapTree, O_Info info, PROTOCOLS protocol, bool isInterrupt)
 {
     this->heapTree = heapTree;
     this->info = info;
@@ -83,16 +86,18 @@ DynamicMasterMessage::DynamicMasterMessage(DynamicMessage DM, O_Info info, PROTO
 
 void ExecutionUnit::replaceCachedStates(std::unordered_map<DeviceID, HeapMasterMessage> &cachedHMMs){
 
-   auto replacementItems = this->replacementCache.getMap(); 
-   for(auto& item : replacementItems){
+    auto replacementItems = this->replacementCache.getMap(); 
+    for(auto& item : replacementItems){
+        //std::cout<<"Replacing the cache"<<std::endl; 
+        //std::cout<<"REPLACING CACHED STATES: "<<item.first<<std::endl;
         auto devState = item.first;
-        HeapMasterMessage replaceHMM = item.second;; 
+        HeapMasterMessage replaceHMM = item.second;
         cachedHMMs[devState] = replaceHMM; 
-   }
+    }
 }
 
 
-void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
+void ExecutionUnit::running()
 {
     while(true)
     {
@@ -100,6 +105,7 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
         EMStateMessage currentHMMs = EUcache.read();
 
         this->TriggerName = currentHMMs.TriggerName;  
+        //std::cout<<this->Oblock.name <<" TRIGGERED BY: "<<TriggerName<<std::endl; 
 
         std::unordered_map<DeviceID, HeapMasterMessage> HMMs;
         
@@ -113,24 +119,42 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
 
         replaceCachedStates(HMMs); 
         
-        vector<BlsType> transformableStates;
+        std::vector<BlsType> transformableStates;
 
-        std::cout<<"Trigger name: "<<TriggerName<<std::endl; 
+        // Tell the mailbox that the process is in execution
+        HeapMasterMessage execMsg;
+        execMsg.info.oblock = this->Oblock.name;
+        execMsg.protocol = PROTOCOLS::PROCESS_EXEC; 
+        this->sendMM.write(execMsg);
 
+        int i = 0; 
         for(auto& deviceDesc : this->Oblock.binded_devices){
             DeviceID devName = deviceDesc.device_name; 
+
             if(HMMs.contains(devName)){
-                auto& state = HMMs.at(devName).heapTree;
+                auto state = HMMs.at(devName).heapTree;
                 if (std::holds_alternative<std::shared_ptr<HeapDescriptor>>(state)) {
-                    // make sure default is set to unmodified (may not be needed depending on serialization)
-                    std::get<std::shared_ptr<HeapDescriptor>>(state)->modified = false;
+                    // make sure default is set to unmodified (may not be needed depending on serialization
+                    auto desc = std::get<std::shared_ptr<HeapDescriptor>>(state)->clone();
+                    desc->modified = false;
+                    desc->index = i;  
+                    state = std::move(desc);
+                    
                 }
                 transformableStates.push_back(state); 
             }
             else{
                 auto defDevice = deviceDesc.initialValue; 
+                if (std::holds_alternative<std::shared_ptr<HeapDescriptor>>(defDevice)) {
+                    // make sure default is set to unmodified (may not be needed depending on serialization
+                    auto desc = std::get<std::shared_ptr<HeapDescriptor>>(defDevice)->clone();
+                    desc->modified = false;
+                    desc->index = i; 
+                    defDevice = std::move(desc);
+                }
                 transformableStates.push_back(defDevice); 
             }
+            i++; 
         }
 
         transformableStates = vm.transform(transformableStates);
@@ -138,7 +162,9 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
 
         std::vector<HeapMasterMessage> outGoingStates;  
 
-        // SHIP ALL OUTGOING DEVICES (EVEN ONCE NOT ALTERED)
+        // Release before retrieval
+        this->globalScheduler.release(this->Oblock.name);
+
         for(auto& devDesc : this->Oblock.outDevices)
         {   
             size_t pos = this->devicePositionMap[devDesc.device_name];
@@ -151,17 +177,18 @@ void ExecutionUnit::running(TSQ<HeapMasterMessage> &sendMM)
             newHMM.info.oblock = this->Oblock.name; 
             newHMM.protocol = PROTOCOLS::SENDSTATES;
             newHMM.isInterrupt = false; 
-            newHMM.heapTree = transformedState; 
-            
+            newHMM.heapTree = transformedState;
+            newHMM.isCursor = (devDesc.deviceKind == DeviceKind::CURSOR);
             outGoingStates.push_back(newHMM); 
         }
 
         for(HeapMasterMessage& hmm : outGoingStates)
         {
-            sendMM.write(hmm);
+            this->sendMM.write(hmm);
         }
 
-        this->globalScheduler.release(this->Oblock.name); 
+        // clear the replacement cache since the oblock ran successfully
+        this->replacementCache.clear(); 
     }
 }
 
@@ -183,7 +210,7 @@ void ExecutionManager::running()
             for(auto& pair : EU_map)
             {
                 O_Info info = pair.second->info;
-                std::cout<<"Requesting States for : "<<info.oblock<<std::endl;
+                //std::cout<<"Requesting States for : "<<info.oblock<<std::endl;
                 HeapMasterMessage requestHMM(nullptr, info, PROTOCOLS::REQUESTINGSTATES, false);
                 this->sendMM.write(requestHMM);
 
@@ -200,12 +227,24 @@ void ExecutionManager::running()
                 break;
             }
             case(PROTOCOLS::OWNER_CONFIRM_OK):{
+                //std::cout<<"Passing owner confirm ok"<<std::endl; 
                 this->scheduler.receive(currentDMMs.dmm_list[0]); 
                 break; 
             }
             case(PROTOCOLS::WAIT_STATE_FORWARD):{
                 HeapMasterMessage dmm = currentDMMs.dmm_list[0]; 
                 assignedUnit.replacementCache.insert(dmm.info.device, dmm); 
+                break; 
+            }
+            case(PROTOCOLS::PULL_RESPONSE):{
+                HeapMasterMessage hmm = currentDMMs.dmm_list[0];
+                assignedUnit.pullVMArguments(hmm); 
+                // Allow the oblock to continue execution by unblocking the syscall
+                {
+                    std::lock_guard<std::mutex> lock(assignedUnit.pullMutex);
+                    assignedUnit.pullCounter--; 
+                }
+                assignedUnit.pullCV.notify_one();
                 break; 
             }
             default:{
@@ -224,4 +263,96 @@ void ExecutionManager::running()
     
     }
 }
+
+// TRAP IMPLEMENTATIONS
+
+void ExecutionUnit::sendPushState(std::vector<BlsType> typeList){
+        for(BlsType blsType : typeList){
+            HeapMasterMessage pushStateHmm; 
+       
+            pushStateHmm.protocol = PROTOCOLS::SENDSTATES;
+            int index = 0; 
+            if(std::holds_alternative<std::shared_ptr<HeapDescriptor>>(blsType)){
+                index = std::get<std::shared_ptr<HeapDescriptor>>(blsType)->index; 
+                pushStateHmm.heapTree = std::get<std::shared_ptr<HeapDescriptor>>(blsType)->clone(); 
+            }
+            else{
+                throw std::runtime_error("Support for pushing to non-primative devices is not yet implemented");
+            }
+
+            this->vm.getModifiedStates()[index] = false; 
+
+            // TODO: CHANGE THIS TO USE THE ACTUAL NAME INSTEAD OF THE ALIAS
+            pushStateHmm.info.device = this->Oblock.binded_devices.at(index).device_name; 
+            pushStateHmm.info.oblock = this->Oblock.name; 
+            pushStateHmm.info.controller = this->Oblock.binded_devices.at(index).controller; 
+            pushStateHmm.isCursor = (this->Oblock.binded_devices.at(index).deviceKind == DeviceKind::CURSOR); 
+            this->sendMM.write(pushStateHmm); 
+        }
+    }
+
+
+std::vector<BlsType> ExecutionUnit::sendPullState(std::vector<BlsType> typeList){
+        this->pullStoreVector.clear(); 
+        int numPulls  = typeList.size(); 
+        this->pullStoreVector.resize(numPulls); 
+        this->pullCounter = numPulls; 
+        int i = 0; 
+        for(BlsType blsType : typeList){
+            HeapMasterMessage pullStateHmm; 
+            int index = 0; 
+            if(std::holds_alternative<std::shared_ptr<HeapDescriptor>>(blsType)){
+                index = std::get<std::shared_ptr<HeapDescriptor>>(blsType)->index; 
+            }
+            else{
+                throw std::runtime_error("Suppose for pushing to non-primative device is not yet implemented");
+            }
+            auto& deviceName =  this->Oblock.binded_devices.at(index).device_name; 
+            auto& controllerName =  this->Oblock.binded_devices.at(index).controller; 
+
+            this->pullPlacement.emplace(deviceName, i); 
+            pullStateHmm.protocol = PROTOCOLS::PULL_REQUEST; 
+     
+            // TODO: CHANGE THIS TO USE THE DEVICE ALIAS MAPPING
+            pullStateHmm.info.device = deviceName; 
+            pullStateHmm.info.oblock = this->Oblock.name; 
+            pullStateHmm.info.controller = controllerName; 
+            pullStateHmm.isCursor = (this->Oblock.binded_devices.at(index).deviceKind == DeviceKind::CURSOR); 
+            this->sendMM.write(pullStateHmm); 
+            i++; 
+        }
+
+        {
+            std::unique_lock<std::mutex> lock(this->pullMutex);
+            this->pullCV.wait(lock, [this](){return this->pullCounter == 0;}); 
+        }
+
+        this->pullPlacement.clear(); 
+        return this->pullStoreVector; 
+    }
+
+
+// Finish this: 
+void ExecutionUnit::pullVMArguments(HeapMasterMessage &hmm){
+    DeviceID device = hmm.info.device; 
+    int pullPos = this->pullPlacement.at(device);
+    this->pullStoreVector.at(pullPos) = hmm.heapTree; 
+}
+
+void ExecutionUnit::sendTriggerChange(std::string& triggerID, OblockID& oblockID, bool isEnable){
+        HeapMasterMessage trigChangeHmm; 
+        trigChangeHmm.info.oblock = oblockID; 
+        trigChangeHmm.info.device = triggerID; 
+        
+        if(isEnable){
+            trigChangeHmm.protocol = PROTOCOLS::ENABLE_TRIGGER; 
+        }   
+        else{
+            trigChangeHmm.protocol = PROTOCOLS::DISABLE_TRIGGER; 
+        }
+        
+        this->sendMM.write(trigChangeHmm); 
+    }
+
+
 

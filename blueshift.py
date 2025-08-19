@@ -191,7 +191,8 @@ def initialize_vnc_display():
 
 def run(args):
     if args.local:
-        executable = Path(".", TARGET_OUTPUT_DIRECTORY, RUNTIME_OUTPUT_DIRECTORY, args.binary)
+        binary_folder = Path(REMOTE_OUTPUT_DIRECTORY, "target") if args.container_binary else TARGET_OUTPUT_DIRECTORY
+        executable = Path(".", binary_folder, RUNTIME_OUTPUT_DIRECTORY, args.binary)
         run_cmd([executable, *args.binary_args])
     else:
         if args.vnc:
@@ -201,7 +202,6 @@ def run(args):
             if context == "rootless":
                 raise PermissionError("Packet forwarding only possible in rootful context. Try running again with elevated privileges or perform a manual context switch before running.")
             os.environ["NETWORK_MODE"] = "host"
-            os.environ["PRIVILEGED_RUNTIME"] = "true"
             if args.udp_broadcast_forward:
                 Thread(target=broadcast_sniffer, daemon=True).start()
                 time.sleep(.25) # wait before running initialize_host() to ensure sniffing privilege is retained
@@ -211,6 +211,7 @@ def run(args):
 def debug(args):
     debug_target_path = "relwithdebinfo" if args.release else "debug"
     executable = Path(BUILD_OUTPUT_DIRECTORY, debug_target_path, RUNTIME_OUTPUT_DIRECTORY, args.binary)
+    sourceMap = ""
     allow_visual = not args.terminal and args.debugger == "lldb"
     stop_on_entry = "true" if args.stop_on_entry else "false"
     # use controller name as debug name for readability if debugging client
@@ -225,6 +226,10 @@ def debug(args):
         run_cmd(["lldb-server", "platform", "--listen", f"*:{args.listen}", "--server",
                  "--min-gdbserver-port", args.min_server_port, "--max-gdbserver-port", args.max_server_port])
     elif args.local:
+        if args.container_binary:
+            executable = Path(REMOTE_OUTPUT_DIRECTORY, debug_target_path, RUNTIME_OUTPUT_DIRECTORY, args.binary)
+            sourceMap = f"sourceMap: {{ {CONTAINER_MOUNT_DIRECTORY} : {os.getcwd()} }},"
+        
         if allow_visual: # debug locally with codelldb
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.connect(CODELLDB_ADDRESS)
@@ -234,6 +239,7 @@ def debug(args):
                     token: blueshift,
                     terminal: console,
                     stopOnEntry: {stop_on_entry},
+                    {sourceMap}
                     program: {executable},
                     args: {args.binary_args}
                 }}
@@ -247,6 +253,7 @@ def debug(args):
         initialize_host()
         DEBUG_SERVER_PORT = get_free_port()
         remote_binary = Path(REMOTE_OUTPUT_DIRECTORY, debug_target_path, RUNTIME_OUTPUT_DIRECTORY, args.binary)
+        sourceMap = f"sourceMap: {{ {CONTAINER_MOUNT_DIRECTORY} : {os.getcwd()} }},"
         cwd = os.getcwd()
         # Initialize debug server
         run_cmd(["docker", "compose", "--profile", "debug", "run", "-d", "--no-deps",
@@ -266,7 +273,7 @@ def debug(args):
                     terminal: console,
                     request: attach,
                     stopOnEntry: {stop_on_entry},
-                    sourceMap: {{ {CONTAINER_MOUNT_DIRECTORY} : {cwd} }},
+                    {sourceMap}
                     targetCreateCommands: [target create {remote_binary}],
                     processCreateCommands: [gdb-remote localhost:{DEBUG_SERVER_PORT}]
                 }}
@@ -369,9 +376,6 @@ def build(args):
             # only update binary targets if built for current machine's arch
             symlink(TARGET_OUTPUT_DIRECTORY, Path(".", ARTIFACT_TYPE), True)
     else: # build binaries in remote container
-        initialize_host()
-        run_cmd(["docker", "compose", "run", "--rm", "builder",
-                        "build", "-l", *build_args, *args.make])
         @run_as_src_user
         def link_compile_commands():
             remote_target_path = Path(".", "remote", TARGET_PLATFORM, ARTIFACT_TYPE)
@@ -386,6 +390,9 @@ def build(args):
                 build_location = cross_target_path
 
             curr_db_path = Path(REMOTE_OUTPUT_DIRECTORY, TARGET_PLATFORM, ARTIFACT_TYPE, "compile_commands.json")
+            if not curr_db_path.exists():
+                return # If configuration failed, compile commands linking is not possible
+            
             with (curr_db_path.open("r") as db, COMPILE_DB_PATH.open("w") as out):
                 cwd = os.getcwd()
                 build_dir = str(Path(CONTAINER_MOUNT_DIRECTORY, ARTIFACT_DIR))
@@ -394,7 +401,10 @@ def build(args):
                     line = line.replace(build_dir, replacement_dir)  # replace build dir
                     line = line.replace(CONTAINER_MOUNT_DIRECTORY, cwd)  # replace source dir
                     out.write(line)
-        link_compile_commands()
+        atexit.register(link_compile_commands)
+        initialize_host()
+        run_cmd(["docker", "compose", "run", "--rm", "builder",
+                        "build", "-l", *build_args, *args.make])
 
 def test(args):
     os.environ["GTEST_COLOR"] = "1"
@@ -450,6 +460,9 @@ run_parser.add_argument("binary_args",
 run_parser.add_argument("-l", "--local",
                         help="run selected binary on local host instead of in containerized environment",
                         action="store_true")
+run_parser.add_argument("-c", "--container-binary",
+                        help="when used with --local, run the container built binary instead of a locally built version.",
+                        action="store_true")
 run_parser.add_argument("-p", "--packet-forward",
                         help="forward all network packets from container LAN to host LAN",
                         action="store_true")
@@ -471,6 +484,9 @@ debug_parser.add_argument("binary_args",
                         default=None)
 debug_parser.add_argument("-l", "--local",
                         help="debug selected binary on local host instead of in containerized environment",
+                        action="store_true")
+debug_parser.add_argument("-c", "--container-binary",
+                        help="when used with --local, debug the container built binary instead of a locally built version.",
                         action="store_true")
 debug_parser.add_argument("-t", "--terminal",
                         help="force debugging through terminal alone",

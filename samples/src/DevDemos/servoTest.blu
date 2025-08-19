@@ -1,0 +1,13 @@
+oblock servoTest(LINE_WRITER lw, FN_SERVO targServo)
+: triggerOn(lw)
+{
+    int targAngle = stoi(lw.msg);
+    targServo.angle = targAngle;
+}
+
+setup(){
+    LINE_WRITER lw = "ctl::file-file1.txt";
+    FN_SERVO fns = "rpi::PIN-18";
+
+    servoTest(lw, fns);
+}

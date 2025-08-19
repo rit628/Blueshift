@@ -6,64 +6,81 @@
 #include "libScheduler/Scheduler.hpp"
 #include "libtype/bls_types.hpp"
 #include "libTSM/TSM.hpp"
+#include <condition_variable>
 #include <unordered_map>
 #include <thread>
 #include <memory>
 #include <string>
 #include <vector>
 #include <functional>
-using namespace std;
+#include <boost/asio.hpp>
 
+namespace asio = boost::asio; 
 
 class ExecutionUnit
 {
     public:
     OBlockDesc Oblock;
     O_Info info;
-    unordered_map<string, HeapMasterMessage> stateMap;
-    vector<string> devices;
-    vector<bool> isVtype;
-    vector<string> controllers;
+    std::unordered_map<std::string, HeapMasterMessage> stateMap;
+    std::vector<std::string> devices;
+    std::vector<bool> isVtype;
+    std::vector<std::string> controllers;
     TSQ<EMStateMessage> EUcache;
-    thread executionThread;
+    std::thread executionThread;
     bool stop = false;
     std::unordered_map<std::string, int> devicePositionMap; 
     DeviceScheduler& globalScheduler; 
     // Contains the states to be replaced whikle the device is waiting for write access
     TSM<DeviceID, HeapMasterMessage> replacementCache;
-    function<vector<BlsType>(vector<BlsType>)>  transform_function;
+    std::function<std::vector<BlsType>(std::vector<BlsType>)>  transform_function;
     // Get the trigger name
     std::string TriggerName = "";
     BlsLang::VirtualMachine vm;
+    TSQ<HeapMasterMessage> &sendMM; 
+    asio::io_context &ctx; 
 
+
+    // Pulling stuff
+    int pullCounter = 0; 
+    std::mutex pullMutex; 
+    std::condition_variable pullCV;
+    std::vector<BlsType> pullStoreVector; 
+    std::unordered_map<DeviceID, int> pullPlacement; 
 
     ExecutionUnit(OBlockDesc OblockData
-                , vector<string> devices
-                , vector<bool> isVtype
-                , vector<string> controllers
+                , std::vector<std::string> devices
+                , std::vector<bool> isVtype
+                , std::vector<std::string> controllers
                 , TSQ<HeapMasterMessage> &sendMM
                 , size_t bytecodeOffset
                 , std::vector<char>& bytecode
-                , function<vector<BlsType>(vector<BlsType>)> transform_function
-                , DeviceScheduler &devSchedule);
+                , std::function<std::vector<BlsType>(std::vector<BlsType>)> transform_function
+                , DeviceScheduler &devSchedule, 
+                asio::io_context &ctx);
     
 
     
-    void running( TSQ<HeapMasterMessage> &sendMM);
+    void running();
     // Replaced cached states while devices are read from
     void replaceCachedStates(std::unordered_map<DeviceID, HeapMasterMessage> &cachedHMMs); 
    
+    // OS level Traps (should always be a ptr heap descriptor so fine to take as value)
+    void sendPushState(std::vector<BlsType> pushStates);
+    std::vector<BlsType> sendPullState(std::vector<BlsType> pullStates);
+    void pullVMArguments(HeapMasterMessage &hmm); 
+    // For the triggerChange message, the device is the trigger (workaround for now)
+    void sendTriggerChange(std::string& triggerID, OblockID& oblockID, bool isEnable); 
+
+
     ~ExecutionUnit();
 };
-
-
-
 
 class ExecutionManager
 {
     public:
     //ExecutionManager() = default;
-    ExecutionManager(vector<OBlockDesc> OblockList
+    ExecutionManager(std::vector<OBlockDesc> OblockList
                    , TSQ<EMStateMessage> &readMM
                    , TSQ<HeapMasterMessage> &sendMM
                    , std::vector<char>& bytecode
@@ -75,8 +92,9 @@ class ExecutionManager
 
     TSQ<EMStateMessage> &readMM;
     TSQ<HeapMasterMessage> &sendMM;
-    unordered_map<string, unique_ptr<ExecutionUnit>> EU_map;
-    vector<OBlockDesc> OblockList;
+    std::unordered_map<std::string, std::unique_ptr<ExecutionUnit>> EU_map;
+    std::vector<OBlockDesc> OblockList;
     DeviceScheduler scheduler; 
+    boost::asio::io_context eu_ctx; 
 };
 

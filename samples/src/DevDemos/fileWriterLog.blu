@@ -1,0 +1,95 @@
+oblock delegator(KEYBOARD kbd, READ_FILE lw, int counter, string msg1, string msg2)
+: triggerOn({"rule": [kbd,counter], "id" : "delTrigger"}), 
+  processPolicy({counter : {"read" : "any"},  kbd : {"read" : "all"}})
+{
+    
+    list<string> words = ["Ready", "Set", "Go", "kill", "your", "self", "i", "love", "you"]; 
+
+    string writeKey = "";
+
+    if(getTrigger() == "initial"){
+        // intialize the counter
+        println("OMAR"); 
+        counter = 0;
+        return; 
+    }
+ 
+    if(kbd.key == "Space"){
+        writeKey = " "; 
+    }
+    else if(kbd.key == "Left Shift"){
+        lw.msg = ""; 
+    }
+    else if(kbd.key == "."){
+        for(int i = 0; i < words.size(); i++){
+            lw.msg = words[i]; 
+            push(lw); 
+            lw.msg = "OMAR";  
+            sleep(200); 
+        }
+        pull(lw); 
+        println("SHOULD BE YOU: ", lw.msg); 
+    
+
+        println("FINISHED THE SHIT"); 
+        counter = 0; 
+        return; 
+    }
+    else{
+        writeKey = kbd.key;
+    }
+
+    if(counter%2 == 0){
+        println("Wrote key to v: ", kbd.key); 
+        msg1 = writeKey; 
+    }
+    else{  
+        println("Wrote key to k: ", kbd.key);  
+        msg2 = writeKey; 
+    }
+
+    println("Wrote key: ", kbd.key); 
+    println("COUNTER: ", counter); 
+    counter++;  
+}
+
+
+oblock vWrite(string msg1, FILE_LOG fl, READ_FILE lw)
+: triggerOn(msg1), processPolicy({lw : {"read" : "any", "yield" : false}})
+{
+    if(getTrigger() == "initial"){
+        println("vwrite omar"); 
+        return; 
+    }
+
+    //fl.add_msg = "from v trigger: " + msg1; 
+    lw.msg += msg1; 
+}
+
+oblock kWrite(string msg2, READ_FILE fl, READ_FILE lw)
+: triggerOn(msg2), processPolicy({lw : {"read" : "any", "yield" : false}})
+{
+    if(getTrigger() == "initial"){
+        println("Kwrite OMAR"); 
+        return; 
+    }
+
+    //fl.add_msg = "from k trigger: " + msg2; 
+    lw.msg += msg2; 
+}
+
+setup(){
+    virtual string msg1; 
+    virtual string msg2;
+    virtual int counter; 
+
+    LINE_WRITER lw = "ctl::file-file1.txt";
+    READ_FILE fl = "ctl::file-logfile.txt";
+    KEYBOARD crack = "ctl::mode-all";
+
+    delegator(crack, lw, counter, msg1, msg2); 
+    vWrite(msg1, fl, lw); 
+    kWrite(msg2, fl, lw); 
+}
+
+

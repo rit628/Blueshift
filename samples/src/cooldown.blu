@@ -1,0 +1,11 @@
+oblock recordMouse(MOUSE m)
+{
+    print("NEW MOUSE STATE:");
+    print(m.x, m.y);
+}
+
+setup() {
+    MOUSE MS = "ctl::mode-all,cooldown-100";
+
+    recordMouse(MS);
+}

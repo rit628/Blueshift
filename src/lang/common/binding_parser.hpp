@@ -15,11 +15,6 @@ namespace BlsLang {
         }
         DeviceDescriptor result;
         result.controller = bindingContents[1];
-        // Make polling rates dynamic
-        result.isConst = true; 
-        result.isInterrupt = false; 
-        result.isVtype = false; 
-        result.polling_period = 1000; 
         std::string portMap = bindingContents[2];
         int idx = 0;
 

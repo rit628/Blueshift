@@ -34,6 +34,11 @@ namespace BlsLang {
                 , WRITE
             };
 
+            enum class FUNCTION_CONTEXT : uint8_t {
+                  PROCEDURE
+                , OBLOCK
+            };
+
             #define OPCODE_BEGIN(code) \
             static std::unique_ptr<INSTRUCTION::code> create##code(
             #define ARGUMENT(arg, type) \
@@ -51,6 +56,7 @@ namespace BlsLang {
             std::vector<std::unique_ptr<INSTRUCTION>> instructions;
             std::stack<std::stack<uint16_t>> continueIndices, breakIndices; // needed for break and continue generation
             ACCESS_CONTEXT accessContext = ACCESS_CONTEXT::READ; // needed for assignment generation
+            FUNCTION_CONTEXT functionContext = FUNCTION_CONTEXT::PROCEDURE;
     };
 
 }

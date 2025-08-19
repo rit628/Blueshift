@@ -8,7 +8,8 @@
 using namespace Device;
 
 void READ_FILE::processStates(DynamicMessage& dmsg) {
-
+    dmsg.unpackStates(states); 
+    std::cout<<"Received value: "<<states.msg<<std::endl; 
 }
 
 void READ_FILE::init(std::unordered_map<std::string, std::string> &config) {

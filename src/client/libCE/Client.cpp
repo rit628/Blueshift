@@ -1,15 +1,19 @@
 #include "Client.hpp"
 #include "include/Common.hpp"
 #include "libDevice/DeviceUtil.hpp"
+#include "libDevice/include/ADC.hpp"
 #include "libnetwork/Connection.hpp"
 #include "libnetwork/Protocol.hpp"
+#include <cstdint>
 #include <functional>
 #include <exception>
+#include <memory>
 #include <ostream>
 #include <stdexcept>
 #include <sys/socket.h>
+#include <unordered_map>
 
-Client::Client(std::string c_name): bc_socket(client_ctx, udp::endpoint(udp::v4(), BROADCAST_PORT)), client_socket(client_ctx){
+Client::Client(std::string c_name): bc_socket(client_ctx, udp::endpoint(udp::v4(), BROADCAST_PORT)), client_socket(client_ctx), threadPool(std::thread::hardware_concurrency()){
     this->client_name = c_name; 
     std::cout<<"Client Created: " << c_name <<std::endl; 
 }
@@ -41,8 +45,18 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
         }
         default: {
             // Get the latest state from the dmsg
+            sm.header.body_size = 0; 
+            auto& device = this->deviceList.at(deviceCode).device;
             try{
-                this->deviceList.at(deviceCode).device.transmitStates(dmsg); 
+                //std::cout<<"ACCESING device: "<<deviceCode<<std::endl;
+                if(device.getDeviceKind() != DeviceKind::CURSOR){
+                    device.transmitStates(dmsg); 
+                }
+                else {
+                    dmsg = cursors.at(deviceCode).getLatestOblockView(oint);
+                }
+                sm.body = dmsg.Serialize();
+                sm.header.body_size = sm.body.size(); 
             }
             catch(BlsExceptionClass& bec){
                 this->genBlsException->SendGenericException(bec.what(), bec.type());
@@ -50,14 +64,16 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
             }
 
             // make message
-            sm.body = dmsg.Serialize(); 
+             
             sm.header.ctl_code = this->controller_alias;
+            sm.header.oblock_id = oint; 
             sm.header.prot = type; 
             sm.header.device_code = deviceCode; 
             sm.header.timer_id = -1; 
             sm.header.volatility = -1; 
             sm.header.body_size = sm.body.size(); 
             sm.header.fromInterrupt = fromInt; 
+            sm.header.kind = device.getDeviceKind(); 
             
             break; 
         }
@@ -70,7 +86,7 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
         this->in_queue.write(osm); 
     }
     else{
-        std::cout<<"State for device: "<<deviceCode<<std::endl; 
+        //std::cout<<"State for device: "<<deviceCode<<std::endl; 
         this->client_connection->send(sm); 
     }
 }
@@ -78,7 +94,11 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
 void Client::listener(std::stop_token stoken){
     while(!stoken.stop_requested()){
 
-        auto inMsg = this->in_queue.read().sm; 
+        auto readResult = this->in_queue.read(stoken);
+
+        if (!readResult.has_value()) return;
+
+        auto inMsg = readResult->sm;
         
         Protocol ptype = inMsg.header.prot; 
 
@@ -117,11 +137,18 @@ void Client::listener(std::stop_token stoken){
                 throw std::invalid_argument("Config vectors of different sizes what!"); 
             }
 
+            // Try for existance (replace with function to find connected ADCs when more are added)
+        
+            this->adc = std::make_shared<ADS7830>();
+
             for(int i = 0; i < size; i++){
                 try{      
-                    deviceList.try_emplace(device_alias[i], device_types[i], srcs[i]);
+                    std::cout<<"Emplacing: "<<device_alias[i]<<std::endl;
+                    deviceList.try_emplace(device_alias[i], device_types[i], srcs[i], this->adc);
+                    std::cout<<"Emplace device: "<<device_alias[i]<<std::endl;
                 }
                 catch(BlsExceptionClass& bec){
+                    std::cout<<"Failed to emplace device"<<std::endl;
                     this->genBlsException->SendGenericException(bec.what(), bec.type()); 
                 }
             } 
@@ -143,9 +170,11 @@ void Client::listener(std::stop_token stoken){
                 auto dev_index = inMsg.header.device_code; 
 
                 // Check if the writer is the valid owner of the device (if applies)
-                auto& pendingReq = this->deviceList.at(dev_index).pendingRequests; 
+                auto& deviceData = this->deviceList.at(dev_index); 
+                auto& pendingReq = deviceData.pendingRequests;
+                
                 if(pendingReq.currOwned){
-                    if((inMsg.header.ctl_code != pendingReq.owner.first) || (inMsg.header.oblock_id != pendingReq.owner.second)){
+                    if((inMsg.header.ctl_code != deviceData.owner.first) || (inMsg.header.oblock_id != deviceData.owner.second)){
                         std::cout<<"OWNERSHIP WARNING: "<<std::endl; 
                         std::cout<<"CTL: "<<inMsg.header.ctl_code<<std::endl; 
                         std::cout<<"OBLOCK: "<<inMsg.header.device_code<<std::endl;
@@ -155,20 +184,44 @@ void Client::listener(std::stop_token stoken){
                     std::cout<<"Valid owner"<<std::endl; 
                 }
 
-    
-                auto state_change = std::jthread([dev_index, dmsg = std::move(dmsg), this](){
-                try{
-                    // std::cout << "processStates begin" << std::endl;
-                    this->deviceList.at(dev_index).device.processStates(dmsg);
-                    //Translation of the callback happens at the network manage
-                    this->sendMessage(dev_index, Protocol::CALLBACK, false); 
-                }
-                catch(std::exception(e)){
-                    std::cout<<e.what()<<std::endl; 
-                }
-                });
+                oblock_int o_id = inMsg.header.oblock_id;
 
-                state_change.detach(); 
+                if (deviceData.device.getDeviceKind() == DeviceKind::CURSOR) {
+                    auto& cursorStrands = cursorViewStrands.at(dev_index);
+                    if (!cursorStrands.contains(o_id)) {
+                        cursorStrands.emplace(o_id, boost::asio::make_strand(threadPool));
+                    }
+                    auto& viewStrand = cursorStrands.at(o_id);
+
+                    boost::asio::post(viewStrand,  [o_id, dev_index, dmsg = std::move(dmsg), stoken, this](){
+                        try{   
+                            auto& device = this->deviceList.at(dev_index).device;
+                            cursors.at(dev_index).addQueryHandler(o_id);
+                            device.processStates(dmsg);
+                            cursors.at(dev_index).awaitQueryCompletion(stoken);
+                            this->sendMessage(dev_index, Protocol::CALLBACK, false, o_id);
+                        }
+                        catch(std::exception(e)){
+                            std::cout<<"Failure to change the state detected"<<std::endl; 
+                            std::cout<<e.what()<<std::endl; 
+                        }
+                    });
+                }
+                else {
+                    auto& deviceStrand = deviceStrands.at(dev_index);
+    
+                    boost::asio::post(deviceStrand,  [o_id, dev_index, dmsg = std::move(dmsg), stoken, this](){
+                        try{   
+                            auto& device = this->deviceList.at(dev_index).device;
+                            device.processStates(dmsg);
+                            this->sendMessage(dev_index, Protocol::CALLBACK, false, o_id);
+                        }
+                        catch(std::exception(e)){
+                            std::cout<<"Failure to change the state detected"<<std::endl; 
+                            std::cout<<e.what()<<std::endl; 
+                        }
+                    });
+                }
             }
             else{
                 std::cout<<"Cannot process state change until configuration is complete"<<std::endl; 
@@ -178,8 +231,13 @@ void Client::listener(std::stop_token stoken){
             // Conifigure the the dynamic timers
             if(inMsg.header.body_size > 0){
                 std::vector<Timer> all_timers; 
-                dmsg.unpack("__TICKER_DATA__", all_timers); 
-                this->start_timers = all_timers; 
+                dmsg.unpack("__TICKER_DATA__", all_timers);
+                for (auto&& timer : all_timers) {
+                    if (!start_timers.contains(timer.device_num)) {
+                        start_timers.try_emplace(timer.device_num);
+                    }
+                    start_timers.at(timer.device_num).push_back(timer);
+                }
             }
         }
         else if(ptype == Protocol::TICKER_UPDATE){
@@ -193,7 +251,7 @@ void Client::listener(std::stop_token stoken){
                     if(this->client_ticker.find(new_timer.id) == this->client_ticker.end()){
                         std::cout<<"UH OH: "<<new_timer.id<<std::endl; 
                     }
-                    this->client_ticker.at(new_timer.id).setPeriod(new_timer.period);
+                    this->client_ticker.at(new_timer.id).get().setPeriod(new_timer.id, new_timer.period);
                 }
                 else{
                     std::cerr<<"Constant poll not supposed to be sent by update protocol"<<std::endl; 
@@ -207,32 +265,57 @@ void Client::listener(std::stop_token stoken){
             std::cout<<"CLIENT: Beginning sending process"<<std::endl; 
             this->curr_state = ClientState::IN_OPERATION; 
 
-            // Begin the timers only when the call is made
-            for(Timer &timer : this->start_timers){
-                auto& device = this->deviceList.at(timer.device_num).device; 
+            // create device pollers
+            for(auto&& [deviceNum, timerList] : this->start_timers){
+                auto& device = this->deviceList.at(deviceNum).device;
+                auto deviceKind = device.getDeviceKind();
 
-                if(!device.hasInterrupt()) {
-                    std::cout<<"build timer with period: "<<timer.period<<std::endl;
-                    this->client_ticker.try_emplace(timer.id, this->client_ctx, device, this->client_connection, this->controller_alias, timer.device_num, timer.id);
-                    this->client_ticker.at(timer.id).setPeriod(timer.period);
-                    sendMessage(timer.device_num, Protocol::SEND_STATE, false); 
+                auto& poller = pollers.emplace_back(client_ctx, device, client_connection, controller_alias, deviceNum);
+                for (auto&& timer : timerList) {
+                    if (timer.period == -1 && deviceKind != DeviceKind::POLLING) { // change condition to !isConst once dynamic polling subsystem is enabled
+                        continue; // dont setup a dynamic polling timer if device is not a polling device
+                    }
+                    poller.createTimer(timer.id, timer.period);
+                }
+                if (poller.getTimerIds().empty()) {
+                    pollers.pop_back(); // remove pollers with no timers attached
                 }
             }
 
-             // populate the Device interruptors; 
             for(auto&& [dev_id, dev] : this->deviceList) {
                 auto& device = dev.device;
-                if(device.hasInterrupt()){
-                    // Organizes the device interrupts
-                    std::cout<<"Interrupt created!"<<std::endl;
-                    this->interruptors.emplace_back(device, this->client_connection, this->controller_alias, dev_id);
-                    std::cout<<"Sending Initial State"<<std::endl; 
-                    sendMessage(dev_id, Protocol::SEND_STATE_INIT, true); 
-                }   
+                auto deviceKind = device.getDeviceKind();
+                switch (deviceKind) {
+                    case DeviceKind::ACTUATOR:
+                    case DeviceKind::POLLING:
+                        deviceStrands.emplace(dev_id, boost::asio::make_strand(threadPool));
+                    break;
+                    case DeviceKind::INTERRUPT:
+                        this->interruptors.emplace_back(this->client_ctx, device, this->client_connection, this->controller_alias, dev_id);
+                        deviceStrands.emplace(dev_id, boost::asio::make_strand(threadPool));
+                    break;
+                    case DeviceKind::CURSOR:
+                        this->cursors.try_emplace(dev_id, device, this->client_connection, this->controller_alias, dev_id);
+                        cursorViewStrands.try_emplace(dev_id);
+                    break;
+                }
+                sendMessage(dev_id, Protocol::SEND_STATE_INIT, true);
+            }
+
+            // initiate pollers and interruptors
+            for (auto&& poller : this->pollers) {
+                for (auto&& id : poller.getTimerIds()) {
+                    this->client_ticker.emplace(id, poller);
+                }
+                poller.startTimers();
             }
             for (auto&& interruptor : this->interruptors) {
                 interruptor.setupThreads();
             }
+            for (auto&& [_, cursor] : this->cursors) {
+                cursor.initialize();
+            }
+
             #ifdef SDL_ENABLED
             SDL_RunOnMainThread([](void*) -> void {
                 auto window = SDL_GL_GetCurrentWindow();
@@ -246,6 +329,7 @@ void Client::listener(std::stop_token stoken){
                 }
             }, nullptr, true);
             #endif
+
         }
         else if(ptype == Protocol::CONNECTION_LOST){
             std::cout<<"Connection lost detected by Client"<<std::endl; 
@@ -259,11 +343,11 @@ void Client::listener(std::stop_token stoken){
             csReq.targetDevice = targDevice; 
             csReq.requestorOblock = inMsg.header.oblock_id;  
             csReq.priority = inMsg.header.oblock_priority; 
-            std::cout<<"Adding request for obloc: "<<csReq.requestorOblock<<" with priority "<<csReq.priority<<std::endl; 
+            //std::cout<<"Adding request for obloc: "<<csReq.requestorOblock<<" for device "<<csReq.targetDevice<<" with priority "<<csReq.priority<<std::endl; 
             this->deviceList.at(csReq.targetDevice).pendingRequests.getQueue().push(csReq);
         }
         else if(ptype == Protocol::OWNER_CANDIDATE_REQUEST_CONCLUDE){
-            std::cout<<"CLIENT SIDE RECEIVED OWNER CANDIDATE REQUEST CONCLUDE"<<std::endl; 
+            //std::cout<<"CLIENT SIDE RECEIVED OWNER CANDIDATE REQUEST CONCLUDE"<<std::endl; 
             // Protocol message concludes that all requests have been made in response to a trigger event ()
             // TODO: add support for decentralization
             
@@ -271,14 +355,18 @@ void Client::listener(std::stop_token stoken){
             if(!this->deviceList.at(targDevice).pendingRequests.currOwned){
                     // Add the code to send the device grant here: 
                     auto king = this->deviceList.at(targDevice).pendingRequests.getQueue().top(); 
+                    //std::cout<<"sending the message for oblock id: "<<king.requestorOblock<<std::endl; 
                     sendMessage(king.targetDevice, Protocol::OWNER_GRANT, false, king.requestorOblock); 
                     this->deviceList.at(targDevice).pendingRequests.currOwned = true; 
+            }
+            else{
+                std::cout<<"Device is already owned not sending anything"<<std::endl;
             }
         }
 
         // Confirms the owner (all non owner attempts to access a device are blocked)
         else if(ptype == Protocol::OWNER_CONFIRM){
-            std::cout<<"Received confirmation"<<std::endl; 
+            //std::cout<<"Received confirmation"<<std::endl; 
             dev_int dev_id= inMsg.header.device_code; 
             auto& devicePending = this->deviceList.at(dev_id).pendingRequests; 
             
@@ -288,21 +376,25 @@ void Client::listener(std::stop_token stoken){
             if((loadedProcess.ctl == inMsg.header.ctl_code) && (loadedProcess.requestorOblock == inMsg.header.oblock_id)){
                 sendMessage(dev_id, Protocol::OWNER_CONFIRM_OK, false, inMsg.header.oblock_id);
                 devicePending.currOwned = true;
-                auto& devPair = this->deviceList.at(dev_id).pendingRequests.owner; 
+                auto& devPair = this->deviceList.at(dev_id).owner; 
                 devPair = {inMsg.header.ctl_code, inMsg.header.oblock_id}; 
-                std::cout<<"Confrm Before Erasure"<<std::endl; 
+                //std::cout<<"Confrm Before Erasure"<<std::endl; 
                 pendingSet.pop(); 
-                std::cout<<"Confirm After Erasure"<<std::endl; 
+                //std::cout<<"Confirm After Erasure"<<std::endl; 
             }
             else{
                 std::cerr<<"PROTOCOL ERROR: INVALID OWNER CONFIRM FOR PROCESS THAT IS NOT A PRIME CANDIDATE"<<std::endl; 
+                std::cout<<"ERROR CTL_CODE: "<<inMsg.header.ctl_code<<" ERROR OBLOCK ID "<<inMsg.header.oblock_id<<std::endl; 
+                // Send a grant to the new oblock on top instead
+                sendMessage(loadedProcess.targetDevice, Protocol::OWNER_GRANT, false, loadedProcess.requestorOblock);
+
             }         
         }
         else if(ptype == Protocol::OWNER_RELEASE){
-            std::cout<<"Received device release"<<std::endl; 
+            //std::cout<<"Received device release for device"<<std::endl; 
             auto& devPendStruct = this->deviceList.at(inMsg.header.device_code).pendingRequests; 
 
-            std::cout<<"Size at release "<<devPendStruct.getQueue().size()<<std::endl; 
+            //std::cout<<"Size at release "<<devPendStruct.getQueue().size()<<std::endl; 
         
             if(!devPendStruct.getQueue().empty()){
                 auto& scheduleOrder = devPendStruct.getQueue();
@@ -313,6 +405,13 @@ void Client::listener(std::stop_token stoken){
             else{
                 devPendStruct.currOwned = false; 
             }
+        }
+        else if(ptype == Protocol::PULL_REQUEST){
+            int dev_index = inMsg.header.device_code; 
+            int oblockId = inMsg.header.oblock_id; 
+            //std::cout<<"PULL request made to device: "<<dev_index<<" for oblock: "<<oblockId<<std::endl; 
+            
+            this->sendMessage(dev_index, Protocol::PULL_RESPONSE, false, oblockId);
         }
         else{
             std::cout<<"Unknown protocol message!"<<std::endl; 
@@ -352,6 +451,8 @@ bool Client::attemptConnection(boost::asio::ip::address master_address){
         
         this->client_connection->connectToMaster(master_endpoint, this->client_name);
 
+        //std::cout<<this->client_name + " Connection successful!"<<std::endl; 
+
         this->listenerThread = std::jthread(std::bind(&Client::listener, std::ref(*this), std::placeholders::_1));
         this->ctxThread = std::jthread([this](){this->client_ctx.run();});   
 
@@ -363,8 +464,6 @@ bool Client::attemptConnection(boost::asio::ip::address master_address){
         if(this->ctxThread.joinable()){
             this->ctxThread.join(); 
         }
-
-        std::cout<<this->client_name + " Connection successful!"<<std::endl; 
 
         return true;  
     }
@@ -381,24 +480,29 @@ bool Client::isConnected(){
 }
 
 bool Client::disconnect(){
+    if (curr_state == ClientState::SHUTDOWN) return true;
+    this->curr_state = ClientState::SHUTDOWN;
+
     // Closes the socket
     if(this->client_connection->isConnected()){
         this->client_connection->disconnect(); 
     }   
+    std::cout<<"Socket Closed"<<std::endl;
 
-    std::cout<<"Socket Closed"<<std::endl; 
 
     // Kills the device interruptor and timer threads
     interruptors.clear();
-
-    std::cout<<"Interrupt threads killed"<<std::endl; 
+    std::cout<<"Interruptors killed"<<std::endl; 
 
     client_ticker.clear();
+    pollers.clear();
+    std::cout<<"Pollers killed"<<std::endl; 
 
-    std::cout<<"Timers listeners killed"<<std::endl; 
-
-    // Stop the client and listener threads
-    this->client_ctx.stop(); 
+    cursors.clear();
+    std::cout << "Cursor threads killed" << std::endl;
+    
+    this->client_ctx.stop();
+    this->threadPool.stop();
     this->listenerThread.request_stop();
 
     std::cout<<"Context and client listener killed"<<std::endl;
@@ -407,6 +511,21 @@ bool Client::disconnect(){
     this->start_timers.clear();
     
     std::cout << "Client device data reset" << std::endl;
+    
+    this->adc->close();
+
+    #ifdef __RPI64__
+    gpioTerminate();
+    #endif
+
+    #ifdef SDL_ENABLED
+    if (SDL_WasInit(SDL_INIT_VIDEO)) { // terminate sdl main thread
+        SDL_Event event;
+        event.type = SDL_EVENT_USER;
+        SDL_PushEvent(&event);
+    }
+    #endif
+
 
     return true; 
 }

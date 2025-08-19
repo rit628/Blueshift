@@ -1,4 +1,5 @@
 #include "ast.hpp"
+#include "call_stack.hpp"
 #include "error_types.hpp"
 #include "fixtures/analyzer_test.hpp"
 #include "include/Common.hpp"
@@ -64,6 +65,24 @@ namespace BlsLang {
             )
         ));
         EXPECT_THROW(TEST_ANALYZE(ast), SemanticError);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, TypeTests, Redeclaration) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Declaration(
+            "x",
+            {},
+            new AstNode::Specifier::Type(
+                PRIMITIVE_STRING,
+                {}
+            )
+            ,
+            new AstNode::Expression::Literal(
+                "string"
+            )
+        ));
+        CallStack<std::string> cs(CallStack<std::string>::Frame::Context::FUNCTION);
+        cs.addLocal("x", "assigned");
+        EXPECT_THROW(TEST_ANALYZE(ast, ast, Metadata(), cs), SemanticError);
     }
 
     GROUP_TEST_F(AnalyzerTest, TypeTests, InvalidTypename) {
@@ -1274,7 +1293,8 @@ namespace BlsLang {
                 .port_maps = {
                     {"file", "f1.txt"}
                 },
-                .initialValue = createBlsType(TypeDef::LINE_WRITER())
+                .initialValue = createBlsType(TypeDef::LINE_WRITER()),
+                .deviceKind = DeviceKind::INTERRUPT
             }},
             {"writer_2", DeviceDescriptor{
                 .device_name = "writer_2",
@@ -1284,7 +1304,8 @@ namespace BlsLang {
                     {"file", "f2.txt"}
                 },
                 .initialValue = createBlsType(TypeDef::LINE_WRITER()),
-                .isVtype = true
+                .isVtype = true,
+                .deviceKind = DeviceKind::INTERRUPT
             }},
             {"signaler", DeviceDescriptor{
                 .device_name = "signaler",
@@ -1307,7 +1328,8 @@ namespace BlsLang {
                         .port_maps = {
                             {"file", "f1.txt"}
                         },
-                        .initialValue = createBlsType(TypeDef::LINE_WRITER())
+                        .initialValue = createBlsType(TypeDef::LINE_WRITER()),
+                        .deviceKind = DeviceKind::INTERRUPT
                     },
                     DeviceDescriptor{
                         .device_name = "writer_2",
@@ -1317,7 +1339,8 @@ namespace BlsLang {
                             {"file", "f2.txt"}
                         },
                         .initialValue = createBlsType(TypeDef::LINE_WRITER()),
-                        .isVtype = true
+                        .isVtype = true,
+                        .deviceKind = DeviceKind::INTERRUPT
                     },
                     DeviceDescriptor{
                         .device_name = "signaler",
@@ -1429,13 +1452,62 @@ namespace BlsLang {
                             }
                         ),
                         new AstNode::Initializer::Oblock(
-                            "dropReadOn",
+                            "processPolicy",
                             {
-                                new AstNode::Expression::Access(
-                                    "L1"
-                                ),
-                                new AstNode::Expression::Access(
-                                    "L3"
+                                new AstNode::Expression::Map(
+                                    {
+                                        {
+                                            new AstNode::Expression::Access(
+                                                "L1"
+                                            ),
+                                            new AstNode::Expression::Map(
+                                                {
+                                                    {
+                                                        new AstNode::Expression::Literal(
+                                                            std::string("read")
+                                                        ),
+                                                        new AstNode::Expression::Literal(
+                                                            std::string("any")
+                                                        )
+                                                    }
+                                                }
+                                            )
+                                        },
+                                        {
+                                            new AstNode::Expression::Access(
+                                                "L3"
+                                            ),
+                                            new AstNode::Expression::Map(
+                                                {
+                                                    {
+                                                        new AstNode::Expression::Literal(
+                                                            std::string("yield")
+                                                        ),
+                                                        new AstNode::Expression::Literal(
+                                                            bool(false)
+                                                        )
+                                                    }
+                                                }
+                                            )
+                                        },
+                                    }
+                                )
+                            }
+                        ),
+                        new AstNode::Initializer::Oblock(
+                            "overwritePolicy",
+                            {
+                                new AstNode::Expression::Map(
+                                    {
+                                        {
+                                            new AstNode::Expression::Access(
+                                                "L2"
+                                            ),
+                                            new AstNode::Expression::Literal(
+                                                std::string("clear")
+                                            )
+                                        }
+                                    }
                                 )
                             }
                         )
@@ -1510,7 +1582,8 @@ namespace BlsLang {
                 .port_maps = {
                     {"file", "f1.txt"}
                 },
-                .initialValue = createBlsType(TypeDef::LINE_WRITER())
+                .initialValue = createBlsType(TypeDef::LINE_WRITER()),
+                .deviceKind = DeviceKind::INTERRUPT
             }},
             {"writer_2", DeviceDescriptor{
                 .device_name = "writer_2",
@@ -1519,7 +1592,8 @@ namespace BlsLang {
                 .port_maps = {
                     {"file", "f2.txt"}
                 },
-                .initialValue = createBlsType(TypeDef::LINE_WRITER())
+                .initialValue = createBlsType(TypeDef::LINE_WRITER()),
+                .deviceKind = DeviceKind::INTERRUPT
             }},
             {"writer_3", DeviceDescriptor{
                 .device_name = "writer_3",
@@ -1528,7 +1602,8 @@ namespace BlsLang {
                 .port_maps = {
                     {"file", "f3.txt"}
                 },
-                .initialValue = createBlsType(TypeDef::LINE_WRITER())
+                .initialValue = createBlsType(TypeDef::LINE_WRITER()),
+                .deviceKind = DeviceKind::INTERRUPT
             }}
         };
 
@@ -1544,9 +1619,10 @@ namespace BlsLang {
                             {"file", "f1.txt"}
                         },
                         .initialValue = createBlsType(TypeDef::LINE_WRITER()),
-                        .dropRead = true,
+                        .readPolicy = READ_POLICY::ANY,
                         .polling_period = 10,
-                        .isConst = true
+                        .isConst = true,
+                        .deviceKind = DeviceKind::INTERRUPT
                     },
                     DeviceDescriptor{
                         .device_name = "writer_2",
@@ -1556,8 +1632,10 @@ namespace BlsLang {
                             {"file", "f2.txt"}
                         },
                         .initialValue = createBlsType(TypeDef::LINE_WRITER()),
+                        .overwritePolicy = OVERWRITE_POLICY::CLEAR,
                         .polling_period = 6,
-                        .isConst = true
+                        .isConst = true,
+                        .deviceKind = DeviceKind::INTERRUPT
                     },
                     DeviceDescriptor{
                         .device_name = "writer_3",
@@ -1567,7 +1645,8 @@ namespace BlsLang {
                             {"file", "f3.txt"}
                         },
                         .initialValue = createBlsType(TypeDef::LINE_WRITER()),
-                        .dropRead = true
+                        .isYield = false,
+                        .deviceKind = DeviceKind::INTERRUPT
                     }
                 },
                 .hostController = "host-1",

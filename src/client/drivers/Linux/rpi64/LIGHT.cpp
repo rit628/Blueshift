@@ -1,6 +1,7 @@
 #ifdef __RPI64__
 
 #include "include/LIGHT.hpp"
+#include <cstdint>
 #include <pigpio.h>
 
 using namespace Device;
@@ -16,12 +17,14 @@ void LIGHT::processStates(DynamicMessage &dmsg) {
 }
 
 void LIGHT::init(std::unordered_map<std::string, std::string> &config) {
+
     this->PIN = std::stoi(config["PIN"]);
     if (gpioInitialise() == PI_INIT_FAILED) {
             std::cerr << "GPIO setup failed" << std::endl;
             return;
     }
     gpioSetMode(this->PIN, PI_OUTPUT);
+    addGPIOIWatch(this->PIN, [](int, int, uint32_t) -> bool { return true; });
 }
 
 void LIGHT::transmitStates(DynamicMessage &dmsg) {
@@ -29,7 +32,7 @@ void LIGHT::transmitStates(DynamicMessage &dmsg) {
 }
 
 LIGHT::~LIGHT() {
-    gpioTerminate();
+    gpioWrite(this->PIN, PI_OFF);
 }
 
 #endif

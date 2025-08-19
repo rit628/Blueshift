@@ -92,6 +92,7 @@ BlsObject Generator::visit(AstNode::Source& ast) {
 }
 
 BlsObject Generator::visit(AstNode::Function::Procedure& ast) {
+    functionContext = FUNCTION_CONTEXT::PROCEDURE;
     uint16_t address = instructions.size();
     procedureAddresses.emplace(ast.getName(), address);
     for (auto&& statement : ast.getStatements()) {
@@ -139,6 +140,7 @@ BlsObject Generator::visit(AstNode::Function::Procedure& ast) {
 }
 
 BlsObject Generator::visit(AstNode::Function::Oblock& ast) {
+    functionContext = FUNCTION_CONTEXT::OBLOCK;
     auto& name = ast.getName();
     if (!oblockDescriptors.contains(name)) return 0; // skip generating code for unbound oblocks
     uint16_t address = instructions.size();
@@ -292,6 +294,11 @@ BlsObject Generator::visit(AstNode::Statement::While& ast) {
 }
 
 BlsObject Generator::visit(AstNode::Statement::Return& ast) {
+    if (functionContext == FUNCTION_CONTEXT::OBLOCK) { // return statement within oblock will emit a stop signal instead of returning
+        instructions.push_back(createEMIT(static_cast<uint8_t>(BytecodeProcessor::SIGNAL::STOP)));
+        return 0;
+    }
+
     auto& returnExpression = ast.getValue();
     if (returnExpression.has_value()) {
         returnExpression->get()->accept(*this);

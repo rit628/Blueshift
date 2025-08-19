@@ -517,14 +517,14 @@ BlsObject Interpreter::visit(AstNode::Specifier::Type& ast) {
             return std::make_shared<MapDescriptor>(TYPE::ANY);
         break;
 
-        #define DEVTYPE_BEGIN(name) \
+        #define DEVTYPE_BEGIN(name, ...) \
         case TYPE::name: { \
             using namespace TypeDef; \
             auto devtype = std::make_shared<MapDescriptor>(TYPE::name, TYPE::string_t, TYPE::ANY); \
             BlsType attr, attrVal;
         #define ATTRIBUTE(name, type) \
             attr = BlsType(#name); \
-            attrVal = BlsType(type()); \
+            attrVal = createBlsType(type()); \
             devtype->add(attr, attrVal);
         #define DEVTYPE_END \
             return BlsType(devtype); \

@@ -171,6 +171,20 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
             devDesc.device_name = name;
             devDesc.type = type;
             devDesc.initialValue = devtypeObj;
+            switch (type) {                
+                #define DEVTYPE_BEGIN(name, kind) \
+                case TYPE::name: \
+                    devDesc.deviceKind = DeviceKind::kind; \
+                break;
+                #define ATTRIBUTE(...)
+                #define DEVTYPE_END
+                #include "DEVTYPES.LIST"
+                #undef DEVTYPE_BEGIN
+                #undef ATTRIBUTE
+                #undef DEVTYPE_END
+                default:
+                break;
+            }
             deviceDescriptors.emplace(name, devDesc);
         }
         else if (auto* statementExpression = dynamic_cast<AstNode::Statement::Expression*>(statement.get())) {
@@ -205,6 +219,7 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
                     dev.controller = declaredDev.controller;
                     dev.port_maps = declaredDev.port_maps;
                     dev.isVtype = declaredDev.isVtype;
+                    dev.deviceKind = declaredDev.deviceKind;
                     if (decentralizable) {
                         if (desc.hostController == RESERVED_MASTER) {
                             desc.hostController = dev.controller;
@@ -348,12 +363,17 @@ BlsObject Analyzer::visit(AstNode::Statement::Declaration& ast) {
     auto typedObj = resolve(ast.getType()->accept(*this));
     auto& name = ast.getName();
     auto& value = ast.getValue();
+    if (cs.checkLocalInFrame(name)) {
+        throw SemanticError("Redeclaration of variable \"" + name + "\".");
+    }
     if (value.has_value()) {
         auto literal = resolve(value->get()->accept(*this));
         if (!typeCompatible(typedObj, literal)) {
             throw SemanticError("Invalid initialization for declaration");
         }
-        typedObj.assign(literal);
+        if (getType(typedObj) != TYPE::ANY) {
+            typedObj.assign(literal);
+        }
     }
     cs.addLocal(name, typedObj);
     ast.getLocalIndex() = cs.getLocalIndex(name);
@@ -369,6 +389,13 @@ BlsObject Analyzer::visit(AstNode::Expression::Binary& ast) {
     auto rightResult = ast.getRight()->accept(*this);
     auto& lhs = resolve(leftResult);
     auto& rhs = resolve(rightResult);
+
+    if (getType(lhs) == TYPE::ANY) {
+        return lhs;
+    }
+    if (getType(rhs) == TYPE::ANY) {
+        return rhs;
+    }
 
     if (!typeCompatible(lhs, rhs)) {
         throw SemanticError("Invalid operands for binary expression");
@@ -482,6 +509,10 @@ BlsObject Analyzer::visit(AstNode::Expression::Unary& ast) {
             throw SemanticError("Assignments to temporary not permitted");
         }
     }
+
+    if (getType(object) == TYPE::ANY) {
+        return object;
+    }
     
     // operator type checking done by overload specialization
     switch (op) {
@@ -534,6 +565,14 @@ BlsObject Analyzer::visit(AstNode::Expression::Method& ast) {
     auto& methodArgs = ast.getArguments();
     auto objType = getType(object);
     ast.getLocalIndex() = cs.getLocalIndex(objectName);
+
+    if (objType == TYPE::ANY) { // skip every check for now (may cause issues)
+        for (auto&& arg : methodArgs) {
+            arg->accept(*this);
+        }
+        return object;
+    }
+
     if (objType < TYPE::PRIMITIVES_END || objType > TYPE::CONTAINERS_END) {
         throw SemanticError("Methods may only be applied on container type objects.");
     }
@@ -608,12 +647,24 @@ BlsObject Analyzer::visit(AstNode::Expression::Function& ast) {
 BlsObject Analyzer::visit(AstNode::Expression::Access& ast) {
     auto& objectName = ast.getObject();
     auto& object = cs.getLocal(objectName);
+    auto objType = getType(object);
     auto& member = ast.getMember();
     auto& subscript = ast.getSubscript();
     ast.getLocalIndex() = cs.getLocalIndex(objectName);
+
+    if (objType == TYPE::ANY) { // skip every check for now (may cause issues)
+        if (member.has_value()) {
+            addToPool(BlsType(member.value()));
+        }
+        else if (subscript.has_value()) {
+            subscript->get()->accept(*this);
+        }
+        return std::ref(object);
+    }
+
     if (member.has_value()) {
-        switch (getType(object)) {
-            #define DEVTYPE_BEGIN(name) \
+        switch (objType) {
+            #define DEVTYPE_BEGIN(name, ...) \
             case TYPE::name: \
                 if (false) { } // trick for short circuiting
             #define ATTRIBUTE(name, ...) \
@@ -637,13 +688,13 @@ BlsObject Analyzer::visit(AstNode::Expression::Access& ast) {
         return std::ref(accessible->access(memberName));
     }
     else if (subscript.has_value()) {
-        auto objType = getType(object);
         if (objType < TYPE::PRIMITIVES_END || objType > TYPE::CONTAINERS_END) {
             throw SemanticError("Subscript access only possible on container type objects");
         }
         auto& subscriptable = std::get<std::shared_ptr<HeapDescriptor>>(object);
         auto index = resolve(subscript->get()->accept(*this));
-        return std::ref(subscriptable->getSampleElement().at(0));
+        size_t elementIdx = (dynamic_cast<VectorDescriptor*>(subscriptable.get())) ? 0 : 1;
+        return std::ref(subscriptable->getSampleElement().at(elementIdx));
     }
     else {
         return std::ref(object);
@@ -808,7 +859,7 @@ BlsObject Analyzer::visit(AstNode::Specifier::Type& ast) {
         }
         break;
 
-        #define DEVTYPE_BEGIN(name) \
+        #define DEVTYPE_BEGIN(name, ...) \
         case TYPE::name: \
             using namespace TypeDef; \
             if (!typeArgs.empty()) throw SemanticError("Devtypes cannot include type arguments."); \
@@ -820,6 +871,10 @@ BlsObject Analyzer::visit(AstNode::Specifier::Type& ast) {
         #undef DEVTYPE_BEGIN
         #undef ATTRIBUTE
         #undef DEVTYPE_END
+
+        case TYPE::ANY:
+            return BlsType(std::make_shared<MapDescriptor>(TYPE::ANY, TYPE::ANY, TYPE::ANY));
+        break;
 
         default:
             throw SemanticError("Invalid type: " + ast.getName());
@@ -927,6 +982,7 @@ BlsObject Analyzer::visit(AstNode::Initializer::Oblock& ast) {
                 throw SemanticError("Polling rate values must be integers or floats.");
             }
             auto& param = paramExpr->getObject();
+            cs.getLocal(param); // check that param exists
             auto rate = resolve(rateExpr->accept(*this));
             literalPool.erase(rate);
             
@@ -935,27 +991,103 @@ BlsObject Analyzer::visit(AstNode::Initializer::Oblock& ast) {
             dev.isConst = true;
         }
     }
-    else if (option == "dropReadOn") {
-        if (args.empty()) {
-            throw SemanticError("dropReadOn takes at least one argument.");
+    else if (option == "processPolicy") {
+        if (args.size() != 1) {
+            throw SemanticError("Exactly one argument must be supplied to processPolicy.");
         }
-        for (auto&& arg : args) {
-            if (auto* parameter = dynamic_cast<AstNode::Expression::Access*>(arg.get())) {
-                auto& alias = parameter->getObject();
-                cs.getLocal(alias); // check that param exists
-                boundDevices.at(parameterIndices.at(alias)).dropRead = true;
+        auto* configMap = dynamic_cast<AstNode::Expression::Map*>(args.at(0).get());
+        if (!configMap) {
+            throw SemanticError("processPolicy must be supplied a mapping of oblock parameters to policy options.");
+        }
+        for (auto&& [key, value] : configMap->getElements()) {
+            auto* paramExpr = dynamic_cast<AstNode::Expression::Access*>(key.get());
+            auto* policyMap = dynamic_cast<AstNode::Expression::Map*>(value.get());
+            if (!paramExpr) {
+                throw SemanticError("Mapping keys must be oblock parameters.");
             }
+            if (!policyMap) {
+                throw SemanticError("Mapping values must be policy option mappings");
+            }
+
+            auto& param = paramExpr->getObject();
+            cs.getLocal(param); // check that param exists
+            auto& dev = boundDevices.at(parameterIndices.at(param));
+
+            for (auto&& [key, value] : policyMap->getElements()) {
+                auto* policyExpr = dynamic_cast<AstNode::Expression::Literal*>(key.get());
+                auto* optionExpr = dynamic_cast<AstNode::Expression::Literal*>(value.get());
+                if (!policyExpr || !std::holds_alternative<std::string>(policyExpr->getLiteral())) {
+                    throw SemanticError("Policy name must be a string literal.");
+                }
+                auto policy = std::get<std::string>(policyExpr->getLiteral());
+                if (policy == "read") {
+                    if (!optionExpr || !std::holds_alternative<std::string>(optionExpr->getLiteral())) {
+                        throw SemanticError("Read policy must be a string literal.");
+                    }
+                    auto option = std::get<std::string>(optionExpr->getLiteral());
+                    if (option == "all") {
+                        dev.readPolicy = READ_POLICY::ALL;
+                    }
+                    else if (option == "any") {
+                        dev.readPolicy = READ_POLICY::ANY;
+                    }
+                    else {
+                        throw SemanticError("Read policy must be either \"any\" or \"all\".");
+                    }
+                }
+                else if (policy == "yield") {
+                    if (!optionExpr || !std::holds_alternative<bool>(optionExpr->getLiteral())) {
+                        throw SemanticError("Yield policy must be a bool literal.");
+                    }
+                    dev.isYield = std::get<bool>(optionExpr->getLiteral());
+                }
+                else if (policy == "ignoreWriteBacks") {
+                    if (!optionExpr || !std::holds_alternative<bool>(optionExpr->getLiteral())) {
+                        throw SemanticError("WriteBack processing policy must be a bool literal.");
+                    }
+                    dev.ignoreWriteBacks = std::get<bool>(optionExpr->getLiteral());
+                }
+                else {
+                    throw SemanticError("Invalid process policy supplied");
+                }
+            }
+            
         }
     }
-    else if (option == "dropWriteOn") {
-        if (args.empty()) {
-            throw SemanticError("dropWriteOn takes at least one argument.");
+    else if (option == "overwritePolicy") {
+        if (args.size() != 1) {
+            throw SemanticError("Exactly one argument must be supplied to overwritePolicy.");
         }
-        for (auto&& arg : args) {
-            if (auto* parameter = dynamic_cast<AstNode::Expression::Access*>(arg.get())) {
-                auto& alias = parameter->getObject();
-                cs.getLocal(alias); // check that param exists
-                boundDevices.at(parameterIndices.at(alias)).dropWrite = true;
+        auto* configMap = dynamic_cast<AstNode::Expression::Map*>(args.at(0).get());
+        if (!configMap) {
+            throw SemanticError("overwritePolicy must be supplied a mapping of oblock parameters to policy options.");
+        }
+        for (auto&& [key, value] : configMap->getElements()) {
+            auto* paramExpr = dynamic_cast<AstNode::Expression::Access*>(key.get());
+            auto* policyExpr = dynamic_cast<AstNode::Expression::Literal*>(value.get());
+            if (!paramExpr) {
+                throw SemanticError("Mapping keys must be oblock parameters.");
+            }
+            if (!policyExpr || !std::holds_alternative<std::string>(policyExpr->getLiteral())) {
+                throw SemanticError("Mapping values must be string literals");
+            }
+            
+            auto& param = paramExpr->getObject();
+            cs.getLocal(param); // check that param exists
+            auto& dev = boundDevices.at(parameterIndices.at(param));
+
+            auto policy = std::get<std::string>(policyExpr->getLiteral());
+            if (policy == "clear") {
+                dev.overwritePolicy = OVERWRITE_POLICY::CLEAR;
+            }
+            else if (policy == "current") {
+                dev.overwritePolicy = OVERWRITE_POLICY::CURRENT;
+            }
+            else if (policy == "discard") {
+                dev.overwritePolicy = OVERWRITE_POLICY::DISCARD;
+            }
+            else {
+                throw SemanticError("Overwrite policy must be either \"clear\", \"current\", or \"discard\".");
             }
         }
     }

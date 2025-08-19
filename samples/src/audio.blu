@@ -1,0 +1,71 @@
+oblock playSound(KEYBOARD kbd, AUDIO_PLAYER ap) : triggerOn(kbd), processPolicy({ap : { "read" : "any" }}) {
+    if (kbd.key == "R") {
+        println("RESUMING AUDIO: " + ap.file);
+        ap.paused = false;
+    }
+    else if (kbd.key == "P") {
+        println("PAUSING AUDIO: " + ap.file);
+        ap.paused = true;
+    }
+    else if (kbd.key == "T") {
+        println("SETTING AUDIO TO TEST.WAV");
+        ap.file = "test.wav";
+    }
+    else if (kbd.key == "S") {
+        println("SETTING AUDIO TO SECOND.WAV");
+        ap.file = "second.wav";
+    }
+    else if (kbd.key == "U") {
+        ap.volume += 5;
+    }
+    else if (kbd.key == "D") {
+        ap.volume -= 5;
+    }
+}
+
+
+oblock playSoundHttp(HTTP_ENDPOINT endpt, AUDIO_PLAYER ap) 
+: triggerOn(endpt), processPolicy({ap : { "read" : "any" }, endpt : {"ignoreWriteBacks" : true, "read" : "any"}})
+{
+    if(getTrigger() == "initial"){
+        println("Hit initial"); 
+        return; 
+    }
+
+    if(endpt.requestMethod == "POST"){
+        if(endpt.requestJson == "pause"){
+            ap.paused = true; 
+        }
+        else if(endpt.requestJson == "resume"){
+            ap.paused = false;
+        }
+        else if(endpt.requestJson == "test" || endpt.requestJson == "second"){
+            ap.paused = false; 
+            ap.file = endpt.requestJson + ".wav"; 
+        }   
+        else{
+            print(endpt.requestJson); 
+        }
+    }
+    endpt.responseCode = 200;
+}
+
+oblock requestTest(KEYBOARD kbd)
+: triggerOn(kbd)
+{
+    if(kbd.key == "Space"){
+       string resJson =  httpRequest("GET", "jsonplaceholder.typicode.com", "/todos/1", ""); 
+       println(resJson); 
+    }
+}
+
+
+setup() {
+
+    HTTP_ENDPOINT king = "ctl::endpoint-/api/play"; 
+    AUDIO_PLAYER AP = "ctl::directory-samples/client";
+    KEYBOARD KBD = "ctl::mode-all";
+    //playSound(KBD, AP);
+    //playSoundHttp(king, AP); 
+    requestTest(KBD); 
+}

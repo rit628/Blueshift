@@ -7,11 +7,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_SCAN_FOR_MODULES)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-sign-compare -Wno-unused-parameter")
-set(CMAKE_CXX_FLAGS_DEBUG "-O0 -glldb -gfull")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
-set(CMAKE_CXX_FLAGS_MINSIZEREL "-Os -DNDEBUG")
-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-Og -glldb -DNDEBUG")
+SET(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
 
 # Packages
 include(FetchContent)
@@ -20,37 +16,62 @@ set(FETCHCONTENT_QUIET OFF)
 # GoogleTest
 FetchContent_Declare(
     googletest
+    SYSTEM # Disable warnings in headers
     URL https://github.com/google/googletest/archive/b514bdc898e2951020cbdca1304b75f5950d1f59.zip
 )
 # For Windows: Prevent overriding the parent project's compiler/linker settings
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
 # Boost
-set(REQUIRED_BOOST_LIBS asio thread regex lockfree type_index math json serialization)
-list(TRANSFORM REQUIRED_BOOST_LIBS PREPEND Boost:: OUTPUT_VARIABLE BOOST_LIB_DEPS)
+set(REQUIRED_BOOST_LIBS asio thread regex lockfree type_index math json serialization beast url)
+list(TRANSFORM REQUIRED_BOOST_LIBS PREPEND Boost:: OUTPUT_VARIABLE BOOST_LINK_LIBRARIES)
 FetchContent_Declare(
     Boost
+    SYSTEM # Disable warnings in headers
     URL https://github.com/boostorg/boost/releases/download/boost-1.86.0/boost-1.86.0-cmake.zip
 )
 set(BOOST_INCLUDE_LIBRARIES ${REQUIRED_BOOST_LIBS})
 
+FetchContent_Declare(
+    curl
+    SYSTEM # Disable warnings in headers
+    URL https://github.com/curl/curl/releases/download/curl-8_15_0/curl-8.15.0.zip
+)
+
 # SDL3
 FetchContent_Declare(
     SDL3
+    SYSTEM # Disable warnings in headers
     URL https://github.com/libsdl-org/SDL/archive/refs/tags/release-3.2.16.zip
 )
 
 if(NOT DISABLE_SDL)
     add_compile_definitions(SDL_ENABLED)
-    set(FETCHCONTENT_OPTIONAL SDL3)
+    set(FETCHCONTENT_OPTIONAL ${FETCHCONTENT_OPTIONAL} SDL3)
     set(SYSTEM_LINK_LIBRARIES ${SYSTEM_LINK_LIBRARIES} SDL3::SDL3)
 endif()
 
+if(NOT DISABLE_CURL)
+    set(FETCHCONTENT_OPTIONAL ${FETCHCONTENT_OPTIONAL} curl)
+    set(SYSTEM_LINK_LIBRARIES ${SYSTEM_LINK_LIBRARIES} ssl crypto)
+endif()
+
+set(CMAKE_CXX_FLAGS "-w") # Disable warnings for fetched content
 FetchContent_MakeAvailable(googletest Boost ${FETCHCONTENT_OPTIONAL})
+
+# Set compile options after fetch content to suppress external warnings
+set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-sign-compare -Wno-unused-parameter")
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -glldb -gfull")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
+set(CMAKE_CXX_FLAGS_MINSIZEREL "-Os -DNDEBUG")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-Og -glldb -DNDEBUG")
     
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$ENV{ARCHIVE_OUTPUT_DIRECTORY})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$ENV{LIBRARY_OUTPUT_DIRECTORY})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$ENV{RUNTIME_OUTPUT_DIRECTORY})
+
+include_directories(${curl_SOURCE_DIR}/include)
+link_libraries(${BOOST_LINK_LIBRARIES} ${SYSTEM_LINK_LIBRARIES})
 
 set(BLS_CONFIG ${CMAKE_SOURCE_DIR}/config)
 
@@ -78,145 +99,142 @@ add_library(TSQ STATIC ${LIBTSQ_SRC})
 file(GLOB_RECURSE LIBTSM_SRC ${COMMON_SRC_DIR}/libTSM/*.cpp)
 add_library(TSM STATIC ${LIBTSM_SRC})
 
-
 file(GLOB_RECURSE LIBTYPE_SRC ${COMMON_SRC_DIR}/libtype/*.cpp)
 add_library(type STATIC ${LIBTYPE_SRC})
 target_include_directories(type PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
-target_link_libraries(type ${BOOST_LIB_DEPS})
 
 file(GLOB_RECURSE LIBTRAP_SRC ${COMMON_SRC_DIR}/libtrap/*.cpp)
 add_library(trap STATIC ${LIBTRAP_SRC})
 target_include_directories(trap PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON} ${MASTER_SRC_DIR})
-target_link_libraries(trap type ${BOOST_LIB_DEPS})
+target_link_libraries(trap EM type)
 
 file(GLOB_RECURSE LIBDM_SRC ${COMMON_SRC_DIR}/libDM/*.cpp)
 add_library(dynamic_message STATIC ${LIBDM_SRC})
 target_include_directories(dynamic_message PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
-target_link_libraries(dynamic_message type ${BOOST_LIB_DEPS})
+target_link_libraries(dynamic_message type)
 
 file(GLOB_RECURSE LIBNETWORK_SRC ${COMMON_SRC_DIR}/libnetwork/*.cpp)
 add_library(network STATIC ${LIBNETWORK_SRC})
 target_include_directories(network PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
-target_link_libraries(network TSQ ${BOOST_LIB_DEPS})
+target_link_libraries(network TSQ)
 
 file(GLOB_RECURSE LIBSCHEDULER_SRC ${COMMON_SRC_DIR}/libScheduler/*.cpp)
 add_library(scheduler STATIC ${LIBSCHEDULER_SRC})
 target_include_directories(scheduler PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
-target_link_libraries(scheduler TSQ ${BOOST_LIB_DEPS})
+target_link_libraries(scheduler TSQ)
 
 file(GLOB_RECURSE LIBBYTECODE_SRC ${COMMON_SRC_DIR}/libbytecode/*.cpp)
 add_library(bytecode STATIC ${LIBBYTECODE_SRC})
 target_include_directories(bytecode PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
-target_link_libraries(bytecode ${BOOST_LIB_DEPS})
 
 # LANG LIBS AND EXECUTABLE
 file(GLOB_RECURSE LANG_COMMON_SRC ${LANG_COMMON}/*.cpp)
 add_library(lang_common STATIC ${LANG_COMMON_SRC})
 target_include_directories(lang_common PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
-target_link_libraries(lang_common type ${BOOST_LIB_DEPS})
+target_link_libraries(lang_common type)
 
 file(GLOB_RECURSE LIBLEXER_SRC ${LANG_SRC_DIR}/liblexer/*.cpp)
 add_library(lexer STATIC ${LIBLEXER_SRC})
 target_include_directories(lexer PUBLIC ${BLS_CONFIG} ${LANG_COMMON})
-target_link_libraries(lexer lang_common ${BOOST_LIB_DEPS})
+target_link_libraries(lexer lang_common)
 
 file(GLOB_RECURSE LIBPARSER_SRC ${LANG_SRC_DIR}/libparser/*.cpp)
 add_library(parser STATIC ${LIBPARSER_SRC})
 target_include_directories(parser PUBLIC ${BLS_CONFIG} ${LANG_COMMON})
-target_link_libraries(parser lang_common ${BOOST_LIB_DEPS})
+target_link_libraries(parser lang_common)
 
 file(GLOB_RECURSE LIBINTERPRETER_SRC ${LANG_SRC_DIR}/libinterpreter/*.cpp)
 add_library(interpreter STATIC ${LIBINTERPRETER_SRC})
 target_include_directories(interpreter PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
-target_link_libraries(interpreter lang_common type trap ${BOOST_LIB_DEPS})
+target_link_libraries(interpreter lang_common type trap)
 
 file(GLOB_RECURSE LIBANALYZER_SRC ${LANG_SRC_DIR}/libanalyzer/*.cpp)
 add_library(analyzer STATIC ${LIBANALYZER_SRC})
 target_include_directories(analyzer PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
-target_link_libraries(analyzer lang_common type trap ${BOOST_LIB_DEPS})
+target_link_libraries(analyzer lang_common type trap)
 
 file(GLOB_RECURSE LIBGENERATOR_SRC ${LANG_SRC_DIR}/libgenerator/*.cpp)
 add_library(generator STATIC ${LIBGENERATOR_SRC})
 target_include_directories(generator PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
-target_link_libraries(generator lang_common type trap ${BOOST_LIB_DEPS})
+target_link_libraries(generator lang_common type trap)
 
 file(GLOB_RECURSE LIBDEPGRAPH_SRC ${LANG_SRC_DIR}/libdepgraph/*.cpp)
 add_library(depgraph STATIC ${LIBDEPGRAPH_SRC})
 target_include_directories(depgraph PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
-target_link_libraries(depgraph lang_common type ${BOOST_LIB_DEPS})
+target_link_libraries(depgraph lang_common type)
 
 file(GLOB_RECURSE LIBSYMGRAPH_SRC ${LANG_SRC_DIR}/libsymgraph/*.cpp)
 add_library(symgraph STATIC ${LIBSYMGRAPH_SRC})
 target_include_directories(symgraph PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
-target_link_libraries(symgraph depgraph lang_common type ${BOOST_LIB_DEPS})
+target_link_libraries(symgraph depgraph lang_common type)
 
 file(GLOB_RECURSE LIBDIVIDER_SRC ${LANG_SRC_DIR}/libdivider/*.cpp)
 add_library(divider STATIC ${LIBDIVIDER_SRC})
 target_include_directories(divider PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
-target_link_libraries(divider symgraph depgraph lang_common type ${BOOST_LIB_DEPS})
+target_link_libraries(divider symgraph depgraph lang_common type)
 
 file(GLOB_RECURSE LIBVIRTUALMACHINE_SRC ${LANG_SRC_DIR}/libvirtual_machine/*.cpp)
 add_library(virtual_machine STATIC ${LIBVIRTUALMACHINE_SRC})
 target_include_directories(virtual_machine PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_COMMON})
-target_link_libraries(virtual_machine lang_common type bytecode trap ${BOOST_LIB_DEPS})
+target_link_libraries(virtual_machine lang_common type bytecode trap)
 
 file(GLOB_RECURSE LIBCOMPILER_SRC ${LANG_SRC_DIR}/libcompiler/*.cpp)
 add_library(compiler STATIC ${LIBCOMPILER_SRC})
 target_include_directories(compiler PUBLIC ${BLS_CONFIG} ${LANG_COMMON} ${LANG_SRC_DIR})
-target_link_libraries(compiler lang_common lexer parser interpreter analyzer generator depgraph symgraph divider ${BOOST_LIB_DEPS})
+target_link_libraries(compiler lang_common lexer parser interpreter analyzer generator depgraph symgraph divider)
 
 add_executable(lang ${LANG_SRC_DIR}/main.cpp)
-target_link_libraries(lang symgraph compiler virtual_machine ${BOOST_LIB_DEPS})
+target_link_libraries(lang symgraph compiler virtual_machine)
 
 # MASTER LIBS AND EXECUTABLE
 file(GLOB_RECURSE LIBTICKER_SRC ${MASTER_SRC_DIR}/libTicker/*.cpp)
 add_library(ticker STATIC ${LIBTICKER_SRC})
 target_include_directories(ticker PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
-target_link_libraries(ticker network TSQ ${BOOST_LIB_DEPS})
+target_link_libraries(ticker network TSQ)
 
 file(GLOB_RECURSE LIBEM_SRC ${MASTER_SRC_DIR}/libEM/*.cpp)
 add_library(EM STATIC ${LIBEM_SRC})
 target_include_directories(EM PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_SRC_DIR} ${MASTER_SRC_DIR})
-target_link_libraries(EM scheduler TSM TSQ dynamic_message interpreter virtual_machine ${BOOST_LIB_DEPS})
+target_link_libraries(EM scheduler TSM TSQ dynamic_message interpreter virtual_machine)
 
 file(GLOB_RECURSE LIBMM_SRC ${MASTER_SRC_DIR}/libMM/*.cpp)
 add_library(MM STATIC ${LIBMM_SRC})
 target_include_directories(MM PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${MASTER_SRC_DIR})
-target_link_libraries(MM EM TSQ dynamic_message depgraph ${BOOST_LIB_DEPS})
+target_link_libraries(MM EM TSQ dynamic_message depgraph)
 
 file(GLOB_RECURSE LIBNM_SRC ${MASTER_SRC_DIR}/libNM/*.cpp)
 add_library(NM STATIC ${LIBNM_SRC})
 target_include_directories(NM PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${MASTER_SRC_DIR})
-target_link_libraries(NM network dynamic_message ticker ${BOOST_LIB_DEPS})
+target_link_libraries(NM network dynamic_message ticker)
 
 add_executable(master ${MASTER_SRC_DIR}/main.cpp)
 target_include_directories(master PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_SRC_DIR})
-target_link_libraries(master TSQ EM MM NM compiler ${BOOST_LIB_DEPS})
+target_link_libraries(master TSQ EM MM NM compiler)
 
 # CLIENT LIBS AND EXECUTABLE
 file(GLOB_RECURSE DRIVER_SRC ${CLIENT_SRC_DIR}/drivers/*.cpp)
 add_library(drivers OBJECT ${DRIVER_SRC}) # must be an object library to ensure strong symbols for controller dependent drivers are utilized
 target_include_directories(drivers PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${CLIENT_SRC_DIR}/libDevice)
-target_link_libraries(drivers dynamic_message ${BOOST_LIB_DEPS} ${SYSTEM_LINK_LIBRARIES})
+target_link_libraries(drivers dynamic_message)
 
 file(GLOB_RECURSE LIBDEVICE_SRC ${CLIENT_SRC_DIR}/libDevice/*.cpp)
 add_library(device STATIC ${LIBDEVICE_SRC} $<TARGET_OBJECTS:drivers>)
 target_include_directories(device PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
-target_link_libraries(device network dynamic_message ${BOOST_LIB_DEPS} ${SYSTEM_LINK_LIBRARIES})
+target_link_libraries(device network dynamic_message)
 
 file(GLOB_RECURSE LIBCLIENTGATEWAY_SRC ${CLIENT_SRC_DIR}/libClientGateway/*.cpp)
 add_library(client_gateway STATIC ${LIBCLIENTGATEWAY_SRC})
 target_include_directories(client_gateway PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${CLIENT_SRC_DIR})
-target_link_libraries(client_gateway network device virtual_machine bytecode ${BOOST_LIB_DEPS})
+target_link_libraries(client_gateway network device virtual_machine bytecode)
 
 file(GLOB_RECURSE LIBCE_SRC ${CLIENT_SRC_DIR}/libCE/*.cpp)
 add_library(client_engine STATIC ${LIBCE_SRC})
 target_include_directories(client_engine PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${CLIENT_SRC_DIR})
-target_link_libraries(client_engine network device client_gateway ${BOOST_LIB_DEPS})
+target_link_libraries(client_engine network device client_gateway)
 
 add_executable(client ${CLIENT_SRC_DIR}/main.cpp)
 target_include_directories(client PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR} ${LANG_SRC_DIR})
-target_link_libraries(client "$<LINK_LIBRARY:WHOLE_ARCHIVE,device>" client_engine ${BOOST_LIB_DEPS}) # whole library archive is linked to check for strong symbols
+target_link_libraries(client "$<LINK_LIBRARY:WHOLE_ARCHIVE,device>" client_engine) # whole library archive is linked to check for strong symbols
 
 # UTILITY EXECUTABLES
 add_executable(echo ${UTIL_SRC_DIR}/echo/main.cpp)
@@ -224,12 +242,12 @@ add_executable(echo ${UTIL_SRC_DIR}/echo/main.cpp)
 file(GLOB_RECURSE BSMP_SRC ${UTIL_SRC_DIR}/bsmp/*.cpp)
 add_executable(bsmp ${BSMP_SRC})
 target_include_directories(bsmp PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
-target_link_libraries(bsmp bytecode type ${BOOST_LIB_DEPS})
+target_link_libraries(bsmp bytecode type)
 
 file(GLOB_RECURSE BSMW_SRC ${UTIL_SRC_DIR}/bsmw/*.cpp)
 add_executable(bsmw ${BSMW_SRC})
 target_include_directories(bsmw PUBLIC ${BLS_CONFIG} ${COMMON_SRC_DIR})
-target_link_libraries(bsmw bytecode type ${BOOST_LIB_DEPS})
+target_link_libraries(bsmw bytecode type)
 
 # TESTS
 if(NOT CMAKE_CROSSCOMPILING)

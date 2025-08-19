@@ -1,0 +1,28 @@
+oblock logPad(GAMEPAD gp) : triggerOn(gp), processPolicy({gp : {"read" : "any"} }) {
+    if(getTrigger() == "initial"){
+        print("THOMAS");
+        return; 
+    }
+    if (gp.a) {
+        print("TIME TO RUMBLE");
+        gp.leftRumble = 99999;
+        gp.rumbleDuration = 3000;
+    }
+    else if (gp.lb) {
+        print("GYRO TIME");
+        print("pitch: ", gp.pitch);
+        print("roll: ", gp.roll);
+    }
+    else {
+        print("NO RUMBLE");
+        print("LEFT STICK: ", gp.leftStickX, gp.leftStickY);
+        print("RIGHT STICK: ", gp.rightStickX, gp.rightStickY);
+        print("LT: ", gp.lt);
+        print("RT: ", gp.rt);
+    }
+}
+
+setup() {
+    GAMEPAD gp = "ctl::mapping-automatic";
+    logPad(gp);
+}

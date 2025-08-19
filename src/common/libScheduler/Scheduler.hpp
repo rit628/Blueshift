@@ -8,6 +8,7 @@
 #include <unordered_map> 
 #include <unordered_set> 
 #include <vector>
+#include <algorithm>
 #include <set> 
 
 
@@ -51,35 +52,56 @@ struct DeviceQueue{
 
 // Loaded state info: 
 struct PendingStateInfo{
+
+
+    private: 
+
+        void triggerConfirm(){
+            {
+                std::lock_guard<std::mutex> lock(mtx); 
+                executeFlag = true;
+            }
+            cv.notify_one(); 
+        }
+
+        
+    public: 
+
     std::unordered_set<DeviceID> mustOwn; 
+
+    std::unordered_set<DeviceID> grantedDevices; 
+    std::unordered_set<DeviceID> ownedDevices; 
     int ownedCounter = 0; 
     int confirmedCounter = 0; 
     bool executeFlag = false; 
+    OblockID oblockName; 
 
 
     std::mutex mtx; 
-    std::condition_variable cv; 
+    std::condition_variable cv;
 
-    bool addDevice(DeviceID &dev){
+    // Receiver functions(react to message)
+
+    bool addDeviceGrant(DeviceID &dev){
         if(mustOwn.contains(dev)){
+            grantedDevices.insert(dev); 
            if(mustOwn.size() == ++this->ownedCounter){
             ownedCounter = 0;  
+            //std::cout<<"CONFIRMED OWNER"<<std::endl; 
             return true;    
            } 
         }
         return false; 
     }
 
-    // Used when device confirmation is received
     bool confirmDevice(DeviceID &dev){
         if(mustOwn.contains(dev)){
+            this->ownedDevices.insert(dev);
             if(mustOwn.size() == ++this->confirmedCounter){
+                this->ownedDevices.clear(); 
                 this->confirmedCounter = 0; 
-                {
-                    std::lock_guard<std::mutex> lock(mtx); 
-                    executeFlag = true;
-                }
-                cv.notify_one(); 
+                //std::cout<<"we good! running oblock"<<std::endl; 
+                this->triggerConfirm();
                 return true; 
             }
         }
@@ -101,14 +123,14 @@ class DeviceScheduler{
         std::unordered_map<OblockID, PendingStateInfo> oblockWaitMap; 
 
         // Utility Functions: 
-        HeapMasterMessage makeMessage(OblockID& oName, DeviceID& devName, PROTOCOLS pmsg, int priority); 
+        HeapMasterMessage makeMessage(OblockID& oName, DeviceID& devName, PROTOCOLS pmsg, int priority, bool vtype); 
 
         // Function
-        function<void(HeapMasterMessage)> handleMessage; 
+        std::function<void(HeapMasterMessage)> handleMessage; 
         
 
     public: 
-        DeviceScheduler(std::vector<OBlockDesc> &oblockDescList, function<void(HeapMasterMessage)> dmm_message); 
+        DeviceScheduler(std::vector<OBlockDesc> &oblockDescList, std::function<void(HeapMasterMessage)> dmm_message); 
         void request(OblockID& oblockName, int priority); 
         void receive(HeapMasterMessage &DMM); 
         void release(OblockID &reqOblock); 

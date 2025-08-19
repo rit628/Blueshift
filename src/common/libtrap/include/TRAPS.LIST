@@ -7,7 +7,7 @@ TRAP_BEGIN(println, void)
 TRAP_END
 
 TRAP_BEGIN(sleep, void)
-    ARGUMENT(seconds, int)
+    ARGUMENT(ms, int)
 TRAP_END
 
 TRAP_BEGIN(stoi, int)
@@ -22,4 +22,46 @@ TRAP_BEGIN(getTrigger, string)
 TRAP_END
 
 TRAP_BEGIN(time, string)
+TRAP_END
+
+TRAP_BEGIN(disableTrigger, void)
+    ARGUMENT(triggerName, string)
+    ARGUMENT(oblockID, string)
+TRAP_END
+
+TRAP_BEGIN(enableTrigger, void)
+    ARGUMENT(triggerName, string)
+    ARGUMENT(oblockID, string)
+TRAP_END
+
+TRAP_BEGIN(push, void)
+    VARIADIC(states)
+TRAP_END
+
+TRAP_BEGIN(pull, void)
+    VARIADIC(states)
+TRAP_END 
+
+TRAP_BEGIN(sync, void)
+    VARIADIC(states)
+TRAP_END
+
+TRAP_BEGIN(loadJson, any)
+    ARGUMENT(json, string)
+TRAP_END
+
+TRAP_BEGIN(jsonify, string)
+    ARGUMENT(value, any)
+TRAP_END
+
+TRAP_BEGIN(httpRequest, string)
+    ARGUMENT(method, string) 
+    ARGUMENT(host, string)
+    ARGUMENT(target, string) 
+    ARGUMENT(body, string)
+TRAP_END
+
+TRAP_BEGIN(containsType, bool)
+    ARGUMENT(value, any)
+    ARGUMENT(typeName, string)
 TRAP_END

@@ -1,5 +1,6 @@
 #pragma once
 #include "typedefs.hpp"
+#include <any>
 #include <cmath>
 #include <concepts>
 #include <cstddef>
@@ -19,6 +20,7 @@
 #include <boost/serialization/base_object.hpp>
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/unordered_map.hpp>
+#include <boost/json.hpp>
 
 /* define reserved words for types in lang */
 namespace BlsLang {
@@ -32,7 +34,7 @@ namespace BlsLang {
   constexpr auto CONTAINER_LIST                       ("list");
   constexpr auto CONTAINER_MAP                        ("map");
 
-  #define DEVTYPE_BEGIN(name) \
+  #define DEVTYPE_BEGIN(name, ...) \
   constexpr auto DEVTYPE_##name                                          (#name);
   #define ATTRIBUTE(...)
   #define DEVTYPE_END
@@ -40,6 +42,8 @@ namespace BlsLang {
   #undef DEVTYPE_BEGIN
   #undef ATTRIBUTE
   #undef DEVTYPE_END
+
+  constexpr auto SPECIAL_ANY                          ("any");
 
 };
 
@@ -55,7 +59,7 @@ enum class TYPE : uint32_t {
   , map_t
   , CONTAINERS_END
 
-  #define DEVTYPE_BEGIN(name) \
+  #define DEVTYPE_BEGIN(name, ...) \
   , name
   #define ATTRIBUTE(...)
   #define DEVTYPE_END 
@@ -107,12 +111,17 @@ struct BlsType : std::variant<std::monostate, bool, int64_t, double, std::string
 };
 
 namespace TypeDef {
+
+  using any = std::any;
+
   template<typename T>
-  concept BlueshiftConstructible = BlueshiftType<T> || std::same_as<std::remove_cv_t<std::remove_reference_t<T>>, BlsType>;
+  concept BlueshiftConstructible = BlueshiftType<T>
+                                || std::same_as<std::remove_cv_t<std::remove_reference_t<T>>, BlsType>
+                                || std::same_as<std::remove_cv_t<std::remove_reference_t<T>>, any>;
 
   template<BlueshiftConstructible T>
   struct Resolve {
-    using type = T;
+    using type = BlsType;
   };
 
   template<BlueshiftType T>
@@ -148,6 +157,7 @@ class HeapDescriptor {
 
   public:
     bool modified = false;
+    int index = -1; 
 
     HeapDescriptor() = default;
     virtual ~HeapDescriptor() = default;
@@ -178,6 +188,8 @@ class MapDescriptor : public HeapDescriptor{
     MapDescriptor(TYPE contType);
     MapDescriptor(TYPE objType, TYPE keyType, TYPE contType);
     MapDescriptor(std::initializer_list<std::pair<std::string, BlsType>> elements);
+    MapDescriptor& operator=(const MapDescriptor& rhs); 
+    MapDescriptor(const MapDescriptor& other); 
     // Add non-string handling later:
     BlsType& access(BlsType &obj) override;
 
@@ -201,6 +213,8 @@ class MapDescriptor : public HeapDescriptor{
     friend class boost::serialization::access;
     template<typename Archive>
     void serialize(Archive& ar, const unsigned int version);
+
+    
 };
 
 class VectorDescriptor : public HeapDescriptor, std::enable_shared_from_this<VectorDescriptor>{
@@ -278,12 +292,12 @@ BlsType createBlsType(const T& value) {
     }
     return map;
   }
-  #define DEVTYPE_BEGIN(name) \
+  #define DEVTYPE_BEGIN(name, ...) \
   else if constexpr (std::same_as<T, name>) {  \
       auto devtype = std::make_shared<MapDescriptor>(TYPE::name, TYPE::string_t, TYPE::ANY);
   #define ATTRIBUTE(name, ...) \
       BlsType name##_key = #name; \
-      BlsType name##_val = value.name; \
+      BlsType name##_val = createBlsType(value.name); \
       devtype->add(name##_key, name##_val);
   #define DEVTYPE_END \
     return devtype; \
@@ -292,6 +306,9 @@ BlsType createBlsType(const T& value) {
   #undef DEVTYPE_BEGIN
   #undef ATTRIBUTE
   #undef DEVTYPE_END
+  else if constexpr (std::same_as<T, std::any>) {
+    return std::any_cast<BlsType>(value);
+  }
   else {
     return value;
   }
@@ -319,7 +336,7 @@ T createFromBlsType(const BlsType& value) {
     }
     return result;
   }
-  #define DEVTYPE_BEGIN(name) \
+  #define DEVTYPE_BEGIN(name, ...) \
   else if constexpr (std::same_as<T, name>) {  \
     T devtype; \
     auto& map = std::dynamic_pointer_cast<MapDescriptor>(std::get<std::shared_ptr<HeapDescriptor>>(value))->getMap();
@@ -338,13 +355,28 @@ T createFromBlsType(const BlsType& value) {
 }
 
 template<TypeDef::BlueshiftConstructible T>
-constexpr T resolveBlsType(const BlsType& value) {
+TypeDef::resolved_t<T> resolveBlsType(const BlsType& value) {
   using namespace TypeDef;
-  if constexpr (Void<T> || Boolean<T> || Integer<T> || Float<T> || String<T>) {
+  if constexpr (Void<T> || Boolean<T> || String<T>) {
     return std::get<resolved_t<T>>(value);
   }
+  else if constexpr (Integer<T> || Float<T>) {
+    if (std::holds_alternative<int64_t>(value)) {
+      return std::get<int64_t>(value);
+    }
+    else {
+      return std::get<double>(value);
+    }
+  }
   else if constexpr (List<T> || Map<T>) {
+    // may need to change this to modify sample elements to maintain type adherence
     return std::dynamic_pointer_cast<resolved_t<T>>(std::get<std::shared_ptr<HeapDescriptor>>(value));
+  }
+  else if constexpr (std::same_as<std::remove_cv_t<std::remove_reference_t<T>>, any>) {
+    if (std::holds_alternative<std::monostate>(value)) { // default construct any as map descriptor
+      return BlsType(std::make_shared<MapDescriptor>(TYPE::ANY, TYPE::ANY, TYPE::ANY));
+    }
+    return value;
   }
   else {
     return value;
@@ -361,7 +393,7 @@ constexpr TYPE getTypeFromName(const std::string& type) {
   if (type == BlsLang::CONTAINER_LIST) return TYPE::list_t;
   if (type == BlsLang::CONTAINER_MAP) return TYPE::map_t;
 
-  #define DEVTYPE_BEGIN(name) \
+  #define DEVTYPE_BEGIN(name, ...) \
   if (type == BlsLang::DEVTYPE_##name) return TYPE::name;
   #define ATTRIBUTE(...)
   #define DEVTYPE_END 
@@ -370,7 +402,7 @@ constexpr TYPE getTypeFromName(const std::string& type) {
   #undef ATTRIBUTE
   #undef DEVTYPE_END
 
-  if (type == "ANY") return TYPE::ANY;
+  if (type == BlsLang::SPECIAL_ANY) return TYPE::ANY;
   return TYPE::COUNT;
 }
 
@@ -398,7 +430,7 @@ constexpr const std::string getTypeName(TYPE type) {
       return BlsLang::CONTAINER_MAP;
     break;
     
-    #define DEVTYPE_BEGIN(name) \
+    #define DEVTYPE_BEGIN(name, ...) \
     case TYPE::name: \
       return BlsLang::DEVTYPE_##name; \
     break;
@@ -409,8 +441,12 @@ constexpr const std::string getTypeName(TYPE type) {
     #undef ATTRIBUTE
     #undef DEVTYPE_END
 
+    case TYPE::ANY:
+      return BlsLang::SPECIAL_ANY;
+    break;
+
     default:
-      return "ANY";
+      return "NONE";
     break;
   }
 }
@@ -475,7 +511,7 @@ inline void BlsType::serialize(Archive& ar, const unsigned int version) {
     }
     break;
 
-    #define DEVTYPE_BEGIN(name) \
+    #define DEVTYPE_BEGIN(name, ...) \
     case TYPE::name: { \
       if (std::holds_alternative<std::monostate>(*this)) { \
         *this = std::make_shared<MapDescriptor>(TYPE::name, TYPE::string_t, TYPE::ANY); \
@@ -515,3 +551,6 @@ void VectorDescriptor::serialize(Archive & ar, const unsigned int version) {
   ar & boost::serialization::base_object<HeapDescriptor>(*this);
   ar & *vector.get();
 }
+
+BlsType tag_invoke(const boost::json::value_to_tag<BlsType>&, boost::json::value const& jv);
+void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, std::shared_ptr<HeapDescriptor> const & hd);

@@ -93,11 +93,11 @@ namespace TypeDef {
     template<typename K, typename V>
     using unordered_map = std::unordered_map<K, V>;
     
-    #define DEVTYPE_BEGIN(name) \
-    struct name { 
+    #define DEVTYPE_BEGIN(name, ...) \
+    struct name {
     #define ATTRIBUTE(name, type...) \
         using name##_t = converted_t<type>; \
-        name##_t name;
+        name##_t name = {};
     #define DEVTYPE_END \
     };
     #include "DEVTYPES.LIST"
@@ -110,7 +110,7 @@ namespace TypeDef {
 
     template<typename T>
     concept DEVTYPE = OneOf<T
-    #define DEVTYPE_BEGIN(name) \
+    #define DEVTYPE_BEGIN(name, ...) \
     , name
     #define ATTRIBUTE(...)
     #define DEVTYPE_END

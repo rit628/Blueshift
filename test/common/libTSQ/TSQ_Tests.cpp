@@ -44,13 +44,13 @@ TEST_F(TSQTest, Read_Test)
 TEST_F(TSQTest, MultiThreaded_WriteAndRead) {
     TSQ<int> sharedQueue;
     
-    thread writer([&sharedQueue]() 
+    std::thread writer([&sharedQueue]() 
     {
-        this_thread::sleep_for(chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         sharedQueue.write(99);
     });
 
-    thread reader([&sharedQueue]() 
+    std::thread reader([&sharedQueue]() 
     {
         int value = sharedQueue.read();
         EXPECT_EQ(value, 99);
@@ -67,11 +67,11 @@ TEST_F(TSQTest, Read_Blocks_Until_Data_Available)
     bool readCompleted = false;
 
     std::thread reader([&]() {
-        auto start = chrono::high_resolution_clock::now();
+        auto start = std::chrono::high_resolution_clock::now();
         result = queue.read();  // This should block until write() is called
-        auto end = chrono::high_resolution_clock::now();
+        auto end = std::chrono::high_resolution_clock::now();
 
-        chrono::duration<double> duration = end - start;
+        std::chrono::duration<double> duration = end - start;
         readCompleted = true;
 
         // Verify that read() took at least 100ms to unblock
@@ -79,7 +79,7 @@ TEST_F(TSQTest, Read_Blocks_Until_Data_Available)
     });
 
     // Sleep for 100ms to simulate delay before writing data
-    this_thread::sleep_for(chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     queue.write(42);  // Now reader should unblock
 
     reader.join();

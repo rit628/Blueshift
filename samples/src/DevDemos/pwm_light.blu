@@ -1,0 +1,20 @@
+oblock pwmLight(LINE_WRITER lw, PWM_LED led)
+: triggerOn(lw)
+{
+    if(lw.msg == "high"){
+        led.intensity = 250;
+    }
+    else if(lw.msg == "medium"){
+        led.intensity = 100;
+    }
+    else{
+        led.intensity = 50;
+    }
+}
+
+
+setup(){
+    PWM_LED led = "rpi::PIN-17";
+    LINE_WRITER lw = "ctl::file-file1.txt";
+    pwmLight(lw, led);
+}

@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <ios>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -67,14 +68,19 @@ concept Divisible = requires(T a, U b) {
 && BinaryOperable<T, U>;
 
 BlsType& BlsType::assign(const BlsType& rhs) {
-    std::visit([](auto& a, const auto& b) -> void {
-        if constexpr (WeaklyComparable<decltype(a), decltype(b)>) {
-            a = b;
-        }
-        else {
-            throw std::runtime_error("Lhs and Rhs are not assignable.");
-        }
-    }, *this, rhs);
+    if (getType(*this) == TYPE::ANY) {
+        *this = rhs;
+    }
+    else {
+        std::visit([](auto& a, const auto& b) -> void {
+            if constexpr (WeaklyComparable<decltype(a), decltype(b)>) {
+                a = b;
+            }
+            else {
+                throw std::runtime_error("Lhs and Rhs are not assignable.");
+            }
+        }, *this, rhs);
+    }
     return *this;
 }
 
@@ -286,6 +292,10 @@ BlsType operator^(const BlsType& lhs, const BlsType& rhs) {
 }
 
 bool typeCompatible(const BlsType& lhs, const BlsType& rhs) {
+    if (getType(lhs) == TYPE::ANY || getType(rhs) == TYPE::ANY) {
+        return true;
+    }
+    
     const static auto compareTypes = [](TYPE a, TYPE b)  {
         switch (a) {
             case TYPE::int_t:
@@ -372,7 +382,7 @@ std::ostream& operator<<(std::ostream& os, const BlsType& obj) {
             }
         },
         [&](const bool& x) {
-            os << ((x) ? "true" : "false");
+            os << std::boolalpha << x;
         },
         [&](const auto& x) {
             os << x;
@@ -426,10 +436,10 @@ MapDescriptor::MapDescriptor(TYPE objType, TYPE keyType, TYPE contType) {
 
     using namespace TypeDef;
     switch(this->objType){
-        #define DEVTYPE_BEGIN(name) \
+        #define DEVTYPE_BEGIN(name, ...) \
             case(TYPE::name) : { 
             #define ATTRIBUTE(varName, type) \
-                this->map->emplace(#varName, BlsType(type())); 
+                this->map->emplace(#varName, createBlsType(type())); 
             #define DEVTYPE_END \
                 break; \
             }
@@ -448,6 +458,19 @@ MapDescriptor::MapDescriptor(std::initializer_list<std::pair<std::string, BlsTyp
     this->contType = TYPE::ANY;
     this->map = std::make_shared<std::unordered_map<std::string, BlsType>>();
     this->map->insert(elements.begin(), elements.end());
+}
+
+
+MapDescriptor::MapDescriptor(const MapDescriptor& other) {
+    if(other.map){
+        this->map = std::make_shared<std::unordered_map<std::string, BlsType>>();
+        *this->map = *other.map;
+    }
+}
+
+MapDescriptor& MapDescriptor::operator=(const MapDescriptor& rhs) {
+    this->map = rhs.map; 
+    return *this;
 }
 
 BlsType& MapDescriptor::access(BlsType &obj) {
@@ -598,4 +621,72 @@ std::string stringify(const BlsType& value) {
         [](const std::string& value) { return value; },
         [](const auto&) -> std::string { throw std::runtime_error("Heap Descriptor Stringification not implemented!"); }
     }, value);
+}
+
+BlsType tag_invoke(const boost::json::value_to_tag<BlsType>&, boost::json::value const& jv) {
+    using namespace boost::json;
+    if (jv.is_array()) {
+        auto list = std::make_shared<VectorDescriptor>(TYPE::ANY);
+        for (auto&& element : jv.get_array()) {
+            auto converted = value_to<BlsType>(element);
+            list->append(converted);
+        }
+        return list;
+    }
+    else if (jv.is_object()) {
+        auto map = std::make_shared<MapDescriptor>(TYPE::ANY);
+        for (auto&& [key, value] : jv.get_object()) {
+            auto convertedKey = BlsType(key);
+            auto convertedValue = value_to<BlsType>(value);
+            map->add(convertedKey, convertedValue);
+        }
+        return map;
+    }
+    else if (jv.is_bool()) {
+        return value_to<bool>(jv);
+    }
+    else if (jv.is_int64()) {
+        return value_to<int64_t>(jv);
+    }
+    else if (jv.is_double()) {
+        return value_to<double>(jv);
+    }
+    else if (jv.is_string()) {
+        return value_to<std::string>(jv);
+    }
+    else {
+        return std::monostate();
+    }
+}
+
+void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, std::shared_ptr<HeapDescriptor> const & hd) {
+    using namespace boost::json;
+    switch (hd->getType()) {
+        case TYPE::list_t:
+            jv = value_from(std::dynamic_pointer_cast<VectorDescriptor>(hd)->getVector());
+        break;
+
+        case TYPE::map_t:
+            jv = value_from(std::dynamic_pointer_cast<MapDescriptor>(hd)->getMap());
+        break;
+
+        #define DEVTYPE_BEGIN(name, ...) \
+        case TYPE::name: \
+            jv = value_from(std::dynamic_pointer_cast<MapDescriptor>(hd)->getMap()); \
+        break;
+        #define ATTRIBUTE(...)
+        #define DEVTYPE_END 
+        #include "DEVTYPES.LIST"
+        #undef DEVTYPE_BEGIN
+        #undef ATTRIBUTE
+        #undef DEVTYPE_END
+
+        case TYPE::ANY:
+            jv = value_from(std::dynamic_pointer_cast<MapDescriptor>(hd)->getMap());
+        break;
+
+        default:
+            throw std::runtime_error("invalid heap descriptor: " + getTypeName(hd->getType()));
+        break;
+    }
 }
