@@ -2,19 +2,55 @@
 #include "include/Common.hpp"
 #include "libDM/DynamicMessage.hpp"
 #include "libnetwork/Protocol.hpp"
+#include "libtype/bls_types.hpp"
 #include <algorithm>
 #include <exception>
+#include <optional>
+#include <sstream>
 #include <stdexcept>
+#include <string>
 
 
-MasterNM::MasterNM(std::vector<OBlockDesc> &desc_list, TSQ<DMM> &in_msg, TSQ<DMM> &out_q)
+MasterNM::MasterNM(std::string&& m_id, std::vector<OBlockDesc> &desc_list, TSQ<DMM> &in_msg, TSQ<DMM> &out_q)
 : master_socket(master_ctx), master_acceptor(master_ctx, tcp::endpoint(tcp::v4(), MASTER_PORT)), 
-  EMM_in_queue(in_msg), EMM_out_queue(out_q), tickerTable(desc_list)
+  EMM_in_queue(in_msg), EMM_out_queue(out_q), tickerTable(desc_list), advert_listener(master_ctx, udp::endpoint(udp::v4(), ADVERT_BROADCAST)), 
+  MasterID(m_id)
 {
     std::cout<<"Master started!"<<std::endl; 
     writeConfig(desc_list); 
 
 }
+
+std::vector<std::string> MasterNM::splitString(const std::string& s, char delimeter){
+    std::vector<std::string> tokens; 
+    std::string token; 
+    std::istringstream stream(s); 
+    while(std::getline(stream, token ,delimeter)){
+        tokens.push_back(token); 
+    }
+
+    return tokens; 
+}
+
+
+std::optional<std::string> MasterNM::parseAdverts(std::string &advertString){
+    static constexpr int ctl_i = 0;
+    static constexpr int devtype_i = 1;
+    static constexpr int ad_index = 2; 
+    auto ad_args = splitString(advertString, ':');     
+    if(ad_args.size() == 3){
+        auto ctlName = ad_args.at(ctl_i); 
+        TYPE tf = static_cast<TYPE>(std::stoi(ad_args.at(devtype_i))); 
+        // Check if acceptor for type exists before return the response string: 
+        if(tf == TYPE::LIGHT){
+            auto ad_id = std::stoi(ad_args.at(ad_index));
+            std::stringstream omar; 
+            omar << "AD_RESP:" << this->MasterID << ":" << ad_id; 
+            return omar.str(); 
+        }
+    }
+    return {}; 
+} 
 
 
 void MasterNM::broadcastIntro(){
@@ -25,9 +61,13 @@ void MasterNM::broadcastIntro(){
                 
         while(this->remConnections > 0){
             for(auto s : this->controller_list){
+                auto modSearch = "SEARCH:" + this->MasterID + ":" + s; 
                 if(this->connection_map.find(s) == this->connection_map.end()){
-                    //std::cout<<"Broadcasting for: "<<s<<std::endl; 
-                    bcast.send_to(boost::asio::buffer(s.c_str(), s.size()), bcast_endpt); 
+                    std::cout<<"Broadcasting for: "<<s<<std::endl; 
+                    bcast.send_to(boost::asio::buffer(modSearch.c_str(), modSearch.size()), bcast_endpt); 
+                }
+                else{
+                    std::cout<<"Unknown Object"<<std::endl; 
                 }
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(2500)); 
@@ -89,18 +129,43 @@ void MasterNM::writeConfig(std::vector<OBlockDesc> &desc_list){
     }
 }
 
+void MasterNM::advertListener(){
+    this->buffer.resize(256); 
+    this->advert_listener.async_receive_from(boost::asio::buffer(buffer.data(), buffer.size()),  
+        this->advert_endpt, [this](boost::system::error_code ec, size_t len){
+        if(!ec){
+            buffer.resize(len); 
+            auto response = std::string(buffer.begin(), buffer.end()); 
+            std::cout<<"Recieved Advertisement from: "<<response<<std::endl;; 
+            auto king = this->parseAdverts(response);  
+            if(king.has_value()){
+                advert_listener.send_to(boost::asio::buffer((*king).c_str(), (*king).length()), this->advert_endpt); 
+            }
+        }
+        else{
+            std::cout<<"Connection:  Read Body"<<ec.message()<<std::endl;  
+        }        
+
+        this->advertListener();
+    }); 
+}
+
+
+
 bool MasterNM::start(){
     try{
         this->bcast_thread = std::thread([this](){this->broadcastIntro();}); 
         // Start the context thread
         listenForConnections(); 
+        advertListener();
+
         this->ctx_thread = std::thread([this](){this->master_ctx.run();}); 
-        // This is bad (its wasting a lot of CPU cycles)
         this->updateThread = std::thread([this](){this->update();});
      
         if(this->bcast_thread.joinable()){
             this->bcast_thread.join(); 
         }
+
     
         this->readerThread = std::thread([this](){this->masterRead();}); 
 
@@ -376,8 +441,7 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
                         dmsg.unpack("__DEV_ATTR_VOLATILITY__", vol_map); 
                         this->tickerTable.updateVolH(device_name, vol_map); 
                     }
-
-                    //std::cout<<"Not Interrupt?"<<std::endl; 
+ 
                     for(auto &o_name : oblock_list){
                         DMM new_msg; 
                         new_msg.info.controller = this->controller_list[in_msg.sm.header.ctl_code]; 
@@ -386,7 +450,7 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
                         new_msg.DM = dmsg; 
                         new_msg.isInterrupt = false; 
                         new_msg.protocol = PROTOCOLS::SENDSTATES; 
-                        //std::cout<<"Write to queue"<<std::endl; 
+
                         
                         this->EMM_out_queue.write(new_msg); 
                     }

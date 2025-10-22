@@ -15,6 +15,8 @@ using ControllerID = std::string;
 using DeviceID = std::string; 
 using OblockID = std::string; 
 
+#define ADVERT_BROADCAST 17065
+
 
 enum class PROTOCOLS
 {

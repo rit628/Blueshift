@@ -16,6 +16,8 @@ using DMM = DynamicMasterMessage;
 
 class MasterNM{
     private: 
+        std::string MasterID; 
+
         std::vector<std::string> controller_list; 
         std::vector<std::string> device_list; 
         std::vector<std::string> oblock_list; 
@@ -44,8 +46,13 @@ class MasterNM{
         std::thread ctx_thread; 
         tcp::socket master_socket; 
         tcp::acceptor master_acceptor; 
+        udp::socket advert_listener; 
         std::thread bcast_thread; 
         TSQ<OwnedSentMessage> in_queue; 
+
+        // Advert buffers
+        std::vector<char> buffer; 
+        udp::endpoint advert_endpt;
 
         // Ticker 
         MTicker tickerTable; 
@@ -78,6 +85,7 @@ class MasterNM{
         bool confirmClient(std::shared_ptr<Connection> &con_obj); 
         void onClientDisconnect(const std::string &controller); 
         void handleMessage(OwnedSentMessage &in_msg); 
+        void advertListener(); 
     
         // Read in data and send it out; 
         void masterRead(); 
@@ -86,8 +94,13 @@ class MasterNM{
         // Transfer the items
         void sendInitialTicker(std::shared_ptr<Connection> &client_con); 
 
+        // Parse Advertisement String; 
+        std::vector<std::string> splitString(const std::string &s, char delimiter); 
+        std::optional<std::string> parseAdverts(std::string &advertString); 
+
+
     public:     
-        MasterNM(std::vector<OBlockDesc> &descs, TSQ<DMM> &in_que, TSQ<DMM> &out_q); 
+        MasterNM(std::string&& m_id, std::vector<OBlockDesc> &descs, TSQ<DMM> &in_que, TSQ<DMM> &out_q); 
         ~MasterNM(); 
         bool start();
         void stop(); 

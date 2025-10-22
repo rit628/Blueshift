@@ -2,9 +2,11 @@
 
 #include "include/Common.hpp"
 #include "libDevice/DeviceUtil.hpp"
+#include <atomic>
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <queue>
 #include <thread>
 #include <shared_mutex>
@@ -12,8 +14,11 @@
 #include "libDevice/include/ADC.hpp"
 #include "libnetwork/Protocol.hpp"
 #include "libnetwork/Connection.hpp"
+#include "libtype/bls_types.hpp"
 #include <set> 
 #include <vector>
+
+#define ADVERT_BC 
 
 using boost::asio::ip::tcp; 
 using boost::asio::ip::udp;
@@ -61,6 +66,15 @@ struct ManagedDevice {
                         : device(dtype, config, targADC) {}
 }; 
 
+struct Advert_t{
+    std::string MasterID; 
+    std::unordered_map<std::string, std::string> bindingMap; 
+    TYPE deviceType; 
+    int args = 0; 
+    std::vector<std::string> arguments;  
+}; 
+
+
 class Client{
     private: 
 
@@ -68,12 +82,8 @@ class Client{
             Connection stuff
         */
 
-        // thing created here
-        boost::asio::io_context client_ctx; 
         // Context must run in its own thread
         std::jthread ctxThread; 
-        // Socket that listens for broadcast: 
-        boost::asio::ip::udp::socket bc_socket; 
         // Socket that is connected to server
         boost::asio::ip::tcp::socket client_socket;
         // The client object 
@@ -82,8 +92,9 @@ class Client{
         TSQ<OwnedSentMessage> in_queue; 
         // Input Thread 
         TSQ<OwnedSentMessage>client_in_queue; 
+        // Omar 
+        boost::asio::io_context client_ctx; 
     
-
 
         /*
             Blueshift Client Stuff
@@ -100,7 +111,6 @@ class Client{
         std::unordered_map<dev_int, boost::asio::strand<boost::asio::thread_pool::executor_type>> deviceStrands;
         std::unordered_map<dev_int, std::unordered_map<oblock_int, boost::asio::strand<boost::asio::thread_pool::executor_type>>> cursorViewStrands;
         
-
         // client name used to identify controller
         std::string client_name; 
         // Listens for incoming message and places it into the spot
@@ -115,7 +125,6 @@ class Client{
         void updateTicker(); 
         // Temp timers 
         std::unordered_map<uint16_t, std::vector<Timer>> start_timers;
-        
         
         // Error Sender: 
         std::unique_ptr<GenericBlsException> genBlsException; 
@@ -134,10 +143,8 @@ class Client{
 
     public: 
         // Client constructor
-        Client(std::string name); 
-        // Start the client (broadcast protocol + others)
-        void start(); 
-
+        Client(std::string name, boost::asio::io_context &ctx, udp::endpoint &master_endpt); 
+       
         // Dispatches messages to jobs when recieved 
         void listener(std::stop_token stoken);
 
@@ -148,8 +155,7 @@ class Client{
             Connection stuff
         */
     
-    
-        void broadcastListen(); 
+        void initializeClient(udp::endpoint& master_endpt); 
         bool attemptConnection(boost::asio::ip::address master_address);
         bool isConnected(); 
         bool disconnect(); 
@@ -157,6 +163,40 @@ class Client{
 
         // Later Features of other types of connections / connect to external apis: 
         bool connectTo(const std::string &endpt, uint16_t port); 
+}; 
 
 
+// Holds several clients
+class ConnectionManager{
+    private: 
+        // Connection Manager
+        const int broadcast_pulse = 2500; 
+        std::vector<Advert_t> advertList; 
+        std::vector<std::string> advertStr; 
+        std::string clientName;
+        std::vector<std::unique_ptr<Client>> clients; 
+        boost::asio::io_context clientCtx; 
+        boost::asio::ip::udp::socket bc_listener;
+        std::mutex advertMutex; 
+        std::atomic_bool foma = false; 
+
+        std::unordered_map<std::string, std::unique_ptr<Client>> clientMaps; 
+
+    public: 
+        ConnectionManager(std::string &clientName, std::vector<Advert_t> &ads);
+        void begin(); 
+
+        void startAdverts();
+
+        // Broadcast for controllers declared in the language
+        void startListener(); 
+        // Broadcast for devices advertised by the s
+        void startRecvAd(); 
+
+        // Initiator parser
+        void handleInitiatorString(std::string &str, udp::endpoint &endpt); 
+
+        void broadcastAdvert(std::vector<char> &bytestream); 
+        void connectionListen();
+         
 }; 

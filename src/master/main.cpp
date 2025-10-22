@@ -100,7 +100,7 @@ int main(int argc, char *argv[]){
     TSQ<DMM> MM_NM_queue; 
 
     // Make network (runs at start)
-    MasterNM NM(oblockDescriptors, MM_NM_queue, NM_MM_queue);
+    MasterNM NM("Omar", oblockDescriptors, MM_NM_queue, NM_MM_queue);
     NM.start(); 
 
 

@@ -19,6 +19,10 @@ enum class DTYPE : uint16_t{
 
 
 enum class Protocol : uint8_t{
+    // Intro Message Type: 
+    SEARCH, 
+    ADVERTISE, 
+
     // Configuration and Handshake
     CONFIG_INFO, 
     CONFIG_OK, 

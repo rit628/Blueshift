@@ -1,8 +1,16 @@
-oblock main(LINE_WRITER dev) {
-
+oblock main(LINE_WRITER dev, LINE_WRITER dev2) 
+: triggerOn(dev)
+{
+    if(dev.msg == "squidward"){
+        dev2.msg = "I have to kill myself: " + dev.msg; 
+    }
+    else{
+        dev2.msg = "Message transfer: " + dev.msg; 
+    }
 }
 
 setup() {
     LINE_WRITER manat = "ctl::file-file1.txt";
-    main(manat);
+    LINE_WRITER jamar = "ctl::file-omar.txt"; 
+    main(manat, jamar);
 }

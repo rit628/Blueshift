@@ -4,25 +4,180 @@
 #include "libDevice/include/ADC.hpp"
 #include "libnetwork/Connection.hpp"
 #include "libnetwork/Protocol.hpp"
+#include "libtype/bls_types.hpp"
+#include <chrono>
 #include <cstdint>
 #include <functional>
 #include <exception>
 #include <memory>
+#include <mutex>
 #include <ostream>
+#include <ranges>
 #include <stdexcept>
+#include <string>
 #include <sys/socket.h>
+#include <thread>
 #include <unordered_map>
+#include <vector>
+#include <boost/algorithm/string.hpp>
 
-Client::Client(std::string c_name): bc_socket(client_ctx, udp::endpoint(udp::v4(), BROADCAST_PORT)), client_socket(client_ctx), threadPool(std::thread::hardware_concurrency()){
+/*
+    Broadcast Code
+*/
+
+ConnectionManager::ConnectionManager(std::string &clientName, std::vector<Advert_t>& advertList)
+: bc_listener(clientCtx, udp::endpoint(udp::v4(), BROADCAST_PORT))
+{
+    this->advertList = advertList; 
+    if(!this->advertList.empty()){
+        this->foma = true; 
+    }
+    this->clientName  = clientName;  
+
+}   
+
+void ConnectionManager::begin(){
+    std::thread james{[this](){this->startAdverts();}};  
+    std::thread omar{[this](){this->startListener();}};
+    omar.join();
+    james.join();  
+}
+
+void ConnectionManager::startAdverts(){
+    if(this->advertList.empty()){
+        return; 
+    }
+
+    int i = 0; 
+    for(auto& item : this->advertList){
+
+        std::string strCandidate = std::to_string(static_cast<uint32_t>(item.deviceType)); 
+       
+        if(item.MasterID == ""){
+            strCandidate = this->clientName + ":" + strCandidate;  
+        }
+        else{
+            strCandidate = this->clientName + ":" + strCandidate;  
+        }
+
+        if(strCandidate.size() >= 256){
+            throw std::invalid_argument("Advertisement String: " + strCandidate + " is to long!"); 
+        }
+
+        this->advertStr.push_back(strCandidate + ":" + std::to_string(i)); 
+        i++; 
+    }
+ 
+    try{
+        this->bc_listener.set_option(boost::asio::socket_base::broadcast(true)); 
+        udp::endpoint advert_dest(boost::asio::ip::address_v4::broadcast(), ADVERT_BROADCAST); 
+        while(foma){
+            {
+                std::scoped_lock<std::mutex> lock(this->advertMutex); 
+                for(auto& ad : advertStr){
+                    std::cout<<"BROADCASTING: "<<ad<<std::endl; 
+                    this->bc_listener.send_to(boost::asio::buffer(ad.c_str(), ad.size()), advert_dest); 
+                }
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(this->broadcast_pulse)); 
+        
+    }
+    }
+    catch(std::exception e){
+        std::cout<<"Advertisement Broadcast Error: "<<e.what()<<std::endl; 
+    }
+}
+
+void ConnectionManager::handleInitiatorString(std::string &str, udp::endpoint& endpt)
+{
+    constexpr int msgType = 0; 
+    constexpr int nameIndex = 1;
+    constexpr int advertIndex = 2;  
+
+
+    std::vector<std::string> omar; 
+    boost::split(omar, str, boost::is_any_of(":"));
+    auto type = omar.at(msgType); 
+
+
+    if(type == "AD_RESP"){
+        auto masterName = omar.at(nameIndex); 
+        auto advertName = omar.at(advertIndex); 
+        
+        try{
+            int rmItem = std::stoi(advertName); 
+            std::scoped_lock<std::mutex> initLock(this->advertMutex); 
+            this->advertStr.erase(this->advertStr.begin() + rmItem); 
+            if(this->advertStr.empty()){
+                this->foma = true; 
+            }
+            std::cout<<"Ad Detection from: "<<masterName<<rmItem<<std::endl; 
+        }
+        catch(std::exception &e){
+            std::cout<<"ERROR: Failed to process AD_RESP initiator string."<<std::endl; 
+            return; 
+        }
+        // Begin the connection with the target object! 
+    } 
+    else if(type == "SEARCH"){
+
+        try{
+            auto masterName = omar.at(nameIndex); 
+            auto clientName = omar.at(advertIndex); 
+
+            if(clientName == this->clientName){
+                std::cout<<"Client Found: "<<"Initiating connection with:  "<<masterName<<std::endl;
+                if(!this->clientMaps.contains(masterName)){
+                    this->clientMaps.emplace(masterName, std::make_unique<Client>(this->clientName, this->clientCtx, endpt)); 
+                    this->clientMaps.at(masterName)->attemptConnection(endpt.address()); 
+                }
+            }      
+        }
+        catch(std::exception &e){
+            std::cout<<"Failure to parse the following search string: "<<str<<std::endl; 
+        }
+
+    }
+}
+
+void ConnectionManager::startListener(){
+    while(true){
+        std::cout<<"Waiting for client connection"<<std::endl; 
+        std::vector<char> buffer(MAX_NAME_LEN); 
+        udp::endpoint master_endpoint; 
+        size_t bytes_recv = this->bc_listener.receive_from(boost::asio::buffer(buffer.data(), buffer.size()), master_endpoint); 
+        buffer.resize(bytes_recv); 
+        std::string attempt_name = std::string(buffer.data()); 
+        std::cout<<"ATTEMPT NAME: "<<attempt_name<<std::endl; 
+        handleInitiatorString(attempt_name, master_endpoint); 
+
+        /*
+        if(attempt_name == this->clientName){
+            auto master_address = master_endpoint.address().to_string();
+            std::cout<<"Received Connection from controller: "<<master_address<<std::endl;
+            // Make a new client here!
+            
+        }
+        */ 
+    }   
+}
+
+void ConnectionManager::startRecvAd(){
+    return; 
+}
+
+
+/* 
+    Client code
+*/
+
+// The new client 
+Client::Client(std::string c_name, boost::asio::io_context &ctx, udp::endpoint &master_endpt): 
+client_socket(ctx), threadPool(std::thread::hardware_concurrency()){
     this->client_name = c_name; 
     std::cout<<"Client Created: " << c_name <<std::endl; 
+    this->initializeClient(master_endpt); 
 }
-
-void Client::start(){
-    std::cout<<"Starting Client"<<std::endl; 
-    this->broadcastListen(); 
-}
-
 
 void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = false, oblock_int oint = 0, bool write_self = false){
     // Write code for a callback
@@ -420,29 +575,17 @@ void Client::listener(std::stop_token stoken){
     
 }
 
-void Client::broadcastListen(){
-    while(true){
-        std::cout<<"CLIENT: waiting for client connection"<<std::endl; 
-        std::vector<char> buffer(MAX_NAME_LEN); 
-        udp::endpoint master_endpoint; 
-        size_t bytes_recv = this->bc_socket.receive_from(boost::asio::buffer(buffer.data(), buffer.size()), master_endpoint); 
-        buffer.resize(bytes_recv); 
+void Client::initializeClient(udp::endpoint& master_endpt){
+    auto master_address = master_endpt.address().to_string(); 
+    this->client_connection = std::make_shared<Connection>(
+        this->client_ctx, tcp::socket(this->client_ctx), Owner::CLIENT, this->in_queue, master_address
+); 
+    this->client_connection->setName(this->client_name); 
+    this->genBlsException = std::make_unique<GenericBlsException>(
+        this->client_connection, Owner::CLIENT
+    ); 
 
-        std::string attempt_name = std::string(buffer.data()); 
-        if(attempt_name == this->client_name){
-            auto master_address = master_endpoint.address().to_string(); 
-            this->client_connection = std::make_shared<Connection>(
-                this->client_ctx, tcp::socket(this->client_ctx), Owner::CLIENT, this->in_queue, master_address
-            ); 
-            this->client_connection->setName(this->client_name); 
-            this->genBlsException = std::make_unique<GenericBlsException>(
-                this->client_connection, Owner::CLIENT
-            ); 
-
-            this->attemptConnection(master_endpoint.address()); 
-            break;
-        }
-    }
+    this->attemptConnection(master_endpt.address()); 
 }
 
 bool Client::attemptConnection(boost::asio::ip::address master_address){
