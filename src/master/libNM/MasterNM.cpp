@@ -41,7 +41,6 @@ std::optional<std::string> MasterNM::parseAdverts(std::string &advertString){
     if(ad_args.size() == 3){
         auto ctlName = ad_args.at(ctl_i); 
         TYPE tf = static_cast<TYPE>(std::stoi(ad_args.at(devtype_i))); 
-        // Check if acceptor for type exists before return the response string: 
         if(tf == TYPE::LIGHT){
             auto ad_id = std::stoi(ad_args.at(ad_index));
             std::stringstream omar; 

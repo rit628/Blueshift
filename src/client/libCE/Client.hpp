@@ -173,12 +173,14 @@ class ConnectionManager{
         const int broadcast_pulse = 2500; 
         std::vector<Advert_t> advertList; 
         std::vector<std::string> advertStr; 
+        std::vector<std::jthread> clientActiveThreads; 
         std::string clientName;
         std::vector<std::unique_ptr<Client>> clients; 
         boost::asio::io_context clientCtx; 
         boost::asio::ip::udp::socket bc_listener;
         std::mutex advertMutex; 
         std::atomic_bool foma = false; 
+        
 
         std::unordered_map<std::string, std::unique_ptr<Client>> clientMaps; 
 

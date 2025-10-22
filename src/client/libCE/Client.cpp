@@ -37,8 +37,8 @@ ConnectionManager::ConnectionManager(std::string &clientName, std::vector<Advert
 }   
 
 void ConnectionManager::begin(){
-    std::thread james{[this](){this->startAdverts();}};  
-    std::thread omar{[this](){this->startListener();}};
+    std::jthread james{[this](){this->startAdverts();}};  
+    std::jthread omar{[this](){this->startListener();}};
     omar.join();
     james.join();  
 }
@@ -111,7 +111,8 @@ void ConnectionManager::handleInitiatorString(std::string &str, udp::endpoint& e
             if(this->advertStr.empty()){
                 this->foma = true; 
             }
-            std::cout<<"Ad Detection from: "<<masterName<<rmItem<<std::endl; 
+            std::cout<<"Ad Detection from: "<<masterName<<" against item: "<<rmItem<<std::endl; 
+
         }
         catch(std::exception &e){
             std::cout<<"ERROR: Failed to process AD_RESP initiator string."<<std::endl; 
@@ -128,11 +129,15 @@ void ConnectionManager::handleInitiatorString(std::string &str, udp::endpoint& e
             if(clientName == this->clientName){
                 std::cout<<"Client Found: "<<"Initiating connection with:  "<<masterName<<std::endl;
                 if(!this->clientMaps.contains(masterName)){
-                    this->clientMaps.emplace(masterName, std::make_unique<Client>(this->clientName, this->clientCtx, endpt)); 
-                    this->clientMaps.at(masterName)->attemptConnection(endpt.address()); 
+                    auto [it, name] = this->clientMaps.emplace(masterName, std::make_unique<Client>(this->clientName, this->clientCtx, endpt)); 
+                    this->clientActiveThreads.emplace_back([it, endpt]()
+                    {
+                        it->second->attemptConnection(endpt.address());
+                    }); 
+                    std::cout<<"Printed after intiating client-master connection"<<std::endl; 
                 }
             }      
-        }
+        }   
         catch(std::exception &e){
             std::cout<<"Failure to parse the following search string: "<<str<<std::endl; 
         }
@@ -149,16 +154,7 @@ void ConnectionManager::startListener(){
         buffer.resize(bytes_recv); 
         std::string attempt_name = std::string(buffer.data()); 
         std::cout<<"ATTEMPT NAME: "<<attempt_name<<std::endl; 
-        handleInitiatorString(attempt_name, master_endpoint); 
-
-        /*
-        if(attempt_name == this->clientName){
-            auto master_address = master_endpoint.address().to_string();
-            std::cout<<"Received Connection from controller: "<<master_address<<std::endl;
-            // Make a new client here!
-            
-        }
-        */ 
+        handleInitiatorString(attempt_name, master_endpoint);
     }   
 }
 
@@ -177,6 +173,7 @@ client_socket(ctx), threadPool(std::thread::hardware_concurrency()){
     this->client_name = c_name; 
     std::cout<<"Client Created: " << c_name <<std::endl; 
     this->initializeClient(master_endpt); 
+
 }
 
 void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = false, oblock_int oint = 0, bool write_self = false){
@@ -502,10 +499,7 @@ void Client::listener(std::stop_token stoken){
             this->deviceList.at(csReq.targetDevice).pendingRequests.getQueue().push(csReq);
         }
         else if(ptype == Protocol::OWNER_CANDIDATE_REQUEST_CONCLUDE){
-            //std::cout<<"CLIENT SIDE RECEIVED OWNER CANDIDATE REQUEST CONCLUDE"<<std::endl; 
-            // Protocol message concludes that all requests have been made in response to a trigger event ()
-            // TODO: add support for decentralization
-            
+
             dev_int targDevice = inMsg.header.device_code;
             if(!this->deviceList.at(targDevice).pendingRequests.currOwned){
                     // Add the code to send the device grant here: 
@@ -579,13 +573,11 @@ void Client::initializeClient(udp::endpoint& master_endpt){
     auto master_address = master_endpt.address().to_string(); 
     this->client_connection = std::make_shared<Connection>(
         this->client_ctx, tcp::socket(this->client_ctx), Owner::CLIENT, this->in_queue, master_address
-); 
+    ); 
     this->client_connection->setName(this->client_name); 
     this->genBlsException = std::make_unique<GenericBlsException>(
         this->client_connection, Owner::CLIENT
     ); 
-
-    this->attemptConnection(master_endpt.address()); 
 }
 
 bool Client::attemptConnection(boost::asio::ip::address master_address){
