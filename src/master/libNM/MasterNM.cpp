@@ -382,7 +382,12 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
         case(Protocol::CONFIG_NAME):{
 
             std::string ctl_name; 
+            std::string init_ctx; 
             dmsg.unpack("__CONTROLLER_NAME__", ctl_name);
+            std::cout<<"Controller Name: "<<ctl_name<<std::endl; 
+            dmsg.unpack("__INITCTX__", init_ctx); 
+            std::cout<<"INITIAL CONTEXT: "<<init_ctx<<std::endl; 
+            
             auto it = std::find(this->controller_list.begin(), this->controller_list.end(), ctl_name); 
 
             std::cout<<"REACHED CLIENT CONFIG"<<std::endl; 

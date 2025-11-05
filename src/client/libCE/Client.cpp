@@ -106,13 +106,27 @@ void ConnectionManager::handleInitiatorString(std::string &str, udp::endpoint& e
         
         try{
             int rmItem = std::stoi(advertName); 
-            std::scoped_lock<std::mutex> initLock(this->advertMutex); 
-            this->advertStr.erase(this->advertStr.begin() + rmItem); 
-            if(this->advertStr.empty()){
-                this->foma = true; 
+            {
+                std::scoped_lock<std::mutex> initLock(this->advertMutex); 
+                this->advertStr.erase(this->advertStr.begin() + rmItem); 
+                if(this->advertStr.empty()){
+                    this->foma = true; 
+                }
             }
             std::cout<<"Ad Detection from: "<<masterName<<" against item: "<<rmItem<<std::endl; 
-
+            if(this->clientMaps.contains(masterName)){
+                std::cout<<"Connection Already Exists: Handle This Case"<<std::endl; 
+            }
+            else{
+                std::cout<<"Connection Does not Yet Exist, Initiating Contact"<<std::endl; 
+                auto [it, name] = this->clientMaps.emplace(masterName, std::make_unique<Client>(this->clientName, this->clientCtx, endpt)); 
+                this->clientActiveThreads.emplace_back([it, endpt]()
+                {
+                    std::string srch = "ADVERTISE"; 
+                    it->second->attemptConnection(endpt.address(), srch);
+                }); 
+                std::cout<<"Initiated Contact with Master: "<<masterName<<std::endl; 
+            }
         }
         catch(std::exception &e){
             std::cout<<"ERROR: Failed to process AD_RESP initiator string."<<std::endl; 
@@ -132,7 +146,8 @@ void ConnectionManager::handleInitiatorString(std::string &str, udp::endpoint& e
                     auto [it, name] = this->clientMaps.emplace(masterName, std::make_unique<Client>(this->clientName, this->clientCtx, endpt)); 
                     this->clientActiveThreads.emplace_back([it, endpt]()
                     {
-                        it->second->attemptConnection(endpt.address());
+                        std::string srch = "RESPONSE"; 
+                        it->second->attemptConnection(endpt.address(), srch);
                     }); 
                     std::cout<<"Printed after intiating client-master connection"<<std::endl; 
                 }
@@ -157,11 +172,6 @@ void ConnectionManager::startListener(){
         handleInitiatorString(attempt_name, master_endpoint);
     }   
 }
-
-void ConnectionManager::startRecvAd(){
-    return; 
-}
-
 
 /* 
     Client code
@@ -580,11 +590,11 @@ void Client::initializeClient(udp::endpoint& master_endpt){
     ); 
 }
 
-bool Client::attemptConnection(boost::asio::ip::address master_address){
+bool Client::attemptConnection(boost::asio::ip::address master_address, std::string init_ctx){
     try{
         tcp::endpoint master_endpoint(master_address, MASTER_PORT); 
         
-        this->client_connection->connectToMaster(master_endpoint, this->client_name);
+        this->client_connection->connectToMaster(master_endpoint, this->client_name, init_ctx);
 
         //std::cout<<this->client_name + " Connection successful!"<<std::endl; 
 

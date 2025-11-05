@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
     }
 
     //std::vector<Advert_t> king; 
-    std::vector<Advert_t> king = {a,b}; 
+    std::vector<Advert_t> king = {a}; 
     
     ConnectionManager connect(name, king);  
     connect.begin(); 

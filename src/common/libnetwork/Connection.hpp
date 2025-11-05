@@ -49,7 +49,7 @@ class Connection : public std::enable_shared_from_this<Connection>{
         ~Connection() = default; 
 
 
-        void connectToMaster(tcp::endpoint endpoints, std::string &name); 
+        void connectToMaster(tcp::endpoint endpoints, std::string &name, std::string &init_ctx); 
         void connectToClient(); 
         bool disconnect(); 
         bool isConnected() const; 

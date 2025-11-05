@@ -35,15 +35,17 @@ boost::asio::io_context& Connection::getContext(){
     return this->ctx; 
 }
 
-void Connection::connectToMaster(tcp::endpoint master_ep ,std::string &name){
+void Connection::connectToMaster(tcp::endpoint master_ep ,std::string &name, std::string& init_ctx){
     if(this->own == Owner::CLIENT){
         this->socket.async_connect(master_ep, 
-        [name, this](boost::system::error_code ec){
+        [name, init_ctx, this](boost::system::error_code ec){
             if(!ec){
                 // Start by sending the name when the connection is made
                 SentMessage new_message; 
                 DynamicMessage dmsg; 
                 std::string omar(name); 
+                std::string black(init_ctx); 
+                dmsg.createField("__INITCTX__", black); 
                 dmsg.createField("__CONTROLLER_NAME__", omar);
                 
                 new_message.header.prot = Protocol::CONFIG_NAME; 

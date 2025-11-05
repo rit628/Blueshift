@@ -156,7 +156,7 @@ class Client{
         */
     
         void initializeClient(udp::endpoint& master_endpt); 
-        bool attemptConnection(boost::asio::ip::address master_address);
+        bool attemptConnection(boost::asio::ip::address master_address, std::string init_ctx);
         bool isConnected(); 
         bool disconnect(); 
         TSQ<OwnedSentMessage>& getInQueue(); 
@@ -193,7 +193,6 @@ class ConnectionManager{
         // Broadcast for controllers declared in the language
         void startListener(); 
         // Broadcast for devices advertised by the s
-        void startRecvAd(); 
 
         // Initiator parser
         void handleInitiatorString(std::string &str, udp::endpoint &endpt); 
