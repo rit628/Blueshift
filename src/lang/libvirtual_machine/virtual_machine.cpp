@@ -299,3 +299,19 @@ void VirtualMachine::MTRAP(uint16_t callnum, int) {
         break;
     }
 }
+
+void VirtualMachine::JMPSC_OR(uint16_t address, int) {
+    auto lhs = cs.popOperand();
+    if (lhs) {
+        instruction = address;
+    }
+    cs.pushOperand(lhs);
+}
+
+void VirtualMachine::JMPSC_AND(uint16_t address, int) {
+    auto lhs = cs.popOperand();
+    if (!lhs) {
+        instruction = address;
+    }
+    cs.pushOperand(lhs);
+}
