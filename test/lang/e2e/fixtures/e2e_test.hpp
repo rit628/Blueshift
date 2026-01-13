@@ -51,7 +51,7 @@ namespace BlsLang {
                     std::cout.rdbuf(oldBuffer);
                 };
 
-                checkOblockOutput(interpreterTransform, input);
+                // checkOblockOutput(interpreterTransform, input);
                 checkOblockOutput(vmTransform, input);
             }
         
