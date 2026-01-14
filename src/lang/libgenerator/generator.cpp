@@ -361,13 +361,25 @@ BlsObject Generator::visit(AstNode::Expression::Binary& ast) {
     };
 
     switch (op) {
-        case BINARY_OPERATOR::OR:
-            createBinaryOperation(createOR());
-        break;
+        case BINARY_OPERATOR::OR: {
+            ast.getLeft()->accept(*this);
+            instructions.push_back(createJMPSC_OR(0)); // create short circuit jump
+            auto& jmp = static_cast<INSTRUCTION::JMPSC_OR&>(*instructions.back());
+            ast.getRight()->accept(*this);
+            instructions.push_back(createOR());
+            jmp.address = instructions.size();
+            break;
+        }
 
-        case BINARY_OPERATOR::AND:
-            createBinaryOperation(createAND());
-        break;
+        case BINARY_OPERATOR::AND: {
+            ast.getLeft()->accept(*this);
+            instructions.push_back(createJMPSC_AND(0)); // create short circuit jump
+            auto& jmp = static_cast<INSTRUCTION::JMPSC_AND&>(*instructions.back());
+            ast.getRight()->accept(*this);
+            instructions.push_back(createAND());
+            jmp.address = instructions.size();
+            break;
+        }
 
         case BINARY_OPERATOR::LT:
             createBinaryOperation(createLT());

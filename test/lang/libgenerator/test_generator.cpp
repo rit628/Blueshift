@@ -112,6 +112,82 @@ namespace BlsLang {
         TEST_GENERATE(ast, expectedInstructions);
     }
 
+    GROUP_TEST_F(GeneratorTest, ExpressionTests, BinaryLogicalShortCircuit) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Expression::Binary(
+            "||",
+            new AstNode::Expression::Literal(
+                bool(true)
+            ),
+            new AstNode::Expression::Literal(
+                bool(false)
+            )
+        ));
+
+        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<BlsType, uint8_t> literalPool = {
+            {true, 0},
+            {false, 1}
+        };
+        
+        INIT(oblockDescriptors, literalPool);
+
+        std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
+            createPUSH(0),
+            createJMPSC_OR(4),
+            createPUSH(1),
+            createOR()
+        );
+
+        TEST_GENERATE(ast, expectedInstructions);
+    }
+
+    GROUP_TEST_F(GeneratorTest, ExpressionTests, BinaryLogicalShortCircuitCompound) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Expression::Binary(
+            "||",
+            new AstNode::Expression::Literal(
+                bool(true)
+            ),
+            new AstNode::Expression::Binary(
+                "&&",
+                new AstNode::Expression::Binary(
+                    "==",
+                    new AstNode::Expression::Literal(
+                        int64_t(1)
+                    ),
+                    new AstNode::Expression::Literal(
+                        int64_t(2)
+                    )
+                ),
+                new AstNode::Expression::Literal(
+                    bool(true)
+                )
+            )
+        ));
+
+        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<BlsType, uint8_t> literalPool = {
+            {true, 0},
+            {1, 1},
+            {2, 2}
+        };
+        
+        INIT(oblockDescriptors, literalPool);
+
+        std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
+            createPUSH(0),
+            createJMPSC_OR(9),
+            createPUSH(1),
+            createPUSH(2),
+            createEQ(),
+            createJMPSC_AND(8),
+            createPUSH(0),
+            createAND(),
+            createOR()
+        );
+
+        TEST_GENERATE(ast, expectedInstructions);
+    }
+
     GROUP_TEST_F(GeneratorTest, ExpressionTests, BinaryCompoundArithmetic) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Expression::Binary(
             "+",

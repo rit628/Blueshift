@@ -1,0 +1,23 @@
+bool printTest() {
+    print("test");
+    return true;
+}
+
+oblock testShortCircuit(TIMER_TEST T) {
+    if (true || printTest()) {
+        print("short circuit or: printTest not executed");
+    }
+
+    if (!(false && printTest())) {
+        print("short circuit and: printTest not executed");
+    }
+
+    if (false || printTest() && printTest()) {
+        print("printTest executed twice");
+    }
+}
+
+setup() {
+    TIMER_TEST T1 = "CTL::PWR-0";
+    testShortCircuit(T1);
+}

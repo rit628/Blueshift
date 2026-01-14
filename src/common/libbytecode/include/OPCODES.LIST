@@ -97,3 +97,11 @@ OPCODE_END(TRAP, callnum, argc)
 OPCODE_BEGIN(MTRAP)
     ARGUMENT(callnum, uint16_t)
 OPCODE_END(MTRAP, callnum)
+
+OPCODE_BEGIN(JMPSC_OR)
+    ARGUMENT(address, uint16_t)
+OPCODE_END(JMPSC_OR, address)
+
+OPCODE_BEGIN(JMPSC_AND)
+    ARGUMENT(address, uint16_t)
+OPCODE_END(JMPSC_AND, address)

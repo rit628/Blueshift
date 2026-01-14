@@ -72,4 +72,12 @@ namespace BlsLang {
         TEST_E2E_OBLOCK("appendElement", {input}, {output}, expectedStdout);
     }
 
+    GROUP_TEST_F(E2ETest, ExecutionTests, ShortCircuit) {
+        std::string fileName = "short_circuit.blu";
+        TEST_E2E_SOURCE(fileName);
+        auto T1 = createBlsType(TypeDef::TIMER_TEST());
+        std::string expectedStdout = "short circuit or: printTest not executed\nshort circuit and: printTest not executed\ntest\ntest\nprintTest executed twice\n";
+        TEST_E2E_OBLOCK("testShortCircuit", {T1}, {T1}, expectedStdout);
+    }
+
 }
