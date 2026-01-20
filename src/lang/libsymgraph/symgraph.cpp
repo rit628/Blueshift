@@ -105,7 +105,7 @@ std::pair<std::unordered_set<SymbolID>, std::unordered_set<DeviceID>> Symgraph::
 
     // Add the deps of the initiator statement (if its an IF, For or While)
     auto& parentStatement = this->ctx.parentData.top()->initiatorPtr; 
-    if(parentStatement->stype != StatementType::OBLOCK && parentStatement->stype != StatementType::FUNCTION){
+    if(parentStatement->stype != StatementType::TASK && parentStatement->stype != StatementType::FUNCTION){
         auto& parentDevDeps = this->ctx.parentData.top()->devDeps; 
         for(auto& device : parentDevDeps){
             deviceDeps.insert(device); 
@@ -149,16 +149,16 @@ void Symgraph::clearContext(){
 */ 
 
 BlsObject Symgraph::visit(AstNode::Source& ast){
-    auto& oblockNodes = ast.getOblocks(); 
-    for(auto& oblock : oblockNodes){
+    auto& taskNodes = ast.getTasks(); 
+    for(auto& task : taskNodes){
         auto &src = this->ctx;
-        std::string name = oblock->getName(); 
-        this->ctx.currentOblock = name; 
-        auto& oblockCtx = this->oblockCtxMap[name]; 
-        src.aliasDevMap = oblockCtx.devAliasMap; 
-        auto oblockPtr = makeStData(nullptr, StatementType::OBLOCK);
-        this->ctx.parentData.push(oblockPtr); 
-        oblock->accept(*this);
+        std::string name = task->getName(); 
+        this->ctx.currentTask = name; 
+        auto& taskCtx = this->taskCtxMap[name]; 
+        src.aliasDevMap = taskCtx.devAliasMap; 
+        auto taskPtr = makeStData(nullptr, StatementType::TASK);
+        this->ctx.parentData.push(taskPtr); 
+        task->accept(*this);
         this->ctx.parentData.pop(); 
         this->annotateControllerDivide(); 
         this->clearContext(); 
@@ -166,7 +166,7 @@ BlsObject Symgraph::visit(AstNode::Source& ast){
     return true; 
 }
 
-BlsObject Symgraph::visit(AstNode::Function::Oblock& ast){
+BlsObject Symgraph::visit(AstNode::Function::Task& ast){
     for(auto& stmt : ast.getStatements()){
         auto stmtPtr = makeStData(stmt.get(), StatementType::STATEMENT);
         this->ctx.parentData.push(stmtPtr); 
@@ -300,7 +300,7 @@ BlsObject Symgraph::visit(AstNode::Expression::Binary &ast){
 
 
             // Initiate basic replacement if the sl is 0 
-            if(currParentStatement->stype == StatementType::OBLOCK){
+            if(currParentStatement->stype == StatementType::TASK){
                 redefDequeue.clear(); 
                 redefDequeue.push_back(omar); 
             }
@@ -380,7 +380,7 @@ BlsObject Symgraph::visit(AstNode::Expression::Access &ast){
 */ 
 
 /* 
-    Uses the device dependencies to identify how to split an oblock. An Oblock can be split into oblock_[ctl#] for each 
+    Uses the device dependencies to identify how to split an task. An Task can be split into task_[ctl#] for each 
     subset of devices it can be taken from. 
 */ 
 
@@ -396,7 +396,7 @@ std::vector<std::pair<DeviceID, ControllerID>> Symgraph::findDivisions(){
     std::unordered_map<DeviceID, DeviceDescriptor> ddesc;  
 
     // Create the device descriptors map: 
-    for(auto& dev: this->oblockDescriptorMap[ctx.currentOblock].binded_devices){
+    for(auto& dev: this->taskDescriptorMap[ctx.currentTask].binded_devices){
         ddesc[dev.device_name] = dev; 
     }
 
@@ -439,8 +439,8 @@ std::vector<std::pair<DeviceID, ControllerID>> Symgraph::findDivisions(){
         }
     }
 
-    // an oblock gets split into multiple controllers (but only once for now)
-    std::unordered_map<ControllerID, OBlockData> derivedInfo;
+    // an task gets split into multiple controllers (but only once for now)
+    std::unordered_map<ControllerID, TaskData> derivedInfo;
     std::unordered_set<DeviceID> addedBinds; 
 
     for(auto& pair : devToDeps){
@@ -459,14 +459,14 @@ std::vector<std::pair<DeviceID, ControllerID>> Symgraph::findDivisions(){
             targController = "MASTER"; 
         }
 
-        // Update the oblock Descriptors
+        // Update the task Descriptors
 
-        this->finalMetadata.OblockControllerSplit[this->ctx.currentOblock].insert(targController); 
+        this->finalMetadata.TaskControllerSplit[this->ctx.currentTask].insert(targController); 
         
-        auto& derOblockDesc = derivedInfo[targController].oblockDesc;
+        auto& derTaskDesc = derivedInfo[targController].taskDesc;
         auto& paramList = derivedInfo[targController].parameterList; 
 
-        derOblockDesc.name = this->ctx.currentOblock + "_" + targController; 
+        derTaskDesc.name = this->ctx.currentTask + "_" + targController; 
         auto& devDeps = pair.second.deviceDeps; 
         auto& currDevDesc = ddesc[this->ctx.aliasDevMap[pair.first]]; 
 
@@ -475,16 +475,16 @@ std::vector<std::pair<DeviceID, ControllerID>> Symgraph::findDivisions(){
             std::cout<<"Device desc (SHOULD BE dev): "<<str<<std::endl; 
             
             if(!addedBinds.contains(readDevDesc.device_name)){
-                derOblockDesc.inDevices.push_back(readDevDesc);  
-                derOblockDesc.binded_devices.push_back(readDevDesc);  
+                derTaskDesc.inDevices.push_back(readDevDesc);  
+                derTaskDesc.binded_devices.push_back(readDevDesc);  
                 paramList.push_back(invAliasMap[str]);   
                 addedBinds.insert(readDevDesc.device_name); 
             }
         }); 
 
         if(!addedBinds.contains(currDevDesc.device_name)){
-            derOblockDesc.outDevices.push_back(currDevDesc);
-            derOblockDesc.binded_devices.push_back(currDevDesc); 
+            derTaskDesc.outDevices.push_back(currDevDesc);
+            derTaskDesc.binded_devices.push_back(currDevDesc); 
             paramList.push_back(pair.first); 
             addedBinds.insert(currDevDesc.device_name); 
         }
@@ -492,11 +492,11 @@ std::vector<std::pair<DeviceID, ControllerID>> Symgraph::findDivisions(){
         // TODO: Figure out how to handle triggers in decentralization:
     }
 
-    // Transfer the oblock Data: 
+    // Transfer the task Data: 
     for(auto& pair : derivedInfo){
         std::cout<<"Omar: "<<pair.first<<std::endl; 
         this->finalMetadata.ctlMetaData[pair.first].ctlName = pair.first; 
-        this->finalMetadata.ctlMetaData[pair.first].oblockData[this->ctx.currentOblock] = pair.second; 
+        this->finalMetadata.ctlMetaData[pair.first].taskData[this->ctx.currentTask] = pair.second; 
     }
 
     return decentralizePair; 
@@ -529,7 +529,7 @@ std::vector<std::pair<DeviceID, ControllerID>> Symgraph::findDivisions(){
  void Symgraph::exhaustiveStatementFillH(std::shared_ptr<StatementData> st,  std::unordered_set<SymbolID>& visitedSymbols, ControllerID &ctl,
     std::unordered_set<AstNode::Statement*> &visitedStatements){
 
-    if(st->stype == StatementType::OBLOCK){
+    if(st->stype == StatementType::TASK){
         return; 
     }
 
@@ -550,10 +550,10 @@ std::vector<std::pair<DeviceID, ControllerID>> Symgraph::findDivisions(){
 // Fill in the annotations with the controllers to divide each statement into
  void Symgraph::annotateControllerDivide(){
     // Device Pairings: 
-    auto OblockDivisions = this->findDivisions(); 
+    auto TaskDivisions = this->findDivisions(); 
 
-    // Loop through device list and add into oblock divisions
-    for(auto& [device,controller] : OblockDivisions){
+    // Loop through device list and add into task divisions
+    for(auto& [device,controller] : TaskDivisions){
         for(SymbolID sym : this->ctx.deviceAssignmentSymbols[device]){
             std::unordered_set<SymbolID> visitedSymbols; 
             std::unordered_set<AstNode::Statement*> visitedStatements; 

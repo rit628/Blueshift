@@ -1,4 +1,4 @@
-oblock servoTest(LINE_WRITER lw, FN_SERVO targServo)
+task servoTest(LINE_WRITER lw, FN_SERVO targServo)
 : triggerOn(lw)
 {
     int targAngle = stoi(lw.msg);

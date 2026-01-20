@@ -1,4 +1,4 @@
-oblock delegator(KEYBOARD kbd, READ_FILE lw, int counter, string msg1, string msg2)
+task delegator(KEYBOARD kbd, READ_FILE lw, int counter, string msg1, string msg2)
 : triggerOn({"rule": [kbd,counter], "id" : "delTrigger"}), 
   processPolicy({counter : {"read" : "any"},  kbd : {"read" : "all"}})
 {
@@ -54,7 +54,7 @@ oblock delegator(KEYBOARD kbd, READ_FILE lw, int counter, string msg1, string ms
 }
 
 
-oblock vWrite(string msg1, FILE_LOG fl, READ_FILE lw)
+task vWrite(string msg1, FILE_LOG fl, READ_FILE lw)
 : triggerOn(msg1), processPolicy({lw : {"read" : "any", "yield" : false}})
 {
     if(getTrigger() == "initial"){
@@ -66,7 +66,7 @@ oblock vWrite(string msg1, FILE_LOG fl, READ_FILE lw)
     lw.msg += msg1; 
 }
 
-oblock kWrite(string msg2, READ_FILE fl, READ_FILE lw)
+task kWrite(string msg2, READ_FILE fl, READ_FILE lw)
 : triggerOn(msg2), processPolicy({lw : {"read" : "any", "yield" : false}})
 {
     if(getTrigger() == "initial"){

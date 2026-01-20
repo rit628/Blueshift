@@ -10,21 +10,21 @@
 #include <vector>
 
 
-ClientEM::ClientEM(std::vector<OBlockDesc> &descList, TSQ<SentMessage> &readLine,
+ClientEM::ClientEM(std::vector<TaskDescriptor> &descList, TSQ<SentMessage> &readLine,
     TSQ<SentMessage> &writeLine,std::unordered_map<DeviceID, int> data, int ctlCode)
-:   clientScheduler(descList, [this](HeapMasterMessage hmm){}), 
+:   clientScheduler(descList, [](HeapMasterMessage hmm){}), 
     clientReadLine(readLine),
     clientWriteLine(writeLine)
 {
     int i = 0; 
-    for(auto& odesc : descList){
+    for(auto& taskDesc : descList){
         // Populate the in list: 
-        for(auto& dev : odesc.inDevices){
-            this->devToOblockMap[dev.device_name].push_back(odesc.name); 
+        for(auto& dev : taskDesc.inDevices){
+            this->devToTaskMap[dev.device_name].push_back(taskDesc.name); 
         }
 
-        this->ident_data.oblockMap[odesc.name] = i; 
-        this->clientMap.emplace(odesc.name ,std::make_unique<ClientEU>(odesc, this->clientScheduler, writeLine, this->ident_data, ctlCode));
+        this->ident_data.taskMap[taskDesc.name] = i; 
+        this->clientMap.emplace(taskDesc.name ,std::make_unique<ClientEU>(taskDesc, this->clientScheduler, writeLine, this->ident_data, ctlCode));
         i++;  
     }
 
@@ -62,9 +62,9 @@ void ClientEM::run(){
             }
             case Protocol::SEND_ARGUMENT: {
                 HeapMasterMessage hmm = getHMM(message, PROTOCOLS::SENDSTATES);
-                auto& transferList = this->devToOblockMap[hmm.info.device];
-                for(auto& oblock : transferList){
-                    this->clientMap[oblock]->insertDevice(hmm); 
+                auto& transferList = this->devToTaskMap[hmm.info.device];
+                for(auto& task : transferList){
+                    this->clientMap[task]->insertDevice(hmm); 
                 }
                 break; 
             }
@@ -88,17 +88,17 @@ void ClientEM::run(){
 }
 
 
-ClientEU::ClientEU(OBlockDesc &odesc, DeviceScheduler &devSche, TSQ<SentMessage> &mainLine, IdentData &data, int ctlCode)
-:EuCache(false, false, odesc.name, odesc), scheObj(devSche), clientMainLine(mainLine),
+ClientEU::ClientEU(TaskDescriptor &taskDesc, DeviceScheduler &devSche, TSQ<SentMessage> &mainLine, IdentData &data, int ctlCode)
+:EuCache(false, false, taskDesc.name, taskDesc), scheObj(devSche), clientMainLine(mainLine),
 idMaps(data)
 {   
     virtualMachine.loadBytecode("PLACEHOLDER");
-    this->bytecodeOffset = odesc.bytecode_offset; 
-    this->name = odesc.name; 
-    this->oinfo = odesc; 
+    this->bytecodeOffset = taskDesc.bytecode_offset; 
+    this->name = taskDesc.name; 
+    this->taskInfo = taskDesc; 
 
     int i = 0; 
-    for(auto& devPos : odesc.binded_devices){
+    for(auto& devPos : taskDesc.binded_devices){
         this->devPosMap[devPos.device_name] = i; 
         i++; 
     }
@@ -123,7 +123,7 @@ SentMessage ClientEU::createSentMessage(BlsType &newData, DeviceDescriptor &devD
     sm.header.ctl_code = this->ctlCode; 
     // We need to add the conversion factors
     sm.header.device_code = this->idMaps.deviceMap[devDesc.device_name]; 
-    sm.header.oblock_id = this->idMaps.oblockMap[this->oinfo.name]; 
+    sm.header.task_id = this->idMaps.taskMap[this->taskInfo.name]; 
     sm.header.prot = pcode; 
     sm.header.body_size = 0;
 
@@ -157,7 +157,7 @@ void ClientEU::run(){
 
         std::vector<BlsType> transformStates; 
 
-        for(auto& devDesc : this->oinfo.binded_devices){
+        for(auto& devDesc : this->taskInfo.binded_devices){
             if(heapMap.contains(devDesc.device_name)){
                 transformStates.push_back((heapMap.at(devDesc.device_name).heapTree)); 
             }
@@ -167,16 +167,16 @@ void ClientEU::run(){
         }
 
         // Transformed object:
-        this->virtualMachine.setOblockOffset(this->bytecodeOffset);
+        this->virtualMachine.setTaskOffset(this->bytecodeOffset);
         auto transformedStates = this->virtualMachine.transform(transformStates);
 
         // Transformed the object: 
-        for(auto& dev : this->oinfo.outDevices){
+        for(auto& dev : this->taskInfo.outDevices){
             this->clientMainLine.write(
                 createSentMessage(transformStates.at(this->devPosMap[dev.device_name]), dev, Protocol::SEND_STATE)  
             ); 
         }  
 
-        this->scheObj.release(this->oinfo.name); 
+        this->scheObj.release(this->taskInfo.name); 
     }
 }

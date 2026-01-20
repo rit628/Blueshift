@@ -1,10 +1,10 @@
-oblock forLoop(int count) {
+task forLoop(int count) {
     for (int i = 0; i < count; i++) {
         println(i);
     }
 }
 
-oblock whileLoop(int count) {
+task whileLoop(int count) {
     int i = 0;
     while (i < count) {
         println(i);
@@ -12,7 +12,7 @@ oblock whileLoop(int count) {
     }
 }
 
-oblock conditionalBreak(int count) {
+task conditionalBreak(int count) {
     int i = 0;
     for (int i = 0; i < count; i++) {
         println(i);
@@ -22,7 +22,7 @@ oblock conditionalBreak(int count) {
     }
 }
 
-oblock conditionalContinue(int count) {
+task conditionalContinue(int count) {
     int i = 0;
     for (int i = 0; i < count; i++) {
         if (i > count / 2) {

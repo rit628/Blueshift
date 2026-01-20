@@ -16,7 +16,7 @@ namespace BlsLang {
             struct Metadata {
                 Metadata() { };
                 std::unordered_map<std::string, DeviceDescriptor> deviceDescriptors;
-                std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+                std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
                 std::unordered_map<BlsType, uint8_t> literalPool;
             };
 
@@ -38,7 +38,7 @@ namespace BlsLang {
                     EXPECT_EQ(desc.deviceKind, expectedDesc.deviceKind);
                 };
 
-                static auto compareOblockDescriptors = [](const OBlockDesc& desc, const OBlockDesc& expectedDesc) {
+                static auto compareTaskDescriptors = [](const TaskDescriptor& desc, const TaskDescriptor& expectedDesc) {
                     EXPECT_EQ(desc.name, expectedDesc.name);
                     for (auto&& [devDesc, expectedDevDesc] : boost::combine(desc.binded_devices, expectedDesc.binded_devices)) {
                         compareDeviceDescriptors(devDesc, expectedDevDesc);
@@ -61,11 +61,11 @@ namespace BlsLang {
                     compareDeviceDescriptors(deviceDescriptors.at(expectedName), expectedDesc);
                 }
 
-                auto& oblockDescriptors = analyzer.oblockDescriptors;
-                auto& expectedOblockDescriptors = metadata.oblockDescriptors;
-                for (auto&& [expectedName, expectedDesc] : expectedOblockDescriptors) {
-                    ASSERT_TRUE(oblockDescriptors.contains(expectedName));
-                    compareOblockDescriptors(oblockDescriptors.at(expectedName), expectedDesc);
+                auto& taskDescriptors = analyzer.taskDescriptors;
+                auto& expectedTaskDescriptors = metadata.taskDescriptors;
+                for (auto&& [expectedName, expectedDesc] : expectedTaskDescriptors) {
+                    ASSERT_TRUE(taskDescriptors.contains(expectedName));
+                    compareTaskDescriptors(taskDescriptors.at(expectedName), expectedDesc);
                 }
 
                 ASSERT_EQ(analyzer.literalPool.size(), metadata.literalPool.size());

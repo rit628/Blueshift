@@ -142,7 +142,7 @@ BlsObject Symbolicator::visit(AstNode::Function::Procedure& ast) {
     return std::monostate();
 }
 
-BlsObject Symbolicator::visit(AstNode::Function::Oblock& ast) {
+BlsObject Symbolicator::visit(AstNode::Function::Task& ast) {
     for (auto&& statement : ast.getStatements()) {
         statement->accept(*this);
     }
@@ -160,13 +160,13 @@ BlsObject Symbolicator::visit(AstNode::Source& ast) {
     for (auto&& proc : ast.getProcedures()) {
         proc->accept(*this);
     }
-    for (auto&& oblock : ast.getOblocks()) {
-        oblock->accept(*this);
+    for (auto&& task : ast.getTasks()) {
+        task->accept(*this);
     }
     ast.getSetup()->accept(*this);
     return std::monostate();
 }
 
-BlsObject Symbolicator::visit(AstNode::Initializer::Oblock& ast) {
+BlsObject Symbolicator::visit(AstNode::Initializer::Task& ast) {
     return std::monostate();
 }

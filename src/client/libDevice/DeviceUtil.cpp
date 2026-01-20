@@ -742,18 +742,18 @@ void DeviceCursor::queryWatcher(std::stop_token stoken) {
     }
 }
 
-void DeviceCursor::updateView(uint16_t oblockId) {
+void DeviceCursor::updateView(uint16_t taskId) {
     DynamicMessage dmsg;
     this->device.transmitStates(dmsg);
-    currentViews.insert(oblockId, dmsg);
+    currentViews.insert(taskId, dmsg);
 }
 
 void DeviceCursor::initialize() {
     queryWatcherThread = std::jthread(std::bind(&DeviceCursor::queryWatcher, std::ref(*this), std::placeholders::_1));
 }
 
-DynamicMessage DeviceCursor::getLatestOblockView(uint16_t oblockId) {
-    auto dmsg = currentViews.get(oblockId);
+DynamicMessage DeviceCursor::getLatestTaskView(uint16_t taskId) {
+    auto dmsg = currentViews.get(taskId);
     if (!dmsg.has_value()) {
         dmsg.emplace();
         device.transmitDefaultStates(dmsg.value());
@@ -761,9 +761,9 @@ DynamicMessage DeviceCursor::getLatestOblockView(uint16_t oblockId) {
     return dmsg.value();
 }
 
-void DeviceCursor::addQueryHandler(uint16_t oblockId) {
+void DeviceCursor::addQueryHandler(uint16_t taskId) {
     auto handlerId = std::this_thread::get_id();
-    queryHandlers.insert(handlerId, oblockId);
+    queryHandlers.insert(handlerId, taskId);
 }
 
 void DeviceCursor::awaitQueryCompletion(std::stop_token stoken) {

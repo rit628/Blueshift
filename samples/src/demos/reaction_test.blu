@@ -1,4 +1,4 @@
-oblock randomLight(GAMEPAD gp, LIGHT red)
+task randomLight(GAMEPAD gp, LIGHT red)
 : triggerOn(gp)
 {
     if (!gp.start) {
@@ -10,9 +10,9 @@ oblock randomLight(GAMEPAD gp, LIGHT red)
     red.on = true;
 }
 
-oblock reaction(GAMEPAD gp, LIGHT red) : 
+task reaction(GAMEPAD gp, LIGHT red) : 
 
-oblock trafficLight(GAMEPAD gp, LIGHT green, LIGHT yellow, LIGHT red)
+task trafficLight(GAMEPAD gp, LIGHT green, LIGHT yellow, LIGHT red)
 : triggerOn(gp),
 processPolicy({
     gp : {
@@ -45,7 +45,7 @@ processPolicy({
     red.on = true;
 }
 
-oblock stopDetector(GAMEPAD gp, LIGHT red)
+task stopDetector(GAMEPAD gp, LIGHT red)
 : triggerOn(gp),
 processPolicy({
     gp : {

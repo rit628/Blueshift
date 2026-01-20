@@ -1,4 +1,4 @@
-oblock playSound(KEYBOARD kbd, AUDIO_PLAYER ap) : triggerOn(kbd), processPolicy({ap : { "read" : "any" }}) {
+task playSound(KEYBOARD kbd, AUDIO_PLAYER ap) : triggerOn(kbd), processPolicy({ap : { "read" : "any" }}) {
     if (kbd.key == "R") {
         println("RESUMING AUDIO: " + ap.file);
         ap.paused = false;
@@ -24,7 +24,7 @@ oblock playSound(KEYBOARD kbd, AUDIO_PLAYER ap) : triggerOn(kbd), processPolicy(
 }
 
 
-oblock playSoundHttp(HTTP_ENDPOINT endpt, AUDIO_PLAYER ap) 
+task playSoundHttp(HTTP_ENDPOINT endpt, AUDIO_PLAYER ap) 
 : triggerOn(endpt), processPolicy({ap : { "read" : "any" }, endpt : {"ignoreWriteBacks" : true, "read" : "any"}})
 {
     if(getTrigger() == "initial"){
@@ -50,7 +50,7 @@ oblock playSoundHttp(HTTP_ENDPOINT endpt, AUDIO_PLAYER ap)
     endpt.responseCode = 200;
 }
 
-oblock requestTest(KEYBOARD kbd)
+task requestTest(KEYBOARD kbd)
 : triggerOn(kbd)
 {
     if(kbd.key == "Space"){

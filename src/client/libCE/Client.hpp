@@ -21,7 +21,7 @@ using boost::asio::ip::udp;
 // numeric id types for different devices
 using cont_int = uint16_t; 
 using dev_int = uint16_t; 
-using oblock_int = uint16_t; 
+using task_int = uint16_t; 
 
 using TimePoint = std::chrono::time_point<std::chrono::high_resolution_clock>; 
 
@@ -38,7 +38,7 @@ enum class ClientState{
 
 // Scheduler Request State client side (Repalces the string val)
 struct ClientSideReq{
-    uint16_t requestorOblock; 
+    uint16_t requestorTask; 
     uint16_t targetDevice; 
     int priority; 
     PROCSTATE ps;     
@@ -56,7 +56,7 @@ struct ClientSideReqComp{
 struct ManagedDevice {
     DeviceHandle device;
     ControllerQueue<ClientSideReq, ClientSideReqComp> pendingRequests;
-    std::pair<cont_int, oblock_int> owner;  
+    std::pair<cont_int, task_int> owner;  
     ManagedDevice(TYPE dtype, std::unordered_map<std::string, std::string> &config, std::shared_ptr<ADS7830> targADC)
                         : device(dtype, config, targADC) {}
 }; 
@@ -98,7 +98,7 @@ class Client{
         // thread pool for devices state change
         boost::asio::thread_pool threadPool;
         std::unordered_map<dev_int, boost::asio::strand<boost::asio::thread_pool::executor_type>> deviceStrands;
-        std::unordered_map<dev_int, std::unordered_map<oblock_int, boost::asio::strand<boost::asio::thread_pool::executor_type>>> cursorViewStrands;
+        std::unordered_map<dev_int, std::unordered_map<task_int, boost::asio::strand<boost::asio::thread_pool::executor_type>>> cursorViewStrands;
         
 
         // client name used to identify controller
@@ -108,7 +108,7 @@ class Client{
         // use to keep track of the state 
         ClientState curr_state; 
         // sends a callback for a device
-        void sendMessage(uint16_t device, Protocol prot, bool fromint, oblock_int oint, bool write_self);  
+        void sendMessage(uint16_t device, Protocol prot, bool fromint, task_int taskId, bool write_self);  
         // Send a message
         void send(SentMessage &msg); 
         // Updates the ticker table

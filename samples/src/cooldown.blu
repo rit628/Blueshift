@@ -1,4 +1,4 @@
-oblock recordMouse(MOUSE m)
+task recordMouse(MOUSE m)
 {
     print("NEW MOUSE STATE:");
     print(m.x, m.y);

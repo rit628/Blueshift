@@ -34,9 +34,9 @@ void Generator::writeBytecode(std::ostream& outputStream) {
     });
     
     // write header
-    uint16_t descriptorCount = oblockDescriptors.size();
+    uint16_t descriptorCount = taskDescriptors.size();
     outputStream.write(reinterpret_cast<const char *>(&descriptorCount), sizeof(descriptorCount));
-    for (auto&& desc : boost::adaptors::values(oblockDescriptors)) {
+    for (auto&& desc : boost::adaptors::values(taskDescriptors)) {
         oa << desc;
     }
 
@@ -82,8 +82,8 @@ BlsObject Generator::visit(AstNode::Source& ast) {
         procedure->accept(*this);
     }
 
-    for (auto&& oblock : ast.getOblocks()) {
-        oblock->accept(*this);
+    for (auto&& task : ast.getTasks()) {
+        task->accept(*this);
     }
 
     ast.getSetup()->accept(*this);
@@ -139,12 +139,12 @@ BlsObject Generator::visit(AstNode::Function::Procedure& ast) {
     return 0;
 }
 
-BlsObject Generator::visit(AstNode::Function::Oblock& ast) {
-    functionContext = FUNCTION_CONTEXT::OBLOCK;
+BlsObject Generator::visit(AstNode::Function::Task& ast) {
+    functionContext = FUNCTION_CONTEXT::TASK;
     auto& name = ast.getName();
-    if (!oblockDescriptors.contains(name)) return 0; // skip generating code for unbound oblocks
+    if (!taskDescriptors.contains(name)) return 0; // skip generating code for unbound tasks
     uint16_t address = instructions.size();
-    oblockDescriptors.at(name).bytecode_offset = address;
+    taskDescriptors.at(name).bytecode_offset = address;
     for (auto&& statement : ast.getStatements()) {
         statement->accept(*this);
     }
@@ -294,7 +294,7 @@ BlsObject Generator::visit(AstNode::Statement::While& ast) {
 }
 
 BlsObject Generator::visit(AstNode::Statement::Return& ast) {
-    if (functionContext == FUNCTION_CONTEXT::OBLOCK) { // return statement within oblock will emit a stop signal instead of returning
+    if (functionContext == FUNCTION_CONTEXT::TASK) { // return statement within task will emit a stop signal instead of returning
         instructions.push_back(createEMIT(static_cast<uint8_t>(BytecodeProcessor::SIGNAL::STOP)));
         return 0;
     }
@@ -670,8 +670,8 @@ BlsObject Generator::visit(AstNode::Specifier::Type& ast) {
     return 0; // type declarations dont need to be visited in generator
 }
 
-BlsObject Generator::visit(AstNode::Initializer::Oblock& ast) {
-    return 0; // oblock configs dont need to be visited in generator
+BlsObject Generator::visit(AstNode::Initializer::Task& ast) {
+    return 0; // task configs dont need to be visited in generator
 }
 
 #define OPCODE_BEGIN(code) \

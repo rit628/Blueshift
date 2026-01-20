@@ -1,4 +1,4 @@
-oblock fileAccess(TEXT_FILE txt, KEYBOARD cmd) : 
+task fileAccess(TEXT_FILE txt, KEYBOARD cmd) : 
 triggerOn(cmd)
 {
     if (getTrigger() == "initial") {
@@ -23,7 +23,7 @@ triggerOn(cmd)
     println("fileAccess view: ", txt.readResult, txt.writeResult);
 }
 
-oblock fileAccess2(TEXT_FILE txt, KEYBOARD cmd) : 
+task fileAccess2(TEXT_FILE txt, KEYBOARD cmd) : 
 triggerOn(cmd)
 {
     if (getTrigger() == "initial") {

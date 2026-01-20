@@ -37,15 +37,15 @@ void BytecodeWriter::loadMnemonicBytecode(const std::string& filename) {
 }
 
 void BytecodeWriter::writeHeader(std::ostream& stream, boost::archive::binary_oarchive& oa) {
-    std::string buf, oblockDescJSON;
+    std::string buf, taskDescJSON;
     while ((std::getline(mnemonicBytecode, buf)) && (buf != "LITERALS_BEGIN")) {
-        oblockDescJSON += buf;
+        taskDescJSON += buf;
     }
-    array descArray = parse(oblockDescJSON).get_array();
+    array descArray = parse(taskDescJSON).get_array();
     uint16_t descSize = descArray.size();
     stream.write(reinterpret_cast<const char *>(&descSize), sizeof(descSize));
     for (auto&& desc : descArray) {
-        oa << value_to<OBlockDesc>(desc);
+        oa << value_to<TaskDescriptor>(desc);
     }
 }
 
@@ -82,7 +82,7 @@ void BytecodeWriter::writeBody(std::ostream& stream, boost::archive::binary_oarc
         #undef OPCODE_BEGIN
         #undef ARGUMENT
         #undef OPCODE_END
-        else if (buf.ends_with(':')) { // oblock/procedure labels
+        else if (buf.ends_with(':')) { // task/procedure labels
             continue;
         }
         else {

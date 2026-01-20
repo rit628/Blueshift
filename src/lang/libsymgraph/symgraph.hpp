@@ -18,27 +18,27 @@ using StatementPtr = uint32_t;
 
 namespace BlsLang{
 
-    struct OBlockData{
+    struct TaskData{
         std::vector<std::string> parameterList; 
-        OBlockDesc oblockDesc; 
+        TaskDescriptor taskDesc; 
     }; 
 
     struct ControllerMetadata{
-        // Oblock List
+        // Task List
         ControllerID ctlName; 
-        std::unordered_map<OblockID, OBlockData> oblockData; 
+        std::unordered_map<TaskID, TaskData> taskData; 
     }; 
 
     // Data from dep graph needed to function (in addition to the annotation)
     struct DividerMetadata{
         std::unordered_map<ControllerID, ControllerMetadata> ctlMetaData; 
-        std::unordered_map<OblockID ,std::unordered_set<ControllerID>> OblockControllerSplit; 
+        std::unordered_map<TaskID ,std::unordered_set<ControllerID>> TaskControllerSplit; 
     }; 
 
 
     enum class StatementType{
         EXPR, 
-        OBLOCK,
+        TASK,
         IF, 
         ELSE,
         FOR, 
@@ -75,10 +75,10 @@ namespace BlsLang{
 
     // Current Context
     struct divContext{
-        // Current oblock
-        OblockID currentOblock;  
+        // Current task
+        TaskID currentTask;  
 
-        // Contains data about the oblock context
+        // Contains data about the task context
         std::unordered_map<SymbolID, DeviceID> aliasDevMap; 
         std::stack<std::shared_ptr<StatementData>> parentData; 
         std::unordered_map<SymbolID, SymbolData> symbolMap; 
@@ -100,11 +100,11 @@ namespace BlsLang{
             DividerMetadata finalMetadata; 
             
             // Multi data
-            std::unordered_map<OblockID, OblockContext> oblockCtxMap; 
+            std::unordered_map<TaskID, TaskContext> taskCtxMap; 
             divContext ctx; 
-            //std::unordered_map<OblockID, divContext> divContextMap; 
+            //std::unordered_map<TaskID, divContext> divContextMap; 
             //std::unordered_map<DeviceID, DeviceDescriptor> deviceDescriptors; 
-            std::unordered_map<OblockID, OBlockDesc> oblockDescriptorMap; 
+            std::unordered_map<TaskID, TaskDescriptor> taskDescriptorMap; 
             Printer p; 
 
             std::shared_ptr<StatementData> makeStData(AstNode::Statement* ptr, StatementType stype);
@@ -126,7 +126,7 @@ namespace BlsLang{
            ~Symgraph() = default; 
             
             BlsObject visit(AstNode::Source& ast) override; 
-            BlsObject visit(AstNode::Function::Oblock& ast) override; 
+            BlsObject visit(AstNode::Function::Task& ast) override; 
             BlsObject visit(AstNode::Statement::Declaration& ast) override;
             BlsObject visit(AstNode::Statement::Expression& ast) override; 
             BlsObject visit(AstNode::Statement::If &ast) override; 
@@ -137,10 +137,10 @@ namespace BlsLang{
             /*
                 Debug and Drill Function Prototypes
             */
-            void setMetadata(std::unordered_map<OblockID, OblockContext> oblockCtxMap, std::vector<OBlockDesc> &centralizedOblocks){
-                this->oblockCtxMap = oblockCtxMap; 
-                for(auto& oDesc : centralizedOblocks){
-                    this->oblockDescriptorMap[oDesc.name] = oDesc; 
+            void setMetadata(std::unordered_map<TaskID, TaskContext> taskCtxMap, std::vector<TaskDescriptor> &centralizedTasks){
+                this->taskCtxMap = taskCtxMap; 
+                for(auto& taskDesc : centralizedTasks){
+                    this->taskDescriptorMap[taskDesc.name] = taskDesc; 
                 }
             }
    

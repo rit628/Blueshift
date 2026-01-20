@@ -75,9 +75,9 @@ void BytecodeProcessor::readHeader(std::istream& bytecode, boost::archive::binar
     uint16_t descriptorCount;
     bytecode.read(reinterpret_cast<char*>(&descriptorCount), sizeof(descriptorCount));
     for (uint16_t i = 0; i < descriptorCount; i++) {
-        OBlockDesc temp;
+        TaskDescriptor temp;
         ia >> temp;
-        oblockDescs.push_back(temp);
+        taskDescs.push_back(temp);
     }
 }
 

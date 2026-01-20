@@ -11,45 +11,45 @@
 
 // 
 
-ExecutionManager::ExecutionManager(std::vector<OBlockDesc> OblockList, TSQ<EMStateMessage> &readMM, 
+ExecutionManager::ExecutionManager(std::vector<TaskDescriptor> TaskList, TSQ<EMStateMessage> &readMM, 
     TSQ<HeapMasterMessage> &sendMM,
     std::vector<char>& bytecode,
-    std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks)
-    : readMM(readMM), sendMM(sendMM), scheduler(OblockList, [this](HeapMasterMessage dmm){this->sendMM.write(dmm);})
+    std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> tasks)
+    : readMM(readMM), sendMM(sendMM), scheduler(TaskList, [this](HeapMasterMessage dmm){this->sendMM.write(dmm);})
 {
-    this->OblockList = OblockList;
-    for(auto &oblock : OblockList)
+    this->TaskList = TaskList;
+    for(auto &task : TaskList)
     {
-        std::string OblockName = oblock.name;
+        std::string TaskName = task.name;
         std::vector<std::string> devices;
         std::vector<bool> isVtype;
         std::vector<std::string> controllers;
-        for(int j = 0; j < oblock.binded_devices.size(); j++)
+        for(int j = 0; j < task.binded_devices.size(); j++)
         {
-            devices.push_back(oblock.binded_devices.at(j).device_name);
-            isVtype.push_back(oblock.binded_devices.at(j).isVtype);
-            controllers.push_back(oblock.binded_devices.at(j).controller);
+            devices.push_back(task.binded_devices.at(j).device_name);
+            isVtype.push_back(task.binded_devices.at(j).isVtype);
+            controllers.push_back(task.binded_devices.at(j).controller);
         }
 
-        auto function = oblocks[OblockName];
-        auto bytecodeOffset = oblock.bytecode_offset;
-        EU_map[OblockName] = std::make_unique<ExecutionUnit>(oblock, devices, isVtype, controllers, this->sendMM, bytecodeOffset, bytecode, function, this->scheduler, eu_ctx);
+        auto function = tasks[TaskName];
+        auto bytecodeOffset = task.bytecode_offset;
+        EU_map[TaskName] = std::make_unique<ExecutionUnit>(task, devices, isVtype, controllers, this->sendMM, bytecodeOffset, bytecode, function, this->scheduler, eu_ctx);
     }
 }
 
-ExecutionUnit::ExecutionUnit(OBlockDesc oblock, std::vector<std::string> devices, std::vector<bool> isVtype, std::vector<std::string> controllers,
+ExecutionUnit::ExecutionUnit(TaskDescriptor task, std::vector<std::string> devices, std::vector<bool> isVtype, std::vector<std::string> controllers,
     TSQ<HeapMasterMessage> &sendMM, size_t bytecodeOffset, std::vector<char>& bytecode, std::function<std::vector<BlsType>(std::vector<BlsType>)>  transform_function, DeviceScheduler &devScheduler, asio::io_context &ctx)
     : globalScheduler(devScheduler), sendMM(sendMM), ctx(ctx)
 {
-    this->Oblock = oblock;
+    this->Task = task;
     this->devices = devices;
     this->isVtype = isVtype;
     this->controllers = controllers;
     this->vm.setParentExecutionUnit(this);
-    this->vm.setOblockOffset(bytecodeOffset);
+    this->vm.setTaskOffset(bytecodeOffset);
     this->vm.loadBytecode(bytecode);
     this->transform_function = transform_function;
-    this->info.oblock = oblock.name;
+    this->info.task = task.name;
 
     // Device Position Map:
     int i = 0;  
@@ -67,7 +67,7 @@ ExecutionUnit::~ExecutionUnit()
     this->executionThread.join();
 }
 
-HeapMasterMessage::HeapMasterMessage(std::shared_ptr<HeapDescriptor> heapTree, O_Info info, PROTOCOLS protocol, bool isInterrupt)
+HeapMasterMessage::HeapMasterMessage(std::shared_ptr<HeapDescriptor> heapTree, Task_Info info, PROTOCOLS protocol, bool isInterrupt)
 {
     this->heapTree = heapTree;
     this->info = info;
@@ -75,7 +75,7 @@ HeapMasterMessage::HeapMasterMessage(std::shared_ptr<HeapDescriptor> heapTree, O
     this->isInterrupt = isInterrupt;
 }
 
-DynamicMasterMessage::DynamicMasterMessage(DynamicMessage DM, O_Info info, PROTOCOLS protocol, bool isInterrupt)
+DynamicMasterMessage::DynamicMasterMessage(DynamicMessage DM, Task_Info info, PROTOCOLS protocol, bool isInterrupt)
 {
     this->DM = DM;
     this->info = info;
@@ -105,7 +105,7 @@ void ExecutionUnit::running()
         EMStateMessage currentHMMs = EUcache.read();
 
         this->TriggerName = currentHMMs.TriggerName;  
-        //std::cout<<this->Oblock.name <<" TRIGGERED BY: "<<TriggerName<<std::endl; 
+        //std::cout<<this->Task.name <<" TRIGGERED BY: "<<TriggerName<<std::endl; 
 
         std::unordered_map<DeviceID, HeapMasterMessage> HMMs;
         
@@ -115,7 +115,7 @@ void ExecutionUnit::running()
             HMMs[HMM.info.device] = HMM; 
         }
 
-        this->globalScheduler.request(this->Oblock.name, currentHMMs.priority); 
+        this->globalScheduler.request(this->Task.name, currentHMMs.priority); 
 
         replaceCachedStates(HMMs); 
         
@@ -123,12 +123,12 @@ void ExecutionUnit::running()
 
         // Tell the mailbox that the process is in execution
         HeapMasterMessage execMsg;
-        execMsg.info.oblock = this->Oblock.name;
+        execMsg.info.task = this->Task.name;
         execMsg.protocol = PROTOCOLS::PROCESS_EXEC; 
         this->sendMM.write(execMsg);
 
         int i = 0; 
-        for(auto& deviceDesc : this->Oblock.binded_devices){
+        for(auto& deviceDesc : this->Task.binded_devices){
             DeviceID devName = deviceDesc.device_name; 
 
             if(HMMs.contains(devName)){
@@ -163,9 +163,9 @@ void ExecutionUnit::running()
         std::vector<HeapMasterMessage> outGoingStates;  
 
         // Release before retrieval
-        this->globalScheduler.release(this->Oblock.name);
+        this->globalScheduler.release(this->Task.name);
 
-        for(auto& devDesc : this->Oblock.outDevices)
+        for(auto& devDesc : this->Task.outDevices)
         {   
             size_t pos = this->devicePositionMap[devDesc.device_name];
             if (!modifiedStates.at(pos)) continue;
@@ -174,7 +174,7 @@ void ExecutionUnit::running()
             newHMM.info.controller = devDesc.controller;
             newHMM.info.device = devDesc.device_name; 
             newHMM.info.isVtype = devDesc.isVtype; 
-            newHMM.info.oblock = this->Oblock.name; 
+            newHMM.info.task = this->Task.name; 
             newHMM.protocol = PROTOCOLS::SENDSTATES;
             newHMM.isInterrupt = false; 
             newHMM.heapTree = transformedState;
@@ -187,7 +187,7 @@ void ExecutionUnit::running()
             this->sendMM.write(hmm);
         }
 
-        // clear the replacement cache since the oblock ran successfully
+        // clear the replacement cache since the task ran successfully
         this->replacementCache.clear(); 
     }
 }
@@ -195,7 +195,7 @@ void ExecutionUnit::running()
 ExecutionUnit &ExecutionManager::assign(HeapMasterMessage DMM)
 {   
     
-    ExecutionUnit &assignedUnit = *EU_map.at(DMM.info.oblock); 
+    ExecutionUnit &assignedUnit = *EU_map.at(DMM.info.task); 
     assignedUnit.stateMap.emplace(DMM.info.device, DMM);
     return assignedUnit;
 }
@@ -209,8 +209,8 @@ void ExecutionManager::running()
         if(started){
             for(auto& pair : EU_map)
             {
-                O_Info info = pair.second->info;
-                //std::cout<<"Requesting States for : "<<info.oblock<<std::endl;
+                Task_Info info = pair.second->info;
+                //std::cout<<"Requesting States for : "<<info.task<<std::endl;
                 HeapMasterMessage requestHMM(nullptr, info, PROTOCOLS::REQUESTINGSTATES, false);
                 this->sendMM.write(requestHMM);
 
@@ -239,7 +239,7 @@ void ExecutionManager::running()
             case(PROTOCOLS::PULL_RESPONSE):{
                 HeapMasterMessage hmm = currentDMMs.dmm_list[0];
                 assignedUnit.pullVMArguments(hmm); 
-                // Allow the oblock to continue execution by unblocking the syscall
+                // Allow the task to continue execution by unblocking the syscall
                 {
                     std::lock_guard<std::mutex> lock(assignedUnit.pullMutex);
                     assignedUnit.pullCounter--; 
@@ -256,7 +256,7 @@ void ExecutionManager::running()
         
         if(assignedUnit.EUcache.getSize() < 3)
         {   
-            O_Info info = assignedUnit.info;
+            Task_Info info = assignedUnit.info;
             HeapMasterMessage requestHMM(nullptr, info, PROTOCOLS::REQUESTINGSTATES, false);
             this->sendMM.write(requestHMM);
         }
@@ -283,10 +283,10 @@ void ExecutionUnit::sendPushState(std::vector<BlsType> typeList){
             this->vm.getModifiedStates()[index] = false; 
 
             // TODO: CHANGE THIS TO USE THE ACTUAL NAME INSTEAD OF THE ALIAS
-            pushStateHmm.info.device = this->Oblock.binded_devices.at(index).device_name; 
-            pushStateHmm.info.oblock = this->Oblock.name; 
-            pushStateHmm.info.controller = this->Oblock.binded_devices.at(index).controller; 
-            pushStateHmm.isCursor = (this->Oblock.binded_devices.at(index).deviceKind == DeviceKind::CURSOR); 
+            pushStateHmm.info.device = this->Task.binded_devices.at(index).device_name; 
+            pushStateHmm.info.task = this->Task.name; 
+            pushStateHmm.info.controller = this->Task.binded_devices.at(index).controller; 
+            pushStateHmm.isCursor = (this->Task.binded_devices.at(index).deviceKind == DeviceKind::CURSOR); 
             this->sendMM.write(pushStateHmm); 
         }
     }
@@ -307,17 +307,17 @@ std::vector<BlsType> ExecutionUnit::sendPullState(std::vector<BlsType> typeList)
             else{
                 throw std::runtime_error("Suppose for pushing to non-primative device is not yet implemented");
             }
-            auto& deviceName =  this->Oblock.binded_devices.at(index).device_name; 
-            auto& controllerName =  this->Oblock.binded_devices.at(index).controller; 
+            auto& deviceName =  this->Task.binded_devices.at(index).device_name; 
+            auto& controllerName =  this->Task.binded_devices.at(index).controller; 
 
             this->pullPlacement.emplace(deviceName, i); 
             pullStateHmm.protocol = PROTOCOLS::PULL_REQUEST; 
      
             // TODO: CHANGE THIS TO USE THE DEVICE ALIAS MAPPING
             pullStateHmm.info.device = deviceName; 
-            pullStateHmm.info.oblock = this->Oblock.name; 
+            pullStateHmm.info.task = this->Task.name; 
             pullStateHmm.info.controller = controllerName; 
-            pullStateHmm.isCursor = (this->Oblock.binded_devices.at(index).deviceKind == DeviceKind::CURSOR); 
+            pullStateHmm.isCursor = (this->Task.binded_devices.at(index).deviceKind == DeviceKind::CURSOR); 
             this->sendMM.write(pullStateHmm); 
             i++; 
         }
@@ -339,9 +339,9 @@ void ExecutionUnit::pullVMArguments(HeapMasterMessage &hmm){
     this->pullStoreVector.at(pullPos) = hmm.heapTree; 
 }
 
-void ExecutionUnit::sendTriggerChange(std::string& triggerID, OblockID& oblockID, bool isEnable){
+void ExecutionUnit::sendTriggerChange(std::string& triggerID, TaskID& taskID, bool isEnable){
         HeapMasterMessage trigChangeHmm; 
-        trigChangeHmm.info.oblock = oblockID; 
+        trigChangeHmm.info.task = taskID; 
         trigChangeHmm.info.device = triggerID; 
         
         if(isEnable){

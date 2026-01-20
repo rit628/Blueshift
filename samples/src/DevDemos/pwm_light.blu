@@ -1,4 +1,4 @@
-oblock pwmLight(LINE_WRITER lw, PWM_LED led)
+task pwmLight(LINE_WRITER lw, PWM_LED led)
 : triggerOn(lw)
 {
     if(lw.msg == "high"){

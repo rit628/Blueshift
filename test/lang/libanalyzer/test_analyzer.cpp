@@ -1201,7 +1201,7 @@ namespace BlsLang {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Source(
             {},
             {
-                new AstNode::Function::Oblock(
+                new AstNode::Function::Task(
                     "foo",
                     {
                         new AstNode::Specifier::Type(
@@ -1317,8 +1317,8 @@ namespace BlsLang {
             }}
         };
 
-        expectedMetadata.oblockDescriptors = {
-            {"foo", OBlockDesc{
+        expectedMetadata.taskDescriptors = {
+            {"foo", TaskDescriptor{
                 .name = "foo",
                 .binded_devices = {
                     DeviceDescriptor{
@@ -1357,11 +1357,11 @@ namespace BlsLang {
         TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
     }
 
-    GROUP_TEST_F(AnalyzerTest, ConfigTests, OblockConfig) {
+    GROUP_TEST_F(AnalyzerTest, ConfigTests, TaskConfig) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Source(
             {},
             {
-                new AstNode::Function::Oblock(
+                new AstNode::Function::Task(
                     "foo",
                     {
                         new AstNode::Specifier::Type(
@@ -1383,7 +1383,7 @@ namespace BlsLang {
                         "L3"
                     },
                     {
-                        new AstNode::Initializer::Oblock(
+                        new AstNode::Initializer::Task(
                             "triggerOn",
                             {
                                 new AstNode::Expression::List(
@@ -1426,7 +1426,7 @@ namespace BlsLang {
                                 )
                             }
                         ),
-                        new AstNode::Initializer::Oblock(
+                        new AstNode::Initializer::Task(
                             "constPollOn",
                             {
                                 new AstNode::Expression::Map(
@@ -1451,7 +1451,7 @@ namespace BlsLang {
                                 )
                             }
                         ),
-                        new AstNode::Initializer::Oblock(
+                        new AstNode::Initializer::Task(
                             "processPolicy",
                             {
                                 new AstNode::Expression::Map(
@@ -1494,7 +1494,7 @@ namespace BlsLang {
                                 )
                             }
                         ),
-                        new AstNode::Initializer::Oblock(
+                        new AstNode::Initializer::Task(
                             "overwritePolicy",
                             {
                                 new AstNode::Expression::Map(
@@ -1607,8 +1607,8 @@ namespace BlsLang {
             }}
         };
 
-        expectedMetadata.oblockDescriptors = {
-            {"foo", OBlockDesc{
+        expectedMetadata.taskDescriptors = {
+            {"foo", TaskDescriptor{
                 .name = "foo",
                 .binded_devices = {
                     DeviceDescriptor{
@@ -1660,8 +1660,8 @@ namespace BlsLang {
         TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
     }
 
-    GROUP_TEST_F(AnalyzerTest, ConfigTests, InvalidOblockOption) {
-        auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Oblock(
+    GROUP_TEST_F(AnalyzerTest, ConfigTests, InvalidTaskOption) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Task(
             "foo",
             {
                 new AstNode::Specifier::Type(
@@ -1683,7 +1683,7 @@ namespace BlsLang {
                 "L3"
             },
             {
-                new AstNode::Initializer::Oblock(
+                new AstNode::Initializer::Task(
                     "triggerOn",
                     {
                         new AstNode::Expression::List(
@@ -1701,7 +1701,7 @@ namespace BlsLang {
                         ),
                     }
                 ),
-                new AstNode::Initializer::Oblock(
+                new AstNode::Initializer::Task(
                     "badOption",
                     {}
                 )
@@ -1716,8 +1716,8 @@ namespace BlsLang {
         EXPECT_THROW(TEST_ANALYZE(ast, decoratedAst, expectedMetadata), SemanticError);
     }
 
-    GROUP_TEST_F(AnalyzerTest, ConfigTests, InvalidOblockOptionArgument) {
-        auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Oblock(
+    GROUP_TEST_F(AnalyzerTest, ConfigTests, InvalidTaskOptionArgument) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Function::Task(
             "foo",
             {
                 new AstNode::Specifier::Type(
@@ -1739,7 +1739,7 @@ namespace BlsLang {
                 "L3"
             },
             {
-                new AstNode::Initializer::Oblock(
+                new AstNode::Initializer::Task(
                     "triggerOn",
                     {
                         new AstNode::Expression::List(
@@ -1757,7 +1757,7 @@ namespace BlsLang {
                         ),
                     }
                 ),
-                new AstNode::Initializer::Oblock(
+                new AstNode::Initializer::Task(
                     "badOption",
                     {}
                 )

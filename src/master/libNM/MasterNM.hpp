@@ -18,7 +18,7 @@ class MasterNM{
     private: 
         std::vector<std::string> controller_list; 
         std::vector<std::string> device_list; 
-        std::vector<std::string> oblock_list; 
+        std::vector<std::string> task_list; 
 
         // Device descriptor info (mostly used for debugging maybe for other things): 
         std::unordered_map<std::string, DeviceDescriptor> dd_map; 
@@ -27,14 +27,14 @@ class MasterNM{
         // Controler configs
         std::unordered_map<std::string, DeviceConfigMsg> ctl_configs; 
 
-        // Maps device/oblock alias names to devices
+        // Maps device/task alias names to devices
         std::unordered_map<std::string, uint16_t> device_alias_map;
 
         // Maps controller alias to devices
         std::unordered_map<std::string, uint16_t> controller_alias_map;
 
-        // Oblock map
-        std::unordered_map<std::string, uint16_t> oblock_alias_map;     
+        // Task map
+        std::unordered_map<std::string, uint16_t> task_alias_map;     
 
         // Networking stuff
         std::vector<std::shared_ptr<Connection>> temp_vector; 
@@ -66,7 +66,7 @@ class MasterNM{
        DynamicMasterMessage makeDMM(SentMessage &in_msg, PROTOCOLS pcode);
 
 
-        void writeConfig(std::vector<OBlockDesc> &descs); 
+        void writeConfig(std::vector<TaskDescriptor> &descs); 
 
         // Make a broadcast on 255.255.255.255 for device running on port 2988
         void broadcastIntro(); 
@@ -87,7 +87,7 @@ class MasterNM{
         void sendInitialTicker(std::shared_ptr<Connection> &client_con); 
 
     public:     
-        MasterNM(std::vector<OBlockDesc> &descs, TSQ<DMM> &in_que, TSQ<DMM> &out_q); 
+        MasterNM(std::vector<TaskDescriptor> &descs, TSQ<DMM> &in_que, TSQ<DMM> &out_q); 
         ~MasterNM(); 
         bool start();
         void stop(); 

@@ -32,12 +32,12 @@ namespace BlsLang {
             expectedVisits.pop();
         }
     
-        auto& expectedOblocks = expectedSource.getOblocks();
-        auto& oblocks = ast.getOblocks();
-        EXPECT_EQ(expectedOblocks.size(), oblocks.size());
-        for (size_t i = 0; i < expectedOblocks.size(); i++) {
-            expectedVisits.push(std::move(expectedOblocks.at(i)));
-            oblocks.at(i)->accept(*this);
+        auto& expectedTasks = expectedSource.getTasks();
+        auto& tasks = ast.getTasks();
+        EXPECT_EQ(expectedTasks.size(), tasks.size());
+        for (size_t i = 0; i < expectedTasks.size(); i++) {
+            expectedVisits.push(std::move(expectedTasks.at(i)));
+            tasks.at(i)->accept(*this);
             expectedVisits.pop();
         }
     
@@ -81,14 +81,14 @@ namespace BlsLang {
         return true;
     }
     
-    inline BlsObject Tester::visit(AstNode::Function::Oblock& ast) {
+    inline BlsObject Tester::visit(AstNode::Function::Task& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
-        auto& expectedOblock = dynamic_cast<AstNode::Function::Oblock&>(*toCast);
+        auto& expectedTask = dynamic_cast<AstNode::Function::Task&>(*toCast);
     
-        EXPECT_EQ(expectedOblock.getName(), ast.getName());
-        EXPECT_EQ(expectedOblock.getParameters(), ast.getParameters());
+        EXPECT_EQ(expectedTask.getName(), ast.getName());
+        EXPECT_EQ(expectedTask.getParameters(), ast.getParameters());
 
-        auto& expectedParameterTypes = expectedOblock.getParameterTypes();
+        auto& expectedParameterTypes = expectedTask.getParameterTypes();
         auto& parameterTypes = ast.getParameterTypes();
         EXPECT_EQ(expectedParameterTypes.size(), parameterTypes.size());
         for (size_t i = 0; i < expectedParameterTypes.size(); i++) {
@@ -97,7 +97,7 @@ namespace BlsLang {
             expectedVisits.pop();
         }
 
-        auto& expectedConfigOptions= expectedOblock.getConfigOptions();
+        auto& expectedConfigOptions= expectedTask.getConfigOptions();
         auto& configOptions= ast.getConfigOptions();
         EXPECT_EQ(expectedConfigOptions.size(), configOptions.size());
         for (size_t i = 0; i < expectedConfigOptions.size(); i++) {
@@ -106,7 +106,7 @@ namespace BlsLang {
             expectedVisits.pop();
         }
     
-        auto& expectedStatements = expectedOblock.getStatements();
+        auto& expectedStatements = expectedTask.getStatements();
         auto& statements = ast.getStatements();
         EXPECT_EQ(expectedStatements.size(), statements.size());
         for (size_t i = 0; i < expectedStatements.size(); i++) {
@@ -503,9 +503,9 @@ namespace BlsLang {
         return true;
     }
 
-    inline BlsObject Tester::visit(AstNode::Initializer::Oblock& ast) {
+    inline BlsObject Tester::visit(AstNode::Initializer::Task& ast) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
-        auto& expectedType = dynamic_cast<AstNode::Initializer::Oblock&>(*toCast);
+        auto& expectedType = dynamic_cast<AstNode::Initializer::Task&>(*toCast);
     
         EXPECT_EQ(expectedType.getOption(), ast.getOption());
         EXPECT_EQ(expectedType.getArgs().size(), ast.getArgs().size());

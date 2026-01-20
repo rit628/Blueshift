@@ -102,9 +102,9 @@ struct SentHeader{
     DeviceKind kind; 
     ERROR_T ec = ERROR_T::BAD_DEV_CONFIG; 
 
-    // Used to communicate about oblock ownership between master and client
-    uint16_t oblock_id = 0;
-    uint8_t oblock_priority = 0; 
+    // Used to communicate about task ownership between master and client
+    uint16_t task_id = 0;
+    uint8_t task_priority = 0; 
 
     // used to keep track of pushIDs
     uint16_t pushID = 0; 
@@ -124,7 +124,7 @@ struct SentMessage{
 
 // Timer for a specific device: 
 struct Timer{
-    // Timer id to uniquely identify timers to determine what oblock to fwd stuff to
+    // Timer id to uniquely identify timers to determine what task to fwd stuff to
     TimerID id = 0; 
     // Device name
     uint16_t device_num = 0; 

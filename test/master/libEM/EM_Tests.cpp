@@ -9,10 +9,10 @@
 // // Test construction and field initialization of DynamicMasterMessage.
 // TEST(DynamicMasterMessageTest, ConstructorInitializesFields) {
 //     DynamicMessage dm;
-//     O_Info info { "OBlock1", "Device1", "Controller1", false };
+//     Task_Info info { "Task1", "Device1", "Controller1", false };
 //     DynamicMasterMessage dmm(dm, info, PROTOCOLS::SENDSTATES, false);
     
-//     EXPECT_EQ(dmm.info.oblock, "OBlock1");
+//     EXPECT_EQ(dmm.info.task, "Task1");
 //     EXPECT_EQ(dmm.info.device, "Device1");
 //     EXPECT_EQ(dmm.info.controller, "Controller1");
 //     EXPECT_EQ(dmm.protocol, PROTOCOLS::SENDSTATES);
@@ -22,10 +22,10 @@
 // // Test construction and field initialization of HeapMasterMessage.
 // TEST(HeapMasterMessageTest, ConstructorInitializesFields) {
 //     auto heapTree = std::make_shared<HeapDescriptor>();
-//     O_Info info { "OBlock2", "Device2", "Controller2", true };
+//     Task_Info info { "Task2", "Device2", "Controller2", true };
 //     HeapMasterMessage hmm(heapTree, info, PROTOCOLS::CALLBACKRECIEVED, true);
     
-//     EXPECT_EQ(hmm.info.oblock, "OBlock2");
+//     EXPECT_EQ(hmm.info.task, "Task2");
 //     EXPECT_EQ(hmm.info.device, "Device2");
 //     EXPECT_EQ(hmm.info.controller, "Controller2");
 //     EXPECT_EQ(hmm.protocol, PROTOCOLS::CALLBACKRECIEVED);
@@ -35,26 +35,26 @@
 
 // // Test ExecutionManager constructor creates ExecutionUnits as expected.
 // TEST(ExecutionManagerTest, ConstructorCreatesExecutionUnits) {
-//     // Create a dummy OBlockDesc.
-//     OBlockDesc oblockDesc;
-//     oblockDesc.name = "OBlock_Test";
+//     // Create a dummy TaskDesc.
+//     TaskDesc taskDesc;
+//     taskDesc.name = "Task_Test";
 //     DeviceDescriptor device;
 //     device.device_name = "Device_Test";
 //     device.isVtype = false;
 //     device.controller = "Controller_Test";
-//     oblockDesc.binded_devices.push_back(device);
+//     taskDesc.binded_devices.push_back(device);
     
-//     vector<OBlockDesc> oblockList = { oblockDesc };
+//     vector<TaskDesc> taskList = { taskDesc };
     
 //     // Create dummy TSQ objects.
 //     TSQ<vector<DynamicMasterMessage>> readQueue;
 //     TSQ<DynamicMasterMessage> sendQueue;
     
 //     // Construct ExecutionManager.
-//     ExecutionManager em(oblockList, readQueue, sendQueue);
+//     ExecutionManager em(taskList, readQueue, sendQueue);
     
 //     // Check that an ExecutionUnit was created in the map.
-//     auto it = em.EU_map.find("OBlock_Test");
+//     auto it = em.EU_map.find("Task_Test");
 //     EXPECT_NE(it, em.EU_map.end());
     
 //     // Also check that the ExecutionUnit's device vector contains "Device_Test".
@@ -65,23 +65,23 @@
 
 // // Test ExecutionManager::assign method properly assigns a DynamicMasterMessage.
 // TEST(ExecutionManagerTest, AssignAddsToExecutionUnitStateMap) {
-//     // Setup a dummy OBlockDesc and ExecutionManager.
-//     OBlockDesc oblockDesc;
-//     oblockDesc.name = "OBlock_Assign";
+//     // Setup a dummy TaskDesc and ExecutionManager.
+//     TaskDesc taskDesc;
+//     taskDesc.name = "Task_Assign";
 //     DeviceDescriptor device;
 //     device.device_name = "Device_Assign";
 //     device.isVtype = false;
 //     device.controller = "Controller_Assign";
-//     oblockDesc.binded_devices.push_back(device);
-//     vector<OBlockDesc> oblockList = { oblockDesc };
+//     taskDesc.binded_devices.push_back(device);
+//     vector<TaskDesc> taskList = { taskDesc };
     
 //     TSQ<vector<DynamicMasterMessage>> readQueue;
 //     TSQ<DynamicMasterMessage> sendQueue;
-//     ExecutionManager em(oblockList, readQueue, sendQueue);
+//     ExecutionManager em(taskList, readQueue, sendQueue);
     
 //     // Create a dummy DynamicMasterMessage.
 //     DynamicMessage dm;
-//     O_Info info { "OBlock_Assign", "Device_Assign", "Controller_Assign", false };
+//     Task_Info info { "Task_Assign", "Device_Assign", "Controller_Assign", false };
 //     DynamicMasterMessage dmm(dm, info, PROTOCOLS::REQUESTINGSTATES, false);
     
 //     // Call assign.
@@ -94,26 +94,26 @@
 // }
 
 // TEST(ExecutionManagerTest, RunningProcessesReadQueue) {
-//     // Setup one OBlockDesc.
-//     OBlockDesc oblockDesc;
-//     oblockDesc.name = "OBlock_Running";
+//     // Setup one TaskDesc.
+//     TaskDesc taskDesc;
+//     taskDesc.name = "Task_Running";
 //     DeviceDescriptor device;
 //     device.device_name = "Device_Running";
 //     device.isVtype = false;
 //     device.controller = "Controller_Running";
-//     oblockDesc.binded_devices.push_back(device);
-//     vector<OBlockDesc> oblockList = { oblockDesc };
+//     taskDesc.binded_devices.push_back(device);
+//     vector<TaskDesc> taskList = { taskDesc };
     
 //     // Create dummy TSQs.
 //     TSQ<vector<DynamicMasterMessage>> readQueue;
 //     TSQ<DynamicMasterMessage> sendQueue;
-//     ExecutionManager em(oblockList, readQueue, sendQueue);
+//     ExecutionManager em(taskList, readQueue, sendQueue);
     
 //     // Prepare a vector with one DynamicMasterMessage.
 //     DynamicMessage dm;
 //     string strValue = "TestString";
 //     dm.createField("stringField", strValue);
-//     O_Info info { "OBlock_Running", "Device_Running", "Controller_Running", false };
+//     Task_Info info { "Task_Running", "Device_Running", "Controller_Running", false };
 //     DynamicMasterMessage dmm(dm, info, PROTOCOLS::SENDSTATES, false);
 //     vector<DynamicMasterMessage> dmmVec = { dmm };
     
@@ -126,7 +126,7 @@
 //     std::this_thread::sleep_for(100ms);
 
 //     // The corresponding ExecutionUnit's EUcache should now contain the message.
-//     ExecutionUnit &eu = *em.EU_map.at("OBlock_Running");
+//     ExecutionUnit &eu = *em.EU_map.at("Task_Running");
     
 //     EXPECT_TRUE(eu.EUcache.isEmpty());
 
@@ -135,25 +135,25 @@
 
 // TEST(ExecutionManagerTest, RunningProcessesNonVtype) 
 // {
-//     OBlockDesc oblockDesc;
-//     oblockDesc.name = "OBlock_Running";
+//     TaskDesc taskDesc;
+//     taskDesc.name = "Task_Running";
 //     DeviceDescriptor device;
 //     device.device_name = "Device_Running";
 //     device.isVtype = false;
 //     device.controller = "Controller_Running";
-//     oblockDesc.binded_devices.push_back(device);
-//     vector<OBlockDesc> oblockList = { oblockDesc };
+//     taskDesc.binded_devices.push_back(device);
+//     vector<TaskDesc> taskList = { taskDesc };
     
 //     // Create dummy TSQs.
 //     TSQ<vector<DynamicMasterMessage>> readQueue;
 //     TSQ<DynamicMasterMessage> sendQueue;
-//     ExecutionManager em(oblockList, readQueue, sendQueue);
+//     ExecutionManager em(taskList, readQueue, sendQueue);
 
 //     // Prepare a vector with one DynamicMasterMessage.
 //     DynamicMessage dm;
 //     string strValue = "TestString";
 //     dm.createField("stringField", strValue);
-//     O_Info info { "OBlock_Running", "Device_Running", "Controller_Running", false };
+//     Task_Info info { "Task_Running", "Device_Running", "Controller_Running", false };
 //     DynamicMasterMessage dmm(dm, info, PROTOCOLS::SENDSTATES, false);
 //     vector<DynamicMasterMessage> dmmVec = { dmm };
 
@@ -166,7 +166,7 @@
 //     std::this_thread::sleep_for(100ms);
 
 //     // The corresponding ExecutionUnit's EUcache should now contain the message.
-//     ExecutionUnit &eu = *em.EU_map.at("OBlock_Running");
+//     ExecutionUnit &eu = *em.EU_map.at("Task_Running");
     
 //     EXPECT_TRUE(eu.EUcache.isEmpty());
 //     EXPECT_EQ(em.sendMM.getSize(), 1);
@@ -176,25 +176,25 @@
 
 // TEST(ExecutionManagerTest, RunningProcessesVtype) 
 // {
-//     OBlockDesc oblockDesc;
-//     oblockDesc.name = "OBlock_Running";
+//     TaskDesc taskDesc;
+//     taskDesc.name = "Task_Running";
 //     DeviceDescriptor device;
 //     device.device_name = "Device_Running";
 //     device.isVtype = true;
 //     device.controller = "Controller_Running";
-//     oblockDesc.binded_devices.push_back(device);
-//     vector<OBlockDesc> oblockList = { oblockDesc };
+//     taskDesc.binded_devices.push_back(device);
+//     vector<TaskDesc> taskList = { taskDesc };
     
 //     // Create dummy TSQs.
 //     TSQ<vector<DynamicMasterMessage>> readQueue;
 //     TSQ<DynamicMasterMessage> sendQueue;
-//     ExecutionManager em(oblockList, readQueue, sendQueue);
+//     ExecutionManager em(taskList, readQueue, sendQueue);
 
 //     // Prepare a vector with one DynamicMasterMessage.
 //     DynamicMessage dm;
 //     string strValue = "TestString";
 //     dm.createField("stringField", strValue);
-//     O_Info info { "OBlock_Running", "Device_Running", "Controller_Running", true };
+//     Task_Info info { "Task_Running", "Device_Running", "Controller_Running", true };
 //     DynamicMasterMessage dmm(dm, info, PROTOCOLS::SENDSTATES, false);
 //     vector<DynamicMasterMessage> dmmVec = { dmm };
 
@@ -207,7 +207,7 @@
 //     std::this_thread::sleep_for(100ms);
 
 //     // The corresponding ExecutionUnit's EUcache should now contain the message.
-//     ExecutionUnit &eu = *em.EU_map.at("OBlock_Running");
+//     ExecutionUnit &eu = *em.EU_map.at("Task_Running");
     
 //     EXPECT_TRUE(eu.EUcache.isEmpty());
 //     EXPECT_EQ(em.sendMM.getSize(), 0);

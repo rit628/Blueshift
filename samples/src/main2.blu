@@ -1,4 +1,4 @@
-oblock task(LINE_WRITER lw, READ_FILE rfp, FILE_LOG log)
+task task(LINE_WRITER lw, READ_FILE rfp, FILE_LOG log)
 : triggerOn({"id": "name1", "rule" : lw, "priority" : 20})
 {
     string textMessage = lw.msg; 
@@ -27,20 +27,20 @@ oblock task(LINE_WRITER lw, READ_FILE rfp, FILE_LOG log)
 
 // Expecting multiple devices
 
-oblock task2(LINE_WRITER lw, FILE_LOG log1, int k)
+task task2(LINE_WRITER lw, FILE_LOG log1, int k)
 : triggerOn({"id":"basic", "rule" : lw, "priority" : 8}, {"rule" : k, "priority" : 4})
 {
     log1.add_msg = "This is from task2 (priority 8)"; 
 }
 
 
-oblock task3(LINE_WRITER lw, FILE_LOG fl, int k)
+task task3(LINE_WRITER lw, FILE_LOG fl, int k)
 : triggerOn({"id" : "t3", "rule" : lw, "priority" : 5}, {"rule" : k, "priority" : 8})
 {
     fl.add_msg = "Im on crack " + lw.msg + " priority 5 "; 
 }
 
-oblock task4(READ_FILE omar, int k)
+task task4(READ_FILE omar, int k)
 : triggerOn(omar)
 {
     k = k + 1; 

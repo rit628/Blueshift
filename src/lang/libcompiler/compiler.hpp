@@ -20,17 +20,17 @@ namespace BlsLang {
     class Compiler {
         public:
             Compiler()
-            : generator(analyzer.getOblockDescriptors()
+            : generator(analyzer.getTaskDescriptors()
                        , analyzer.getLiteralPool()) {}
             
             using ostream_t = std::variant<std::reference_wrapper<std::vector<char>>, std::reference_wrapper<std::ostream>>;
 
             void compileFile(const std::string& source, ostream_t outputStream = std::cout);
             void compileSource(const std::string& source, ostream_t outputStream = std::cout);
-            auto& getOblocks() { return oblocks; }
-            auto& getOblockDescriptors() { return oblockDescriptors; }
-            auto& getOblockDescriptorMap() { return analyzer.getOblockDescriptors(); }
-            auto getOblockContexts(){return depGraph.getOblockMap();}
+            auto& getTasks() { return tasks; }
+            auto& getTaskDescriptors() { return taskDescriptors; }
+            auto& getTaskDescriptorMap() { return analyzer.getTaskDescriptors(); }
+            auto getTaskContexts(){return depGraph.getTaskMap();}
             auto getGlobalContext() {return depGraph.getGlobalContext();}
             
         private:
@@ -45,8 +45,8 @@ namespace BlsLang {
             Symgraph symGraph; 
             Divider divider; 
             std::vector<Interpreter> euInterpreters;
-            std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks;
-            std::vector<OBlockDesc> oblockDescriptors;
+            std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> tasks;
+            std::vector<TaskDescriptor> taskDescriptors;
     };
 
 }

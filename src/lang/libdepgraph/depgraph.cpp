@@ -29,10 +29,10 @@ GlobalContext& DepGraph::getGlobalContext(){
 }
 
 void DepGraph::printGlobalContext(){
-    auto& oblockMap =  this->globalCtx.oblockConnections; 
+    auto& taskMap =  this->globalCtx.taskConnections; 
 
-    for(auto& pair : oblockMap){
-        std::cout<<"Oblock: "<<pair.first<<std::endl; 
+    for(auto& pair : taskMap){
+        std::cout<<"Task: "<<pair.first<<std::endl; 
         std::cout<<"In Devices: "<<std::endl; 
         for(auto& dev : pair.second.inDeviceList){
             std::cout<<"*"<<dev<<std::endl; 
@@ -46,14 +46,14 @@ void DepGraph::printGlobalContext(){
     }
 }
 
-void DepGraph::clearOblockCtx(){
-    this->oblockCtx.operatingOblock = ""; 
-    this->oblockCtx.devAliasMap.clear();
-    this->oblockCtx.tempDevices.clear();  
+void DepGraph::clearTaskCtx(){
+    this->taskCtx.operatingTask = ""; 
+    this->taskCtx.devAliasMap.clear();
+    this->taskCtx.tempDevices.clear();  
 }
 
 bool DepGraph::isDevice(const SymbolID& isDevice){
-    return this->oblockCtx.devAliasMap.contains(isDevice); 
+    return this->taskCtx.devAliasMap.contains(isDevice); 
 }
 
 
@@ -66,11 +66,11 @@ BlsObject DepGraph::visit(AstNode::Source& ast) {
     ast.getSetup()->accept(*this); 
     this->setupCtx.inSetup = false; 
 
-    auto& oblockList = ast.getOblocks(); 
-    for(auto& oblock : oblockList){
-        oblock->accept(*this); 
-        this->oblockCtxList.push_back(this->oblockCtx); 
-        clearOblockCtx(); 
+    auto& taskList = ast.getTasks(); 
+    for(auto& task : taskList){
+        task->accept(*this); 
+        this->taskCtxList.push_back(this->taskCtx); 
+        clearTaskCtx(); 
     }
 
     return true; 
@@ -84,17 +84,17 @@ BlsObject DepGraph::visit(AstNode::Setup& ast) {
    return true; 
 }
 
-BlsObject DepGraph::visit(AstNode::Function::Oblock& ast){
+BlsObject DepGraph::visit(AstNode::Function::Task& ast){
     auto& name = ast.getName(); 
-    this->oblockCtx.operatingOblock = name; 
+    this->taskCtx.operatingTask = name; 
     auto& params = ast.getParameters(); 
 
-    if(this->globalCtx.oblockConnections.contains(name)){
+    if(this->globalCtx.taskConnections.contains(name)){
 
-        auto realDev = this->globalCtx.oblockConnections[name].bindedDevices;
+        auto realDev = this->globalCtx.taskConnections[name].bindedDevices;
         
         for(int i = 0; i < params.size(); i++){
-            this->oblockCtx.devAliasMap[params[i]] = realDev[i]; 
+            this->taskCtx.devAliasMap[params[i]] = realDev[i]; 
         }
 
         for(auto& statement : ast.getStatements()){ 
@@ -136,16 +136,16 @@ BlsObject DepGraph::visit(AstNode::Statement::Declaration& ast) {
 
 BlsObject DepGraph::visit(AstNode::Expression::Binary &ast){
     if(ast.getOp() == "="){
-       this->oblockCtx.isReading = false;  
+       this->taskCtx.isReading = false;  
        ast.getLeft()->accept(*this); 
-       this->oblockCtx.isReading = true; 
+       this->taskCtx.isReading = true; 
 
        ast.getRight()->accept(*this); 
     }
     else if(ast.getOp() == "+="){
-        this->oblockCtx.isRW = true; 
+        this->taskCtx.isRW = true; 
         ast.getLeft()->accept(*this); 
-        this->oblockCtx.isRW = false; 
+        this->taskCtx.isRW = false; 
         ast.getRight()->accept(*this); 
     }
     else{
@@ -163,21 +163,21 @@ BlsObject DepGraph::visit(AstNode::Statement::Expression &ast){
 
 BlsObject DepGraph::visit(AstNode::Expression::Function& ast) {
     if(this->setupCtx.inSetup){
-        AstOblockDesc oblockDesc; 
-        OblockID oblock = ast.getName(); 
-        oblockDesc.name = oblock; 
+        AstTaskDesc taskDesc; 
+        TaskID task = ast.getName(); 
+        taskDesc.name = task; 
         auto& argList = ast.getArguments(); 
         for(auto& dev : argList){
             auto devArg = resolve(dev->accept(*this)); 
             if(std::holds_alternative<std::string>(devArg)){
                 auto bindDev = std::get<std::string>(devArg); 
-                oblockDesc.bindedDevices.push_back(bindDev); 
+                taskDesc.bindedDevices.push_back(bindDev); 
             }
             else{
-                error("Could not derive oblock argument as string!"); 
+                error("Could not derive task argument as string!"); 
             }
         }
-        this->globalCtx.oblockConnections[oblock] = oblockDesc; 
+        this->globalCtx.taskConnections[task] = taskDesc; 
     }
     else{
         auto& argList = ast.getArguments(); 
@@ -197,8 +197,8 @@ BlsObject DepGraph::visit(AstNode::Expression::Access& ast) {
     else{
         auto obj = ast.getObject(); 
         if(isDevice(obj)){
-            auto& realDev = this->oblockCtx.devAliasMap[obj]; 
-            this->oblockCtx.tempDevices.insert(realDev); 
+            auto& realDev = this->taskCtx.devAliasMap[obj]; 
+            this->taskCtx.tempDevices.insert(realDev); 
         }
 
         if(ast.getSubscript().has_value()){
@@ -206,27 +206,27 @@ BlsObject DepGraph::visit(AstNode::Expression::Access& ast) {
         }
 
         
-        if(this->oblockCtx.isRW){
-            auto &targ = this->oblockCtx.operatingOblock; 
-            for(const DeviceID& dev : this->oblockCtx.tempDevices){
-                this->globalCtx.oblockConnections[targ].inDeviceList.insert(dev); 
-                this->globalCtx.oblockConnections[targ].outDeviceList.insert(dev); 
+        if(this->taskCtx.isRW){
+            auto &targ = this->taskCtx.operatingTask; 
+            for(const DeviceID& dev : this->taskCtx.tempDevices){
+                this->globalCtx.taskConnections[targ].inDeviceList.insert(dev); 
+                this->globalCtx.taskConnections[targ].outDeviceList.insert(dev); 
             }
         }
-        else if(this->oblockCtx.isReading){
-            auto &targ = this->oblockCtx.operatingOblock; 
-            for(const DeviceID& dev : this->oblockCtx.tempDevices){
-                this->globalCtx.oblockConnections[targ].inDeviceList.insert(dev); 
+        else if(this->taskCtx.isReading){
+            auto &targ = this->taskCtx.operatingTask; 
+            for(const DeviceID& dev : this->taskCtx.tempDevices){
+                this->globalCtx.taskConnections[targ].inDeviceList.insert(dev); 
             }
         }
         else{
-            auto &targ = this->oblockCtx.operatingOblock; 
-            for(const DeviceID& dev : this->oblockCtx.tempDevices){
-                this->globalCtx.oblockConnections[targ].outDeviceList.insert(dev); 
+            auto &targ = this->taskCtx.operatingTask; 
+            for(const DeviceID& dev : this->taskCtx.tempDevices){
+                this->globalCtx.taskConnections[targ].outDeviceList.insert(dev); 
             }
         }
 
-        this->oblockCtx.tempDevices.clear(); 
+        this->taskCtx.tempDevices.clear(); 
     }
     return true; 
 }
@@ -296,9 +296,9 @@ BlsObject DepGraph::visit(AstNode::Expression::Group& ast) {
 
 BlsObject DepGraph::visit(AstNode::Expression::Unary& ast){
     if(ast.getOp() == "++" || ast.getOp() == "--"){
-        this->oblockCtx.isRW = true; 
+        this->taskCtx.isRW = true; 
         ast.getExpression()->accept(*this); 
-        this->oblockCtx.isRW = false; 
+        this->taskCtx.isRW = false; 
     }
     else{
         ast.getExpression()->accept(*this); 
@@ -312,7 +312,7 @@ BlsObject DepGraph::visit(AstNode::Function::Procedure& ast) {
     
 }
 
-BlsObject DepGraph::visit(AstNode::Function::Oblock& ast) {
+BlsObject DepGraph::visit(AstNode::Function::Task& ast) {
     
 }
 

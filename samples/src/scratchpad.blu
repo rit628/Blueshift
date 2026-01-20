@@ -1,4 +1,4 @@
-oblock reciever(LINE_WRITER d1, LINE_WRITER d2){
+task reciever(LINE_WRITER d1, LINE_WRITER d2){
     string a = d1.msg; 
     int k = 9; 
     int o = 514; 

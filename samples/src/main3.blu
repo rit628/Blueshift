@@ -1,4 +1,4 @@
-oblock reciever(LINE_WRITER d1, LINE_WRITER d2, LINE_WRITER d3){
+task reciever(LINE_WRITER d1, LINE_WRITER d2, LINE_WRITER d3){
     
     string a = d1.msg; 
     string k = "9"; 
@@ -12,7 +12,7 @@ oblock reciever(LINE_WRITER d1, LINE_WRITER d2, LINE_WRITER d3){
     }
 }
 
-oblock omar(LINE_WRITER d1, LINE_WRITER d3){
+task omar(LINE_WRITER d1, LINE_WRITER d3){
     d1.msg = d3.msg + " from jamar "; 
 }
 

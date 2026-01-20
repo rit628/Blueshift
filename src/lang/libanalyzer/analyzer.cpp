@@ -30,8 +30,8 @@ BlsObject Analyzer::visit(AstNode::Source& ast) {
         procedure->accept(*this);
     }
 
-    for (auto&& oblock : ast.getOblocks()) {
-        oblock->accept(*this);
+    for (auto&& task : ast.getTasks()) {
+        task->accept(*this);
     }
 
     ast.getSetup()->accept(*this);
@@ -98,8 +98,8 @@ BlsObject Analyzer::visit(AstNode::Function::Procedure& ast) {
     return std::monostate();
 }
 
-BlsObject Analyzer::visit(AstNode::Function::Oblock& ast) {
-    auto& oblockName = ast.getName();
+BlsObject Analyzer::visit(AstNode::Function::Task& ast) {
+    auto& taskName = ast.getName();
     
     std::vector<BlsType> parameterTypes;
     for (auto&& type : ast.getParameterTypes()) {
@@ -107,19 +107,19 @@ BlsObject Analyzer::visit(AstNode::Function::Oblock& ast) {
         parameterTypes.push_back(typeObject);
     }
     
-    cs.pushFrame(CallStack<std::string>::Frame::Context::FUNCTION, oblockName);
+    cs.pushFrame(CallStack<std::string>::Frame::Context::FUNCTION, taskName);
     auto params = ast.getParameters();
     std::unordered_map<std::string, uint8_t> parameterIndices;
     for (int i = 0; i < params.size(); i++) {
         parameterIndices.emplace(params.at(i), i);
         cs.addLocal(params.at(i), parameterTypes.at(i));
     }
-    oblocks.emplace(oblockName, FunctionSignature(oblockName, std::monostate(), parameterTypes, parameterIndices));
+    tasks.emplace(taskName, FunctionSignature(taskName, std::monostate(), parameterTypes, parameterIndices));
     
-    OBlockDesc desc;
-    desc.name = oblockName;
+    TaskDescriptor desc;
+    desc.name = taskName;
     desc.binded_devices.resize(params.size());
-    oblockDescriptors.emplace(oblockName, std::move(desc));
+    taskDescriptors.emplace(taskName, std::move(desc));
     for (auto&& option : ast.getConfigOptions()) {
         option->accept(*this);
     }
@@ -134,7 +134,7 @@ BlsObject Analyzer::visit(AstNode::Function::Oblock& ast) {
 
 BlsObject Analyzer::visit(AstNode::Setup& ast) {
     auto completedLiteralPool = std::move(literalPool); // save initial literal pool as setup values arent necessary at runtime
-    std::unordered_set<std::string> boundOblocks;
+    std::unordered_set<std::string> boundTasks;
 
     for (auto&& statement : ast.getStatements()) {
         if (auto* deviceBinding = dynamic_cast<AstNode::Statement::Declaration*>(statement.get())) {
@@ -188,27 +188,27 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
             deviceDescriptors.emplace(name, devDesc);
         }
         else if (auto* statementExpression = dynamic_cast<AstNode::Statement::Expression*>(statement.get())) {
-            auto* oblockBinding = dynamic_cast<AstNode::Expression::Function*>(statementExpression->getExpression().get());
-            if (!oblockBinding) {
-                throw SemanticError("Statement within setup() must be an oblock binding expression or device binding declaration");
+            auto* taskBinding = dynamic_cast<AstNode::Expression::Function*>(statementExpression->getExpression().get());
+            if (!taskBinding) {
+                throw SemanticError("Statement within setup() must be an task binding expression or device binding declaration");
             }
-            auto& name = oblockBinding->getName();
-            auto& args = oblockBinding->getArguments();
-            if (!oblocks.contains(name)) {
-                throw SemanticError(name + " does not refer to an oblock");
+            auto& name = taskBinding->getName();
+            auto& args = taskBinding->getArguments();
+            if (!tasks.contains(name)) {
+                throw SemanticError(name + " does not refer to an task");
             }
-            auto argc = oblocks.at(name).parameterTypes.size();
+            auto argc = tasks.at(name).parameterTypes.size();
             if (argc != args.size()) {
                 throw SemanticError("Invalid number of arguments supplied to " + name + " (received " + std::to_string(args.size()) + " expected " + std::to_string(argc) + " )");
             }
-            auto& desc = oblockDescriptors.at(name);
+            auto& desc = taskDescriptors.at(name);
             desc.name = name;
             bool decentralizable = true;
             auto& devices = desc.binded_devices;
             for (size_t i = 0; i < args.size(); i++) {
                 auto* expr = dynamic_cast<AstNode::Expression::Access*>(args.at(i).get());
                 if (expr == nullptr || expr->getMember().has_value() || expr->getSubscript().has_value()) {
-                    throw SemanticError("Invalid oblock binding in setup()");
+                    throw SemanticError("Invalid task binding in setup()");
                 }
                 try {
                     auto& declaredDev = deviceDescriptors.at(expr->getObject());
@@ -240,16 +240,16 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
                     parameter = desc.binded_devices.at(std::stoi(parameter)).device_name;
                 }
             }
-            boundOblocks.emplace(name);
+            boundTasks.emplace(name);
         }
         else {
-            throw SemanticError("Statement within setup() must be an oblock binding expression or device binding declaration");
+            throw SemanticError("Statement within setup() must be an task binding expression or device binding declaration");
         }
     }
 
-    std::erase_if(oblockDescriptors, [&boundOblocks](const auto& element) {
-        return !boundOblocks.contains(element.first);
-    }); // get rid of unbound oblocks
+    std::erase_if(taskDescriptors, [&boundTasks](const auto& element) {
+        return !boundTasks.contains(element.first);
+    }); // get rid of unbound tasks
     literalPool = std::move(completedLiteralPool);
     return std::monostate();
 }
@@ -327,7 +327,7 @@ BlsObject Analyzer::visit(AstNode::Statement::While& ast) {
 
 BlsObject Analyzer::visit(AstNode::Statement::Return& ast) {
     auto& functionName = cs.getFrameName();
-    auto parentSignature = (procedures.contains(functionName)) ? procedures.at(functionName) : oblocks.at(functionName);
+    auto parentSignature = (procedures.contains(functionName)) ? procedures.at(functionName) : tasks.at(functionName);
     auto expectedReturnType = getType(parentSignature.returnType);
     auto& value = ast.getValue();
     if (value.has_value()) {
@@ -882,10 +882,10 @@ BlsObject Analyzer::visit(AstNode::Specifier::Type& ast) {
     }
 }
 
-BlsObject Analyzer::visit(AstNode::Initializer::Oblock& ast) {
-    auto& oblockName = cs.getFrameName();
-    auto& desc = oblockDescriptors.at(oblockName);
-    auto& signature = oblocks.at(oblockName);
+BlsObject Analyzer::visit(AstNode::Initializer::Task& ast) {
+    auto& taskName = cs.getFrameName();
+    auto& desc = taskDescriptors.at(taskName);
+    auto& signature = tasks.at(taskName);
     auto& boundDevices = desc.binded_devices;
     auto& parameterIndices = signature.parameterIndices;
     auto& option = ast.getOption();
@@ -903,7 +903,7 @@ BlsObject Analyzer::visit(AstNode::Initializer::Oblock& ast) {
                 rule.push_back(std::to_string(parameterIndices.at(param)));
             }
             else {
-                throw SemanticError("Trigger rules must be oblock parameters or list of oblock parameters.");
+                throw SemanticError("Trigger rules must be task parameters or list of task parameters.");
             }
         };
 
@@ -968,13 +968,13 @@ BlsObject Analyzer::visit(AstNode::Initializer::Oblock& ast) {
         }
         auto* pollMap = dynamic_cast<AstNode::Expression::Map*>(args.at(0).get());
         if (!pollMap) {
-            throw SemanticError("constPoll must be supplied a mapping of oblock parameters to polling rates.");
+            throw SemanticError("constPoll must be supplied a mapping of task parameters to polling rates.");
         }
         for (auto&& [key, value] : pollMap->getElements()) {
             auto* paramExpr = dynamic_cast<AstNode::Expression::Access*>(key.get());
             auto* rateExpr = dynamic_cast<AstNode::Expression::Literal*>(value.get());
             if (!paramExpr) {
-                throw SemanticError("Mapping keys must be oblock parameters.");
+                throw SemanticError("Mapping keys must be task parameters.");
             }
             if (!rateExpr
              || std::holds_alternative<std::string>(rateExpr->getLiteral())
@@ -997,13 +997,13 @@ BlsObject Analyzer::visit(AstNode::Initializer::Oblock& ast) {
         }
         auto* configMap = dynamic_cast<AstNode::Expression::Map*>(args.at(0).get());
         if (!configMap) {
-            throw SemanticError("processPolicy must be supplied a mapping of oblock parameters to policy options.");
+            throw SemanticError("processPolicy must be supplied a mapping of task parameters to policy options.");
         }
         for (auto&& [key, value] : configMap->getElements()) {
             auto* paramExpr = dynamic_cast<AstNode::Expression::Access*>(key.get());
             auto* policyMap = dynamic_cast<AstNode::Expression::Map*>(value.get());
             if (!paramExpr) {
-                throw SemanticError("Mapping keys must be oblock parameters.");
+                throw SemanticError("Mapping keys must be task parameters.");
             }
             if (!policyMap) {
                 throw SemanticError("Mapping values must be policy option mappings");
@@ -1060,13 +1060,13 @@ BlsObject Analyzer::visit(AstNode::Initializer::Oblock& ast) {
         }
         auto* configMap = dynamic_cast<AstNode::Expression::Map*>(args.at(0).get());
         if (!configMap) {
-            throw SemanticError("overwritePolicy must be supplied a mapping of oblock parameters to policy options.");
+            throw SemanticError("overwritePolicy must be supplied a mapping of task parameters to policy options.");
         }
         for (auto&& [key, value] : configMap->getElements()) {
             auto* paramExpr = dynamic_cast<AstNode::Expression::Access*>(key.get());
             auto* policyExpr = dynamic_cast<AstNode::Expression::Literal*>(value.get());
             if (!paramExpr) {
-                throw SemanticError("Mapping keys must be oblock parameters.");
+                throw SemanticError("Mapping keys must be task parameters.");
             }
             if (!policyExpr || !std::holds_alternative<std::string>(policyExpr->getLiteral())) {
                 throw SemanticError("Mapping values must be string literals");
@@ -1092,7 +1092,7 @@ BlsObject Analyzer::visit(AstNode::Initializer::Oblock& ast) {
         }
     }
     else {
-        throw SemanticError("Invalid oblock configuration option: " + option + ".");
+        throw SemanticError("Invalid task configuration option: " + option + ".");
     }
     return std::monostate();
 } 

@@ -28,7 +28,7 @@ namespace BlsLang {
             #include "include/NODE_TYPES.LIST"
             #undef AST_NODE
 
-            auto& getOblocks() { return oblocks; }
+            auto& getTasks() { return tasks; }
 
         private:
             CallStack<std::string> cs;
@@ -57,7 +57,7 @@ namespace BlsLang {
                 #undef TRAP_END
             };
 
-        std::unordered_map<std::string, std::function<std::vector<BlsType>(Interpreter&, std::vector<BlsType>)>> oblocks;
+        std::unordered_map<std::string, std::function<std::vector<BlsType>(Interpreter&, std::vector<BlsType>)>> tasks;
 
     };
 

@@ -25,16 +25,16 @@ namespace BlsLang {
                 std::vector<AstNode*> statementDependencies;
             };
 
-            auto& getOblockStatementDependencies() { return oblockStatementDependencies; }
-            auto& getOblockSymbolDependencies() { return oblockSymbolDependencies; }
+            auto& getTaskStatementDependencies() { return taskStatementDependencies; }
+            auto& getTaskSymbolDependencies() { return taskSymbolDependencies; }
 
         private:
             using global_statement_dependency_t = std::unordered_map<AstNode*, DependencyData>;
             using global_symbol_dependency_t = std::unordered_map<std::string, DependencyData>;
 
-            std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
-            std::unordered_map<std::string, global_statement_dependency_t> oblockStatementDependencies;
-            std::unordered_map<std::string, global_symbol_dependency_t> oblockSymbolDependencies;
+            std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+            std::unordered_map<std::string, global_statement_dependency_t> taskStatementDependencies;
+            std::unordered_map<std::string, global_symbol_dependency_t> taskSymbolDependencies;
             global_statement_dependency_t* currentStatementDependencies;
             global_symbol_dependency_t* currentSymbolDependencies;
 

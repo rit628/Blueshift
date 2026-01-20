@@ -17,12 +17,12 @@ void VirtualMachine::setParentExecutionUnit(ExecutionUnit* ownerUnit) {
     this->ownerUnit = ownerUnit;
 }
 
-void VirtualMachine::setOblockOffset(size_t oblockOffset) {
-    this->oblockOffset = oblockOffset;
+void VirtualMachine::setTaskOffset(size_t taskOffset) {
+    this->taskOffset = taskOffset;
 }
 
 std::vector<BlsType> VirtualMachine::transform(std::vector<BlsType> deviceStates) {
-    instruction = oblockOffset;
+    instruction = taskOffset;
     signal = SIGNAL::START;
     modifiedStates.clear(); 
     modifiedStates.resize(deviceStates.size(), false);

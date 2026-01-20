@@ -38,20 +38,20 @@ namespace BlsLang {
 
     class AstNode::Initializer : public AstNode {
         public:
-            class Oblock;
+            class Task;
 
             virtual ~Initializer() = default;
             virtual std::unique_ptr<AstNode::Initializer> cloneBase() const = 0;
     };
 
-    class AstNode::Initializer::Oblock : public AstNode::Initializer {
+    class AstNode::Initializer::Task : public AstNode::Initializer {
         public:
 
-            Oblock() = default;
-            Oblock(std::string option, std::vector<std::unique_ptr<AstNode::Expression>> args);
-            Oblock(std::string option, std::initializer_list<AstNode::Expression*> args);
-            Oblock(const Oblock& other);
-            Oblock& operator=(const Oblock& rhs);
+            Task() = default;
+            Task(std::string option, std::vector<std::unique_ptr<AstNode::Expression>> args);
+            Task(std::string option, std::initializer_list<AstNode::Expression*> args);
+            Task(const Task& other);
+            Task& operator=(const Task& rhs);
 
             BlsObject accept(Visitor& v) override;
             std::unique_ptr<AstNode> clone() const override;
@@ -559,7 +559,7 @@ namespace BlsLang {
     class AstNode::Function : public AstNode {
         public:
             class Procedure;
-            class Oblock;
+            class Task;
 
             Function() = default;
             Function(std::string name
@@ -612,21 +612,21 @@ namespace BlsLang {
 
     };
 
-    class AstNode::Function::Oblock : public AstNode::Function {
+    class AstNode::Function::Task : public AstNode::Function {
         public:
-            Oblock() = default;
-            Oblock(std::string name
+            Task() = default;
+            Task(std::string name
                  , std::vector<std::unique_ptr<AstNode::Specifier::Type>> parameterTypes
                  , std::vector<std::string> parameters
-                 , std::vector<std::unique_ptr<AstNode::Initializer::Oblock>> configOptions
+                 , std::vector<std::unique_ptr<AstNode::Initializer::Task>> configOptions
                  , std::vector<std::unique_ptr<AstNode::Statement>> statements);
-            Oblock(std::string name
+            Task(std::string name
                  , std::initializer_list<AstNode::Specifier::Type*> parameterTypes
                  , std::vector<std::string> parameters
-                 , std::initializer_list<AstNode::Initializer::Oblock*> configOptions
+                 , std::initializer_list<AstNode::Initializer::Task*> configOptions
                  , std::initializer_list<AstNode::Statement*> statements);
-            Oblock(const Oblock& other);
-            Oblock& operator=(const Oblock& rhs);
+            Task(const Task& other);
+            Task& operator=(const Task& rhs);
 
             BlsObject accept(Visitor& v) override;
             std::unique_ptr<AstNode> clone() const override;
@@ -635,7 +635,7 @@ namespace BlsLang {
             auto& getConfigOptions() { return configOptions; }
 
         private:
-            std::vector<std::unique_ptr<AstNode::Initializer::Oblock>> configOptions;
+            std::vector<std::unique_ptr<AstNode::Initializer::Task>> configOptions;
     };
 
     class AstNode::Setup : public AstNode {
@@ -660,10 +660,10 @@ namespace BlsLang {
         public:
             Source() = default;
             Source(std::vector<std::unique_ptr<AstNode::Function>> procedures
-                 , std::vector<std::unique_ptr<AstNode::Function>> oblocks
+                 , std::vector<std::unique_ptr<AstNode::Function>> tasks
                  , std::unique_ptr<AstNode::Setup> setup);
             Source(std::initializer_list<AstNode::Function*> procedures
-                 , std::initializer_list<AstNode::Function*> oblocks
+                 , std::initializer_list<AstNode::Function*> tasks
                  , AstNode::Setup* setup);
             Source(const Source& other);
             Source& operator=(const Source& rhs);
@@ -673,12 +673,12 @@ namespace BlsLang {
             std::unique_ptr<AstNode> cloneBase() const;
 
             auto& getProcedures() { return procedures; }
-            auto& getOblocks() { return oblocks; }
+            auto& getTasks() { return tasks; }
             auto& getSetup() { return setup; }
         
         private:
             std::vector<std::unique_ptr<AstNode::Function>> procedures;
-            std::vector<std::unique_ptr<AstNode::Function>> oblocks;
+            std::vector<std::unique_ptr<AstNode::Function>> tasks;
             std::unique_ptr<AstNode::Setup> setup;
     };
 

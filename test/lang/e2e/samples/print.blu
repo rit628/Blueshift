@@ -1,14 +1,14 @@
-oblock printString(TIMER_TEST T) {
+task printString(TIMER_TEST T) {
     println("A string.");
 }
 
-oblock printAppendedString(TIMER_TEST T) {
+task printAppendedString(TIMER_TEST T) {
     string s = "A string.";
     s += " Another string.";
     println(s);
 }
 
-oblock printMultiArg(TIMER_TEST T) {
+task printMultiArg(TIMER_TEST T) {
     string s1 = "arg1";
     string s2 = "arg2";
     print(s1, s2);

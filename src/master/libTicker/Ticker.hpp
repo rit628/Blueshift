@@ -8,11 +8,11 @@
 using DevAlias = std::string; 
 using ControllerAlias = uint16_t; 
 using AttrAlias = std::string; 
-using OBlockAlias = std::string; 
+using TaskAlias = std::string; 
 using TimerID = uint16_t; 
 
 
-// Within a device, maps polling rate to list of associated oblocks
+// Within a device, maps polling rate to list of associated tasks
 using TimerList = std::unordered_map<int, TimerID>; 
 using AttrVol = std::unordered_map<AttrAlias, float>; 
 
@@ -39,7 +39,7 @@ struct Volatility{
 
 struct TimerDesc{
     TimerID id;
-    std::vector<OBlockAlias> oblocks; 
+    std::vector<TaskAlias> tasks; 
     int period; 
     bool isConst; 
 }; 
@@ -55,7 +55,7 @@ struct TimerInfo{
 // Master Ticker Table; 
 class MTicker{
     private:    
-        // Maps devices + polling rates to associated oblocks; 
+        // Maps devices + polling rates to associated tasks; 
         std::unordered_map<DevAlias, TimerInfo> ticker_table; 
         std::unordered_map<TimerID, TimerDesc> timer_map; 
 
@@ -70,7 +70,7 @@ class MTicker{
 
     public: 
         // Intialize the tocker table: 
-        MTicker(std::vector<OBlockDesc> &OBlocks);
+        MTicker(std::vector<TaskDescriptor> &Tasks);
 
 
         // Thread updates volatility from the vol TSQ
@@ -89,8 +89,8 @@ class MTicker{
         // send the remaining messages (only dynamic rates)
         void sendTicker(std::vector<Timer> &timerVector, std::string &ctl, std::unordered_map<std::string, uint16_t> &device_map); 
 
-        // Get Oblocks list: given a timerID get the list of associated oblocks
-        std::vector<OBlockAlias>& getOblocks(TimerID id); 
+        // Get Tasks list: given a timerID get the list of associated tasks
+        std::vector<TaskAlias>& getTasks(TimerID id); 
 
         
 

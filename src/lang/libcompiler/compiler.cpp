@@ -35,11 +35,11 @@ void Compiler::compileSource(const std::string& source, ostream_t outputStream) 
         generator.writeBytecode(std::get<std::reference_wrapper<std::ostream>>(outputStream));
     }
     ast->accept(this->depGraph);
-    // auto tempOblock = this->depGraph.getOblockMap();  
+    // auto tempTask = this->depGraph.getTaskMap();  
 
 
     /*
-    this->symGraph.setMetadata(this->depGraph.getOblockMap(), analyzer.getOblockDescriptors()); 
+    this->symGraph.setMetadata(this->depGraph.getTaskMap(), analyzer.getTaskDescriptors()); 
     ast->accept(this->symGraph); 
     this->symGraph.annotateControllerDivide(); 
 
@@ -48,15 +48,15 @@ void Compiler::compileSource(const std::string& source, ostream_t outputStream) 
     // Verify that the deviders work!
     for(auto& obj : divider.ctlMetaData){
         std::cout<<"Printing data for controller ID: "<<obj.first<<std::endl; 
-        for(auto data : obj.second.oblockData){
-            std::cout<<"Original oblock: "<<data.first<<std::endl; 
+        for(auto data : obj.second.taskData){
+            std::cout<<"Original task: "<<data.first<<std::endl; 
             std::cout<<"Params: "<<std::endl;
             for(auto param : data.second.parameterList){
                 std::cout<<param<<" "; 
             }
             std::cout<<"\n"; 
             std::cout<<"Jamar device"<<std::endl; 
-            for(auto jamar : data.second.oblockDesc.binded_devices){
+            for(auto jamar : data.second.taskDesc.binded_devices){
                 std::cout<<jamar.device_name<<" "; 
             }
             std::cout<<"\n"; 
@@ -72,8 +72,8 @@ void Compiler::compileSource(const std::string& source, ostream_t outputStream) 
     for(auto& hom : king){
         std::cout<<"Controller: "<<hom.first<<std::endl; 
         auto& cntSrc = hom.second; 
-        for(auto& desc : cntSrc.oblockDesc){
-            std::cout<<"\noblockname: "<<desc.first<<std::endl; 
+        for(auto& desc : cntSrc.taskDesc){
+            std::cout<<"\ntaskname: "<<desc.first<<std::endl; 
             std::cout<<"Internal name:"<<desc.second.name<<std::endl; 
             for(auto& dev : desc.second.binded_devices){
                 std::cout<<"Binded: "<<dev.device_name<<std::endl; 
@@ -86,16 +86,16 @@ void Compiler::compileSource(const std::string& source, ostream_t outputStream) 
 
     ast->accept(masterInterpreter);
         
-    auto& descriptors = analyzer.getOblockDescriptors();
+    auto& descriptors = analyzer.getTaskDescriptors();
 
-    auto& masterOblocks = masterInterpreter.getOblocks();
+    auto& masterTasks = masterInterpreter.getTasks();
     euInterpreters.assign(descriptors.size(), masterInterpreter);
     for (auto&& [descPair, interpreter] : boost::combine(descriptors, euInterpreters)) {
-        auto& [oblockName, descriptor] = descPair;
-        if (!masterOblocks.contains(oblockName)) { continue; }
-        auto& oblock = masterOblocks.at(oblockName);
-        oblocks.emplace(oblockName, [&oblock, &interpreter](std::vector<BlsType> v) { return oblock(interpreter, v); });
-        oblockDescriptors.push_back(descriptor);
+        auto& [taskName, descriptor] = descPair;
+        if (!masterTasks.contains(taskName)) { continue; }
+        auto& task = masterTasks.at(taskName);
+        tasks.emplace(taskName, [&task, &interpreter](std::vector<BlsType> v) { return task(interpreter, v); });
+        taskDescriptors.push_back(descriptor);
     }
 
 }

@@ -27,7 +27,7 @@ class BytecodeProcessor {
         void loadBytecode(const std::string& filename);
         void loadBytecode(const std::vector<char>& bytecode);
         void dispatch();
-        std::vector<OBlockDesc> getOblockDescriptors() { return oblockDescs; }
+        std::vector<TaskDescriptor> getTaskDescriptors() { return taskDescs; }
 
         friend struct BlsTrap::Impl;
 
@@ -49,7 +49,7 @@ class BytecodeProcessor {
         #undef OPCODE_END
 
         size_t instruction = 0;
-        std::vector<OBlockDesc> oblockDescs;
+        std::vector<TaskDescriptor> taskDescs;
         std::vector<BlsType> literalPool;
         std::vector<std::unique_ptr<INSTRUCTION>> instructions;
         SIGNAL signal = SIGNAL::START;

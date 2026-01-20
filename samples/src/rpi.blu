@@ -1,4 +1,4 @@
-oblock light(LIGHT target, LINE_WRITER remote) {
+task light(LIGHT target, LINE_WRITER remote) {
     println(target.on);
     if (remote.msg == "ON") {
         target.on = true;
@@ -11,7 +11,7 @@ oblock light(LIGHT target, LINE_WRITER remote) {
     }
 }
 
-oblock button(BUTTON button, LIGHT rpi_light) : 
+task button(BUTTON button, LIGHT rpi_light) : 
 triggerOn(button)
 {
     if (button.pressed) {
@@ -24,7 +24,7 @@ triggerOn(button)
     }
 }
 
-oblock flash(LIGHT rpi_light) : 
+task flash(LIGHT rpi_light) : 
 triggerOn(rpi_light),
 constPollOn({rpi_light : 10000})
 {
@@ -34,7 +34,7 @@ constPollOn({rpi_light : 10000})
     print("FUCK YOU");
 }
 
-oblock keyboardLight(KEYBOARD kbd, LIGHT rpi_light) :
+task keyboardLight(KEYBOARD kbd, LIGHT rpi_light) :
 triggerOn(kbd)
 {
     rpi_light.on = !rpi_light.on;

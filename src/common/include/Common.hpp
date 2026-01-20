@@ -13,7 +13,7 @@
 
 using ControllerID = std::string; 
 using DeviceID = std::string; 
-using OblockID = std::string; 
+using TaskID = std::string; 
 
 
 enum class PROTOCOLS
@@ -74,7 +74,7 @@ enum class DeviceKind : uint8_t {
     ACTUATOR
 };
 
-struct DeviceDescriptor{
+struct DeviceDescriptor {
     /* Binding/Declaration Attributes */
     std::string device_name = "";
     TYPE type = TYPE::NONE;
@@ -83,7 +83,7 @@ struct DeviceDescriptor{
     BlsType initialValue = std::monostate();
     bool isVtype = false;
     
-    /* Oblock Specific Attributes */
+    /* Task Specific Attributes */
     // Policy Codes
     READ_POLICY readPolicy = READ_POLICY::ALL;
     OVERWRITE_POLICY overwritePolicy = OVERWRITE_POLICY::NONE;
@@ -93,7 +93,7 @@ struct DeviceDescriptor{
     bool ignoreWriteBacks = false; 
     /* 
         If the device is registered as a trigger then the execution of 
-        the oblock is binded to the arrival of the devices state. 
+        the task is binded to the arrival of the devices state. 
     */ 
 
     /* Driver Configuration Attributes */
@@ -134,7 +134,7 @@ struct TriggerData {
     bool operator==(const TriggerData&) const = default;
 };
 
-struct OBlockDesc{
+struct TaskDescriptor {
 
     std::string name; 
     std::vector<DeviceDescriptor> binded_devices; 
@@ -156,12 +156,12 @@ struct OBlockDesc{
         ar & triggers;
     }
 
-    bool operator==(const OBlockDesc&) const = default;
+    bool operator==(const TaskDescriptor&) const = default;
 };
 
-struct O_Info
+struct Task_Info
 {
-    std::string oblock;
+    std::string task;
     std::string device;
     std::string controller;
     bool isVtype = false;
@@ -171,7 +171,7 @@ struct O_Info
 struct DynamicMasterMessage
 {
     public:
-    O_Info info;
+    Task_Info info;
     DynamicMessage DM;
     bool isInterrupt = false;
     bool isCursor = false; 
@@ -179,7 +179,7 @@ struct DynamicMasterMessage
     int pushID = 0;
 
     DynamicMasterMessage() = default;
-    DynamicMasterMessage(DynamicMessage DM, O_Info info, PROTOCOLS protocol, bool isInterrupt);
+    DynamicMasterMessage(DynamicMessage DM, Task_Info info, PROTOCOLS protocol, bool isInterrupt);
     
     ~DynamicMasterMessage() = default;
 };
@@ -188,7 +188,7 @@ struct DynamicMasterMessage
 struct HeapMasterMessage
 {
     public:
-    O_Info info;
+    Task_Info info;
     PROTOCOLS protocol;
     bool isInterrupt = false;
     bool isCursor = false; 
@@ -197,7 +197,7 @@ struct HeapMasterMessage
 
 
     HeapMasterMessage() = default;
-    HeapMasterMessage(std::shared_ptr<HeapDescriptor> heapTree, O_Info info, PROTOCOLS protocol, bool isInterrupt);
+    HeapMasterMessage(std::shared_ptr<HeapDescriptor> heapTree, Task_Info info, PROTOCOLS protocol, bool isInterrupt);
     HeapMasterMessage(DynamicMasterMessage &DMM){
         this->heapTree = DMM.DM.toTree();
         this->info = DMM.info; 
@@ -226,7 +226,7 @@ struct HeapMasterMessage
 
 struct EMStateMessage{
     std::string TriggerName; 
-    OblockID oblockName; 
+    TaskID taskName; 
     std::vector<HeapMasterMessage> dmm_list; 
     int priority; 
     PROTOCOLS protocol; 
@@ -248,7 +248,7 @@ enum class PROCSTATE{
 
 // Scheduler Request State
 struct SchedulerReq{
-    OblockID requestorOblock; 
+    TaskID requestorTask; 
     DeviceID targetDevice; 
     int priority; 
     PROCSTATE ps;     
@@ -331,7 +331,7 @@ inline TriggerData tag_invoke(const boost::json::value_to_tag<TriggerData>&, boo
     return trigger;
 }
 
-inline void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, OBlockDesc const & desc) {
+inline void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, TaskDescriptor const & desc) {
     using namespace boost::json;
     auto& obj = jv.emplace_object();
     obj.emplace("name", value_from(desc.name));
@@ -343,10 +343,10 @@ inline void tag_invoke(const boost::json::value_from_tag&, boost::json::value& j
     obj.emplace("triggers", value_from(desc.triggers));
 }
 
-inline OBlockDesc tag_invoke(const boost::json::value_to_tag<OBlockDesc>&, boost::json::value const& jv) {
+inline TaskDescriptor tag_invoke(const boost::json::value_to_tag<TaskDescriptor>&, boost::json::value const& jv) {
     using namespace boost::json;
     auto& obj = jv.as_object();
-    OBlockDesc desc;
+    TaskDescriptor desc;
     desc.name = value_to<std::string>(obj.at("name"));
     desc.binded_devices = value_to<std::vector<DeviceDescriptor>>(obj.at("binded_devices"));
     desc.bytecode_offset = value_to<int>(obj.at("bytecode_offset"));

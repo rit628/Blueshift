@@ -5,7 +5,7 @@ float max(float x, float y) {
     return y;
 }
 
-oblock quadrantLighter(MOUSE ms, float xBorder, float yBorder, LIGHT q1, LIGHT q2, LIGHT q3, LIGHT q4) : 
+task quadrantLighter(MOUSE ms, float xBorder, float yBorder, LIGHT q1, LIGHT q2, LIGHT q3, LIGHT q4) : 
 triggerOn(ms),
 processPolicy({
     ms : {
@@ -40,7 +40,7 @@ processPolicy({
     }
 }
 
-oblock calibrateMouse(KEYBOARD calibrationSig, MOUSE ms, float maxX, float maxY) :
+task calibrateMouse(KEYBOARD calibrationSig, MOUSE ms, float maxX, float maxY) :
 triggerOn(calibrationSig),
 processPolicy({
     ms : {

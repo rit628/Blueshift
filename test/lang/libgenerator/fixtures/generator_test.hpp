@@ -17,8 +17,8 @@
 namespace BlsLang {
     class GeneratorTest : public testing::Test {
         public:
-            void INIT(std::unordered_map<std::string, OBlockDesc>& oblockDescriptors, std::unordered_map<BlsType, uint8_t>& literalPool) {
-                generator = std::make_unique<Generator>(Generator(oblockDescriptors, literalPool));
+            void INIT(std::unordered_map<std::string, TaskDescriptor>& taskDescriptors, std::unordered_map<BlsType, uint8_t>& literalPool) {
+                generator = std::make_unique<Generator>(Generator(taskDescriptors, literalPool));
                 INIT_FLAG = true;
             }
 

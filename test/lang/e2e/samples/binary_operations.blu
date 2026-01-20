@@ -1,32 +1,32 @@
-oblock add(int intResult, float floatResult) {
+task add(int intResult, float floatResult) {
     int a = 9;
     int b = 10;
     intResult = a + b + 2;
     floatResult = a + b + 2.1;
 }
 
-oblock subtract(int intResult, float floatResult) {
+task subtract(int intResult, float floatResult) {
     int a = 9;
     int b = 10;
     intResult = a - b;
     floatResult = a - b - 5.28;
 }
 
-oblock multiply(int intResult, float floatResult) {
+task multiply(int intResult, float floatResult) {
     int a = 9;
     int b = 10;
     intResult = a * b;
     floatResult = a * b * .5;
 }
 
-oblock divide(int intResult, float floatResult) {
+task divide(int intResult, float floatResult) {
     int a = 9;
     int b = 10;
     intResult = a / b;
     floatResult = a / b;
 }
 
-oblock grouped(int intResult, float floatResult) {
+task grouped(int intResult, float floatResult) {
     intResult = 10 * (8 - 9);
     floatResult = 10 * 8 - 9;
 }
