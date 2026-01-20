@@ -1,4 +1,4 @@
-oblock main(LINE_WRITER dev) {
+task main(LINE_WRITER dev) {
 
 }
 

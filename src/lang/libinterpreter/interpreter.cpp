@@ -24,8 +24,8 @@ BlsObject Interpreter::visit(AstNode::Source& ast) {
         procedure->accept(*this);
     }
 
-    for (auto&& oblock : ast.getOblocks()) {
-        oblock->accept(*this);
+    for (auto&& task : ast.getTasks()) {
+        task->accept(*this);
     }
 
     return std::monostate();
@@ -62,15 +62,15 @@ BlsObject Interpreter::visit(AstNode::Function::Procedure& ast) {
     return std::monostate();
 }
 
-BlsObject Interpreter::visit(AstNode::Function::Oblock& ast) {
-    auto& oblockName = ast.getName();
+BlsObject Interpreter::visit(AstNode::Function::Task& ast) {
+    auto& taskName = ast.getName();
 
-    auto oblock = [&ast](Interpreter& exec, std::vector<BlsType> args) -> std::vector<BlsType> {
+    auto task = [&ast](Interpreter& exec, std::vector<BlsType> args) -> std::vector<BlsType> {
         auto& params = ast.getParameters();
         auto& statements = ast.getStatements();
         exec.cs.pushFrame(CallStack<std::string>::Frame::Context::FUNCTION);
         if (params.size() != args.size()) {
-            throw RuntimeError("Invalid number of arguments provided to oblock call.");
+            throw RuntimeError("Invalid number of arguments provided to task call.");
         }
         for (int i = 0; i < params.size(); i++) {
             exec.cs.addLocal(params.at(i), args.at(i));
@@ -87,7 +87,7 @@ BlsObject Interpreter::visit(AstNode::Function::Oblock& ast) {
         exec.cs.popFrame();
         return transformedArgs;
     };
-    oblocks.emplace(oblockName, oblock);
+    tasks.emplace(taskName, task);
     return std::monostate();
 }
 
@@ -541,6 +541,6 @@ BlsObject Interpreter::visit(AstNode::Specifier::Type& ast) {
     }
 }
 
-BlsObject Interpreter::visit(AstNode::Initializer::Oblock& ast) {
-    return std::monostate(); // Oblock initializers do not need to be visited in interpreter
+BlsObject Interpreter::visit(AstNode::Initializer::Task& ast) {
+    return std::monostate(); // Task initializers do not need to be visited in interpreter
 }

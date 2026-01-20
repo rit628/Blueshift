@@ -26,12 +26,12 @@ TRAP_END
 
 TRAP_BEGIN(disableTrigger, void)
     ARGUMENT(triggerName, string)
-    ARGUMENT(oblockID, string)
+    ARGUMENT(taskID, string)
 TRAP_END
 
 TRAP_BEGIN(enableTrigger, void)
     ARGUMENT(triggerName, string)
-    ARGUMENT(oblockID, string)
+    ARGUMENT(taskID, string)
 TRAP_END
 
 TRAP_BEGIN(push, void)

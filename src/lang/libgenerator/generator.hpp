@@ -15,9 +15,9 @@ namespace BlsLang {
     class Generator : public Visitor {
         public:
             friend class GeneratorTest;
-            Generator(std::unordered_map<std::string, OBlockDesc>& oblockDescriptors
+            Generator(std::unordered_map<std::string, TaskDescriptor>& taskDescriptors
                     , std::unordered_map<BlsType, uint8_t>& literalPool)
-                    : oblockDescriptors(oblockDescriptors)
+                    : taskDescriptors(taskDescriptors)
                     , literalPool(literalPool) {}
 
             #define AST_NODE(Node, ...) \
@@ -36,7 +36,7 @@ namespace BlsLang {
 
             enum class FUNCTION_CONTEXT : uint8_t {
                   PROCEDURE
-                , OBLOCK
+                , TASK
             };
 
             #define OPCODE_BEGIN(code) \
@@ -50,7 +50,7 @@ namespace BlsLang {
             #undef ARGUMENT
             #undef OPCODE_END
 
-            std::unordered_map<std::string, OBlockDesc>& oblockDescriptors;
+            std::unordered_map<std::string, TaskDescriptor>& taskDescriptors;
             std::unordered_map<BlsType, uint8_t>& literalPool;
             std::unordered_map<std::string, uint16_t> procedureAddresses;
             std::vector<std::unique_ptr<INSTRUCTION>> instructions;

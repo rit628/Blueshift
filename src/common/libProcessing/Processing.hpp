@@ -48,9 +48,9 @@ class TriggerManager{
         
     public: 
         // Device Constructor (created rules)
-        TriggerManager(OBlockDesc& OBlockDesc){
+        TriggerManager(TaskDescriptor& TaskDesc){
             int i = 0; 
-            for(DeviceDescriptor& devDesc : OBlockDesc.inDevices){
+            for(DeviceDescriptor& devDesc : TaskDesc.inDevices){
                 if(!devDesc.isVtype){
                     stringMap[devDesc.device_name] = i; 
                     i++; 
@@ -63,7 +63,7 @@ class TriggerManager{
             this->ruleset.insert(defaultOption); 
 
             // Loop through rules; 
-            for(auto& rule : OBlockDesc.triggers){
+            for(auto& rule : TaskDesc.triggers){
                 std::bitset<BITSET_SZ> king; 
                 for(auto& devName : rule.rule){
                     king.set(this->stringMap[devName]); 
@@ -148,7 +148,7 @@ struct ReaderBox
         bool dropRead = false;
         bool dropWrite = true;
         bool statesRequested = false;
-        std::string OblockName;
+        std::string TaskName;
         bool pending_requests; 
         // used when forwarding packets to the EM when while the process is waiting for write permissions
         bool forwardPackets = false; 
@@ -209,18 +209,18 @@ struct ReaderBox
                     ems.dmm_list = dmmVect; 
                     ems.protocol = PROTOCOLS::SENDSTATES; 
                     ems.priority = 1; 
-                    ems.oblockName = this->OblockName; 
+                    ems.taskName = this->TaskName; 
                     sendEM.write(ems); 
                 }
             }   
         }   
 
-        ReaderBox(bool dropRead, bool dropWrite, std::string name,  OBlockDesc& odesc)
-        : triggerMan(odesc)
+        ReaderBox(bool dropRead, bool dropWrite, std::string name,  TaskDescriptor& taskDesc)
+        : triggerMan(taskDesc)
         {
             this->dropRead = dropRead;
             this->dropWrite = dropWrite;
-            this->OblockName = name;
+            this->TaskName = name;
         }
     
 };

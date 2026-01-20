@@ -1,4 +1,4 @@
-oblock lamar(LINE_WRITER lw, LCD_SCREEN lcd)
+task lamar(LINE_WRITER lw, LCD_SCREEN lcd)
 : triggerOn(lw)
 {
     lcd.row = 1;
@@ -7,7 +7,7 @@ oblock lamar(LINE_WRITER lw, LCD_SCREEN lcd)
 }
 
 
-oblock amer(KEYBOARD kbd, LCD_SCREEN lcd, int row)
+task amer(KEYBOARD kbd, LCD_SCREEN lcd, int row)
 : triggerOn(kbd)
 {
     lcd.col = 0;
@@ -28,7 +28,7 @@ oblock amer(KEYBOARD kbd, LCD_SCREEN lcd, int row)
 }
 
 
-oblock servoTest(KEYBOARD kbd, FN_SERVO servo, DC_MOTOR dcmot, LCD_SCREEN lcd, int k)
+task servoTest(KEYBOARD kbd, FN_SERVO servo, DC_MOTOR dcmot, LCD_SCREEN lcd, int k)
 : triggerOn(kbd), dropReadOn(kbd)
 {
     int moveBy = 25;
@@ -69,7 +69,7 @@ oblock servoTest(KEYBOARD kbd, FN_SERVO servo, DC_MOTOR dcmot, LCD_SCREEN lcd, i
 
 }
 
-oblock mouseTest(MOUSE ms, LCD_SCREEN lcd, DC_MOTOR dcmot, int k)
+task mouseTest(MOUSE ms, LCD_SCREEN lcd, DC_MOTOR dcmot, int k)
 : triggerOn(ms)
 {
     if((ms.scrollY == -1)  && (k < 255)){
@@ -94,7 +94,7 @@ oblock mouseTest(MOUSE ms, LCD_SCREEN lcd, DC_MOTOR dcmot, int k)
 
 
 // Testing the drop read error: 
-oblock dropReadError(KEYBOARD kbd, LINE_WRITER lw)
+task dropReadError(KEYBOARD kbd, LINE_WRITER lw)
 : triggerOn({"rule" : kbd})
 {   
     println("SENT MESSAGE: ", lw.msg);

@@ -2,7 +2,7 @@ AST_NODE(AstNode::Source, AstNode)
 AST_NODE(AstNode::Setup, AstNode)
 
 AST_NODE(AstNode::Function::Procedure, AstNode::Function)
-AST_NODE(AstNode::Function::Oblock, AstNode::Function)
+AST_NODE(AstNode::Function::Task, AstNode::Function)
 
 AST_NODE(AstNode::Statement::If, AstNode::Statement)
 AST_NODE(AstNode::Statement::For, AstNode::Statement)
@@ -26,4 +26,4 @@ AST_NODE(AstNode::Expression::Literal, AstNode::Expression)
 
 AST_NODE(AstNode::Specifier::Type, AstNode::Specifier)
 
-AST_NODE(AstNode::Initializer::Oblock, AstNode::Initializer)
+AST_NODE(AstNode::Initializer::Task, AstNode::Initializer)

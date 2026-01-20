@@ -23,13 +23,13 @@ namespace BlsLang {
                 vm.loadBytecode(bytecode);
             }
 
-            void TEST_E2E_OBLOCK(const std::string& oblockName, std::vector<BlsType>&& input, const std::vector<BlsType>&& expectedOutput, const std::string& expectedStdout) {
-                vm.setOblockOffset(compiler.getOblockDescriptorMap().at(oblockName).bytecode_offset);
+            void TEST_E2E_TASK(const std::string& taskName, std::vector<BlsType>&& input, const std::vector<BlsType>&& expectedOutput, const std::string& expectedStdout) {
+                vm.setTaskOffset(compiler.getTaskDescriptorMap().at(taskName).bytecode_offset);
                 
-                auto interpreterTransform = compiler.getOblocks().at(oblockName);
+                auto interpreterTransform = compiler.getTasks().at(taskName);
                 auto vmTransform = std::bind(&VirtualMachine::transform, std::ref(vm), std::placeholders::_1);
                 
-                auto checkOblockOutput = [&expectedOutput, &expectedStdout](std::function<std::vector<BlsType>(std::vector<BlsType>)> transformFunction, std::vector<BlsType> input) {
+                auto checkTaskOutput = [&expectedOutput, &expectedStdout](std::function<std::vector<BlsType>(std::vector<BlsType>)> transformFunction, std::vector<BlsType> input) {
                     std::vector<BlsType> clonedInput;
                     for (auto&& arg : input) {
                         if (std::holds_alternative<std::shared_ptr<HeapDescriptor>>(arg)) {
@@ -51,8 +51,8 @@ namespace BlsLang {
                     std::cout.rdbuf(oldBuffer);
                 };
 
-                // checkOblockOutput(interpreterTransform, input);
-                checkOblockOutput(vmTransform, input);
+                // checkTaskOutput(interpreterTransform, input);
+                checkTaskOutput(vmTransform, input);
             }
         
 

@@ -2,11 +2,11 @@ int exponentiate(int a, int b) {
     return a ^ b;
 }
 
-oblock simpleCall(int result) {
+task simpleCall(int result) {
     result = exponentiate(2, 3);
 }
 
-oblock compoundCall(int result) {
+task compoundCall(int result) {
     result = exponentiate(exponentiate(2, 3), exponentiate(2, 1));
 }
 

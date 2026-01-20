@@ -21,13 +21,13 @@ Node& Node::operator=(const Node& rhs) { \
 #include "include/NODE_TYPES.LIST"
 #undef AST_NODE
 
-/* AstNode::Initializer::Oblock */
-AstNode::Initializer::Oblock::Oblock(std::string option, std::vector<std::unique_ptr<AstNode::Expression>> args)
+/* AstNode::Initializer::Task */
+AstNode::Initializer::Task::Task(std::string option, std::vector<std::unique_ptr<AstNode::Expression>> args)
                                    : option(std::move(option))
                                    , args(std::move(args))
                                    {}
 
-AstNode::Initializer::Oblock::Oblock(std::string option, std::initializer_list<AstNode::Expression*> args)
+AstNode::Initializer::Task::Task(std::string option, std::initializer_list<AstNode::Expression*> args)
                                    : option(std::move(option))
 {
     for (auto&& arg : args) {
@@ -35,7 +35,7 @@ AstNode::Initializer::Oblock::Oblock(std::string option, std::initializer_list<A
     }
 }
 
-AstNode::Initializer::Oblock::Oblock(const Oblock& other) {
+AstNode::Initializer::Task::Task(const Task& other) {
     this->option = other.option;
     for (auto&& arg : other.args) {
         this->args.push_back(arg->cloneBase());
@@ -543,11 +543,11 @@ AstNode::Function::Procedure::Procedure(const AstNode::Function::Procedure& othe
     this->returnType = std::make_unique<AstNode::Specifier::Type>(*other.returnType);
 }
 
-/* AstNode::Function::Oblock */
-AstNode::Function::Oblock::Oblock(std::string name
+/* AstNode::Function::Task */
+AstNode::Function::Task::Task(std::string name
                                 , std::vector<std::unique_ptr<AstNode::Specifier::Type>> parameterTypes
                                 , std::vector<std::string> parameters
-                                , std::vector<std::unique_ptr<AstNode::Initializer::Oblock>> configOptions
+                                , std::vector<std::unique_ptr<AstNode::Initializer::Task>> configOptions
                                 , std::vector<std::unique_ptr<AstNode::Statement>> statements)
                                 :
                          Function(std::move(name)
@@ -557,10 +557,10 @@ AstNode::Function::Oblock::Oblock(std::string name
                                 , configOptions(std::move(configOptions))
                                 {}
             
-AstNode::Function::Oblock::Oblock(std::string name
+AstNode::Function::Task::Task(std::string name
                                 , std::initializer_list<AstNode::Specifier::Type*> parameterTypes
                                 , std::vector<std::string> parameters
-                                , std::initializer_list<AstNode::Initializer::Oblock*> configOptions
+                                , std::initializer_list<AstNode::Initializer::Task*> configOptions
                                 , std::initializer_list<AstNode::Statement*> statements)
                                 :
                          Function(std::move(name)
@@ -569,11 +569,11 @@ AstNode::Function::Oblock::Oblock(std::string name
                                 , std::move(statements))
 {
     for (auto&& option : configOptions) {
-        this->configOptions.push_back(std::unique_ptr<AstNode::Initializer::Oblock>(option));
+        this->configOptions.push_back(std::unique_ptr<AstNode::Initializer::Task>(option));
     }
 }
             
-AstNode::Function::Oblock::Oblock(const AstNode::Function::Oblock& other) {
+AstNode::Function::Task::Task(const AstNode::Function::Task& other) {
     this->name = other.name;
     for (auto&& type : other.parameterTypes) {
         this->parameterTypes.push_back(std::make_unique<AstNode::Specifier::Type>(*type));
@@ -583,7 +583,7 @@ AstNode::Function::Oblock::Oblock(const AstNode::Function::Oblock& other) {
         this->statements.push_back(stmt->cloneBase());
     }
     for (auto&& option : other.configOptions) {
-        this->configOptions.push_back(std::make_unique<AstNode::Initializer::Oblock>(*option));
+        this->configOptions.push_back(std::make_unique<AstNode::Initializer::Task>(*option));
     }
 }
 
@@ -606,22 +606,22 @@ AstNode::Setup::Setup(const AstNode::Setup& other) {
 
 /* AstNode::Source */
 AstNode::Source::Source(std::vector<std::unique_ptr<AstNode::Function>> procedures
-                      , std::vector<std::unique_ptr<AstNode::Function>> oblocks
+                      , std::vector<std::unique_ptr<AstNode::Function>> tasks
                       , std::unique_ptr<AstNode::Setup> setup)
                       : procedures(std::move(procedures))
-                      , oblocks(std::move(oblocks))
+                      , tasks(std::move(tasks))
                       , setup(std::move(setup))
                       {}
             
 AstNode::Source::Source(std::initializer_list<AstNode::Function*> procedures
-                      , std::initializer_list<AstNode::Function*> oblocks
+                      , std::initializer_list<AstNode::Function*> tasks
                       , AstNode::Setup* setup)
 {
     for (auto proc : procedures) {
         this->procedures.push_back(std::unique_ptr<AstNode::Function>(proc));
     }
-    for (auto obl : oblocks) {
-        this->oblocks.push_back(std::unique_ptr<AstNode::Function>(obl));
+    for (auto obl : tasks) {
+        this->tasks.push_back(std::unique_ptr<AstNode::Function>(obl));
     }
     this->setup.reset(setup);
 }
@@ -630,8 +630,8 @@ AstNode::Source::Source(const AstNode::Source& other) {
     for (auto&& proc : other.procedures) {
         this->procedures.push_back(proc->cloneBase());
     }
-    for (auto&& obl : other.oblocks) {
-        this->oblocks.push_back(obl->cloneBase());
+    for (auto&& obl : other.tasks) {
+        this->tasks.push_back(obl->cloneBase());
     }
     this->setup = nullptr;
     if (other.setup) {

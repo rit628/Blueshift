@@ -20,8 +20,8 @@ namespace asio = boost::asio;
 class ExecutionUnit
 {
     public:
-    OBlockDesc Oblock;
-    O_Info info;
+    TaskDescriptor Task;
+    Task_Info info;
     std::unordered_map<std::string, HeapMasterMessage> stateMap;
     std::vector<std::string> devices;
     std::vector<bool> isVtype;
@@ -48,7 +48,7 @@ class ExecutionUnit
     std::vector<BlsType> pullStoreVector; 
     std::unordered_map<DeviceID, int> pullPlacement; 
 
-    ExecutionUnit(OBlockDesc OblockData
+    ExecutionUnit(TaskDescriptor TaskData
                 , std::vector<std::string> devices
                 , std::vector<bool> isVtype
                 , std::vector<std::string> controllers
@@ -70,7 +70,7 @@ class ExecutionUnit
     std::vector<BlsType> sendPullState(std::vector<BlsType> pullStates);
     void pullVMArguments(HeapMasterMessage &hmm); 
     // For the triggerChange message, the device is the trigger (workaround for now)
-    void sendTriggerChange(std::string& triggerID, OblockID& oblockID, bool isEnable); 
+    void sendTriggerChange(std::string& triggerID, TaskID& taskID, bool isEnable); 
 
 
     ~ExecutionUnit();
@@ -80,11 +80,11 @@ class ExecutionManager
 {
     public:
     //ExecutionManager() = default;
-    ExecutionManager(std::vector<OBlockDesc> OblockList
+    ExecutionManager(std::vector<TaskDescriptor> TaskList
                    , TSQ<EMStateMessage> &readMM
                    , TSQ<HeapMasterMessage> &sendMM
                    , std::vector<char>& bytecode
-                   , std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> oblocks);
+                   , std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> tasks);
 
     ExecutionUnit &assign(HeapMasterMessage DMM);
 
@@ -93,7 +93,7 @@ class ExecutionManager
     TSQ<EMStateMessage> &readMM;
     TSQ<HeapMasterMessage> &sendMM;
     std::unordered_map<std::string, std::unique_ptr<ExecutionUnit>> EU_map;
-    std::vector<OBlockDesc> OblockList;
+    std::vector<TaskDescriptor> TaskList;
     DeviceScheduler scheduler; 
     boost::asio::io_context eu_ctx; 
 };

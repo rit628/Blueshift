@@ -25,7 +25,7 @@ namespace BlsLang {
             #include "include/NODE_TYPES.LIST"
             #undef AST_NODE
             
-            auto& getOblockDescriptors() { return oblockDescriptors; }
+            auto& getTaskDescriptors() { return taskDescriptors; }
             auto& getLiteralPool() { return literalPool; }
 
         private:
@@ -57,9 +57,9 @@ namespace BlsLang {
                 #undef ARGUMENT
                 #undef TRAP_END
             };
-            std::unordered_map<std::string, FunctionSignature> oblocks;
+            std::unordered_map<std::string, FunctionSignature> tasks;
             std::unordered_map<std::string, DeviceDescriptor> deviceDescriptors;
-            std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+            std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
             std::unordered_map<BlsType, uint8_t> literalPool;
     };
 

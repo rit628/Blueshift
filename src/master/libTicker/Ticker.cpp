@@ -16,13 +16,13 @@ struct PairHash {
     }
 };
 
-MTicker::MTicker(std::vector<OBlockDesc> &OBlocks)
+MTicker::MTicker(std::vector<TaskDescriptor> &Tasks)
 {
     std::unordered_map<std::pair<std::string, int>, TimerID, PairHash> used_id;
     int curr_id = 1; 
 
-    for(auto &ob : OBlocks){
-        for(auto &dev : ob.binded_devices){
+    for(auto &task : Tasks){
+        for(auto &dev : task.binded_devices){
             if((dev.deviceKind == DeviceKind::INTERRUPT) && !dev.isConst){
                 continue; 
             }
@@ -39,13 +39,13 @@ MTicker::MTicker(std::vector<OBlockDesc> &OBlocks)
                 auto data_pair = std::make_pair(dev_alias, dev.polling_period); 
                 if(used_id.find(data_pair) != used_id.end()){
                     TimerID obj = used_id[data_pair]; 
-                    this->timer_map[obj].oblocks.push_back(ob.name); 
+                    this->timer_map[obj].tasks.push_back(task.name); 
                 }
                 else{
 
                     TimerDesc newTimer; 
                     newTimer.id = curr_id; 
-                    newTimer.oblocks.push_back(ob.name); 
+                    newTimer.tasks.push_back(task.name); 
                     newTimer.period =  dev.polling_period; 
                     newTimer.isConst = true; 
 
@@ -69,7 +69,7 @@ MTicker::MTicker(std::vector<OBlockDesc> &OBlocks)
                     newTimer.id = curr_id; 
                     // yes, all dynamic prs are initialized to a polling rate of 0.5 secons
                     newTimer.period = 500;
-                    newTimer.oblocks.push_back(ob.name); 
+                    newTimer.tasks.push_back(task.name); 
                     newTimer.isConst = false; 
 
                     // add the new timer to the timer id map;
@@ -77,7 +77,7 @@ MTicker::MTicker(std::vector<OBlockDesc> &OBlocks)
                 } 
                 else{
                     int dyn_id = device_info.dynamic_time; 
-                    this->timer_map[dyn_id].oblocks.push_back(ob.name); 
+                    this->timer_map[dyn_id].tasks.push_back(task.name); 
 
                 }
            }
@@ -198,7 +198,7 @@ void MTicker::updateSAH(std::vector<Conditional> &conditional){
     }
 }
 
-// maps names to oblocks
-std::vector<OBlockAlias>& MTicker::getOblocks(TimerID t_id){
-    return this->timer_map[t_id].oblocks; 
+// maps names to tasks
+std::vector<TaskAlias>& MTicker::getTasks(TimerID t_id){
+    return this->timer_map[t_id].tasks; 
 }

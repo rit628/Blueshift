@@ -6,8 +6,8 @@ using namespace BlsLang;
 template<class... Ts>
 struct overloads : Ts... { using Ts::operator()...; };
 
-BlsObject Printer::visit(AstNode::Initializer::Oblock& ast) {
-    os << "AstNode::Initializer::Oblock {\n";
+BlsObject Printer::visit(AstNode::Initializer::Task& ast) {
+    os << "AstNode::Initializer::Task {\n";
     os << "  option = " << ast.getOption() << "\n";
     os << "  " << "arguments = <";
     for (auto&& arg : ast.getArgs()) {
@@ -259,8 +259,8 @@ BlsObject Printer::visit(AstNode::Function::Procedure& ast) {
     return true;
 }
 
-BlsObject Printer::visit(AstNode::Function::Oblock& ast) {
-    os << "AstNode::Function::Oblock {\n  name = " << ast.getName() << "\n}" << std::endl;
+BlsObject Printer::visit(AstNode::Function::Task& ast) {
+    os << "AstNode::Function::Task {\n  name = " << ast.getName() << "\n}" << std::endl;
     os << "\n  parameterTypes = [";
     for (auto&& type : ast.getParameterTypes()) {
         type->accept(*this);
@@ -295,10 +295,10 @@ BlsObject Printer::visit(AstNode::Source& ast) {
         os << " ";
         proc->accept(*this);
     }
-    os << " ]\n  oblocks = [";
-    for (auto&& oblock : ast.getOblocks()) {
+    os << " ]\n  tasks = [";
+    for (auto&& task : ast.getTasks()) {
         os << " ";
-        oblock->accept(*this);
+        task->accept(*this);
     }
     os << " ]\n  setup = ";
     ast.getSetup()->accept(*this);

@@ -221,15 +221,15 @@ class DeviceCursor : public DeviceControlInterface<DeviceCursor> {
         TSM<std::thread::id, uint16_t> queryHandlers;
 
         void queryWatcher(std::stop_token stoken);
-        void updateView(uint16_t oblockId);
+        void updateView(uint16_t taskId);
 
     public:
         DeviceCursor(DeviceHandle& device, std::shared_ptr<Connection> clientConnection, int ctl_code, int device_code);
         DeviceCursor(DeviceCursor&& other);
         ~DeviceCursor();
         void initialize();
-        DynamicMessage getLatestOblockView(uint16_t oblockId);
-        void addQueryHandler(uint16_t oblockId);
+        DynamicMessage getLatestTaskView(uint16_t taskId);
+        void addQueryHandler(uint16_t taskId);
         void awaitQueryCompletion(std::stop_token stoken);
 
 };

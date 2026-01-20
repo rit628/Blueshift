@@ -8,11 +8,11 @@ int main() {
     // sample engine
     BlsLang::Compiler compiler;
     std::string src = R"(
-        oblock printString(TIMER_TEST T) {
+        task printString(TIMER_TEST T) {
             println("A string.");
         }
 
-        oblock printAppendedString(TIMER_TEST T) {
+        task printAppendedString(TIMER_TEST T) {
             string s = "A string.";
             s += " Another string.";
             println(s);

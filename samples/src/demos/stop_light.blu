@@ -1,4 +1,4 @@
-oblock trafficLight(GAMEPAD gp, LIGHT green, LIGHT yellow, LIGHT red)
+task trafficLight(GAMEPAD gp, LIGHT green, LIGHT yellow, LIGHT red)
 : triggerOn(gp),
 processPolicy({
     gp : {
@@ -31,7 +31,7 @@ processPolicy({
     red.on = true;
 }
 
-oblock stopDetector(GAMEPAD gp, LIGHT red)
+task stopDetector(GAMEPAD gp, LIGHT red)
 : triggerOn(gp),
 processPolicy({
     gp : {

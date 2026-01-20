@@ -5,7 +5,7 @@
 
 using cont_int = uint16_t; 
 using dev_int = uint16_t; 
-using oblock_int = uint16_t; 
+using task_int = uint16_t; 
 
 
 // Routes objects to send them
@@ -18,5 +18,5 @@ class ClientRouter{
         ClientRouter(TSQ<SentMessage> &loopBack); 
         void setConnection(ControllerID& targCont, std::shared_ptr<Connection> conObj);  
         void createRoute(uint16_t device, std::vector<ControllerID> &ctlGroup); 
-        void sendStates(uint16_t deviceCode, Protocol type, bool fromInt = false, oblock_int oint = 0);
+        void sendStates(uint16_t deviceCode, Protocol type, bool fromInt = false, task_int taskId = 0);
 }; 

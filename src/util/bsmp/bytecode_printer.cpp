@@ -187,10 +187,10 @@ void BytecodePrinter::setOutputStream(std::ostream& stream) {
 }
 
 void BytecodePrinter::printHeader() {
-    std::for_each(oblockDescs.begin(), oblockDescs.end(), [this](const auto& desc){
-       oblockLabels.emplace(desc.bytecode_offset, desc.name);
+    std::for_each(taskDescs.begin(), taskDescs.end(), [this](const auto& desc){
+       taskLabels.emplace(desc.bytecode_offset, desc.name);
     });
-    auto json = value_from(oblockDescs);
+    auto json = value_from(taskDescs);
     prettyPrintHeader(*outputStream, json);
     *outputStream << "LITERALS_BEGIN" << std::endl;
 }
@@ -212,8 +212,8 @@ void BytecodePrinter::code(
     type arg,
 #define OPCODE_END(code, args...) \
     int) { \
-    if (oblockLabels.contains(instruction - 1)) { \
-        *outputStream << '_' << oblockLabels.at(instruction - 1) << ":\n"; \
+    if (taskLabels.contains(instruction - 1)) { \
+        *outputStream << '_' << taskLabels.at(instruction - 1) << ":\n"; \
     } \
     *outputStream << #code; \
     printArgs(args);\

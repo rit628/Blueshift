@@ -39,7 +39,7 @@ namespace BlsLang {
             std::unique_ptr<AstNode::Expression> parsePrimaryExpression();
             std::unique_ptr<AstNode::Specifier> parseSpecifier();
             std::unique_ptr<AstNode::Specifier::Type> parseTypeSpecifier();
-            std::unique_ptr<AstNode::Initializer::Oblock> parseOblockInitializer();
+            std::unique_ptr<AstNode::Initializer::Task> parseTaskInitializer();
 
             // helpers
             void cleanLiteral(std::string& literal);

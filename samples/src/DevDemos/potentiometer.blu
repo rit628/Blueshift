@@ -2,19 +2,19 @@
 // Contains potentiometer and other similar devices that use the ADC
 
 
-oblock potentiometer(LINE_WRITER lw, POTENTIOMETER potent)
+task potentiometer(LINE_WRITER lw, POTENTIOMETER potent)
 : triggerOn(potent), constPollOn({potent : 500})
 {
     lw.msg = "the potentiometer's value is : " + toString(potent.value);
 }
 
-oblock photoTest(LINE_WRITER lw, PHOTORESISTOR photo)
+task photoTest(LINE_WRITER lw, PHOTORESISTOR photo)
 : triggerOn(photo), constPollOn({photo : 500})
 {
      lw.msg = "the photoresistor's intensity is : " + toString(photo.intensity);
 }
 
-oblock thermTest(LINE_WRITER lw,  THERMISTOR therm)
+task thermTest(LINE_WRITER lw,  THERMISTOR therm)
 : triggerOn(photo), constPollOn({photo : 500})
 {
     int tempFaren = therm.celsius * 9/5 + 32;

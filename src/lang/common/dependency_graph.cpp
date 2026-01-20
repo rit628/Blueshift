@@ -105,11 +105,11 @@ BlsObject DependencyGraph::visit(AstNode::Function::Procedure& ast) {
     return std::monostate();
 }
 
-BlsObject DependencyGraph::visit(AstNode::Function::Oblock& ast) {
-    auto& oblockName = ast.getName();
-    currentStatementDependencies = &oblockStatementDependencies[oblockName];
-    currentSymbolDependencies = &oblockSymbolDependencies[oblockName];
-    auto& boundDevices = oblockDescriptors.at(oblockName).binded_devices;
+BlsObject DependencyGraph::visit(AstNode::Function::Task& ast) {
+    auto& taskName = ast.getName();
+    currentStatementDependencies = &taskStatementDependencies[taskName];
+    currentSymbolDependencies = &taskSymbolDependencies[taskName];
+    auto& boundDevices = taskDescriptors.at(taskName).binded_devices;
     uint8_t argc = 0;
     for (auto&& [symbol, device] : boost::combine(ast.getParameters(), boundDevices)) {
         auto symbolName = symbol + "%" + std::to_string(static_cast<int>(argc++));
@@ -143,19 +143,19 @@ BlsObject DependencyGraph::visit(AstNode::Setup& ast) {
             deviceDescriptors.emplace(name, devDesc);
         }
         else if (auto* statementExpression = dynamic_cast<AstNode::Statement::Expression*>(statement.get())) {
-            auto* oblockBinding = dynamic_cast<AstNode::Expression::Function*>(statementExpression->getExpression().get());
-            if (!oblockBinding) {
-                throw SemanticError("Statement within setup() must be an oblock binding expression or device binding declaration");
+            auto* taskBinding = dynamic_cast<AstNode::Expression::Function*>(statementExpression->getExpression().get());
+            if (!taskBinding) {
+                throw SemanticError("Statement within setup() must be an task binding expression or device binding declaration");
             }
-            auto& name = oblockBinding->getName();
-            auto& args = oblockBinding->getArguments();
-            OBlockDesc desc;
+            auto& name = taskBinding->getName();
+            auto& args = taskBinding->getArguments();
+            TaskDescriptor desc;
             desc.name = name;
             auto& devices = desc.binded_devices;
             for (auto&& arg : args) {
                 auto* expr = dynamic_cast<AstNode::Expression::Access*>(arg.get());
                 if (expr == nullptr || expr->getMember().has_value() || expr->getSubscript().has_value()) {
-                    throw SemanticError("Invalid oblock binding in setup()");
+                    throw SemanticError("Invalid task binding in setup()");
                 }
                 try {
                     devices.push_back(deviceDescriptors.at(expr->getObject()));
@@ -164,7 +164,7 @@ BlsObject DependencyGraph::visit(AstNode::Setup& ast) {
                     throw RuntimeError(expr->getObject() + " does not refer to a device binding");
                 }
             }
-            oblockDescriptors.emplace(name, desc);
+            taskDescriptors.emplace(name, desc);
         }
     }
     return std::monostate();
@@ -172,8 +172,8 @@ BlsObject DependencyGraph::visit(AstNode::Setup& ast) {
 
 BlsObject DependencyGraph::visit(AstNode::Source& ast) {
     ast.getSetup()->accept(*this);
-    for (auto&& oblock : ast.getOblocks()) {
-        oblock->accept(*this);
+    for (auto&& task : ast.getTasks()) {
+        task->accept(*this);
     }
     return std::monostate();
 }

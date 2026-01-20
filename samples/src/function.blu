@@ -1,4 +1,4 @@
-oblock changeTask(LINE_WRITER lw, string message)
+task changeTask(LINE_WRITER lw, string message)
 : triggerOn(lw)
 {
     if(lw.msg == "green" || lw.msg == "red"){
@@ -7,7 +7,7 @@ oblock changeTask(LINE_WRITER lw, string message)
     }
 }
 
-oblock buttonLog(BUTTON button, string mode, map<string, int> countMap, LINE_WRITER fl)
+task buttonLog(BUTTON button, string mode, map<string, int> countMap, LINE_WRITER fl)
 : triggerOn(button)
 {
     if(button.pressed){
@@ -28,7 +28,7 @@ oblock buttonLog(BUTTON button, string mode, map<string, int> countMap, LINE_WRI
 
 
 
-oblock buttonLight(BUTTON button, string mode, LIGHT redLight, LIGHT greenLight)
+task buttonLight(BUTTON button, string mode, LIGHT redLight, LIGHT greenLight)
 : triggerOn(button)
 {
     if(button.pressed){

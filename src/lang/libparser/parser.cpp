@@ -21,7 +21,7 @@ std::unique_ptr<AstNode::Source> Parser::parse(std::vector<Token> tokenStream) {
 
 std::unique_ptr<AstNode::Source> Parser::parseSource() {
     std::vector<std::unique_ptr<AstNode::Function>> procedures;
-    std::vector<std::unique_ptr<AstNode::Function>> oblocks;
+    std::vector<std::unique_ptr<AstNode::Function>> tasks;
     std::unique_ptr<AstNode::Setup> setup = nullptr;
 
     while (!ts.empty()) {
@@ -31,8 +31,8 @@ std::unique_ptr<AstNode::Source> Parser::parseSource() {
             }
             setup = parseSetup();
         }
-        else if (ts.peek(RESERVED_OBLOCK)) {
-            oblocks.push_back(parseFunction());
+        else if (ts.peek(RESERVED_TASK)) {
+            tasks.push_back(parseFunction());
         }
         else if (ts.peek(Token::Type::IDENTIFIER)) {
             procedures.push_back(parseFunction());
@@ -47,7 +47,7 @@ std::unique_ptr<AstNode::Source> Parser::parseSource() {
     }
 
     return std::make_unique<AstNode::Source>(std::move(procedures)
-                                           , std::move(oblocks)
+                                           , std::move(tasks)
                                            , std::move(setup));
 }
 
@@ -59,7 +59,7 @@ std::unique_ptr<AstNode::Setup> Parser::parseSetup() {
 
 std::unique_ptr<AstNode::Function> Parser::parseFunction() {
     std::unique_ptr<AstNode::Specifier::Type> returnType = nullptr;
-    if (!ts.match(RESERVED_OBLOCK)) {
+    if (!ts.match(RESERVED_TASK)) {
         returnType = parseTypeSpecifier();
     }
     if (!ts.match(Token::Type::IDENTIFIER)) {
@@ -89,15 +89,15 @@ std::unique_ptr<AstNode::Function> Parser::parseFunction() {
                                                             , std::move(parameters)
                                                             , std::move(statements));
     }
-    else { // parsed oblock
-        std::vector<std::unique_ptr<AstNode::Initializer::Oblock>> configOptions;
+    else { // parsed task
+        std::vector<std::unique_ptr<AstNode::Initializer::Task>> configOptions;
         if (ts.match(COLON)) {
             do {
-                configOptions.push_back(parseOblockInitializer());
+                configOptions.push_back(parseTaskInitializer());
             } while (ts.match(COMMA));
         }
         auto statements = parseBlock();
-        return std::make_unique<AstNode::Function::Oblock>(std::move(name)
+        return std::make_unique<AstNode::Function::Task>(std::move(name)
                                                          , std::move(parameterTypes)
                                                          , std::move(parameters)
                                                          , std::move(configOptions)
@@ -518,9 +518,9 @@ std::unique_ptr<AstNode::Specifier::Type> Parser::parseTypeSpecifier() {
     return std::make_unique<AstNode::Specifier::Type>(std::move(name), std::move(typeArgs));
 }
 
-std::unique_ptr<AstNode::Initializer::Oblock> Parser::parseOblockInitializer() {
+std::unique_ptr<AstNode::Initializer::Task> Parser::parseTaskInitializer() {
     if (!ts.match(Token::Type::IDENTIFIER)) {
-        throw SyntaxError("Invalid oblock initialization option", ts.getLine(), ts.getColumn());
+        throw SyntaxError("Invalid task initialization option", ts.getLine(), ts.getColumn());
     }
     auto& option = ts.at(-1).getLiteral();
     std::vector<std::unique_ptr<AstNode::Expression>> args;
@@ -528,9 +528,9 @@ std::unique_ptr<AstNode::Initializer::Oblock> Parser::parseOblockInitializer() {
         do {
             args.push_back(parseExpression());
         } while (ts.match(COMMA));
-        matchExpectedSymbol(PARENTHESES_CLOSE, "to match previous ')' in oblock initialization option.");
+        matchExpectedSymbol(PARENTHESES_CLOSE, "to match previous ')' in task initialization option.");
     }
-    return std::make_unique<AstNode::Initializer::Oblock>(std::move(option), std::move(args));
+    return std::make_unique<AstNode::Initializer::Task>(std::move(option), std::move(args));
 }
 
 void Parser::cleanLiteral(std::string& literal) {

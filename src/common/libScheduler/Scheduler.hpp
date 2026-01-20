@@ -13,9 +13,9 @@
 
 
 /*
-    Waiting: The oblock is in the queue for all devices
-    Running: The oblock is in exeuction
-    Loaded: The oblock has been granted access to at least one device and is waiting on another
+    Waiting: The task is in the queue for all devices
+    Running: The task is in exeuction
+    Loaded: The task has been granted access to at least one device and is waiting on another
 */
 
 
@@ -74,7 +74,7 @@ struct PendingStateInfo{
     int ownedCounter = 0; 
     int confirmedCounter = 0; 
     bool executeFlag = false; 
-    OblockID oblockName; 
+    TaskID taskName; 
 
 
     std::mutex mtx; 
@@ -100,7 +100,7 @@ struct PendingStateInfo{
             if(mustOwn.size() == ++this->confirmedCounter){
                 this->ownedDevices.clear(); 
                 this->confirmedCounter = 0; 
-                //std::cout<<"we good! running oblock"<<std::endl; 
+                //std::cout<<"we good! running task"<<std::endl; 
                 this->triggerConfirm();
                 return true; 
             }
@@ -116,24 +116,24 @@ class DeviceScheduler{
         // Maps deviceID to CTL
         std::unordered_map<DeviceID, ControllerID> devControllerMap; 
 
-        // Maps the Oblock to the list of devices that it writes to 
+        // Maps the Task to the list of devices that it writes to 
         std::unordered_map<DeviceID, DeviceQueue> scheduledProcessMap; 
 
-        // Returns what each oblock is waiting on
-        std::unordered_map<OblockID, PendingStateInfo> oblockWaitMap; 
+        // Returns what each task is waiting on
+        std::unordered_map<TaskID, PendingStateInfo> taskWaitMap; 
 
         // Utility Functions: 
-        HeapMasterMessage makeMessage(OblockID& oName, DeviceID& devName, PROTOCOLS pmsg, int priority, bool vtype); 
+        HeapMasterMessage makeMessage(TaskID& oName, DeviceID& devName, PROTOCOLS pmsg, int priority, bool vtype); 
 
         // Function
         std::function<void(HeapMasterMessage)> handleMessage; 
         
 
     public: 
-        DeviceScheduler(std::vector<OBlockDesc> &oblockDescList, std::function<void(HeapMasterMessage)> dmm_message); 
-        void request(OblockID& oblockName, int priority); 
+        DeviceScheduler(std::vector<TaskDescriptor> &taskDescList, std::function<void(HeapMasterMessage)> dmm_message); 
+        void request(TaskID& taskName, int priority); 
         void receive(HeapMasterMessage &DMM); 
-        void release(OblockID &reqOblock); 
+        void release(TaskID &reqTask); 
 }; 
 
 

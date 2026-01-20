@@ -10,21 +10,21 @@
 //     TSQ<DynamicMasterMessage> readNM;
 //     TSQ<DynamicMasterMessage> readEM;
 
-//     OBlockDesc oblockDesc;
-//     oblockDesc.name = "OB_ConsumeNM";
-//     oblockDesc.dropRead = false;
-//     oblockDesc.dropWrite = false;
+//     TaskDesc taskDesc;
+//     taskDesc.name = "OB_ConsumeNM";
+//     taskDesc.dropRead = false;
+//     taskDesc.dropWrite = false;
 //     DeviceDescriptor device;
 //     device.device_name = "device_consumeNM";
 //     device.isVtype = false;
 //     device.controller = "ctrl";
-//     oblockDesc.binded_devices.push_back(device);
+//     taskDesc.binded_devices.push_back(device);
     
-//     vector<OBlockDesc> oblockList = { oblockDesc };
+//     vector<TaskDesc> taskList = { taskDesc };
 
-//     MasterMailbox mailbox(oblockList, readNM, readEM);
+//     MasterMailbox mailbox(taskList, readNM, readEM);
 //     DynamicMessage dm;
-//     O_Info info { "OB_ConsumeNM", "device_consumeNM", "ctrl", false };
+//     Task_Info info { "OB_ConsumeNM", "device_consumeNM", "ctrl", false };
 //     DynamicMasterMessage dmm(dm, info, PROTOCOLS::SENDSTATES, false);
 
 //     readNM.write(dmm);
@@ -39,21 +39,21 @@
 //     TSQ<DynamicMasterMessage> readNM;
 //     TSQ<DynamicMasterMessage> readEM;
 
-//     OBlockDesc oblockDesc;
-//     oblockDesc.name = "OB_ConsumeEM";
-//     oblockDesc.dropRead = false;
-//     oblockDesc.dropWrite = false;
+//     TaskDesc taskDesc;
+//     taskDesc.name = "OB_ConsumeEM";
+//     taskDesc.dropRead = false;
+//     taskDesc.dropWrite = false;
 //     DeviceDescriptor device;
 //     device.device_name = "device_consumeEM";
 //     device.isVtype = false;
 //     device.controller = "ctrl";
-//     oblockDesc.binded_devices.push_back(device);
+//     taskDesc.binded_devices.push_back(device);
     
-//     vector<OBlockDesc> oblockList = { oblockDesc };
+//     vector<TaskDesc> taskList = { taskDesc };
 
-//     MasterMailbox mailbox(oblockList, readNM, readEM);
+//     MasterMailbox mailbox(taskList, readNM, readEM);
 //     DynamicMessage dm;
-//     O_Info info { "OB_ConsumeEM", "device_consumeEM", "ctrl", false };
+//     Task_Info info { "OB_ConsumeEM", "device_consumeEM", "ctrl", false };
 //     DynamicMasterMessage dmm(dm, info, PROTOCOLS::SENDSTATES, false);
 
 //     readEM.write(dmm);
@@ -66,21 +66,21 @@
 //     TSQ<DynamicMasterMessage> readNM;
 //     TSQ<DynamicMasterMessage> readEM;
 
-//     OBlockDesc oblockDesc;
-//     oblockDesc.name = "OB_EM_SendStates";
-//     oblockDesc.dropRead = false;
-//     oblockDesc.dropWrite = false;
+//     TaskDesc taskDesc;
+//     taskDesc.name = "OB_EM_SendStates";
+//     taskDesc.dropRead = false;
+//     taskDesc.dropWrite = false;
 //     DeviceDescriptor device;
 //     device.device_name = "device_em_send";
 //     device.isVtype = false;
 //     device.controller = "ctrl";
-//     oblockDesc.binded_devices.push_back(device);
+//     taskDesc.binded_devices.push_back(device);
     
-//     vector<OBlockDesc> oblockList = { oblockDesc };
+//     vector<TaskDesc> taskList = { taskDesc };
 
-//     MasterMailbox mailbox(oblockList, readNM, readEM);
+//     MasterMailbox mailbox(taskList, readNM, readEM);
 //     DynamicMessage dm;
-//     O_Info info { "OB_EM_SendStates", "device_em_send", "ctrl", false };
+//     Task_Info info { "OB_EM_SendStates", "device_em_send", "ctrl", false };
 //     DynamicMasterMessage dmm(dm, info, PROTOCOLS::SENDSTATES, false);
 
 //     readEM.write(dmm);
@@ -95,23 +95,23 @@
 //     TSQ<DynamicMasterMessage> readNM;
 //     TSQ<DynamicMasterMessage> readEM;
 
-//     OBlockDesc oblockDesc;
-//     oblockDesc.name = "OB_RequestStates";
-//     oblockDesc.dropRead = false;
-//     oblockDesc.dropWrite = false;
+//     TaskDesc taskDesc;
+//     taskDesc.name = "OB_RequestStates";
+//     taskDesc.dropRead = false;
+//     taskDesc.dropWrite = false;
 //     DeviceDescriptor device;
 //     device.device_name = "device_request";
 //     device.isVtype = false;
 //     device.controller = "ctrl";
-//     oblockDesc.binded_devices.push_back(device);
+//     taskDesc.binded_devices.push_back(device);
     
-//     vector<OBlockDesc> oblockList = { oblockDesc };
+//     vector<TaskDesc> taskList = { taskDesc };
 
-//     MasterMailbox mailbox(oblockList, readNM, readEM);
+//     MasterMailbox mailbox(taskList, readNM, readEM);
 
 //     DynamicMessage dm;
-//     O_Info info { "OB_RequestStates", "device_request", "ctrl", false };
-//     O_Info infoTwo { "OB_RequestStates", "device2_request", "ctrl", false };
+//     Task_Info info { "OB_RequestStates", "device_request", "ctrl", false };
+//     Task_Info infoTwo { "OB_RequestStates", "device2_request", "ctrl", false };
 //     DynamicMasterMessage stateMsgOne(dm, info, PROTOCOLS::SENDSTATES, false);
 //     DynamicMasterMessage stateMsgTwo(dm, infoTwo, PROTOCOLS::SENDSTATES, false);
 
@@ -134,28 +134,28 @@
 //     TSQ<DynamicMasterMessage> readNM;
 //     TSQ<DynamicMasterMessage> readEM;
 
-//     OBlockDesc oblockDesc;
-//     oblockDesc.name = "OB_RequestStates";
-//     oblockDesc.dropRead = false;
-//     oblockDesc.dropWrite = false;
+//     TaskDesc taskDesc;
+//     taskDesc.name = "OB_RequestStates";
+//     taskDesc.dropRead = false;
+//     taskDesc.dropWrite = false;
 //     DeviceDescriptor device;
 //     device.device_name = "device_request";
 //     device.isVtype = false;
 //     device.controller = "ctrl";
-//     oblockDesc.binded_devices.push_back(device);
+//     taskDesc.binded_devices.push_back(device);
 //     DeviceDescriptor deviceTwo;
 //     deviceTwo.device_name = "device2_request";
 //     deviceTwo.isVtype = false;
 //     deviceTwo.controller = "ctrl";
-//     oblockDesc.binded_devices.push_back(deviceTwo);
+//     taskDesc.binded_devices.push_back(deviceTwo);
     
-//     vector<OBlockDesc> oblockList = { oblockDesc };
+//     vector<TaskDesc> taskList = { taskDesc };
 
-//     MasterMailbox mailbox(oblockList, readNM, readEM);
+//     MasterMailbox mailbox(taskList, readNM, readEM);
 
 //     DynamicMessage dm;
-//     O_Info info { "OB_RequestStates", "device_request", "ctrl", false };
-//     O_Info infoTwo { "OB_RequestStates", "device2_request", "ctrl", false };
+//     Task_Info info { "OB_RequestStates", "device_request", "ctrl", false };
+//     Task_Info infoTwo { "OB_RequestStates", "device2_request", "ctrl", false };
 //     DynamicMasterMessage stateMsgOne(dm, info, PROTOCOLS::SENDSTATES, false);
 //     DynamicMasterMessage stateMsgTwo(dm, infoTwo, PROTOCOLS::SENDSTATES, false);
 
@@ -176,12 +176,12 @@
 // }
 
 // //Create a test for the interrupts
-// TEST(MasterMailboxMultiDeviceTest, InterruptHandlingAcrossMultipleOBlocks) {
+// TEST(MasterMailboxMultiDeviceTest, InterruptHandlingAcrossMultipleTasks) {
 //     TSQ<DynamicMasterMessage> readNM;
 //     TSQ<DynamicMasterMessage> readEM;
     
-//     // Create two different OBlocks; each has one device with the same device name.
-//     OBlockDesc block1;
+//     // Create two different Tasks; each has one device with the same device name.
+//     TaskDesc block1;
 //     block1.name = "OB_1";
 //     block1.dropRead = false;
 //     block1.dropWrite = false;
@@ -195,7 +195,7 @@
 //     commonDev1.isVtype = false;
 //     block1.binded_devices.push_back(commonDev1);
     
-//     OBlockDesc block2;
+//     TaskDesc block2;
 //     block2.name = "OB_2";
 //     block2.dropRead = false;
 //     block2.dropWrite = false;
@@ -209,13 +209,13 @@
 //     commonDev2.isVtype = false;
 //     block2.binded_devices.push_back(commonDev2);
     
-//     std::vector<OBlockDesc> blocks = { block1, block2 };
+//     std::vector<TaskDesc> blocks = { block1, block2 };
 //     MasterMailbox mailbox(blocks, readNM, readEM);
     
 //     // Create a SENDSTATES message with isInterrupt true for the common device.
-//     // (For the interrupt branch the oblock field in the message is not used to select the queues.)
+//     // (For the interrupt branch the task field in the message is not used to select the queues.)
 //     DynamicMessage dm;
-//     O_Info info = { "OB_1", "common_device", "ctrlA", false };
+//     Task_Info info = { "OB_1", "common_device", "ctrlA", false };
 //     DynamicMasterMessage intMsg(dm, info, PROTOCOLS::SENDSTATES, true);
     
 //     // Write the interrupt message into readNM.
@@ -223,7 +223,7 @@
     
 //     mailbox.runningNM(readNM);
     
-//     // In the constructor, each OBlock that contains the common device registers its TSQ into the
+//     // In the constructor, each Task that contains the common device registers its TSQ into the
 //     // interruptMap under key "common_device". Thus, we expect two TSQs in the vector.
 //     auto& intQueues = mailbox.interruptMap["common_device"];
 //     EXPECT_EQ(intQueues.size(), 2);

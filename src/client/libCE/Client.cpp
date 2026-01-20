@@ -24,7 +24,7 @@ void Client::start(){
 }
 
 
-void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = false, oblock_int oint = 0, bool write_self = false){
+void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = false, task_int taskId = 0, bool write_self = false){
     // Write code for a callback
     SentMessage sm; 
     DynamicMessage dmsg; 
@@ -32,13 +32,13 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
 
     switch(type){
         case(Protocol::OWNER_GRANT):{
-            sm.header.oblock_id = oint; 
+            sm.header.task_id = taskId; 
             sm.header.prot = Protocol::OWNER_GRANT; 
             sm.header.device_code = deviceCode; 
             break; 
         }
         case(Protocol::OWNER_CONFIRM_OK) : {
-            sm.header.oblock_id = oint; 
+            sm.header.task_id = taskId; 
             sm.header.prot = Protocol::OWNER_CONFIRM_OK; 
             sm.header.device_code = deviceCode;
             break; 
@@ -53,7 +53,7 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
                     device.transmitStates(dmsg); 
                 }
                 else {
-                    dmsg = cursors.at(deviceCode).getLatestOblockView(oint);
+                    dmsg = cursors.at(deviceCode).getLatestTaskView(taskId);
                 }
                 sm.body = dmsg.Serialize();
                 sm.header.body_size = sm.body.size(); 
@@ -66,7 +66,7 @@ void Client::sendMessage(uint16_t deviceCode, Protocol type, bool fromInt = fals
             // make message
              
             sm.header.ctl_code = this->controller_alias;
-            sm.header.oblock_id = oint; 
+            sm.header.task_id = taskId; 
             sm.header.prot = type; 
             sm.header.device_code = deviceCode; 
             sm.header.timer_id = -1; 
@@ -174,32 +174,32 @@ void Client::listener(std::stop_token stoken){
                 auto& pendingReq = deviceData.pendingRequests;
                 
                 if(pendingReq.currOwned){
-                    if((inMsg.header.ctl_code != deviceData.owner.first) || (inMsg.header.oblock_id != deviceData.owner.second)){
+                    if((inMsg.header.ctl_code != deviceData.owner.first) || (inMsg.header.task_id != deviceData.owner.second)){
                         std::cout<<"OWNERSHIP WARNING: "<<std::endl; 
                         std::cout<<"CTL: "<<inMsg.header.ctl_code<<std::endl; 
-                        std::cout<<"OBLOCK: "<<inMsg.header.device_code<<std::endl;
+                        std::cout<<"TASK: "<<inMsg.header.device_code<<std::endl;
                         std::cout<<"Tried to access a preowned device"<<std::endl; 
                         continue; 
                     }
                     std::cout<<"Valid owner"<<std::endl; 
                 }
 
-                oblock_int o_id = inMsg.header.oblock_id;
+                task_int task_id = inMsg.header.task_id;
 
                 if (deviceData.device.getDeviceKind() == DeviceKind::CURSOR) {
                     auto& cursorStrands = cursorViewStrands.at(dev_index);
-                    if (!cursorStrands.contains(o_id)) {
-                        cursorStrands.emplace(o_id, boost::asio::make_strand(threadPool));
+                    if (!cursorStrands.contains(task_id)) {
+                        cursorStrands.emplace(task_id, boost::asio::make_strand(threadPool));
                     }
-                    auto& viewStrand = cursorStrands.at(o_id);
+                    auto& viewStrand = cursorStrands.at(task_id);
 
-                    boost::asio::post(viewStrand,  [o_id, dev_index, dmsg = std::move(dmsg), stoken, this](){
+                    boost::asio::post(viewStrand,  [task_id, dev_index, dmsg = std::move(dmsg), stoken, this](){
                         try{   
                             auto& device = this->deviceList.at(dev_index).device;
-                            cursors.at(dev_index).addQueryHandler(o_id);
+                            cursors.at(dev_index).addQueryHandler(task_id);
                             device.processStates(dmsg);
                             cursors.at(dev_index).awaitQueryCompletion(stoken);
-                            this->sendMessage(dev_index, Protocol::CALLBACK, false, o_id);
+                            this->sendMessage(dev_index, Protocol::CALLBACK, false, task_id);
                         }
                         catch(std::exception(e)){
                             std::cout<<"Failure to change the state detected"<<std::endl; 
@@ -210,11 +210,11 @@ void Client::listener(std::stop_token stoken){
                 else {
                     auto& deviceStrand = deviceStrands.at(dev_index);
     
-                    boost::asio::post(deviceStrand,  [o_id, dev_index, dmsg = std::move(dmsg), stoken, this](){
+                    boost::asio::post(deviceStrand,  [task_id, dev_index, dmsg = std::move(dmsg), stoken, this](){
                         try{   
                             auto& device = this->deviceList.at(dev_index).device;
                             device.processStates(dmsg);
-                            this->sendMessage(dev_index, Protocol::CALLBACK, false, o_id);
+                            this->sendMessage(dev_index, Protocol::CALLBACK, false, task_id);
                         }
                         catch(std::exception(e)){
                             std::cout<<"Failure to change the state detected"<<std::endl; 
@@ -341,9 +341,9 @@ void Client::listener(std::stop_token stoken){
             ClientSideReq csReq; 
             csReq.ctl = inMsg.header.ctl_code; 
             csReq.targetDevice = targDevice; 
-            csReq.requestorOblock = inMsg.header.oblock_id;  
-            csReq.priority = inMsg.header.oblock_priority; 
-            //std::cout<<"Adding request for obloc: "<<csReq.requestorOblock<<" for device "<<csReq.targetDevice<<" with priority "<<csReq.priority<<std::endl; 
+            csReq.requestorTask = inMsg.header.task_id;  
+            csReq.priority = inMsg.header.task_priority; 
+            //std::cout<<"Adding request for obloc: "<<csReq.requestorTask<<" for device "<<csReq.targetDevice<<" with priority "<<csReq.priority<<std::endl; 
             this->deviceList.at(csReq.targetDevice).pendingRequests.getQueue().push(csReq);
         }
         else if(ptype == Protocol::OWNER_CANDIDATE_REQUEST_CONCLUDE){
@@ -355,8 +355,8 @@ void Client::listener(std::stop_token stoken){
             if(!this->deviceList.at(targDevice).pendingRequests.currOwned){
                     // Add the code to send the device grant here: 
                     auto king = this->deviceList.at(targDevice).pendingRequests.getQueue().top(); 
-                    //std::cout<<"sending the message for oblock id: "<<king.requestorOblock<<std::endl; 
-                    sendMessage(king.targetDevice, Protocol::OWNER_GRANT, false, king.requestorOblock); 
+                    //std::cout<<"sending the message for task id: "<<king.requestorTask<<std::endl; 
+                    sendMessage(king.targetDevice, Protocol::OWNER_GRANT, false, king.requestorTask); 
                     this->deviceList.at(targDevice).pendingRequests.currOwned = true; 
             }
             else{
@@ -373,20 +373,20 @@ void Client::listener(std::stop_token stoken){
             // Check if the top value matches the confirmation: 
             auto& pendingSet = devicePending.getQueue(); 
             auto loadedProcess = pendingSet.top(); 
-            if((loadedProcess.ctl == inMsg.header.ctl_code) && (loadedProcess.requestorOblock == inMsg.header.oblock_id)){
-                sendMessage(dev_id, Protocol::OWNER_CONFIRM_OK, false, inMsg.header.oblock_id);
+            if((loadedProcess.ctl == inMsg.header.ctl_code) && (loadedProcess.requestorTask == inMsg.header.task_id)){
+                sendMessage(dev_id, Protocol::OWNER_CONFIRM_OK, false, inMsg.header.task_id);
                 devicePending.currOwned = true;
                 auto& devPair = this->deviceList.at(dev_id).owner; 
-                devPair = {inMsg.header.ctl_code, inMsg.header.oblock_id}; 
+                devPair = {inMsg.header.ctl_code, inMsg.header.task_id}; 
                 //std::cout<<"Confrm Before Erasure"<<std::endl; 
                 pendingSet.pop(); 
                 //std::cout<<"Confirm After Erasure"<<std::endl; 
             }
             else{
                 std::cerr<<"PROTOCOL ERROR: INVALID OWNER CONFIRM FOR PROCESS THAT IS NOT A PRIME CANDIDATE"<<std::endl; 
-                std::cout<<"ERROR CTL_CODE: "<<inMsg.header.ctl_code<<" ERROR OBLOCK ID "<<inMsg.header.oblock_id<<std::endl; 
-                // Send a grant to the new oblock on top instead
-                sendMessage(loadedProcess.targetDevice, Protocol::OWNER_GRANT, false, loadedProcess.requestorOblock);
+                std::cout<<"ERROR CTL_CODE: "<<inMsg.header.ctl_code<<" ERROR TASK ID "<<inMsg.header.task_id<<std::endl; 
+                // Send a grant to the new task on top instead
+                sendMessage(loadedProcess.targetDevice, Protocol::OWNER_GRANT, false, loadedProcess.requestorTask);
 
             }         
         }
@@ -399,8 +399,8 @@ void Client::listener(std::stop_token stoken){
             if(!devPendStruct.getQueue().empty()){
                 auto& scheduleOrder = devPendStruct.getQueue();
                 auto nextProcess = scheduleOrder.top();
-                oblock_int o_id = nextProcess.requestorOblock;
-                sendMessage(inMsg.header.device_code, Protocol::OWNER_GRANT, false, o_id);
+                task_int task_id = nextProcess.requestorTask;
+                sendMessage(inMsg.header.device_code, Protocol::OWNER_GRANT, false, task_id);
             }
             else{
                 devPendStruct.currOwned = false; 
@@ -408,10 +408,10 @@ void Client::listener(std::stop_token stoken){
         }
         else if(ptype == Protocol::PULL_REQUEST){
             int dev_index = inMsg.header.device_code; 
-            int oblockId = inMsg.header.oblock_id; 
-            //std::cout<<"PULL request made to device: "<<dev_index<<" for oblock: "<<oblockId<<std::endl; 
+            int taskId = inMsg.header.task_id; 
+            //std::cout<<"PULL request made to device: "<<dev_index<<" for task: "<<taskId<<std::endl; 
             
-            this->sendMessage(dev_index, Protocol::PULL_RESPONSE, false, oblockId);
+            this->sendMessage(dev_index, Protocol::PULL_RESPONSE, false, taskId);
         }
         else{
             std::cout<<"Unknown protocol message!"<<std::endl; 

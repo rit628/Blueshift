@@ -9,12 +9,12 @@
 #include <unordered_set>
 
 using SymbolID = std::string; 
-using OblockID = std::string; 
+using TaskID = std::string; 
 using DeviceID = std::string;  
 using ControllerID = std::string; 
 
-struct AstOblockDesc{
-    OblockID name; 
+struct AstTaskDesc{
+    TaskID name; 
 
     std::unordered_set<DeviceID> inDeviceList;
     std::unordered_set<DeviceID> outDeviceList;  
@@ -27,16 +27,16 @@ struct AstDeviceDesc{
     DeviceID name;
     ControllerID ctl_name;  
 
-    std::unordered_set<OblockID> inOblockList; 
-    std::unordered_set<OblockID> outOblockList; 
+    std::unordered_set<TaskID> inTaskList; 
+    std::unordered_set<TaskID> outTaskList; 
 }; 
 
 /*
 Dep Graph Context
 */
 
-struct OblockContext{
-    OblockID operatingOblock; 
+struct TaskContext{
+    TaskID operatingTask; 
     std::unordered_map<SymbolID, DeviceID> devAliasMap; 
     std::unordered_set<DeviceID> tempDevices; 
     bool isReading = true;
@@ -49,7 +49,7 @@ struct SetupContext{
 }; 
 
 struct GlobalContext{
-    std::unordered_map<OblockID, AstOblockDesc> oblockConnections; 
+    std::unordered_map<TaskID, AstTaskDesc> taskConnections; 
     std::unordered_map<DeviceID, AstDeviceDesc> deviceConnections; 
 }; 
 
@@ -59,25 +59,25 @@ namespace BlsLang{
     class DepGraph : public Printer{
 
         private: 
-            OblockContext oblockCtx; 
+            TaskContext taskCtx; 
             SetupContext setupCtx; 
             GlobalContext globalCtx; 
 
-            // Oblock List: 
-            std::vector<OblockContext> oblockCtxList;
+            // Task List: 
+            std::vector<TaskContext> taskCtxList;
 
             //utility functions: 
-            void clearOblockCtx(); 
+            void clearTaskCtx(); 
             bool isDevice(const SymbolID &candidate); 
 
         public: 
 
         DepGraph() : Printer(std::cout){}; 
 
-            std::unordered_map<OblockID, OblockContext> getOblockMap(){
-                std::unordered_map<OblockID, OblockContext> sysCtx; 
-                for(auto& oblock : this->oblockCtxList){
-                    sysCtx[oblock.operatingOblock] = oblock;  
+            std::unordered_map<TaskID, TaskContext> getTaskMap(){
+                std::unordered_map<TaskID, TaskContext> sysCtx; 
+                for(auto& task : this->taskCtxList){
+                    sysCtx[task.operatingTask] = task;  
                 }
                 return sysCtx; 
             }
@@ -93,7 +93,7 @@ namespace BlsLang{
             */ 
 
             GlobalContext& getGlobalContext();
-            OblockContext& getOblockContext(){return this->oblockCtx;}
+            TaskContext& getTaskContext(){return this->taskCtx;}
             // Debug Helpers: 
             void printGlobalContext(); 
 
@@ -105,7 +105,7 @@ namespace BlsLang{
             BlsObject visit(AstNode::Expression::Access& ast) override; 
             BlsObject visit(AstNode::Expression::Literal& ast) override; 
             BlsObject visit(AstNode::Statement::Expression& ast) override; 
-            BlsObject visit(AstNode::Function::Oblock &ast) override; 
+            BlsObject visit(AstNode::Function::Task &ast) override; 
             BlsObject visit(AstNode::Expression::Binary &ast) override; 
             BlsObject visit(AstNode::Statement::If& ast) override; 
             BlsObject visit(AstNode::Statement::For& ast) override; 

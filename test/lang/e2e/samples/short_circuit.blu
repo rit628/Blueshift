@@ -3,7 +3,7 @@ bool printTest() {
     return true;
 }
 
-oblock testShortCircuit(TIMER_TEST T) {
+task testShortCircuit(TIMER_TEST T) {
     if (true || printTest()) {
         print("short circuit or: printTest not executed");
     }

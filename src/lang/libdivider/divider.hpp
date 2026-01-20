@@ -13,26 +13,26 @@ namespace BlsLang{
     // Controller Source 
     struct ControllerSource{
         std::unique_ptr<AstNode::Source> ctlSource; 
-        std::unordered_map<OblockID, OBlockDesc> oblockDesc; 
+        std::unordered_map<TaskID, TaskDescriptor> taskDesc; 
         
         std::vector<std::unique_ptr<AstNode::Statement>> setup_statements; 
-        std::vector<std::unique_ptr<AstNode::Function>> oblock_list;
+        std::vector<std::unique_ptr<AstNode::Function>> task_list;
         
     }; 
 
 
-    struct OblockCopyInfo{
+    struct TaskCopyInfo{
         std::stack<std::vector<std::unique_ptr<AstNode::Statement>>> blockStack; 
         std::unordered_map<SymbolID,  bool> symbolDeclMap; 
-        std::unique_ptr<AstNode::Function::Oblock> oblockPtr;
+        std::unique_ptr<AstNode::Function::Task> taskPtr;
 
-        OblockCopyInfo() = default; 
+        TaskCopyInfo() = default; 
 
-        OblockCopyInfo(const OblockCopyInfo&) = delete;
-        OblockCopyInfo& operator=(const OblockCopyInfo&) = delete;
+        TaskCopyInfo(const TaskCopyInfo&) = delete;
+        TaskCopyInfo& operator=(const TaskCopyInfo&) = delete;
 
-        OblockCopyInfo(OblockCopyInfo&&) = default;
-        OblockCopyInfo& operator=(OblockCopyInfo&&) = default;
+        TaskCopyInfo(TaskCopyInfo&&) = default;
+        TaskCopyInfo& operator=(TaskCopyInfo&&) = default;
 
     }; 
 
@@ -52,12 +52,12 @@ namespace BlsLang{
         /*
             Divider Context
         */
-        std::unordered_map<OblockID, OblockCopyInfo> oblockCopyMap; 
-        bool inOblock = true; 
-        OblockID currOblock; 
+        std::unordered_map<TaskID, TaskCopyInfo> taskCopyMap; 
+        bool inTask = true; 
+        TaskID currTask; 
         bool inSetup = false; 
         // Used when visiting an expression node (with no access to splits)
-        OblockID subOblockName; 
+        TaskID subTaskName; 
         
         
     public: 
@@ -69,7 +69,7 @@ namespace BlsLang{
 
         BlsObject visit(AstNode::Source& ast) override; 
         BlsObject visit(AstNode::Setup &ast) override; 
-        BlsObject visit(AstNode::Function::Oblock& ast) override; 
+        BlsObject visit(AstNode::Function::Task& ast) override; 
         BlsObject visit(AstNode::Statement::Declaration& ast) override;
         BlsObject visit(AstNode::Statement::Expression& ast) override; 
         BlsObject visit(AstNode::Statement::If &ast) override; 

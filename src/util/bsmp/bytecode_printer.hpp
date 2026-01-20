@@ -29,5 +29,5 @@ class BytecodePrinter : public BytecodeProcessor {
         void printArgs(Args... args);
 
         std::ostream* outputStream;
-        std::unordered_map<uint16_t, std::string> oblockLabels;
+        std::unordered_map<uint16_t, std::string> taskLabels;
 };

@@ -1,4 +1,4 @@
-oblock keyLogger(KEYBOARD kbd, LINE_WRITER lw)
+task keyLogger(KEYBOARD kbd, LINE_WRITER lw)
 : 
 triggerOn(kbd), 
 processPolicy({

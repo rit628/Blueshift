@@ -69,13 +69,13 @@ std::string Impl::time(BytecodeProcessor* vm) {
 }
 
 
-std::monostate Impl::disableTrigger(std::string triggerName, std::string oblockID, BytecodeProcessor* vm){
-    vm->ownerUnit->sendTriggerChange(triggerName, oblockID, false); 
+std::monostate Impl::disableTrigger(std::string triggerName, std::string taskID, BytecodeProcessor* vm){
+    vm->ownerUnit->sendTriggerChange(triggerName, taskID, false); 
     return std::monostate();
 }
 
-std::monostate Impl::enableTrigger(std::string triggerName, std::string oblockID, BytecodeProcessor* vm){
-    vm->ownerUnit->sendTriggerChange(triggerName, oblockID, true); 
+std::monostate Impl::enableTrigger(std::string triggerName, std::string taskID, BytecodeProcessor* vm){
+    vm->ownerUnit->sendTriggerChange(triggerName, taskID, true); 
     return std::monostate(); 
 }
 

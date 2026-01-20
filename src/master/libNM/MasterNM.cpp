@@ -7,9 +7,9 @@
 #include <stdexcept>
 
 
-MasterNM::MasterNM(std::vector<OBlockDesc> &desc_list, TSQ<DMM> &in_msg, TSQ<DMM> &out_q)
+MasterNM::MasterNM(std::vector<TaskDescriptor> &desc_list, TSQ<DMM> &in_msg, TSQ<DMM> &out_q)
 : master_socket(master_ctx), master_acceptor(master_ctx, tcp::endpoint(tcp::v4(), MASTER_PORT)), 
-  EMM_in_queue(in_msg), EMM_out_queue(out_q), tickerTable(desc_list)
+  tickerTable(desc_list), EMM_in_queue(in_msg), EMM_out_queue(out_q)
 {
     std::cout<<"Master started!"<<std::endl; 
     writeConfig(desc_list); 
@@ -39,16 +39,16 @@ void MasterNM::broadcastIntro(){
 }
 
 
-void MasterNM::writeConfig(std::vector<OBlockDesc> &desc_list){
+void MasterNM::writeConfig(std::vector<TaskDescriptor> &desc_list){
     std::set<std::string> c_list; 
     std::set<std::string> dev_list; 
 
     int i = 0; 
-    for(auto &oblock : desc_list){
-        this->oblock_list.push_back(oblock.name); 
-        this->oblock_alias_map[oblock.name] = i;  
+    for(auto &task : desc_list){
+        this->task_list.push_back(task.name); 
+        this->task_alias_map[task.name] = i;  
         i++; 
-        for(auto &dev : oblock.binded_devices){
+        for(auto &dev : task.binded_devices){
             dev_list.insert(dev.device_name); 
             c_list.insert(dev.controller); 
         }
@@ -74,8 +74,8 @@ void MasterNM::writeConfig(std::vector<OBlockDesc> &desc_list){
 
 
     // Configure the controller config data once the mappings are made
-    for(auto &oblock : desc_list){
-        for(auto &dev : oblock.binded_devices){
+    for(auto &task : desc_list){
+        for(auto &dev : task.binded_devices){
             // used for debugging 
             this->dd_map[dev.device_name] = dev; 
             
@@ -226,10 +226,10 @@ void MasterNM::masterRead(){
         try{
             sm_main.header.device_code = this->device_alias_map.at(new_state.info.device); 
             sm_main.header.ctl_code = this->controller_alias_map.at(new_state.info.controller); 
-            sm_main.header.oblock_id = this->oblock_alias_map.at(new_state.info.oblock); 
+            sm_main.header.task_id = this->task_alias_map.at(new_state.info.task); 
         }
         catch(std::out_of_range e){
-            throw std::runtime_error("Failed to find the physical information for a specified oblock");
+            throw std::runtime_error("Failed to find the physical information for a specified task");
         }
 
         bool nonStateChange = true;
@@ -238,27 +238,27 @@ void MasterNM::masterRead(){
         // Add other communication MASERT_PROTOCOLS
         switch(new_state.protocol){
             case PROTOCOLS::OWNER_CANDIDATE_REQUEST : {
-               // std::cout<<"Pushing owner candidate request for: "<<new_state.info.oblock<<" for device: "<<new_state.info.device<<std::endl; 
+               // std::cout<<"Pushing owner candidate request for: "<<new_state.info.task<<" for device: "<<new_state.info.device<<std::endl; 
                 sm_main.header.prot = Protocol::OWNER_CANDIDATE_REQUEST ;
                 break; 
             }
             case PROTOCOLS::OWNER_CONFIRM : {
-                //std::cout<<"Pushing CONFIRM request for: "<<new_state.info.oblock<<" for device: "<<new_state.info.device<<std::endl; 
+                //std::cout<<"Pushing CONFIRM request for: "<<new_state.info.task<<" for device: "<<new_state.info.device<<std::endl; 
                 sm_main.header.prot = Protocol::OWNER_CONFIRM; 
                 break; 
             }
             case PROTOCOLS::OWNER_RELEASE : {  
-                //std::cout<<"Pushing Release request for: "<<new_state.info.oblock<<" for device: "<<new_state.info.device<<std::endl; 
+                //std::cout<<"Pushing Release request for: "<<new_state.info.task<<" for device: "<<new_state.info.device<<std::endl; 
                 sm_main.header.prot = Protocol::OWNER_RELEASE; 
                 break; 
             }
             case PROTOCOLS::OWNER_CANDIDATE_REQUEST_CONCLUDE : {
-                //std::cout<<"Pushing owner candidate request conclusion for device: "<<new_state.info.device<<" For oblock: "<<new_state.info.oblock<<std::endl;  
+                //std::cout<<"Pushing owner candidate request conclusion for device: "<<new_state.info.device<<" For task: "<<new_state.info.task<<std::endl;  
                 sm_main.header.prot = Protocol::OWNER_CANDIDATE_REQUEST_CONCLUDE; 
                 break; 
             }
             case PROTOCOLS::PULL_REQUEST:{
-                //std::cout<<"Sending out pull request for oblock "<<new_state.info.oblock<<" for device: "<<new_state.info.device<<std::endl;
+                //std::cout<<"Sending out pull request for task "<<new_state.info.task<<" for device: "<<new_state.info.device<<std::endl;
                 sm_main.header.prot = Protocol::PULL_REQUEST; 
                 break; 
             }
@@ -271,7 +271,7 @@ void MasterNM::masterRead(){
         }
    
    
-        sm_main.header.oblock_priority = new_state.info.priority; 
+        sm_main.header.task_priority = new_state.info.priority; 
     
         messageClient(cont, sm_main); 
 
@@ -368,7 +368,7 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
                 if(!interrupt){
                     
                     // Get the block from the timer_id
-                    auto oblock_list = this->tickerTable.getOblocks(id); 
+                    auto task_list = this->tickerTable.getTasks(id); 
 
                     std::unordered_map<AttrAlias, float> vol_map; 
 
@@ -378,11 +378,11 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
                     }
 
                     //std::cout<<"Not Interrupt?"<<std::endl; 
-                    for(auto &o_name : oblock_list){
+                    for(auto &o_name : task_list){
                         DMM new_msg; 
                         new_msg.info.controller = this->controller_list[in_msg.sm.header.ctl_code]; 
                         new_msg.info.device = device_name; 
-                        new_msg.info.oblock = o_name; 
+                        new_msg.info.task = o_name; 
                         new_msg.DM = dmsg; 
                         new_msg.isInterrupt = false; 
                         new_msg.protocol = PROTOCOLS::SENDSTATES; 
@@ -395,8 +395,8 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
                     DMM new_msg; 
                     new_msg.info.controller = this->controller_list[in_msg.sm.header.ctl_code]; 
                     new_msg.info.device = device_name;
-                    // Oblock not used for interrupt based devices 
-                    new_msg.info.oblock = ""; 
+                    // Task not used for interrupt based devices 
+                    new_msg.info.task = ""; 
                     new_msg.DM = dmsg; 
                     new_msg.isInterrupt = true;
                     new_msg.protocol = PROTOCOLS::SENDSTATES;
@@ -450,7 +450,7 @@ DynamicMasterMessage MasterNM::makeDMM(SentMessage &in_msg, PROTOCOLS pcode){
     new_msg.protocol = pcode;
     new_msg.info.controller = this->controller_list.at(in_msg.header.ctl_code); 
     new_msg.info.device = this->device_list.at(in_msg.header.device_code); 
-    new_msg.info.oblock =  this->oblock_list.at(in_msg.header.oblock_id); 
+    new_msg.info.task =  this->task_list.at(in_msg.header.task_id); 
     new_msg.isCursor = (in_msg.header.kind == DeviceKind::CURSOR);
     
     return new_msg; 

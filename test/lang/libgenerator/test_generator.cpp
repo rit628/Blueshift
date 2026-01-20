@@ -25,10 +25,10 @@ namespace BlsLang {
             uint8_t(0)
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool;
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createLOAD(0)
@@ -47,10 +47,10 @@ namespace BlsLang {
             uint8_t(0)
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool;
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createLOAD(0),
@@ -68,12 +68,12 @@ namespace BlsLang {
             uint8_t(0)
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {"member", 0}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createLOAD(0),
@@ -95,13 +95,13 @@ namespace BlsLang {
             )
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {20, 0},
             {30, 1}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createPUSH(0),
@@ -123,13 +123,13 @@ namespace BlsLang {
             )
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {true, 0},
             {false, 1}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createPUSH(0),
@@ -164,14 +164,14 @@ namespace BlsLang {
             )
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {true, 0},
             {1, 1},
             {2, 2}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createPUSH(0),
@@ -207,14 +207,14 @@ namespace BlsLang {
             )
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {20, 0},
             {30, 1},
             {10, 2}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createPUSH(0),
@@ -239,12 +239,12 @@ namespace BlsLang {
             )
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {30, 0}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createPUSH(0),
@@ -267,12 +267,12 @@ namespace BlsLang {
             )
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {30, 0}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createLOAD(0),
@@ -304,12 +304,12 @@ namespace BlsLang {
             )
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {30, 0}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createPUSH(0), // push 30
@@ -341,12 +341,12 @@ namespace BlsLang {
             )
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {30, 0}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createLOAD(0), // load x as read target
@@ -388,13 +388,13 @@ namespace BlsLang {
             )
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {0, 0},
             {30, 1},
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createLOAD(0), // load x[0] as write target
@@ -438,12 +438,12 @@ namespace BlsLang {
             )
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {false, 0}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createPUSH(0),
@@ -464,12 +464,12 @@ namespace BlsLang {
             )
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {false, 0}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createPUSH(0),
@@ -489,12 +489,12 @@ namespace BlsLang {
             )
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {1, 0}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createLOAD(0),
@@ -517,12 +517,12 @@ namespace BlsLang {
             AstNode::Expression::Unary::OPERATOR_POSITION::POSTFIX
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {1, 0}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createLOAD(0),
@@ -540,12 +540,12 @@ namespace BlsLang {
             std::string("string")
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {"string", 0}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createPUSH(0)
@@ -572,7 +572,7 @@ namespace BlsLang {
            listLiteral
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {2, 0},
             {50, 1},
@@ -580,7 +580,7 @@ namespace BlsLang {
             {listLiteral, 3}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createPUSH(3)
@@ -608,7 +608,7 @@ namespace BlsLang {
            listLiteral
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {0, 0},
             {50, 1},
@@ -616,7 +616,7 @@ namespace BlsLang {
             {listLiteral, 3}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createPUSH(3), // push list
@@ -657,7 +657,7 @@ namespace BlsLang {
             mapLiteral
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {"k1", 0},
             {12, 1},
@@ -666,7 +666,7 @@ namespace BlsLang {
             {mapLiteral, 4}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createPUSH(4)
@@ -704,7 +704,7 @@ namespace BlsLang {
             mapLiteral
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {"k1", 0},
             {12, 1},
@@ -712,7 +712,7 @@ namespace BlsLang {
             {mapLiteral, 3}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createPUSH(3), // push map
@@ -753,7 +753,7 @@ namespace BlsLang {
             mapLiteral
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {"k1", 0},
             {12, 1},
@@ -761,7 +761,7 @@ namespace BlsLang {
             {mapLiteral, 3}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createPUSH(3), // push map
@@ -803,14 +803,14 @@ namespace BlsLang {
             mapLiteral
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {"k1", 0},
             {12, 1},
             {mapLiteral, 2}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createPUSH(2), // push map
@@ -835,10 +835,10 @@ namespace BlsLang {
             0
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool;
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createMKTYPE(0, static_cast<uint8_t>(TYPE::int_t))
@@ -861,12 +861,12 @@ namespace BlsLang {
             0
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {int64_t(2), 0}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createMKTYPE(0, static_cast<uint8_t>(TYPE::int_t)),
@@ -898,12 +898,12 @@ namespace BlsLang {
             {}
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {true, 0}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createPUSH(0),
@@ -956,13 +956,13 @@ namespace BlsLang {
             {}
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {true, 0},
             {false, 1}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createPUSH(0),
@@ -1030,13 +1030,13 @@ namespace BlsLang {
             }
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {true, 0},
             {false, 1}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createPUSH(0),
@@ -1072,12 +1072,12 @@ namespace BlsLang {
             }
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {true, 0}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createPUSH(0),
@@ -1109,12 +1109,12 @@ namespace BlsLang {
             }
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {true, 0}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createPUSH(0),
@@ -1147,12 +1147,12 @@ namespace BlsLang {
             }
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {true, 0}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createPUSH(0),
@@ -1184,10 +1184,10 @@ namespace BlsLang {
             }
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool;
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createMKTYPE(0, static_cast<uint8_t>(TYPE::int_t)),
@@ -1242,14 +1242,14 @@ namespace BlsLang {
             }
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {0, 0},
             {7, 1},
             {1, 2}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createMKTYPE(0, static_cast<uint8_t>(TYPE::int_t)),
@@ -1291,12 +1291,12 @@ namespace BlsLang {
             }
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {std::monostate(), 0}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createCALL(0, 0),
@@ -1345,14 +1345,14 @@ namespace BlsLang {
             }
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {1, 0},
             {"arg2", 1},
             {std::monostate(), 2}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createPUSH(0),
@@ -1412,12 +1412,12 @@ namespace BlsLang {
             )
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {std::monostate(), 0}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createPUSH(0),
@@ -1432,7 +1432,7 @@ namespace BlsLang {
         TEST_GENERATE(ast, expectedInstructions);
     }
 
-    GROUP_TEST_F(GeneratorTest, FunctionTests, OblockCallingProcedure) {
+    GROUP_TEST_F(GeneratorTest, FunctionTests, TaskCallingProcedure) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Source(
             {
                 new AstNode::Function::Procedure(
@@ -1457,7 +1457,7 @@ namespace BlsLang {
                 )
             },
             {
-                new AstNode::Function::Oblock(
+                new AstNode::Function::Task(
                     "h",
                     {
                         new AstNode::Specifier::Type(
@@ -1484,14 +1484,14 @@ namespace BlsLang {
             )
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors = {
-            {"h", OBlockDesc("h")}
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors = {
+            {"h", TaskDescriptor("h")}
         };
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {std::monostate(), 0}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createPUSH(0),
@@ -1522,13 +1522,13 @@ namespace BlsLang {
             }
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {"arg1", 0},
             {100, 1}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createPUSH(0),
@@ -1557,12 +1557,12 @@ namespace BlsLang {
             TYPE::map_t
         ));
 
-        std::unordered_map<std::string, OBlockDesc> oblockDescriptors;
+        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {"key", 0}
         };
         
-        INIT(oblockDescriptors, literalPool);
+        INIT(taskDescriptors, literalPool);
 
         std::vector<std::unique_ptr<INSTRUCTION>> expectedInstructions = makeInstructions(
             createLOAD(0),

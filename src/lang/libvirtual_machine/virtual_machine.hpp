@@ -13,7 +13,7 @@ namespace BlsLang {
     class VirtualMachine : public BytecodeProcessor {
         public:
             void setParentExecutionUnit(ExecutionUnit* ownerUnit);
-            void setOblockOffset(size_t oblockOffset);
+            void setTaskOffset(size_t taskOffset);
             std::vector<BlsType> transform(std::vector<BlsType> deviceStates);
             std::vector<bool>& getModifiedStates();
 
@@ -33,7 +33,7 @@ namespace BlsLang {
         
         private:
             std::vector<bool> modifiedStates;
-            size_t oblockOffset = 0;
+            size_t taskOffset = 0;
             CallStack<size_t> cs;
     };
 

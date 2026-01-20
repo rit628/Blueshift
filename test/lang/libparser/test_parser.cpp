@@ -828,10 +828,10 @@ namespace BlsLang {
         TEST_PARSE_FUNCTION(sampleTokens, std::move(expectedAst));
     }
 
-    GROUP_TEST_F(ParserTest, FunctionTests, Oblock) {
-        // oblock foo() { a = 1; }
+    GROUP_TEST_F(ParserTest, FunctionTests, Task) {
+        // task foo() { a = 1; }
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, RESERVED_OBLOCK),
+            Token(Token::Type::IDENTIFIER, RESERVED_TASK),
             Token(Token::Type::IDENTIFIER, "foo"),
             Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
             Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
@@ -842,7 +842,7 @@ namespace BlsLang {
             Token(Token::Type::OPERATOR, SEMICOLON),
             Token(Token::Type::OPERATOR, BRACE_CLOSE)
         };
-        auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Function::Oblock(
+        auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Function::Task(
             "foo",
             {},
             {},
@@ -858,10 +858,10 @@ namespace BlsLang {
         TEST_PARSE_FUNCTION(sampleTokens, std::move(expectedAst));
     }
 
-    GROUP_TEST_F(ParserTest, FunctionTests, OblockWithInitializerOptions) {
-        // oblock foo(LIGHT L1, LIGHT L2, LIGHT L3) : triggerOn([L1, L2], L3), dropRead { }
+    GROUP_TEST_F(ParserTest, FunctionTests, TaskWithInitializerOptions) {
+        // task foo(LIGHT L1, LIGHT L2, LIGHT L3) : triggerOn([L1, L2], L3), dropRead { }
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, RESERVED_OBLOCK),
+            Token(Token::Type::IDENTIFIER, RESERVED_TASK),
             Token(Token::Type::IDENTIFIER, "foo"),
             Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
             Token(Token::Type::IDENTIFIER, "LIGHT"),
@@ -889,7 +889,7 @@ namespace BlsLang {
             Token(Token::Type::OPERATOR, BRACE_OPEN),
             Token(Token::Type::OPERATOR, BRACE_CLOSE)
         };
-        auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Function::Oblock(
+        auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Function::Task(
             "foo",
             {
                 new AstNode::Specifier::Type(
@@ -911,7 +911,7 @@ namespace BlsLang {
                 "L3"
             },
             {
-                new AstNode::Initializer::Oblock(
+                new AstNode::Initializer::Task(
                     "triggerOn",
                     {
                         new AstNode::Expression::List(
@@ -929,7 +929,7 @@ namespace BlsLang {
                         ),
                     }
                 ),
-                new AstNode::Initializer::Oblock(
+                new AstNode::Initializer::Task(
                     "dropRead",
                     {}
                 )
@@ -939,10 +939,10 @@ namespace BlsLang {
         TEST_PARSE_FUNCTION(sampleTokens, std::move(expectedAst));
     }
 
-    GROUP_TEST_F(ParserTest, FunctionTests, OblockMultipleStatements) {
-        // Oblock with multiple statements: oblock init() { x = 0; y = 0; }
+    GROUP_TEST_F(ParserTest, FunctionTests, TaskMultipleStatements) {
+        // Task with multiple statements: task init() { x = 0; y = 0; }
         std::vector<Token> sampleTokens {
-            Token(Token::Type::IDENTIFIER, RESERVED_OBLOCK),
+            Token(Token::Type::IDENTIFIER, RESERVED_TASK),
             Token(Token::Type::IDENTIFIER, "init"),
             Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
             Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
@@ -957,7 +957,7 @@ namespace BlsLang {
             Token(Token::Type::OPERATOR, SEMICOLON),
             Token(Token::Type::OPERATOR, BRACE_CLOSE)
         };
-        auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Function::Oblock(
+        auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Function::Task(
             "init",
             {},
             {},
@@ -990,9 +990,9 @@ namespace BlsLang {
     }
 
     GROUP_TEST_F(ParserTest, SourceTests, FullSource) {
-        // Full source: one procedure, one oblock, and one setup.
+        // Full source: one procedure, one task, and one setup.
         // Procedure: int main() { return 0; }
-        // Oblock: oblock helper() { a = 1; }
+        // Task: task helper() { a = 1; }
         // Setup: setup() { int x = 5; }
         std::vector<Token> sampleTokens {
             // Procedure:
@@ -1005,8 +1005,8 @@ namespace BlsLang {
             Token(Token::Type::INTEGER, "0"),
             Token(Token::Type::OPERATOR, SEMICOLON),
             Token(Token::Type::OPERATOR, BRACE_CLOSE),
-            // Oblock:
-            Token(Token::Type::IDENTIFIER, RESERVED_OBLOCK),
+            // Task:
+            Token(Token::Type::IDENTIFIER, RESERVED_TASK),
             Token(Token::Type::IDENTIFIER, "helper"),
             Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
             Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
@@ -1046,7 +1046,7 @@ namespace BlsLang {
                 )
             },
             {
-                new AstNode::Function::Oblock(
+                new AstNode::Function::Task(
                     "helper",
                     {},
                     {},
@@ -1077,7 +1077,7 @@ namespace BlsLang {
         TEST_PARSE_SOURCE(sampleTokens, std::move(expectedAst));
     }
 
-    GROUP_TEST_F(ParserTest, SourceTests, MultipleProceduresAndOblocks) {
+    GROUP_TEST_F(ParserTest, SourceTests, MultipleProceduresAndTasks) {
         std::vector<Token> sampleTokens {
             // Procedure 1: int main() { return 0; }
             Token(Token::Type::IDENTIFIER, PRIMITIVE_INT),
@@ -1099,8 +1099,8 @@ namespace BlsLang {
             Token(Token::Type::INTEGER, "1"),
             Token(Token::Type::OPERATOR, SEMICOLON),
             Token(Token::Type::OPERATOR, BRACE_CLOSE),
-            // Oblock: oblock config() { flag = true; }
-            Token(Token::Type::IDENTIFIER, RESERVED_OBLOCK),
+            // Task: task config() { flag = true; }
+            Token(Token::Type::IDENTIFIER, RESERVED_TASK),
             Token(Token::Type::IDENTIFIER, "config"),
             Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
             Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
@@ -1143,7 +1143,7 @@ namespace BlsLang {
                 )
             },
             {
-                new AstNode::Function::Oblock(
+                new AstNode::Function::Task(
                     "config",
                     {},
                     {},

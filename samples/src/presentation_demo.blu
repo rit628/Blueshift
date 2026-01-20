@@ -1,6 +1,6 @@
 
 
-oblock demoOblock(READ_FILE_POLL lw, BUTTON b1, LIGHT redL, LIGHT greenL){
+task demoTask(READ_FILE_POLL lw, BUTTON b1, LIGHT redL, LIGHT greenL){
     if(b1.pressed){
         println(lw.msg); 
 
@@ -30,5 +30,5 @@ setup(){
     LIGHT red_light = "RPI::PIN-21"; 
     LIGHT green_light = "RPI::PIN-16"; 
     
-    demoOblock(lw, push_button, red_light, green_light); 
+    demoTask(lw, push_button, red_light, green_light); 
 }

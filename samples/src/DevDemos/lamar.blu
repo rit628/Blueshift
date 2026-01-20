@@ -1,4 +1,4 @@
-oblock httpTest(HTTP_ENDPOINT endpt, FILE_LOG log)
+task httpTest(HTTP_ENDPOINT endpt, FILE_LOG log)
 : triggerOn(endpt), processPolicy({endpt : {"ignoreWriteBacks" : true}})
 {
     if(getTrigger() == "initial"){
@@ -17,7 +17,7 @@ oblock httpTest(HTTP_ENDPOINT endpt, FILE_LOG log)
 }
 
 
-oblock httpTest2(HTTP_ENDPOINT endpt, FILE_LOG log, LINE_WRITER lw)
+task httpTest2(HTTP_ENDPOINT endpt, FILE_LOG log, LINE_WRITER lw)
 : triggerOn(endpt), processPolicy({endpt : {"ignoreWriteBacks" : true}, lw : {"read" : "any"} })
 {
 
@@ -35,7 +35,7 @@ oblock httpTest2(HTTP_ENDPOINT endpt, FILE_LOG log, LINE_WRITER lw)
     endpt.responseCode = 200; 
 }
 
-oblock keylogger(LINE_WRITER lw, KEYBOARD kbd)
+task keylogger(LINE_WRITER lw, KEYBOARD kbd)
 : triggerOn(kbd), processPolicy({lw : {"read" : "any"}})
 {
     string newKey = kbd.key; 

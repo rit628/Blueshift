@@ -14,7 +14,7 @@
 #include "libTSM/TSM.hpp"
 
 struct IdentData{
-    std::unordered_map<OblockID, int> oblockMap; 
+    std::unordered_map<TaskID, int> taskMap; 
     std::unordered_map<DeviceID, int> deviceMap; 
     std::unordered_map<int, DeviceID> intToDev; 
 }; 
@@ -27,8 +27,8 @@ class ClientEU{
         ReaderBox EuCache; 
         TSQ<EMStateMessage> reciever; 
         DeviceScheduler &scheObj; 
-        OblockID name; 
-        OBlockDesc oinfo; 
+        TaskID name; 
+        TaskDescriptor taskInfo; 
         TSM<DeviceID, HeapMasterMessage> replacementCache; 
         TSQ<SentMessage> &clientMainLine; 
         int ctlCode; 
@@ -38,7 +38,7 @@ class ClientEU{
         void replaceCache(std::unordered_map<DeviceID, HeapMasterMessage> &currentLoad); 
         
     public: 
-        ClientEU(OBlockDesc &odesc, DeviceScheduler &scheObj, TSQ<SentMessage> &clientMainLine, 
+        ClientEU(TaskDescriptor &taskDesc, DeviceScheduler &scheObj, TSQ<SentMessage> &clientMainLine, 
         IdentData &idData, int ctlCode);
 
         void insertDevice(HeapMasterMessage heapDesc);
@@ -48,8 +48,8 @@ class ClientEU{
 
 class ClientEM{
     private: 
-        // Device to oblock list (using the in devices)
-        std::unordered_map<DeviceID, std::vector<OblockID>> devToOblockMap; 
+        // Device to task list (using the in devices)
+        std::unordered_map<DeviceID, std::vector<TaskID>> devToTaskMap; 
 
         // Add a loopback queue that is a heap descriptor by default
         DeviceScheduler clientScheduler; 
@@ -59,14 +59,14 @@ class ClientEM{
         TSQ<SentMessage> &clientWriteLine; 
     
         int ctlCode; 
-        std::unordered_map<OblockID, std::unique_ptr<ClientEU>> clientMap; 
+        std::unordered_map<TaskID, std::unique_ptr<ClientEU>> clientMap; 
         IdentData ident_data; 
 
         // Converts sent message to HMM
         HeapMasterMessage getHMM(SentMessage &toConvert, PROTOCOLS pcol);
     
     public: 
-        ClientEM(std::vector<OBlockDesc> &descList, 
+        ClientEM(std::vector<TaskDescriptor> &descList, 
              TSQ<SentMessage> &readLine, 
              TSQ<SentMessage> &writeLine, 
              std::unordered_map<DeviceID, int> deviceMap, 

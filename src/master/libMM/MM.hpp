@@ -20,7 +20,7 @@
 
 
 
-using OblockID = std::string;
+using TaskID = std::string;
 using DeviceID = std::string; 
 
 # define MAX_EM_QUEUE_FILL 10 
@@ -67,19 +67,19 @@ class TriggerManager{
     
     public: 
         // Device Constructor (created rules)
-        TriggerManager(OBlockDesc& OBlockDesc){
+        TriggerManager(TaskDescriptor& TaskDesc){
             int i = 0; 
-            for(DeviceDescriptor& devDesc : OBlockDesc.binded_devices){
+            for(DeviceDescriptor& devDesc : TaskDesc.binded_devices){
                 stringMap[devDesc.device_name] = i; 
                 i++; 
             }
 
             // Add the default universal bitset (all 1s): 
             defaultBitstring = (1 << (i)) - 1; 
-            this->trigData = OBlockDesc.triggers; 
+            this->trigData = TaskDesc.triggers; 
             i = 0;
             // Loop through rules; 
-            for(auto& data : OBlockDesc.triggers)
+            for(auto& data : TaskDesc.triggers)
             {
                 auto& rule = data.rule;
                 std::bitset<BITSET_SZ> king; 
@@ -189,17 +189,17 @@ struct ReaderBox
             to be queued up and sent to the execution manager
         */ 
         std::vector<EMStateMessage> triggerCache; 
-        std::unordered_set<OblockID>& triggerSet; 
+        std::unordered_set<TaskID>& triggerSet; 
         TriggerManager triggerMan; 
 
         bool callbackRecived;
         bool statesRequested = false;
-        std::string OblockName;
+        std::string TaskName;
         bool pending_requests; 
         // used when forwarding packets to the EM when while the process is waiting for write permissions
         bool forwardPackets = false; 
         bool inExec = false;
-        OBlockDesc oblockDesc; 
+        TaskDescriptor taskDesc; 
         std::mutex read_mut; 
         TSQ<EMStateMessage> &sendEM; 
         std::unordered_map<DeviceID, DeviceDescriptor> devDesc; 
@@ -214,7 +214,7 @@ struct ReaderBox
                 return; 
             }
 
-            if(newDMM.protocol == PROTOCOLS::CALLBACKRECIEVED && (this->OblockName == newDMM.info.oblock) && this->devDesc.at(newDMM.info.device).ignoreWriteBacks){
+            if(newDMM.protocol == PROTOCOLS::CALLBACKRECIEVED && (this->TaskName == newDMM.info.task) && this->devDesc.at(newDMM.info.device).ignoreWriteBacks){
                 std::cout<<"Write back ignored"<<std::endl; 
                 return; 
             }
@@ -248,7 +248,7 @@ struct ReaderBox
     
             if(writeTrig){
                 if(!this->forwardPackets){
-                    this->triggerSet.insert(this->OblockName); 
+                    this->triggerSet.insert(this->TaskName); 
                 }
                
                 std::string triggerName = "";
@@ -261,7 +261,7 @@ struct ReaderBox
                         priority = 1;
                     }
                     else{
-                        auto& trigInfo = this->oblockDesc.triggers.at(triggerId);
+                        auto& trigInfo = this->taskDesc.triggers.at(triggerId);
                         triggerName = trigInfo.id;
                         priority = trigInfo.priority;
                     }
@@ -272,7 +272,7 @@ struct ReaderBox
                     
                     if(!devBox.stateQueues->isEmpty()){
                         auto newHmm = devBox.stateQueues->read(); 
-                        newHmm.info.oblock = this->OblockName; 
+                        newHmm.info.task = this->TaskName; 
                         newHmm.info.priority = priority; 
                         if(!devBox.stateQueues->isEmpty()){
                             int i = 0; 
@@ -282,7 +282,7 @@ struct ReaderBox
                     }
                     else{
                         auto newHmm = devBox.lastMessage.get(); 
-                        newHmm.info.oblock = this->OblockName; 
+                        newHmm.info.task = this->TaskName; 
                         newHmm.info.priority = priority; 
                         trigEvent.push_back(newHmm);
                     }
@@ -292,7 +292,7 @@ struct ReaderBox
                 ems.dmm_list = trigEvent; 
                 ems.TriggerName = triggerName;
                 ems.priority = priority; 
-                ems.oblockName = this->OblockName; 
+                ems.taskName = this->TaskName; 
                 ems.protocol = PROTOCOLS::SENDSTATES; 
             
                 this->triggerCache.push_back(ems); 
@@ -320,7 +320,7 @@ struct ReaderBox
         }   
 
 
-        ReaderBox(std::string name,  OBlockDesc& odesc, std::unordered_set<OblockID> &trigSet, TSQ<EMStateMessage> &emMsg);
+        ReaderBox(std::string name,  TaskDescriptor& taskDesc, std::unordered_set<TaskID> &trigSet, TSQ<EMStateMessage> &emMsg);
     
 };
 
@@ -343,14 +343,14 @@ class ConfirmContainer{
 
     // struct describing the actions that can be taking at a callback retrieval; 
     // NOTE: YIELD AND OVERWRITE POLICIES ARE MUTUALLY EXCLUSIVE
-    struct OblockActionMetadata{
+    struct TaskActionMetadata{
         bool yield = true; 
         OVERWRITE_POLICY policy; 
     }; 
     
     private: 
         TSQ<DynamicMasterMessage>& sendNM; 
-        std::unordered_map<OblockID, std::unordered_map<DeviceID, OblockActionMetadata>> yieldPolicy; 
+        std::unordered_map<TaskID, std::unordered_map<DeviceID, TaskActionMetadata>> yieldPolicy; 
         std::unordered_map<DeviceID, DeviceState> loadedDevMap; 
  
         // Necessary as the Confirm container is accessed by the read and write blocks
@@ -360,7 +360,7 @@ class ConfirmContainer{
             auto& state = this->loadedDevMap.at(devName);
             state.confirmDMM = dmm; 
             state.pendingSend = true; 
-            auto& actionMetadata = this->yieldPolicy.at(dmm.info.oblock).at(dmm.info.device);
+            auto& actionMetadata = this->yieldPolicy.at(dmm.info.task).at(dmm.info.device);
 
             state.expectingYield = actionMetadata.yield;
             
@@ -389,19 +389,19 @@ class ConfirmContainer{
         }
 
     public: 
-        ConfirmContainer(TSQ<DynamicMasterMessage>& sendNM, std::vector<OBlockDesc>& oblockDescs)
+        ConfirmContainer(TSQ<DynamicMasterMessage>& sendNM, std::vector<TaskDescriptor>& taskDescs)
         :sendNM(sendNM)  
         {
-            for(auto& oblock : oblockDescs){
-                for(auto& devDesc : oblock.binded_devices){
-                    this->yieldPolicy[oblock.name][devDesc.device_name].yield = devDesc.isYield; 
-                    this->yieldPolicy[oblock.name][devDesc.device_name].policy = devDesc.overwritePolicy;
+            for(auto& task : taskDescs){
+                for(auto& devDesc : task.binded_devices){
+                    this->yieldPolicy[task.name][devDesc.device_name].yield = devDesc.isYield; 
+                    this->yieldPolicy[task.name][devDesc.device_name].policy = devDesc.overwritePolicy;
                   
 
                     if(!this->loadedDevMap.contains(devDesc.device_name)){
                         DeviceID dev = devDesc.device_name; 
                         if(devDesc.deviceKind == DeviceKind::CURSOR){
-                            dev = devDesc.device_name + "::" + oblock.name; 
+                            dev = devDesc.device_name + "::" + task.name; 
                         }
                         this->loadedDevMap.emplace(dev, DeviceState{}); 
                     }
@@ -442,7 +442,7 @@ class ConfirmContainer{
             attemptSendConfirm(state);
         }
 
-        void send(const DynamicMasterMessage &dmm, OblockID ns = ""){
+        void send(const DynamicMasterMessage &dmm, TaskID ns = ""){
             std::lock_guard<std::mutex> lock(this->mut);
             DeviceID dev = dmm.info.device; 
             if(ns != ""){
@@ -450,7 +450,7 @@ class ConfirmContainer{
             }
             auto& state = loadedDevMap.at(dev);
             if(state.pendingSend){
-                throw std::runtime_error("Overlapping oblock confirmation requests, should not be happening!");
+                throw std::runtime_error("Overlapping task confirmation requests, should not be happening!");
             }
 
             if(state.waitingForCallback){
@@ -479,7 +479,7 @@ class ConfirmContainer{
 
 struct ManagedVType{
     ControllerQueue<SchedulerReq, ReqComparator> queue; 
-    OblockID owner;
+    TaskID owner;
     bool isOwned = false;  
 
 }; 
@@ -509,7 +509,7 @@ struct WriterBox
     // Single Channel for Non-Cursor devices
     TSQ<DynamicMasterMessage> waitingQ;
     bool waitingForCallback = false;
-    // Per-Oblock multi-channel map for oblock devices
+    // Per-Task multi-channel map for task devices
 
     std::string deviceName;
     bool isFrozen = false;
@@ -589,22 +589,22 @@ class MasterMailbox
     TSQ<HeapMasterMessage> &readEM;
     TSQ<EMStateMessage> &sendEM;
     TSQ<DynamicMasterMessage> &sendNM;
-    MasterMailbox(std::vector<OBlockDesc> OBlockList, TSQ<DynamicMasterMessage> &readNM, TSQ<HeapMasterMessage> &readEM,
+    MasterMailbox(std::vector<TaskDescriptor> TaskList, TSQ<DynamicMasterMessage> &readNM, TSQ<HeapMasterMessage> &readEM,
          TSQ<DynamicMasterMessage> &sendNM, TSQ<EMStateMessage> &sendEM);
-    std::vector<OBlockDesc> OBlockList;
+    std::vector<TaskDescriptor> TaskList;
     std::unordered_map<DeviceID, ControllerID> parentCont; 
     static DynamicMasterMessage buildDMM(HeapMasterMessage &hmm); 
     
-    // List of oblocks that were triggered (used to ensure intended-order execution for trigger groups)
-    std::unordered_set<OblockID> triggerSet; 
+    // List of tasks that were triggered (used to ensure intended-order execution for trigger groups)
+    std::unordered_set<TaskID> triggerSet; 
     std::unordered_set<DeviceID> targetedDevices; 
 
     // number of found requests 
     int requestCount = 0;
 
-    std::unordered_map<OblockID, std::unique_ptr<ReaderBox>> oblockReadMap;
+    std::unordered_map<TaskID, std::unique_ptr<ReaderBox>> taskReadMap;
     std::unordered_map<DeviceID, std::unique_ptr<WriterBox>> deviceWriteMap;
-    std::unordered_map<DeviceID, std::vector<OblockID>> interruptName_map;
+    std::unordered_map<DeviceID, std::vector<TaskID>> interruptName_map;
     std::unordered_map<DeviceID, ManagedVType> vTypesSchedule; 
     ConfirmContainer ConfContainer; 
 
