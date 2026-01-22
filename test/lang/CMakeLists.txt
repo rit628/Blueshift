@@ -1,4 +1,3 @@
-set(LANG_SRC_DIR ${SRC_DIR}/lang)
 include_directories(include)
 
 add_subdirectory(liblexer)

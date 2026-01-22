@@ -1,5 +1,5 @@
-add_compile_definitions(E2E_LANG_SAMPLE_DIR="${TEST_DIR}/lang/e2e/samples")
 file(GLOB_RECURSE LANG_E2E_TESTS *.cpp)
 add_executable(test_lang ${LANG_E2E_TESTS})
 target_link_libraries(test_lang compiler virtual_machine lang_common GTest::gtest_main)
+target_compile_definitions(test_lang PRIVATE E2E_LANG_SAMPLE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/samples")
 gtest_discover_tests(test_lang WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})

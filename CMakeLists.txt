@@ -81,13 +81,8 @@ endif()
 add_compile_definitions(BROADCAST_PORT=$ENV{BROADCAST_PORT})
 add_compile_definitions(MASTER_PORT=$ENV{MASTER_PORT})
 
-set(BLS_CONFIG ${CMAKE_SOURCE_DIR}/config)
-set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
-set(TEST_DIR ${CMAKE_SOURCE_DIR}/test)
-
-include_directories(${BLS_CONFIG})
-
 enable_testing()
 
-add_subdirectory(${SRC_DIR})
-add_subdirectory(${TEST_DIR})
+include_directories(${CMAKE_SOURCE_DIR}/config)
+add_subdirectory(${CMAKE_SOURCE_DIR}/src)
+add_subdirectory(${CMAKE_SOURCE_DIR}/test)

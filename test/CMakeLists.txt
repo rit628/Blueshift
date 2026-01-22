@@ -1,7 +1,6 @@
 if(NOT CMAKE_CROSSCOMPILING)
-    include_directories(${TEST_DIR}/include)
-    include_directories(${SRC_DIR}/common)
-
+    include_directories(include)
+    
     include(GoogleTest)
 
     add_subdirectory(common)
