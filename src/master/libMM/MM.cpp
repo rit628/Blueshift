@@ -1,7 +1,7 @@
 #include "MM.hpp"
 #include "include/Common.hpp"
 #include "libDM/DynamicMessage.hpp"
-#include "libEM/EM.hpp"
+#include "EM.hpp"
 #include "libTSQ/TSQ.hpp"
 #include "libtype/bls_types.hpp"
 #include <exception>

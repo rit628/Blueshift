@@ -3,12 +3,12 @@
 #include <unordered_map>
 #include <vector>
 #include "include/Common.hpp"
-#include "libCE/Client.hpp"
+#include "Client.hpp"
 #include "libScheduler/Scheduler.hpp"
 #include "libTSQ/TSQ.hpp"
 #include "libProcessing/Processing.hpp"
 #include "libnetwork/Protocol.hpp"
-#include "../lang/libvirtual_machine/virtual_machine.hpp"
+#include "virtual_machine.hpp"
 #include "libbytecode/bytecode_processor.hpp"
 #include "libtype/bls_types.hpp"
 #include "libTSM/TSM.hpp"

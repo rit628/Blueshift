@@ -1,0 +1,3 @@
+add_library(dynamic_message INTERFACE)
+target_include_directories(dynamic_message INTERFACE .)
+target_link_libraries(dynamic_message INTERFACE type)

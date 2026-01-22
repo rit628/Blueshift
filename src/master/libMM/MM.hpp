@@ -3,7 +3,7 @@
 #include "include/Common.hpp"
 #include "libTSQ/TSQ.hpp"
 #include "libDM/DynamicMessage.hpp"
-#include "libEM/EM.hpp"
+#include "EM.hpp"
 #include "libtype/bls_types.hpp"
 #include <algorithm>
 #include <bitset>

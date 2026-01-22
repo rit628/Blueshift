@@ -1,8 +1,8 @@
 #pragma once
 #include "ast.hpp"
-#include "libtype/bls_types.hpp"
-#include "libcompiler/compiler.hpp"
-#include "libvirtual_machine/virtual_machine.hpp"
+#include "bls_types.hpp"
+#include "compiler.hpp"
+#include "virtual_machine.hpp"
 #include <fstream>
 #include <functional>
 #include <gtest/gtest.h>

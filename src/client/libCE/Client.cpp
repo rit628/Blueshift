@@ -1,7 +1,7 @@
 #include "Client.hpp"
 #include "include/Common.hpp"
-#include "libDevice/DeviceUtil.hpp"
-#include "libDevice/include/ADC.hpp"
+#include "DeviceUtil.hpp"
+#include "include/ADC.hpp"
 #include "libnetwork/Connection.hpp"
 #include "libnetwork/Protocol.hpp"
 #include <cstdint>

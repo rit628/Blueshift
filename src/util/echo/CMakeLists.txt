@@ -1,0 +1,1 @@
+add_executable(echo main.cpp)

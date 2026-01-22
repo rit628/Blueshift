@@ -1,0 +1,8 @@
+add_subdirectory(libTSQ)
+add_subdirectory(libTSM)
+add_subdirectory(libtype)
+add_subdirectory(libtrap)
+add_subdirectory(libDM)
+add_subdirectory(libnetwork)
+add_subdirectory(libScheduler)
+add_subdirectory(libbytecode)
