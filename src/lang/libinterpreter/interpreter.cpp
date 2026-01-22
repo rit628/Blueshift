@@ -1,10 +1,10 @@
 #include "interpreter.hpp"
 #include "binding_parser.hpp"
-#include "libtype/bls_types.hpp"
+#include "bls_types.hpp"
 #include "call_stack.hpp"
 #include "ast.hpp"
 #include "error_types.hpp"
-#include "include/Common.hpp"
+#include "Serialization.hpp"
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -410,8 +410,8 @@ BlsObject Interpreter::visit(AstNode::Expression::Method& ast) {
         #define METHOD_END \
         }); \
     }
-    #include "libtype/include/LIST_METHODS.LIST"
-    #include "libtype/include/MAP_METHODS.LIST"
+    #include "include/LIST_METHODS.LIST"
+    #include "include/MAP_METHODS.LIST"
     #undef METHOD_BEGIN
     #undef ARGUMENT
     #undef METHOD_END

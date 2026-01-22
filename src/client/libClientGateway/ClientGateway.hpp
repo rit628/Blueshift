@@ -2,16 +2,16 @@
 #include <memory>
 #include <unordered_map>
 #include <vector>
-#include "include/Common.hpp"
+#include "Serialization.hpp"
 #include "Client.hpp"
-#include "libScheduler/Scheduler.hpp"
-#include "libTSQ/TSQ.hpp"
-#include "libProcessing/Processing.hpp"
-#include "libnetwork/Protocol.hpp"
+#include "Scheduler.hpp"
+#include "TSQ.hpp"
+#include "Processing.hpp"
+#include "Protocol.hpp"
 #include "virtual_machine.hpp"
-#include "libbytecode/bytecode_processor.hpp"
-#include "libtype/bls_types.hpp"
-#include "libTSM/TSM.hpp"
+#include "bytecode_processor.hpp"
+#include "bls_types.hpp"
+#include "TSM.hpp"
 
 struct IdentData{
     std::unordered_map<TaskID, int> taskMap; 

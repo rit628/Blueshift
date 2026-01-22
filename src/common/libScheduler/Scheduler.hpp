@@ -1,7 +1,7 @@
 #pragma once
 
-#include "include/Common.hpp"
-#include "libTSQ/TSQ.hpp"
+#include "Serialization.hpp"
+#include "TSQ.hpp"
 #include <mutex>
 #include <queue>
 #include <shared_mutex>

@@ -2,9 +2,9 @@
 #include "DeviceCore.hpp"
 #include "include/ADC.hpp"
 #include "include/HttpListener.hpp"
-#include "libDM/DynamicMessage.hpp"
-#include "libnetwork/Connection.hpp"
-#include "libnetwork/Protocol.hpp"
+#include "DynamicMessage.hpp"
+#include "Connection.hpp"
+#include "Protocol.hpp"
 #include <atomic>
 #include <chrono>
 #include <condition_variable>

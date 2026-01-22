@@ -2,7 +2,7 @@
 #include "analyzer.hpp"
 #include "ast.hpp"
 #include "call_stack.hpp"
-#include "include/Common.hpp"
+#include "Serialization.hpp"
 #include "test_visitor.hpp"
 #include <gtest/gtest.h>
 #include <memory>

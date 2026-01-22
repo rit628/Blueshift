@@ -1,10 +1,10 @@
 #pragma once
 #include "ast.hpp"
-#include "libtrap/traps.hpp"
+#include "traps.hpp"
 #include "error_types.hpp"
-#include "include/Common.hpp"
+#include "Serialization.hpp"
 #include "call_stack.hpp"
-#include "libtype/bls_types.hpp"
+#include "bls_types.hpp"
 #include "visitor.hpp"
 #include "include/reserved_tokens.hpp"
 #include <cstdint>
@@ -50,7 +50,7 @@ namespace BlsLang {
                     #define TRAP_END \
                     return executeTrap<callnum>(args); \
                 }},
-                #include "libtrap/include/TRAPS.LIST"
+                #include "include/TRAPS.LIST"
                 #undef TRAP_BEGIN
                 #undef VARIADIC
                 #undef ARGUMENT

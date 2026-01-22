@@ -1,5 +1,5 @@
 #pragma once
-#include "libnetwork/Connection.hpp"
+#include "Connection.hpp"
 #include <cstddef>
 #include <exception>
 #include <istream>

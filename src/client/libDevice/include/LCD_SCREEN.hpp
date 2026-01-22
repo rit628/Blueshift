@@ -1,6 +1,6 @@
 #pragma once
 #include "../DeviceCore.hpp"
-#include "libtype/typedefs.hpp"
+#include "typedefs.hpp"
 
 # define PCF8574_ADDR 0x27
 

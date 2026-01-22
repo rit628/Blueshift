@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../DeviceCore.hpp"
-#include "libtype/typedefs.hpp"
+#include "typedefs.hpp"
 
 namespace Device {
     class FILE_LOG : public DeviceCore<TypeDef::FILE_LOG> {

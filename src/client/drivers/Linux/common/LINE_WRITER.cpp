@@ -1,7 +1,7 @@
 #ifdef __linux__
 
-#include "libnetwork/Connection.hpp"
-#include "libnetwork/Protocol.hpp"
+#include "Connection.hpp"
+#include "Protocol.hpp"
 #include "include/LINE_WRITER.hpp"
 
 using namespace Device;

@@ -1,8 +1,8 @@
 #pragma once
 #include "ast.hpp"
-#include "include/Common.hpp"
-#include "libtype/bls_types.hpp"
-#include "libtrap/traps.hpp"
+#include "Serialization.hpp"
+#include "bls_types.hpp"
+#include "traps.hpp"
 #include "call_stack.hpp"
 #include "include/reserved_tokens.hpp"
 #include "visitor.hpp"
@@ -52,7 +52,7 @@ namespace BlsLang {
                     #define ARGUMENT(...)
                     #define TRAP_END \
                 }},
-                #include "libtrap/include/TRAPS.LIST"
+                #include "include/TRAPS.LIST"
                 #undef TRAP_BEGIN
                 #undef ARGUMENT
                 #undef TRAP_END

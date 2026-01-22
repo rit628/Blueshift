@@ -1,7 +1,7 @@
 #pragma once
 #include "ast.hpp"
-#include "include/Common.hpp"
-#include "libbytecode/opcodes.hpp"
+#include "Serialization.hpp"
+#include "opcodes.hpp"
 #include <concepts>
 #include <cstdint>
 #include <gtest/gtest.h>
@@ -12,7 +12,7 @@
 #include <vector>
 #include <boost/range/combine.hpp>
 #include "generator.hpp"
-#include "libtype/bls_types.hpp"
+#include "bls_types.hpp"
 
 namespace BlsLang {
     class GeneratorTest : public testing::Test {
@@ -38,7 +38,7 @@ namespace BlsLang {
                         #define OPCODE_END(...) \
                             break; \
                         }
-                        #include "libbytecode/include/OPCODES.LIST"
+                        #include "include/OPCODES.LIST"
                         #undef OPCODE_BEGIN
                         #undef ARGUMENT
                         #undef OPCODE_END
@@ -57,7 +57,7 @@ namespace BlsLang {
             int = 0) { \
                 return Generator::create##code(args); \
             }
-            #include "libbytecode/include/OPCODES.LIST"
+            #include "include/OPCODES.LIST"
             #undef OPCODE_BEGIN
             #undef ARGUMENT
             #undef OPCODE_END

@@ -1,7 +1,7 @@
 #include "ClientRouter.hpp"
-#include "include/Common.hpp"
-#include "libnetwork/Connection.hpp"
-#include "libnetwork/Protocol.hpp"
+#include "Serialization.hpp"
+#include "Connection.hpp"
+#include "Protocol.hpp"
 
 
 ClientRouter::ClientRouter(TSQ<SentMessage> &loopback)

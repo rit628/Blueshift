@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../DeviceCore.hpp"
-#include "libDM/DynamicMessage.hpp"
-#include "libtype/typedefs.hpp"
+#include "DynamicMessage.hpp"
+#include "typedefs.hpp"
 #include <cstdint>
 #include <string>
 #include <unordered_map>

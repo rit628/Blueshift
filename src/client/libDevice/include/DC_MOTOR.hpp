@@ -1,6 +1,6 @@
 #pragma once
 #include "../DeviceCore.hpp"
-#include "libtype/typedefs.hpp"
+#include "typedefs.hpp"
 
 
 // THE DC MOTOR IS ASSUMED TO BE IMPLEMENTED USING THE L293D MOTOR DRIVER

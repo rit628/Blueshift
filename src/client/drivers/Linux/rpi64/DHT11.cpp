@@ -1,6 +1,6 @@
 #ifdef __RPI64__
 #include "include/DHT11.hpp"
-#include "libDM/DynamicMessage.hpp"
+#include "DynamicMessage.hpp"
 
 using namespace Device;
 

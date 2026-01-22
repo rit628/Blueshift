@@ -1,6 +1,6 @@
 #pragma once
 #include "../DeviceCore.hpp"
-#include "libtype/typedefs.hpp"
+#include "typedefs.hpp"
 
 namespace Device{
     class PWM_LED : public DeviceCore<TypeDef::PWM_LED>{

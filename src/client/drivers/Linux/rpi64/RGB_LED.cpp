@@ -1,7 +1,7 @@
 #ifdef __RPI64__
 
 #include "include/RGB_LED.hpp"
-#include "libDM/DynamicMessage.hpp"
+#include "DynamicMessage.hpp"
 #include <pigpio.h>
 
 using namespace Device;

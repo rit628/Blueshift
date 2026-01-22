@@ -1,8 +1,8 @@
 #include "virtual_machine.hpp"
-#include "libbytecode/bytecode_processor.hpp"
-#include "libtype/bls_types.hpp"
-#include "libtrap/traps.hpp"
-#include "libtype/typedefs.hpp"
+#include "bytecode_processor.hpp"
+#include "bls_types.hpp"
+#include "traps.hpp"
+#include "typedefs.hpp"
 #include <cstdint>
 #include <iostream>
 #include <memory>
@@ -259,7 +259,7 @@ void VirtualMachine::TRAP(uint16_t callnum, uint8_t argc, int) {
             } \
             break; \
         }
-        #include "libtrap/include/TRAPS.LIST"
+        #include "include/TRAPS.LIST"
         #undef TRAP_BEGIN
         #undef VARIADIC
         #undef ARGUMENT
@@ -290,8 +290,8 @@ void VirtualMachine::MTRAP(uint16_t callnum, int) {
             } \
             break; \
         }
-        #include "libtype/include/LIST_METHODS.LIST"
-        #include "libtype/include/MAP_METHODS.LIST"
+        #include "include/LIST_METHODS.LIST"
+        #include "include/MAP_METHODS.LIST"
         #undef METHOD_BEGIN
         #undef ARGUMENT
         #undef METHOD_END

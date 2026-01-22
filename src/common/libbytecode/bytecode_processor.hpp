@@ -1,7 +1,7 @@
 #pragma once
-#include "include/Common.hpp"
-#include "libbytecode/opcodes.hpp"
-#include "libtype/bls_types.hpp"
+#include "Serialization.hpp"
+#include "opcodes.hpp"
+#include "bls_types.hpp"
 #include <fstream>
 #include <cstdint>
 #include <functional>

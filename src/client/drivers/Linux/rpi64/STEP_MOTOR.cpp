@@ -3,7 +3,7 @@
 
 #include <exception>
 #include <stdexcept>
-#include "libDM/DynamicMessage.hpp"
+#include "DynamicMessage.hpp"
 #include <memory>
 #include "include/STEP_MOTOR.hpp"
 

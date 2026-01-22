@@ -1,9 +1,9 @@
 #include "compiler.hpp"
-#include "include/Common.hpp"
-#include "libEM/EM.hpp"
-#include "libMM/MM.hpp"
-#include "libNM/MasterNM.hpp"
-#include "libtype/bls_types.hpp"
+#include "Serialization.hpp"
+#include "EM.hpp"
+#include "MM.hpp"
+#include "MasterNM.hpp"
+#include "bls_types.hpp"
 #include <functional>
 #include <unordered_map>
 #include <vector>

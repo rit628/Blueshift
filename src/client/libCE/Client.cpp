@@ -1,9 +1,9 @@
 #include "Client.hpp"
-#include "include/Common.hpp"
+#include "Serialization.hpp"
 #include "DeviceUtil.hpp"
 #include "include/ADC.hpp"
-#include "libnetwork/Connection.hpp"
-#include "libnetwork/Protocol.hpp"
+#include "Connection.hpp"
+#include "Protocol.hpp"
 #include <cstdint>
 #include <functional>
 #include <exception>

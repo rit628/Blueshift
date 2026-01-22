@@ -1,7 +1,7 @@
 
 #ifdef __RPI64__
 #include "include/LCD_SCREEN.hpp"
-#include "libDM/DynamicMessage.hpp"
+#include "DynamicMessage.hpp"
 #include <pigpio.h>
 #include <unordered_map>
 #include <stdexcept>

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "include/Common.hpp"
-#include "libTSQ/TSQ.hpp"
-#include "libDM/DynamicMessage.hpp"
+#include "Serialization.hpp"
+#include "TSQ.hpp"
+#include "DynamicMessage.hpp"
 #include "EM.hpp"
-#include "libtype/bls_types.hpp"
+#include "bls_types.hpp"
 #include <algorithm>
 #include <bitset>
 #include <condition_variable>

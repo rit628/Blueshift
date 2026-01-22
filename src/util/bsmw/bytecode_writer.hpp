@@ -1,5 +1,5 @@
 #pragma once
-#include "libbytecode/bytecode_processor.hpp"
+#include "bytecode_processor.hpp"
 #include <cstdint>
 #include <fstream>
 #include <iostream>

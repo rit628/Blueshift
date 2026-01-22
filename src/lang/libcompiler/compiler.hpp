@@ -1,6 +1,6 @@
 #pragma once
 #include "ast.hpp"
-#include "include/Common.hpp"
+#include "Serialization.hpp"
 #include "generator.hpp"
 #include "dependency_graph.hpp"
 #include "lexer.hpp"

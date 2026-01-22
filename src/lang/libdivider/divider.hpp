@@ -1,6 +1,6 @@
 #pragma once
 #include "ast.hpp"
-#include "include/Common.hpp"
+#include "Serialization.hpp"
 #include "../libsymgraph/symgraph.hpp"
 #include <memory>
 #include <type_traits>

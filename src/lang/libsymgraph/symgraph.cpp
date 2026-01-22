@@ -1,7 +1,7 @@
 #include "symgraph.hpp"
 #include "ast.hpp"
 #include "error_types.hpp"
-#include "include/Common.hpp"
+#include "Serialization.hpp"
 #include "symbolicator.hpp"
 #include <algorithm>
 #include <cstddef>

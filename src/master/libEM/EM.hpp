@@ -1,11 +1,11 @@
 #pragma once
 
-#include "libTSQ/TSQ.hpp"
-#include "include/Common.hpp"
+#include "TSQ.hpp"
+#include "Serialization.hpp"
 #include "../../lang/libvirtual_machine/virtual_machine.hpp"
-#include "libScheduler/Scheduler.hpp"
-#include "libtype/bls_types.hpp"
-#include "libTSM/TSM.hpp"
+#include "Scheduler.hpp"
+#include "bls_types.hpp"
+#include "TSM.hpp"
 #include <condition_variable>
 #include <unordered_map>
 #include <thread>

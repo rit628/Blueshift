@@ -1,9 +1,9 @@
 #pragma once
 
-#include "libDM/DynamicMessage.hpp"
+#include "DynamicMessage.hpp"
 #include "include/HttpListener.hpp"
-#include "libTSQ/TSQ.hpp"
-#include "libtype/typedefs.hpp"
+#include "TSQ.hpp"
+#include "typedefs.hpp"
 #include <cstdint>
 #include <fstream>
 #include <functional>

@@ -1,7 +1,7 @@
 #pragma once
-#include "include/Common.hpp"
-#include "libbytecode/opcodes.hpp"
-#include "libtype/bls_types.hpp"
+#include "Serialization.hpp"
+#include "opcodes.hpp"
+#include "bls_types.hpp"
 #include "visitor.hpp"
 #include <cstdint>
 #include <ostream>
@@ -45,7 +45,7 @@ namespace BlsLang {
             type arg,
             #define OPCODE_END(code, args...) \
             int = 0);
-            #include "libbytecode/include/OPCODES.LIST"
+            #include "include/OPCODES.LIST"
             #undef OPCODE_BEGIN
             #undef ARGUMENT
             #undef OPCODE_END

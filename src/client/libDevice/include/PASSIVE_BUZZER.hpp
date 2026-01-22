@@ -1,6 +1,6 @@
 #pragma once
 #include "../DeviceCore.hpp"
-#include "libtype/typedefs.hpp"
+#include "typedefs.hpp"
 
 namespace Device{
     class  PASSIVE_BUZZER : public DeviceCore<TypeDef::PASSIVE_BUZZER>{

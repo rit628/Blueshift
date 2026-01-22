@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../DeviceCore.hpp"
-#include "libTSQ/TSQ.hpp"
-#include "libtype/typedefs.hpp"
+#include "TSQ.hpp"
+#include "typedefs.hpp"
 #include <shared_mutex>
 
 namespace Device {

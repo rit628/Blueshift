@@ -1,6 +1,6 @@
 #pragma once
 
-#include "include/Common.hpp"
+#include "Serialization.hpp"
 #include "DeviceUtil.hpp"
 #include <cstdint>
 #include <functional>
@@ -10,8 +10,8 @@
 #include <shared_mutex>
 #include <unordered_map>
 #include "include/ADC.hpp"
-#include "libnetwork/Protocol.hpp"
-#include "libnetwork/Connection.hpp"
+#include "Protocol.hpp"
+#include "Connection.hpp"
 #include <set> 
 #include <vector>
 

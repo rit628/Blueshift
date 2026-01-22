@@ -1,7 +1,7 @@
 #pragma once
 #include "../DeviceCore.hpp"
 #include "FN_SERVO.hpp"
-#include "libtype/typedefs.hpp"
+#include "typedefs.hpp"
 
 namespace Device{
     class FN_JOYSTICK : public DeviceCore<TypeDef::FN_JOYSTICK>{

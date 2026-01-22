@@ -1,6 +1,6 @@
 #pragma once
 
-#include "libbytecode/bytecode_processor.hpp"
+#include "bytecode_processor.hpp"
 #include <cstdint>
 #include <iostream>
 #include <string>
@@ -19,7 +19,7 @@ class BytecodePrinter : public BytecodeProcessor {
         type arg,
         #define OPCODE_END(...) \
         int = 0) override;
-        #include "libbytecode/include/OPCODES.LIST"
+        #include "include/OPCODES.LIST"
         #undef OPCODE_BEGIN
         #undef ARGUMENT
         #undef OPCODE_END

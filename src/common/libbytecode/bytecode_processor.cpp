@@ -1,8 +1,8 @@
 #include "bytecode_processor.hpp"
-#include "include/Common.hpp"
+#include "Serialization.hpp"
 #include "opcodes.hpp"
-#include "libDM/DynamicMessage.hpp"
-#include "libtype/bls_types.hpp"
+#include "DynamicMessage.hpp"
+#include "bls_types.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
