@@ -412,6 +412,9 @@ def test(args):
     ctest_args = list(filter(None, ctest_args))
     if args.local:
         fail_output = ["--output-on-failure"] if not args.no_output_on_failure else []
+        if not Path(TARGET_OUTPUT_DIRECTORY).exists():
+            print("No tests to run.")
+            sys.exit(0)
         run_cmd(["ctest", *fail_output, *ctest_args], cwd=f"./{TARGET_OUTPUT_DIRECTORY}")
     else: # test in remote container
         initialize_host()
