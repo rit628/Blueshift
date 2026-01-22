@@ -3,7 +3,7 @@
 #include "Connection.hpp"
 #include "Protocol.hpp"
 #include "typedefs.hpp"
-#include "include/FILE_LOG.hpp"
+#include "FILE_LOG.hpp"
 
 using namespace Device;
 

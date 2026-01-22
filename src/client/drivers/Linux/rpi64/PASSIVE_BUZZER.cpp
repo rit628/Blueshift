@@ -1,6 +1,6 @@
 #ifdef __RPI64__
 
-#include "include/PASSIVE_BUZZER.hpp"
+#include "PASSIVE_BUZZER.hpp"
 #include "DynamicMessage.hpp"
 #include <pigpio.h>
 #include <unordered_map>

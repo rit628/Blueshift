@@ -1,8 +1,8 @@
 #pragma once
 
 #include "DynamicMessage.hpp"
-#include "include/HttpListener.hpp"
 #include "TSQ.hpp"
+#include "HttpListener.hpp"
 #include "typedefs.hpp"
 #include <cstdint>
 #include <fstream>
@@ -12,7 +12,7 @@
 #include <concepts>
 #include <utility>
 #include <variant>
-#include "include/ADC.hpp"
+#include "ADC.hpp"
 #ifdef SDL_ENABLED
 #include <SDL3/SDL.h>
 #endif

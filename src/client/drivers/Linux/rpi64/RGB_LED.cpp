@@ -1,6 +1,6 @@
 #ifdef __RPI64__
 
-#include "include/RGB_LED.hpp"
+#include "RGB_LED.hpp"
 #include "DynamicMessage.hpp"
 #include <pigpio.h>
 

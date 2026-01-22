@@ -3,7 +3,7 @@
 #include "Connection.hpp"
 #include "Protocol.hpp"
 #include "typedefs.hpp"
-#include "include/TEXT_FILE.hpp"
+#include "TEXT_FILE.hpp"
 #include <fstream>
 
 using namespace Device;

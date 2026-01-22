@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include "DynamicMessage.hpp"
 #include <memory>
-#include "include/POTENTIOMETER.hpp"
+#include "POTENTIOMETER.hpp"
 
 
 using namespace Device;

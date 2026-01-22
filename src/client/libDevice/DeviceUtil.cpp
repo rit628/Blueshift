@@ -1,7 +1,6 @@
 #include "DeviceUtil.hpp"
 #include "DeviceCore.hpp"
-#include "include/ADC.hpp"
-#include "include/HttpListener.hpp"
+#include "ADC.hpp"
 #include "DynamicMessage.hpp"
 #include "Connection.hpp"
 #include "Protocol.hpp"

@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include "DynamicMessage.hpp"
 #include <memory>
-#include "include/FN_JOYSTICK.hpp"
+#include "FN_JOYSTICK.hpp"
 
 
 using namespace Device;

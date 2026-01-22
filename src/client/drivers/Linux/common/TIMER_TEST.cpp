@@ -2,7 +2,7 @@
 
 #include "Connection.hpp"
 #include "Protocol.hpp"
-#include "include/TIMER_TEST.hpp"
+#include "TIMER_TEST.hpp"
 
 using namespace Device;
 

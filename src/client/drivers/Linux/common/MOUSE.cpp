@@ -1,6 +1,6 @@
 #if defined(__linux__) &&  defined(SDL_ENABLED)
 
-#include "include/MOUSE.hpp"
+#include "MOUSE.hpp"
 #include "Protocol.hpp"
 #include "Connection.hpp"
 #include "DynamicMessage.hpp"

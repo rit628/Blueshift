@@ -4,4 +4,6 @@ add_subdirectory(libClientGateway)
 add_subdirectory(libCE)
 
 add_executable(client main.cpp)
-target_link_libraries(client "$<LINK_LIBRARY:WHOLE_ARCHIVE,device>" client_engine) # whole library archive is linked to check for strong symbols
+# whole library archive is included for libDevice to allow strong symbols
+# from controller dependent drivers to overwrite default implementations (weak symbols)
+target_link_libraries(client "$<LINK_LIBRARY:WHOLE_ARCHIVE,device>" client_engine)

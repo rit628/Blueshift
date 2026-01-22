@@ -2,7 +2,7 @@
 
 #include "Connection.hpp"
 #include "Protocol.hpp"
-#include "include/LINE_WRITER.hpp"
+#include "LINE_WRITER.hpp"
 
 using namespace Device;
 

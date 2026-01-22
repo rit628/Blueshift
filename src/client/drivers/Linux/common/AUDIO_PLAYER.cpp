@@ -1,6 +1,6 @@
 #if defined(__linux__) &&  defined(SDL_ENABLED)
 
-#include "include/AUDIO_PLAYER.hpp"
+#include "AUDIO_PLAYER.hpp"
 #include "Protocol.hpp"
 #include "Connection.hpp"
 #include "DynamicMessage.hpp"

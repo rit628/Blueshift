@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include "DynamicMessage.hpp"
 #include <memory>
-#include "include/FN_SERVO.hpp"
+#include "FN_SERVO.hpp"
 
 
 using namespace Device;

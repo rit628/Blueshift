@@ -1,11 +1,11 @@
 #pragma once
 
 #include "DynamicMessage.hpp"
-#include "include/ADC.hpp"
-#include "include/HttpListener.hpp"
+#include "ADC.hpp"
 #include "TSM.hpp"
 #include "Protocol.hpp"
 #include "Devices.hpp"
+#include "HttpListener.hpp"
 #include <atomic>
 #include <condition_variable>
 #include <cstdint>

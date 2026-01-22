@@ -9,7 +9,7 @@
 #include <thread>
 #include <shared_mutex>
 #include <unordered_map>
-#include "include/ADC.hpp"
+#include "ADC.hpp"
 #include "Protocol.hpp"
 #include "Connection.hpp"
 #include <set> 

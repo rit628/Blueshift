@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include "DynamicMessage.hpp"
 #include <memory>
-#include "include/PHOTORESISTOR.hpp"
+#include "PHOTORESISTOR.hpp"
 
 
 using namespace Device;

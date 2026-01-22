@@ -1,7 +1,7 @@
 #include "Client.hpp"
 #include "Serialization.hpp"
 #include "DeviceUtil.hpp"
-#include "include/ADC.hpp"
+#include "ADC.hpp"
 #include "Connection.hpp"
 #include "Protocol.hpp"
 #include <cstdint>

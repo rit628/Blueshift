@@ -1,6 +1,6 @@
 #ifdef __RPI64__
 
-#include "include/BUTTON.hpp"
+#include "BUTTON.hpp"
 #include <pigpio.h>
 
 using namespace Device;
