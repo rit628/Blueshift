@@ -1,5 +1,5 @@
 #include "Serialization.hpp"
-# include "libnetwork/Connection.hpp"
+# include "Connection.hpp"
 #include "Protocol.hpp"
 #include <unordered_map>
 

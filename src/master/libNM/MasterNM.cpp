@@ -4,6 +4,7 @@
 #include "Protocol.hpp"
 #include <algorithm>
 #include <exception>
+#include <set>
 #include <stdexcept>
 
 

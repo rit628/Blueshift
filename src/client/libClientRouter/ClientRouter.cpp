@@ -2,6 +2,7 @@
 #include "Serialization.hpp"
 #include "Connection.hpp"
 #include "Protocol.hpp"
+#include "TSQ.hpp"
 
 
 ClientRouter::ClientRouter(TSQ<SentMessage> &loopback)

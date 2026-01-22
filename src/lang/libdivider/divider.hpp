@@ -1,7 +1,7 @@
 #pragma once
 #include "ast.hpp"
 #include "Serialization.hpp"
-#include "../libsymgraph/symgraph.hpp"
+#include "symgraph.hpp"
 #include <memory>
 #include <type_traits>
 #include <unordered_map>

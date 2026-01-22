@@ -2,7 +2,7 @@
 
 #include "TSQ.hpp"
 #include "Serialization.hpp"
-#include "../../lang/libvirtual_machine/virtual_machine.hpp"
+#include "virtual_machine.hpp"
 #include "Scheduler.hpp"
 #include "bls_types.hpp"
 #include "TSM.hpp"

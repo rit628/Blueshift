@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../libdepgraph/depgraph.hpp"
+#include "depgraph.hpp"
 #include "ast.hpp"
 #include "Serialization.hpp"
 #include "symbolicator.hpp"
