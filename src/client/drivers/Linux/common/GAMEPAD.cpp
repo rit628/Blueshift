@@ -21,10 +21,10 @@ void GAMEPAD::processStates(DynamicMessage& dmsg) {
     dmsg.unpack("rumbleDuration", states.rumbleDuration);
 
     static auto clampIntensity = [](int64_t intensity) -> uint16_t {
-        return std::max((int64_t)0, std::min(intensity, (int64_t)UINT16_MAX));
+        return std::max(int64_t(0), std::min(intensity, int64_t(UINT16_MAX)));
     };
     static auto clampDuration = [](int64_t duration) -> uint32_t {
-        return std::max((int64_t)0, std::min(duration, (int64_t)UINT32_MAX));
+        return std::max(int64_t(0), std::min(duration, int64_t(UINT32_MAX)));
     };
 
     SDL_RumbleGamepad(gamepad
