@@ -1,0 +1,1 @@
+bls_add_library(EM STATIC LINKS scheduler TSM TSQ MM virtual_machine)

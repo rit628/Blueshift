@@ -1,0 +1,1 @@
+bls_add_executable(bsmp LINKS bytecode type)

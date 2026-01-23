@@ -1,9 +1,9 @@
 #ifdef __RPI64__
 
 #include <stdexcept>
-#include "libDM/DynamicMessage.hpp"
+#include "DynamicMessage.hpp"
 #include <memory>
-#include "include/FN_SERVO.hpp"
+#include "FN_SERVO.hpp"
 
 
 using namespace Device;

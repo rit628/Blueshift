@@ -1,0 +1,1 @@
+bls_add_library(client_gateway STATIC LINKS scheduler processing network virtual_machine)

@@ -1,0 +1,1 @@
+bls_add_library(NM STATIC LINKS network dynamic_message ticker)

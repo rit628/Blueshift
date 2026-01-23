@@ -1,0 +1,1 @@
+bls_add_library(scheduler STATIC LINKS TSQ network)

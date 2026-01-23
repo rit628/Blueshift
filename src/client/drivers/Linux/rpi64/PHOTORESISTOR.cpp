@@ -2,9 +2,9 @@
 
 #include <exception>
 #include <stdexcept>
-#include "libDM/DynamicMessage.hpp"
+#include "DynamicMessage.hpp"
 #include <memory>
-#include "include/PHOTORESISTOR.hpp"
+#include "PHOTORESISTOR.hpp"
 
 
 using namespace Device;

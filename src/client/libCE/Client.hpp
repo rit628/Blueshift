@@ -1,7 +1,7 @@
 #pragma once
 
-#include "include/Common.hpp"
-#include "libDevice/DeviceUtil.hpp"
+#include "Serialization.hpp"
+#include "DeviceUtil.hpp"
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -9,9 +9,9 @@
 #include <thread>
 #include <shared_mutex>
 #include <unordered_map>
-#include "libDevice/include/ADC.hpp"
-#include "libnetwork/Protocol.hpp"
-#include "libnetwork/Connection.hpp"
+#include "ADC.hpp"
+#include "Protocol.hpp"
+#include "Connection.hpp"
 #include <set> 
 #include <vector>
 

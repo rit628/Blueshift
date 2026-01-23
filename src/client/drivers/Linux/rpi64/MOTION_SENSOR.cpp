@@ -1,6 +1,6 @@
 #ifdef __RPI64__
 
-#include "include/MOTION_SENSOR.hpp"
+#include "MOTION_SENSOR.hpp"
 #include <pigpio.h>
 
 using namespace Device;

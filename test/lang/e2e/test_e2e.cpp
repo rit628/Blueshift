@@ -1,6 +1,6 @@
-#include "libtype/bls_types.hpp"
+#include "bls_types.hpp"
 #include "fixtures/e2e_test.hpp"
-#include "libtype/typedefs.hpp"
+#include "typedefs.hpp"
 #include "test_macros.hpp"
 #include <cstdint>
 #include <memory>

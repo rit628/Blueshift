@@ -1,0 +1,1 @@
+bls_add_library(analyzer STATIC LINKS lang_common type trap)

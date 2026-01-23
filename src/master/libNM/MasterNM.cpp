@@ -1,9 +1,10 @@
 #include "MasterNM.hpp"
-#include "include/Common.hpp"
-#include "libDM/DynamicMessage.hpp"
-#include "libnetwork/Protocol.hpp"
+#include "Serialization.hpp"
+#include "DynamicMessage.hpp"
+#include "Protocol.hpp"
 #include <algorithm>
 #include <exception>
+#include <set>
 #include <stdexcept>
 
 

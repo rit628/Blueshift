@@ -1,11 +1,9 @@
 #pragma once
-#include "libDM/DynamicMessage.hpp"
-#include "libnetwork/Connection.hpp"
-#include "libnetwork/Protocol.hpp"
-#include "include/Common.hpp"
-#include <set>
+#include "Connection.hpp"
+#include "Protocol.hpp"
+#include "Serialization.hpp"
 #include <thread> 
-#include "libTicker/Ticker.hpp"
+#include "Ticker.hpp"
 
 
 

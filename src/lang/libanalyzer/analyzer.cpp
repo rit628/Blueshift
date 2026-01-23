@@ -1,11 +1,11 @@
 #include "ast.hpp"
 #include "binding_parser.hpp"
 #include "error_types.hpp"
-#include "include/Common.hpp"
+#include "Serialization.hpp"
 #include "include/reserved_tokens.hpp"
-#include "libtype/typedefs.hpp"
+#include "typedefs.hpp"
 #include "analyzer.hpp"
-#include "libtype/bls_types.hpp"
+#include "bls_types.hpp"
 #include "call_stack.hpp"
 #include <cstdint>
 #include <functional>
@@ -607,8 +607,8 @@ BlsObject Analyzer::visit(AstNode::Expression::Method& ast) {
         ast.getObjectType() = objType; \
         return result; \
     }
-    #include "libtype/include/LIST_METHODS.LIST"
-    #include "libtype/include/MAP_METHODS.LIST"
+    #include "include/LIST_METHODS.LIST"
+    #include "include/MAP_METHODS.LIST"
     #undef METHOD_BEGIN
     #undef ARGUMENT
     #undef METHOD_END

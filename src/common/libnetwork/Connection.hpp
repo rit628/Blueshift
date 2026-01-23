@@ -2,7 +2,7 @@
 
 #include <array>
 #include <boost/asio.hpp>
-#include "libTSQ/TSQ.hpp"
+#include "TSQ.hpp"
 #include "Protocol.hpp"
 #include <memory>
 #include <list>

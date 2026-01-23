@@ -1,11 +1,11 @@
 #include "ast.hpp"
 #include "fixtures/generator_test.hpp"
-#include "include/Common.hpp"
+#include "Serialization.hpp"
 #include "include/reserved_tokens.hpp"
-#include "libbytecode/bytecode_processor.hpp"
-#include "libbytecode/opcodes.hpp"
-#include "libtrap/traps.hpp"
-#include "libtype/bls_types.hpp"
+#include "bytecode_processor.hpp"
+#include "opcodes.hpp"
+#include "traps.hpp"
+#include "bls_types.hpp"
 #include "test_macros.hpp"
 #include <cstdint>
 #include <initializer_list>

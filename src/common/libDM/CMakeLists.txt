@@ -1,0 +1,1 @@
+bls_add_library(dynamic_message INTERFACE LINKS type)

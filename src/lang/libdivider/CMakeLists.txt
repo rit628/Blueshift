@@ -1,0 +1,1 @@
+bls_add_library(divider STATIC LINKS symgraph depgraph lang_common type)

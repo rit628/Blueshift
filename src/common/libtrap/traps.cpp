@@ -1,7 +1,7 @@
 #include "traps.hpp"
-#include "libbytecode/bytecode_processor.hpp"
-#include "libEM/EM.hpp"
-#include "libtype/bls_types.hpp"
+#include "bytecode_processor.hpp"
+#include "EM.hpp"
+#include "bls_types.hpp"
 #include <chrono>
 #include <concepts>
 #include <exception>

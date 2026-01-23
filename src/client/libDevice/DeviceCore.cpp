@@ -1,5 +1,4 @@
 #include "DeviceCore.hpp"
-#include "include/HttpListener.hpp"
 #include <memory>
 #include <thread>
 

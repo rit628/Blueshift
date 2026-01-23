@@ -1,0 +1,1 @@
+bls_add_library(trap STATIC LINKS EM type bytecode)

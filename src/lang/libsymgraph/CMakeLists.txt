@@ -1,0 +1,1 @@
+bls_add_library(symgraph STATIC LINKS depgraph lang_common type)

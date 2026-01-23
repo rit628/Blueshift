@@ -1,6 +1,6 @@
 #ifdef __RPI64__
 
-#include "include/ACTIVE_BUZZER.hpp"
+#include "ACTIVE_BUZZER.hpp"
 #include <pigpio.h>
 
 using namespace Device;

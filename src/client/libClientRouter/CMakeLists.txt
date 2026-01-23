@@ -1,0 +1,1 @@
+bls_add_library(client_router STATIC LINKS network)

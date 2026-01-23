@@ -1,0 +1,1 @@
+bls_add_library(lexer STATIC LINKS lang_common)

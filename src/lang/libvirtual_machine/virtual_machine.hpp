@@ -1,8 +1,8 @@
 #pragma once
-#include "libtrap/traps.hpp"
-#include "libtype/bls_types.hpp"
+#include "traps.hpp"
+#include "bls_types.hpp"
 #include "call_stack.hpp"
-#include "libbytecode/bytecode_processor.hpp"
+#include "bytecode_processor.hpp"
 #include <cstddef>
 #include <vector>
 
@@ -26,7 +26,7 @@ namespace BlsLang {
             type arg,
             #define OPCODE_END(...) \
             int = 0) override;
-            #include "libbytecode/include/OPCODES.LIST"
+            #include "include/OPCODES.LIST"
             #undef OPCODE_BEGIN
             #undef ARGUMENT
             #undef OPCODE_END

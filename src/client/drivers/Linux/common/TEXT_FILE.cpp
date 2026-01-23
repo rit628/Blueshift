@@ -1,9 +1,9 @@
 #ifdef __linux__
 
-#include "libnetwork/Connection.hpp"
-#include "libnetwork/Protocol.hpp"
-#include "libtype/typedefs.hpp"
-#include "include/TEXT_FILE.hpp"
+#include "Connection.hpp"
+#include "Protocol.hpp"
+#include "typedefs.hpp"
+#include "TEXT_FILE.hpp"
 #include <fstream>
 
 using namespace Device;

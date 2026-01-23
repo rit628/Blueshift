@@ -1,0 +1,1 @@
+bls_add_test(libMM LINKS MM)

@@ -1,9 +1,9 @@
 #include "generator.hpp"
 #include "ast.hpp"
-#include "libbytecode/bytecode_processor.hpp"
-#include "libbytecode/opcodes.hpp"
-#include "libtype/bls_types.hpp"
-#include "libtrap/traps.hpp"
+#include "bytecode_processor.hpp"
+#include "opcodes.hpp"
+#include "bls_types.hpp"
+#include "traps.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -60,7 +60,7 @@ void Generator::writeBytecode(std::ostream& outputStream) {
             #define OPCODE_END(code, args...) \
                 break; \
             } 
-            #include "libbytecode/include/OPCODES.LIST"
+            #include "include/OPCODES.LIST"
             #undef OPCODE_BEGIN
             #undef ARGUMENT
             #undef OPCODE_END
@@ -548,8 +548,8 @@ BlsObject Generator::visit(AstNode::Expression::Method& ast) {
     }
     #define ARGUMENT(...)
     #define METHOD_END
-    #include "libtype/include/LIST_METHODS.LIST"
-    #include "libtype/include/MAP_METHODS.LIST"
+    #include "include/LIST_METHODS.LIST"
+    #include "include/MAP_METHODS.LIST"
     #undef METHOD_BEGIN
     #undef ARGUMENT
     #undef METHOD_END
@@ -571,7 +571,7 @@ BlsObject Generator::visit(AstNode::Expression::Function& ast) {
         #define ARGUMENT(argName, argType...)
         #define TRAP_END \
     }
-    #include "libtrap/include/TRAPS.LIST"
+    #include "include/TRAPS.LIST"
     #undef TRAP_BEGIN
     #undef VARIADIC
     #undef ARGUMENT
@@ -682,7 +682,7 @@ type arg,
 int) { \
     return std::make_unique<INSTRUCTION::code>(INSTRUCTION::code{{OPCODE::code}, args}); \
 }
-#include "libbytecode/include/OPCODES.LIST"
+#include "include/OPCODES.LIST"
 #undef OPCODE_BEGIN
 #undef ARGUMENT
 #undef OPCODE_END

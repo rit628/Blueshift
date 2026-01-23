@@ -1,8 +1,8 @@
 #if defined(__linux__) &&  defined(SDL_ENABLED)
 
-#include "include/GAMEPAD.hpp"
-#include "libDM/DynamicMessage.hpp"
-#include "libnetwork/Connection.hpp"
+#include "GAMEPAD.hpp"
+#include "DynamicMessage.hpp"
+#include "Connection.hpp"
 #include <fstream>
 #include <cstdint>
 #include <string>

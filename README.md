@@ -15,7 +15,7 @@
 ## File & Directory Structure
 - `bls` - Primary build script for Blueshift. This is the main script you should use for building, running, and testing the project. For a list of commands and options run `./bls --help`. Further, for help with any of the commands and their respective subcommands/options, run `./bls [command] --help`.
 - `blueshift.py` - This script contains the logic for the primary build script. Any edits or new additions to the build script should be made here as `bls` is meant to be a thin wrapper around this script.
-- `CMakeLists.txt` - Contains all build targets. Update whenever adding a new module, library, or test suite.
+- `CMakeLists.txt` - Contains all build information for the target module, library, or test suite.
 - `compose.yaml` - Contains the image, container, and network configurations for Blueshift's containerized environment. This file can generally be ignored unless there are problems with the primary build script.
 - `.docker` - Contains Dockerfiles for building and running Blueshift. These files will rarely need updating and can generally be ignored unless there are problems with the primary build script
 - `build` - Contains completed builds for Blueshift if binaries are compiled locally. Compiled binaries, libraries, and archives will be located in the subdirectory specified in the `.env` file. This folder also contains `compile_commands.json`, so any issues with your language server could result from a misconfigured `build` directory.
@@ -23,39 +23,50 @@
 ```
 Project
 └──src
+   ├── CMakeLists.txt
    ├── client
    │   ├── include
    │   ├── libmessage
+   │   │   ├── CMakeLists.txt
    │   │   ├── message.cpp
    │   │   ├── message.h
    │   │   └── message_types.hpp
+   │   ├── CMakeLists.txt
    │   └── main.cpp
    └── lang
        ├── include
        │   └── TYPES.include
        ├── liblexer
+       │   ├── CMakeLists.txt
        │   ├── token.cpp
        │   ├── lexer.cpp
        │   └── lexer.hpp
        ├── libparser
+       │   ├── CMakeLists.txt
        │   ├── include
        │   │   └── DEPS.include
        │   ├── parser.cpp
        │   └── parser.hpp
+       ├── CMakeLists.txt
        └── main.cpp
 ```
 - `test` - Contains all Blueshift unit tests. Organized in the same way as `src` with tests written for individual library components denoted by `test_component.cpp`.
 ```
 Project
 └──test
+   ├── CMakeLists.txt
    ├── client
+   │   ├── CMakeLists.txt
    │   └── libmessage
+   │       ├── CMakeLists.txt
    │       └── test_message.cpp
    └── lang
        ├── liblexer
+       │   ├── CMakeLists.txt
        │   ├── test_token.cpp
        │   └── test_lexer.cpp
        └── libparser
+           ├── CMakeLists.txt
            └── test_parser.hpp
 ```
 
@@ -63,32 +74,23 @@ Project
 1. Create a `client` directory under `src` and a `libmessage` directory under it.
 2. Add source files for the `client` module's engine (`main.cpp`) and for the implementation of `libmessage`.
 3. Add any new boost dependencies to the `REQUIRED_BOOST_LIBS` variable within `CMakeLists.txt`.
-4. Create a new build target in `CMakeLists.txt` as follows:
+4. Create a new build target in a new `CMakeLists.txt` within the library directory as follows:
 ```cmake
-set(CLIENT_SRC_DIR ${SRC_DIR}/client)
-
-# CLIENT LIBS AND EXECUTABLE
-file(GLOB_RECURSE LIBMESSAGE_SRC ${CLIENT_SRC_DIR}/libmessage/*.cpp)
-add_library(message STATIC ${LIBMESSAGE_SRC})
-target_link_libraries(message ${BOOST_LIB_DEPS})
-add_executable(client ${CLIENT_SRC_DIR}/main.cpp)
-target_link_libraries(client message ${BOOST_LIB_DEPS})
+# If building a static library with source files
+bls_add_library(message STATIC LINKS protocol)
+# If building an interface (header only) library
+bls_add_library(message INTERFACE LINKS protocol)
 ```
-5. Build with `./bls build client`, run with `./bls run client`, and debug with `./bls debug client` (first build will take some time due to docker image builds).
-6. If desired, test cases can be added to `CMakeLists.txt` as follows:
+5. Add a new entry to the `client` directory's `CMakeLists.txt` file as follows:
 ```cmake
-set(CLIENT_TEST_DIR ${TEST_DIR}/client)
-
-# Client Tests
-file(GLOB_RECURSE LIBMESSAGE_TESTS ${CLIENT_TEST_DIR}/libmessage/*.cpp)
-add_executable(test_libmessage ${LIBMESSAGE_TESTS})
-target_include_directories(test_libmessage PUBLIC ${TEST_DEPS} ${CLIENT_SRC_DIR}/libmessage)
-target_link_libraries(test_libmessage message GTest::gtest_main)
-
-include(GoogleTest)
-gtest_discover_tests(test_libmessage)
+add_subdirectory(libmessage)
 ```
-7. Build created tests with `./bls build` and run with `./bls test`.
+6. Build with `./bls build client`, run with `./bls run client`, and debug with `./bls debug client` (first build will take some time due to docker image builds).
+7. If desired, test cases can be added to `CMakeLists.txt` as follows:
+```cmake
+bls_add_test(libmessage LINKS message)
+```
+8. Build created tests with `./bls build` and run with `./bls test`.
 
 ## Troubleshooting
 - If you can't run the build script, make sure it has execute permissions by running: `chmod +x blueshift bls`.

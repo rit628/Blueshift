@@ -1,8 +1,8 @@
 #include "bytecode_writer.hpp"
-#include "include/Common.hpp"
-#include "libDM/DynamicMessage.hpp"
-#include "libtype/bls_types.hpp"
-#include "libbytecode/opcodes.hpp"
+#include "Serialization.hpp"
+#include "DynamicMessage.hpp"
+#include "bls_types.hpp"
+#include "opcodes.hpp"
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -78,7 +78,7 @@ void BytecodeWriter::writeBody(std::ostream& stream, boost::archive::binary_oarc
             stream.write(reinterpret_cast<const char *>(&arg), sizeof(type));
         #define OPCODE_END(...) \
         }
-        #include "libbytecode/include/OPCODES.LIST"
+        #include "include/OPCODES.LIST"
         #undef OPCODE_BEGIN
         #undef ARGUMENT
         #undef OPCODE_END

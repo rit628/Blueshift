@@ -1,0 +1,1 @@
+bls_add_test(libDM LINKS dynamic_message)

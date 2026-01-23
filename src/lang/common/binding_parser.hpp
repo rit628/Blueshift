@@ -1,6 +1,6 @@
 #pragma once
 #include "error_types.hpp"
-#include "include/Common.hpp"
+#include "Serialization.hpp"
 #include <string>
 #include <unordered_map>
 #include <boost/regex.hpp>

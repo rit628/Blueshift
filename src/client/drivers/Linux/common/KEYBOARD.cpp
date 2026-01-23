@@ -1,9 +1,9 @@
 #if defined(__linux__) &&  defined(SDL_ENABLED)
 
-#include "include/KEYBOARD.hpp"
-#include "libnetwork/Protocol.hpp"
-#include "libnetwork/Connection.hpp"
-#include "libDM/DynamicMessage.hpp"
+#include "KEYBOARD.hpp"
+#include "Protocol.hpp"
+#include "Connection.hpp"
+#include "DynamicMessage.hpp"
 #include <string>
 #include <unordered_map>
 #include <functional>

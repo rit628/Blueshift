@@ -1,0 +1,1 @@
+bls_add_test(libgenerator LINKS generator lang_common)

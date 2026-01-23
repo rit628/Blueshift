@@ -1,7 +1,7 @@
 #pragma once
-#include "libbytecode/bytecode_processor.hpp"
-#include "libtype/bls_types.hpp"
-#include "libtype/typedefs.hpp"
+#include "bytecode_processor.hpp"
+#include "bls_types.hpp"
+#include "typedefs.hpp"
 #include <cstdint>
 #include <string>
 #include <type_traits>
@@ -30,8 +30,8 @@ namespace BlsTrap {
         objType##__##name,
         #define ARGUMENT(...)
         #define METHOD_END
-        #include "libtype/include/LIST_METHODS.LIST"
-        #include "libtype/include/MAP_METHODS.LIST"
+        #include "include/LIST_METHODS.LIST"
+        #include "include/MAP_METHODS.LIST"
         #undef METHOD_BEGIN
         #undef ARGUMENT
         #undef METHOD_END
@@ -65,8 +65,8 @@ namespace BlsTrap {
                 COUNT \
             }; \
         }
-        #include "libtype/include/LIST_METHODS.LIST"
-        #include "libtype/include/MAP_METHODS.LIST"
+        #include "include/LIST_METHODS.LIST"
+        #include "include/MAP_METHODS.LIST"
         #undef METHOD_BEGIN
         #undef ARGUMENT
         #undef METHOD_END
@@ -177,8 +177,8 @@ namespace BlsTrap {
             #define METHOD_END \
             0); \
         }
-        #include "libtype/include/LIST_METHODS.LIST"
-        #include "libtype/include/MAP_METHODS.LIST"
+        #include "include/LIST_METHODS.LIST"
+        #include "include/MAP_METHODS.LIST"
         #undef METHOD_BEGIN
         #undef ARGUMENT
         #undef METHOD_END

@@ -2,9 +2,9 @@
 #pragma once
 #include <exception>
 #include <stdexcept>
-#include "libDM/DynamicMessage.hpp"
+#include "DynamicMessage.hpp"
 #include <memory>
-#include "include/POTENTIOMETER.hpp"
+#include "POTENTIOMETER.hpp"
 
 
 using namespace Device;

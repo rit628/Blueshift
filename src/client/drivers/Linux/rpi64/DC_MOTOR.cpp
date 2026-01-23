@@ -2,9 +2,9 @@
 
 #include <exception>
 #include <stdexcept>
-#include "libDM/DynamicMessage.hpp"
+#include "DynamicMessage.hpp"
 #include <memory>
-#include "include/DC_MOTOR.hpp"
+#include "DC_MOTOR.hpp"
 
 using namespace Device;
 

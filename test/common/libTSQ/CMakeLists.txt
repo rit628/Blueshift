@@ -1,0 +1,1 @@
+bls_add_test(libTSQ LINKS TSQ)

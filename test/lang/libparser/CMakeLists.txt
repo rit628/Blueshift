@@ -1,0 +1,1 @@
+bls_add_test(libparser LINKS parser lang_common)

@@ -1,6 +1,6 @@
-#include "include/Common.hpp"
-# include "libnetwork/Connection.hpp"
-#include "libnetwork/Protocol.hpp"
+#include "Serialization.hpp"
+# include "Connection.hpp"
+#include "Protocol.hpp"
 #include <unordered_map>
 
 using cont_int = uint16_t; 

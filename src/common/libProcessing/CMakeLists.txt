@@ -1,0 +1,1 @@
+bls_add_library(processing INTERFACE)

@@ -1,8 +1,8 @@
 #ifdef __linux__
 
-#include "libnetwork/Connection.hpp"
-#include "libnetwork/Protocol.hpp"
-#include "include/TIMER_TEST.hpp"
+#include "Connection.hpp"
+#include "Protocol.hpp"
+#include "TIMER_TEST.hpp"
 
 using namespace Device;
 

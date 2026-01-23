@@ -1,18 +1,18 @@
 #pragma once
 
-#include "libDM/DynamicMessage.hpp"
-#include "include/ADC.hpp"
-#include "include/HttpListener.hpp"
-#include "libTSM/TSM.hpp"
-#include "libnetwork/Protocol.hpp"
+#include "DynamicMessage.hpp"
+#include "ADC.hpp"
+#include "TSM.hpp"
+#include "Protocol.hpp"
 #include "Devices.hpp"
+#include "HttpListener.hpp"
 #include <atomic>
 #include <condition_variable>
 #include <cstdint>
 #include <functional>
 #include <boost/asio.hpp>
 #include <chrono> 
-#include "libnetwork/Connection.hpp"
+#include "Connection.hpp"
 #include <memory>
 #include <shared_mutex>
 #include <stop_token>

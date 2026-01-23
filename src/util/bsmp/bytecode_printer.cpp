@@ -1,8 +1,8 @@
 
 
 #include "bytecode_printer.hpp"
-#include "include/Common.hpp"
-#include "libtype/bls_types.hpp"
+#include "Serialization.hpp"
+#include "bls_types.hpp"
 #include <algorithm>
 #include <cstdint>
 #include <iostream>
@@ -219,7 +219,7 @@ void BytecodePrinter::code(
     printArgs(args);\
     *outputStream << std::endl; \
     }
-#include "libbytecode/include/OPCODES.LIST"
+#include "include/OPCODES.LIST"
 #undef OPCODE_BEGIN
 #undef ARGUMENT
 #undef OPCODE_END

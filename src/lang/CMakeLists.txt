@@ -1,0 +1,13 @@
+add_subdirectory(common)
+add_subdirectory(liblexer)
+add_subdirectory(libparser)
+add_subdirectory(libinterpreter)
+add_subdirectory(libanalyzer)
+add_subdirectory(libgenerator)
+add_subdirectory(libdepgraph)
+add_subdirectory(libsymgraph)
+add_subdirectory(libdivider)
+add_subdirectory(libvirtual_machine)
+add_subdirectory(libcompiler)
+
+bls_add_executable(lang main.cpp LINKS symgraph compiler virtual_machine)

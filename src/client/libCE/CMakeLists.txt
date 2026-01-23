@@ -1,0 +1,1 @@
+bls_add_library(client_engine STATIC LINKS network device)

@@ -1,5 +1,5 @@
-#include "include/HTTP_ENDPOINT.hpp"
-#include "libDM/DynamicMessage.hpp"
+#include "HTTP_ENDPOINT.hpp"
+#include "DynamicMessage.hpp"
 #include <unordered_map>
 
 using namespace Device; 

@@ -1,6 +1,6 @@
 #ifdef __RPI64__
 
-#include "include/LIGHT.hpp"
+#include "LIGHT.hpp"
 #include <cstdint>
 #include <pigpio.h>
 

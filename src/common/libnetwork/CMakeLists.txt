@@ -1,0 +1,1 @@
+bls_add_library(network STATIC LINKS TSQ dynamic_message)

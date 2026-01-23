@@ -1,9 +1,9 @@
 #include "ClientGateway.hpp"
-#include "include/Common.hpp"
-#include "libDM/DynamicMessage.hpp"
-#include "libScheduler/Scheduler.hpp"
-#include "libnetwork/Protocol.hpp"
-#include "libtype/bls_types.hpp"
+#include "Serialization.hpp"
+#include "DynamicMessage.hpp"
+#include "Scheduler.hpp"
+#include "Protocol.hpp"
+#include "bls_types.hpp"
 #include <memory>
 #include <unordered_map>
 #include <variant>

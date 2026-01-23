@@ -1,7 +1,7 @@
  #include "Connection.hpp"
 #include "boost/asio/write.hpp"
 #include "boost/system/detail/error_code.hpp"
-#include "libnetwork/Protocol.hpp"
+#include "Protocol.hpp"
 #include <array>
 #include <cstddef>
  

@@ -1,0 +1,1 @@
+bls_add_test(liblexer LINKS lexer lang_common)

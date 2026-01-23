@@ -1,0 +1,1 @@
+bls_add_library(ticker STATIC LINKS network)

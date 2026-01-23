@@ -2,10 +2,10 @@
 #include "call_stack.hpp"
 #include "error_types.hpp"
 #include "fixtures/analyzer_test.hpp"
-#include "include/Common.hpp"
+#include "Serialization.hpp"
 #include "include/reserved_tokens.hpp"
-#include "libtype/bls_types.hpp"
-#include "libtype/typedefs.hpp"
+#include "bls_types.hpp"
+#include "typedefs.hpp"
 #include "test_macros.hpp"
 #include <cstdint>
 #include <gtest/gtest.h>

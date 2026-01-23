@@ -2,9 +2,9 @@
 
 #include <exception>
 #include <stdexcept>
-#include "libDM/DynamicMessage.hpp"
+#include "DynamicMessage.hpp"
 #include <memory>
-#include "include/THERMISTOR.hpp"
+#include "THERMISTOR.hpp"
 
 
 using namespace Device;
