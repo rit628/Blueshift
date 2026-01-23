@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstring>
 #include <deque>
+#include <span>
 #include <stdexcept>
 #include <variant>
 #include <vector> 
@@ -22,7 +23,6 @@ class HeapDescriptor;
 class VectorDescriptor; 
 class PrimDescriptor; 
 class MapDescriptor;
-
 
 // Message Header (Data Map Size ): 
 struct MsgHeader{
@@ -575,7 +575,7 @@ class DynamicMessage{
     }
 
     template <typename T> 
-    std::shared_ptr<HeapDescriptor> primVecExtract(Descriptor desc, T &cpy){
+    std::shared_ptr<HeapDescriptor> primVecExtract(Descriptor desc){
         int ptrPos = desc.lumpOffset; 
         int eleCount = desc.numElements; 
         auto vecDesc = std::make_shared<VectorDescriptor>(desc.contained_type); 
@@ -602,18 +602,15 @@ class DynamicMessage{
 
         switch(contType){
             case TYPE::float_t : {
-                double t; 
-                return primVecExtract(obj_desc, t); 
+                return primVecExtract<double>(obj_desc); 
                 break; 
             }
             case TYPE::int_t : {
-                int64_t t; 
-                return primVecExtract(obj_desc, t); 
+                return primVecExtract<int64_t>(obj_desc); 
                 break; 
             }
             case TYPE::bool_t: {
-                bool t; 
-                return primVecExtract(obj_desc, t); 
+                return primVecExtract<bool>(obj_desc); 
                 break; 
             }
             case TYPE::map_t: {
@@ -798,7 +795,7 @@ class DynamicMessage{
 
 
    // Utility function to get the volatility of a field
-    void getFieldVolatility(std::unordered_map<std::string, std::deque<float>>  &vol_list, int vol_field_size){
+    void getFieldVolatility(std::unordered_map<std::string, std::deque<float>>  &vol_list){
         for(auto &obj : this->attributeMap){    
             int desc = obj.second; 
 

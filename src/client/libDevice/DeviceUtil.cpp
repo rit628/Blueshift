@@ -323,7 +323,7 @@ void DevicePoller::sendMessage(DeviceTimer& timer) {
     this->device.transmitStates(dmsg); 
 
     // Extract numerical data out the fields and add to the src: 
-    dmsg.getFieldVolatility(timer.attr_history, VOLATILITY_LIST_SIZE); 
+    dmsg.getFieldVolatility(timer.attr_history); 
 
     if(timer.attr_history.size() > 0){
         timer.calcVolMap(); 
