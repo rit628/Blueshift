@@ -201,7 +201,7 @@ void Client::listener(std::stop_token stoken){
                             cursors.at(dev_index).awaitQueryCompletion(stoken);
                             this->sendMessage(dev_index, Protocol::CALLBACK, false, task_id);
                         }
-                        catch(std::exception(e)){
+                        catch(std::exception e){
                             std::cout<<"Failure to change the state detected"<<std::endl; 
                             std::cout<<e.what()<<std::endl; 
                         }
@@ -216,7 +216,7 @@ void Client::listener(std::stop_token stoken){
                             device.processStates(dmsg);
                             this->sendMessage(dev_index, Protocol::CALLBACK, false, task_id);
                         }
-                        catch(std::exception(e)){
+                        catch(std::exception e){
                             std::cout<<"Failure to change the state detected"<<std::endl; 
                             std::cout<<e.what()<<std::endl; 
                         }

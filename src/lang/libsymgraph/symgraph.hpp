@@ -123,7 +123,7 @@ namespace BlsLang{
             Symgraph() : 
             Printer(std::cout), p(std::cout){}
 
-           ~Symgraph() = default; 
+           ~Symgraph() override = default; 
             
             BlsObject visit(AstNode::Source& ast) override; 
             BlsObject visit(AstNode::Function::Task& ast) override; 

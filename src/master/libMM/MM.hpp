@@ -100,7 +100,7 @@ class TriggerManager{
                             max_priority = this->trigData[i].priority;
                             id = i; 
                         }
-                    }; 
+                    }
                     i++; 
                 }
 

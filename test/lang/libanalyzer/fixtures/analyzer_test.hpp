@@ -14,7 +14,7 @@ namespace BlsLang {
     class AnalyzerTest : public testing::Test {
         public:
             struct Metadata {
-                Metadata() { };
+                Metadata() { }
                 std::unordered_map<std::string, DeviceDescriptor> deviceDescriptors;
                 std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
                 std::unordered_map<BlsType, uint8_t> literalPool;

@@ -45,7 +45,7 @@ namespace BlsLang {
 
   constexpr auto SPECIAL_ANY                          ("any");
 
-};
+}
 
 enum class TYPE : uint32_t {
     void_t
@@ -168,7 +168,7 @@ class HeapDescriptor {
     // only used for type checking
     auto& getSampleElement() { return this->sampleElement; }
     virtual BlsType& access(BlsType &obj) = 0;
-    BlsType& access(BlsType &&obj) { return access(obj); };
+    BlsType& access(BlsType &&obj) { return access(obj); }
     virtual bool operator==(const HeapDescriptor&) const = 0;
     virtual bool operator!=(const HeapDescriptor&) const = 0;
     virtual std::shared_ptr<HeapDescriptor> clone() const = 0;

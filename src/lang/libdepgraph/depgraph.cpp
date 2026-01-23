@@ -10,18 +10,20 @@ using namespace BlsLang;
 UTILITY FUNCTION
 */
 
-void error(std::string message){
-    throw std::invalid_argument("DEPENDENCY GRAPH: " + message); 
-}
-
-
-ControllerID extractCtls(const std::string& deviceCons){
-    int pos = deviceCons.find("::"); 
-    if(pos != std::string::npos){
-        return deviceCons.substr(0, pos); 
+namespace  {
+    void error(std::string message){
+        throw std::invalid_argument("DEPENDENCY GRAPH: " + message); 
     }
-    // error("Device constructor contains no device name"); 
-    return ""; 
+    
+    
+    ControllerID extractCtls(const std::string& deviceCons){
+        int pos = deviceCons.find("::"); 
+        if(pos != std::string::npos){
+            return deviceCons.substr(0, pos); 
+        }
+        // error("Device constructor contains no device name"); 
+        return ""; 
+    }
 }
 
 GlobalContext& DepGraph::getGlobalContext(){

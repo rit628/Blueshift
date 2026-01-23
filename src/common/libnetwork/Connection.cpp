@@ -15,7 +15,7 @@ tcp::socket socket ,Owner own_type, TSQ<OwnedSentMessage> &in_msg, std::string &
 
         own = own_type;
         ip = ip_addr; 
-    };
+    }
 
 
 

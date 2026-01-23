@@ -26,51 +26,52 @@ using namespace BlsLang;
 *   
 */ 
 
-/*
-    Extract the symbol with the local index: 
-*/
-std::string extractRawSymbol(const std::string &str){
-    int pos = str.find('?'); 
-    if(pos != std::string::npos){
-        return str.substr(0, pos); 
+namespace {
+    /*
+        Extract the symbol with the local index: 
+    */
+    std::string extractRawSymbol(const std::string &str){
+        int pos = str.find('?'); 
+        if(pos != std::string::npos){
+            return str.substr(0, pos); 
+        }
+        return str; 
     }
-    return str; 
+    
+    /*
+        Extract the complete symbol (removes the local index)
+    */
+    std::string extractFullSymbol(const std::string &str){
+        std::string extr1 = extractRawSymbol(str); 
+        int pos = extr1.find('%'); 
+        if(pos != std::string::npos){
+            extr1 = extr1.substr(0, pos); 
+        } 
+    
+        pos = extr1.find('.'); 
+        if(pos != std::string::npos){
+            return extr1.substr(0, pos); 
+        } 
+    
+        return extr1; 
+    }
+    
+    std::pair<std::string, std::string> getObjectMember(const std::string &str){
+        std::string extr1 = extractRawSymbol(str); 
+        int pos = extr1.find('%'); 
+        if(pos != std::string::npos){
+            extr1 = extr1.substr(0, pos); 
+        } 
+    
+        pos = extr1.find('.'); 
+        if(pos != std::string::npos){
+            return std::make_pair(extr1.substr(0, pos) , extr1.substr(pos+1)); 
+        } 
+    
+        return std::make_pair("", ""); 
+    }
+
 }
-
-/*
-    Extract the complete symbol (removes the local index)
-*/
-std::string extractFullSymbol(const std::string &str){
-    std::string extr1 = extractRawSymbol(str); 
-    int pos = extr1.find('%'); 
-    if(pos != std::string::npos){
-        extr1 = extr1.substr(0, pos); 
-    } 
-
-    pos = extr1.find('.'); 
-    if(pos != std::string::npos){
-        return extr1.substr(0, pos); 
-    } 
-
-    return extr1; 
-}
-
-std::pair<std::string, std::string> getObjectMember(const std::string &str){
-    std::string extr1 = extractRawSymbol(str); 
-    int pos = extr1.find('%'); 
-    if(pos != std::string::npos){
-        extr1 = extr1.substr(0, pos); 
-    } 
-
-    pos = extr1.find('.'); 
-    if(pos != std::string::npos){
-        return std::make_pair(extr1.substr(0, pos) , extr1.substr(pos+1)); 
-    } 
-
-    return std::make_pair("", ""); 
-}
-
-
 
 std::pair<std::unordered_set<SymbolID>, std::unordered_set<DeviceID>> Symgraph::getDeps(AstNode& node){
     std::unordered_set<SymbolID> symbolDeps; 
@@ -98,7 +99,7 @@ std::pair<std::unordered_set<SymbolID>, std::unordered_set<DeviceID>> Symgraph::
                 if(currentInitiator == candidateInit){
                     break;     
                 }                
-            }; 
+            }
             
         }
     }
@@ -210,7 +211,7 @@ BlsObject Symgraph::visit(AstNode::Statement::If& ast){
 
 
 // Fix the ast to use the ast indexing
-BlsObject Symgraph::visit(AstNode::Statement::Declaration &ast){; 
+BlsObject Symgraph::visit(AstNode::Statement::Declaration &ast){
     this->ctx.redefCount.emplace(ast.getName(), 0); 
     std::string symbolName = ast.getName() + "%" + std::to_string(static_cast<int>(ast.getLocalIndex())) + "?0";  
 

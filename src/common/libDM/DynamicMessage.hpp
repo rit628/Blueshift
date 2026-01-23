@@ -445,7 +445,7 @@ class DynamicMessage{
         
         // Clear the input string
         recvString.clear();  
-    }; 
+    } 
 
     bool hasField(std::string targ_field){
         return this->attributeMap.contains(targ_field);
@@ -647,7 +647,7 @@ class DynamicMessage{
                 throw std::runtime_error("Unknown vector type"); 
                 return NULL; 
             }
-        }; 
+        }
     }
 
     BlsType primToTree(int descIndex, int &trav1){  

@@ -102,7 +102,7 @@ idMaps(data)
         this->devPosMap[devPos.device_name] = i; 
         i++; 
     }
-}; 
+}
 
 
 void ClientEU::insertDevice(HeapMasterMessage hmm){
