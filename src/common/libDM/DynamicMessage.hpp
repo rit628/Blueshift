@@ -9,7 +9,6 @@
 #include <vector> 
 #include <memory> 
 #include <unordered_map> 
-#include <map>
 #include <iostream> 
 #include "bls_types.hpp"
 #include "typedefs.hpp"
@@ -73,7 +72,7 @@ class DynamicMessage{
 
 
     template <typename T> 
-    std::pair<TYPE, uint8_t> peekType(T &obj){
+    std::pair<TYPE, uint8_t> peekType(T&){
         if constexpr (TypeDef::Integer<T>) {
             return std::make_pair(TYPE::int_t, static_cast<uint8_t>(sizeof(T)));
         }

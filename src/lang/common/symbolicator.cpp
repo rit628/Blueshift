@@ -4,11 +4,11 @@
 
 using namespace BlsLang;
 
-BlsObject Symbolicator::visit(AstNode::Specifier::Type& ast) {
+BlsObject Symbolicator::visit(AstNode::Specifier::Type&) {
     return std::monostate();
 }
 
-BlsObject Symbolicator::visit(AstNode::Expression::Literal& ast) {
+BlsObject Symbolicator::visit(AstNode::Expression::Literal&) {
     return std::monostate();
 }
 
@@ -82,11 +82,11 @@ BlsObject Symbolicator::visit(AstNode::Statement::Declaration& ast) {
     return std::monostate();
 }
 
-BlsObject Symbolicator::visit(AstNode::Statement::Continue& ast) {
+BlsObject Symbolicator::visit(AstNode::Statement::Continue&) {
     return std::monostate();
 }
 
-BlsObject Symbolicator::visit(AstNode::Statement::Break& ast) {
+BlsObject Symbolicator::visit(AstNode::Statement::Break&) {
     return std::monostate();
 }
 
@@ -167,6 +167,6 @@ BlsObject Symbolicator::visit(AstNode::Source& ast) {
     return std::monostate();
 }
 
-BlsObject Symbolicator::visit(AstNode::Initializer::Task& ast) {
+BlsObject Symbolicator::visit(AstNode::Initializer::Task&) {
     return std::monostate();
 }

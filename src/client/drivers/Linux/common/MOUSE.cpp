@@ -12,7 +12,7 @@
 
 using namespace Device;
 
-void MOUSE::processStates(DynamicMessage& dmsg) {
+void MOUSE::processStates(DynamicMessage&) {
     // read only
 }
 

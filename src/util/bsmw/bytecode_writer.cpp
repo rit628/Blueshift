@@ -64,7 +64,7 @@ void BytecodeWriter::writeLiteralPool(std::ostream& stream, boost::archive::bina
     }
 }
 
-void BytecodeWriter::writeBody(std::ostream& stream, boost::archive::binary_oarchive& oa) {
+void BytecodeWriter::writeBody(std::ostream& stream) {
     std::string buf;
     while (mnemonicBytecode >> buf) {
         if (false) { } // hack to force short circuiting and invalid input checking
@@ -98,5 +98,5 @@ void BytecodeWriter::convertToBinary(std::ostream& stream) {
     boost::archive::binary_oarchive oa(stream, boost::archive::archive_flags::no_header);
     writeHeader(stream, oa);
     writeLiteralPool(stream, oa);
-    writeBody(stream, oa);
+    writeBody(stream);
 }

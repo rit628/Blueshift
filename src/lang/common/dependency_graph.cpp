@@ -8,53 +8,53 @@
 
 using namespace BlsLang;
 
-BlsObject DependencyGraph::visit(AstNode::Specifier::Type& ast) {
+BlsObject DependencyGraph::visit(AstNode::Specifier::Type&) {
     // type specifiers create no dependencies
     return std::monostate();
 }
 
-BlsObject DependencyGraph::visit(AstNode::Expression::Literal& ast) {
+BlsObject DependencyGraph::visit(AstNode::Expression::Literal&) {
     // literals create no dependencies
     return std::monostate();
 }
 
-BlsObject DependencyGraph::visit(AstNode::Expression::List& ast) {
+BlsObject DependencyGraph::visit(AstNode::Expression::List&) {
     return std::monostate();
 }
 
-BlsObject DependencyGraph::visit(AstNode::Expression::Set& ast) {
+BlsObject DependencyGraph::visit(AstNode::Expression::Set&) {
     return std::monostate();
 }
 
-BlsObject DependencyGraph::visit(AstNode::Expression::Map& ast) {
+BlsObject DependencyGraph::visit(AstNode::Expression::Map&) {
     return std::monostate();
 }
 
-BlsObject DependencyGraph::visit(AstNode::Expression::Access& ast) {
+BlsObject DependencyGraph::visit(AstNode::Expression::Access&) {
     return std::monostate();
 }
 
-BlsObject DependencyGraph::visit(AstNode::Expression::Function& ast) {
+BlsObject DependencyGraph::visit(AstNode::Expression::Function&) {
     return std::monostate();
 }
 
-BlsObject DependencyGraph::visit(AstNode::Expression::Method& ast) {
+BlsObject DependencyGraph::visit(AstNode::Expression::Method&) {
     return std::monostate();
 }
 
-BlsObject DependencyGraph::visit(AstNode::Expression::Group& ast) {
+BlsObject DependencyGraph::visit(AstNode::Expression::Group&) {
     return std::monostate();
 }
 
-BlsObject DependencyGraph::visit(AstNode::Expression::Unary& ast) {
+BlsObject DependencyGraph::visit(AstNode::Expression::Unary&) {
     return std::monostate();
 }
 
-BlsObject DependencyGraph::visit(AstNode::Expression::Binary& ast) {
+BlsObject DependencyGraph::visit(AstNode::Expression::Binary&) {
     return std::monostate();
 }
 
-BlsObject DependencyGraph::visit(AstNode::Statement::Expression& ast) {
+BlsObject DependencyGraph::visit(AstNode::Statement::Expression&) {
     return std::monostate();
 }
 
@@ -77,31 +77,31 @@ BlsObject DependencyGraph::visit(AstNode::Statement::Declaration& ast) {
     return std::monostate();
 }
 
-BlsObject DependencyGraph::visit(AstNode::Statement::Continue& ast) {
+BlsObject DependencyGraph::visit(AstNode::Statement::Continue&) {
     return std::monostate();
 }
 
-BlsObject DependencyGraph::visit(AstNode::Statement::Break& ast) {
+BlsObject DependencyGraph::visit(AstNode::Statement::Break&) {
     return std::monostate();
 }
 
-BlsObject DependencyGraph::visit(AstNode::Statement::Return& ast) {
+BlsObject DependencyGraph::visit(AstNode::Statement::Return&) {
     return std::monostate();
 }
 
-BlsObject DependencyGraph::visit(AstNode::Statement::While& ast) {
+BlsObject DependencyGraph::visit(AstNode::Statement::While&) {
     return std::monostate();
 }
 
-BlsObject DependencyGraph::visit(AstNode::Statement::For& ast) {
+BlsObject DependencyGraph::visit(AstNode::Statement::For&) {
     return std::monostate();
 }
 
-BlsObject DependencyGraph::visit(AstNode::Statement::If& ast) {
+BlsObject DependencyGraph::visit(AstNode::Statement::If&) {
     return std::monostate();
 }
 
-BlsObject DependencyGraph::visit(AstNode::Function::Procedure& ast) {
+BlsObject DependencyGraph::visit(AstNode::Function::Procedure&) {
     return std::monostate();
 }
 

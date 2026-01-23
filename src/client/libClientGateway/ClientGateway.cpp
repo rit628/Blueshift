@@ -12,7 +12,7 @@
 
 ClientEM::ClientEM(std::vector<TaskDescriptor> &descList, TSQ<SentMessage> &readLine,
     TSQ<SentMessage> &writeLine,std::unordered_map<DeviceID, int> data, int ctlCode)
-:   clientScheduler(descList, [](HeapMasterMessage hmm){}), 
+:   clientScheduler(descList, [](HeapMasterMessage){}), 
     clientReadLine(readLine),
     clientWriteLine(writeLine)
 {

@@ -15,7 +15,7 @@ void READ_FILE_POLL::init(std::unordered_map<std::string, std::string> &config) 
     }
 }
 
-void READ_FILE_POLL::processStates(DynamicMessage &dmsg) {
+void READ_FILE_POLL::processStates(DynamicMessage&) {
 
 }
 

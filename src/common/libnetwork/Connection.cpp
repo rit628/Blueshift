@@ -67,7 +67,7 @@ void Connection::connectToMaster(tcp::endpoint master_ep ,std::string &name){
 
 void Connection::connectToServer(boost::asio::ip::tcp::resolver::results_type &results){
     boost::asio::async_connect(this->socket, results, 
-    [](boost::system::error_code ec, tcp::endpoint endpt){
+    [](boost::system::error_code ec, tcp::endpoint){
         if(!ec){
             //std::cout<<"Read Header"<<std::endl; 
         }
@@ -96,7 +96,7 @@ void Connection::send(SentMessage sm){
             boost::asio::buffer(&sm.header, sizeof(SentHeader)),
             boost::asio::buffer(sm.body.data(), sm.header.body_size)
         },
-        [](boost::system::error_code ec, size_t size) {
+        [](boost::system::error_code ec, size_t) {
             if (ec) {
                 std::cerr << "Error Writing Message: " << ec.message() << std::endl;
             }
@@ -115,7 +115,7 @@ void Connection::readHeader(){
     auto& header = this->in_messageBuffer.at(index).header;
 
     boost::asio::async_read(this->socket, boost::asio::buffer(&header, sizeof(SentHeader)) ,
-    [this, index](boost::system::error_code ec, size_t len){
+    [this, index](boost::system::error_code ec, size_t){
         if(!ec){
             auto& bodySize = this->in_messageBuffer.at(index).header.body_size;
             this->in_messageBuffer.at(index).body.resize(bodySize); 
@@ -144,7 +144,7 @@ void Connection::readHeader(){
 void Connection::readBody(int index){
     auto& readMsg = this->in_messageBuffer.at(index);
     boost::asio::async_read(this->socket, boost::asio::buffer(readMsg.body.data(), readMsg.header.body_size), 
-    [this, index](boost::system::error_code ec, size_t len){ 
+    [this, index](boost::system::error_code ec, size_t){ 
         if(!ec){
             this->addToQueue(index); 
         }

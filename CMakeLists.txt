@@ -63,7 +63,7 @@ set(CMAKE_CXX_FLAGS "-w") # Disable warnings for fetched content
 FetchContent_MakeAvailable(googletest Boost ${FETCHCONTENT_OPTIONAL})
 
 # Set compile options after fetch content to suppress external warnings
-set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-sign-compare -Wno-unused-parameter")
+set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-sign-compare")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -glldb -gfull")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 set(CMAKE_CXX_FLAGS_MINSIZEREL "-Os -DNDEBUG")
