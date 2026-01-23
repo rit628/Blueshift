@@ -160,10 +160,8 @@ class DynamicMessage{
     void deserialize(int descPos, std::unordered_map<K, V> &reciever, int &descTrav){
         Descriptor desc = this->Descriptors[descPos]; 
         int mapEle = desc.numElements; 
-        int offset = desc.lumpOffset; 
 
-        int j = 0; 
-        int i = 1; 
+        int i = 1;
 
         for(int j = 0; j < mapEle; j++){
             // Odd offset elements are keys
