@@ -1,2 +1,1 @@
-add_library(processing INTERFACE)
-target_include_directories(processing INTERFACE .)
+bls_add_library(processing INTERFACE)

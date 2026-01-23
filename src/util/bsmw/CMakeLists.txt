@@ -1,3 +1,1 @@
-file(GLOB_RECURSE BSMW_SRC *.cpp)
-add_executable(bsmw ${BSMW_SRC})
-target_link_libraries(bsmw bytecode type)
+bls_add_executable(bsmw LINKS bytecode type)

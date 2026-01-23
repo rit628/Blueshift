@@ -1,2 +1,1 @@
-add_library(TSM INTERFACE)
-target_include_directories(TSM INTERFACE .)
+bls_add_library(TSM INTERFACE)

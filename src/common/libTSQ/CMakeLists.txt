@@ -1,2 +1,1 @@
-add_library(TSQ INTERFACE)
-target_include_directories(TSQ INTERFACE .)
+bls_add_library(TSQ INTERFACE)

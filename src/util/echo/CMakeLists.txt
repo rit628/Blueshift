@@ -1,1 +1,1 @@
-add_executable(echo main.cpp)
+bls_add_executable(echo main.cpp)

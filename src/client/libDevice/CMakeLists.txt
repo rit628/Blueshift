@@ -1,7 +1,2 @@
-file(GLOB_RECURSE LIBDEVICE_SRC *.cpp)
-add_library(device STATIC ${LIBDEVICE_SRC} $<TARGET_OBJECTS:drivers>)
-target_include_directories(device PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(device network dynamic_message TSM)
-
-add_library(devtypes INTERFACE)
-target_include_directories(devtypes INTERFACE ${CMAKE_CURRENT_SOURCE_DIR} devtypes)
+bls_add_library(device STATIC $<TARGET_OBJECTS:drivers> LINKS network dynamic_message TSM)
+bls_add_library(devtypes INTERFACE INCLUDES devtypes)

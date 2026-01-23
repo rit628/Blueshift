@@ -10,5 +10,4 @@ add_subdirectory(libdivider)
 add_subdirectory(libvirtual_machine)
 add_subdirectory(libcompiler)
 
-add_executable(lang main.cpp)
-target_link_libraries(lang symgraph compiler virtual_machine)
+bls_add_executable(lang main.cpp LINKS symgraph compiler virtual_machine)

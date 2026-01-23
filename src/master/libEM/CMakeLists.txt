@@ -1,4 +1,1 @@
-file(GLOB_RECURSE LIBEM_SRC *.cpp)
-add_library(EM STATIC ${LIBEM_SRC})
-target_include_directories(EM PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(EM scheduler TSM TSQ MM virtual_machine)
+bls_add_library(EM STATIC LINKS scheduler TSM TSQ MM virtual_machine)

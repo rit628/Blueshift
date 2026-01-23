@@ -9,6 +9,9 @@ set(CMAKE_SCAN_FOR_MODULES)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 SET(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
 
+# Helper functions
+include(.cmake/macros.cmake)
+
 # Packages
 include(FetchContent)
 set(FETCHCONTENT_QUIET OFF)
@@ -73,7 +76,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$ENV{RUNTIME_OUTPUT_DIREC
 include_directories(${curl_SOURCE_DIR}/include)
 link_libraries(${BOOST_LINK_LIBRARIES} ${SYSTEM_LINK_LIBRARIES})
 
-# MACRO DEFINITIONS
+# Preprocessor Macro Definitions
 if(NOT CMAKE_CROSSCOMPILING)
     string(TOUPPER ${CMAKE_SYSTEM_NAME} CONTROLLER_TARGET)
     add_compile_definitions(CONTROLLER_TARGET="${CONTROLLER_TARGET}")
