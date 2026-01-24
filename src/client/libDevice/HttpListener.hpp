@@ -55,7 +55,7 @@ struct HttpSession : public std::enable_shared_from_this<HttpSession>{
 
             auto self = shared_from_this(); 
             http::async_write(socket, *res,
-                [self, res](boost::system::error_code ec, std::size_t){
+                [self, res](boost::system::error_code, std::size_t){
                 self->close(); 
             });
         }
@@ -92,7 +92,7 @@ struct HttpSession : public std::enable_shared_from_this<HttpSession>{
         void readRequest(){ 
             auto self = shared_from_this(); 
             http::async_read(socket, buffer, req, 
-                [self](boost::system::error_code ec, std::size_t bytes_transferred){
+                [self](boost::system::error_code ec, std::size_t){
                     if(!ec){
                         self->handleRequest(); 
                     }

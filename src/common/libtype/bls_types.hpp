@@ -45,7 +45,7 @@ namespace BlsLang {
 
   constexpr auto SPECIAL_ANY                          ("any");
 
-};
+}
 
 enum class TYPE : uint32_t {
     void_t
@@ -107,7 +107,7 @@ struct BlsType : std::variant<std::monostate, bool, int64_t, double, std::string
   friend bool typeCompatible(const BlsType& lhs, const BlsType& rhs);
   friend std::ostream& operator<<(std::ostream& os, const BlsType& obj);
   template<typename Archive>
-  void serialize(Archive& ar, const unsigned int version);
+  void serialize(Archive& ar, const unsigned int);
 };
 
 namespace TypeDef {
@@ -168,13 +168,13 @@ class HeapDescriptor {
     // only used for type checking
     auto& getSampleElement() { return this->sampleElement; }
     virtual BlsType& access(BlsType &obj) = 0;
-    BlsType& access(BlsType &&obj) { return access(obj); };
+    BlsType& access(BlsType &&obj) { return access(obj); }
     virtual bool operator==(const HeapDescriptor&) const = 0;
     virtual bool operator!=(const HeapDescriptor&) const = 0;
     virtual std::shared_ptr<HeapDescriptor> clone() const = 0;
 
     template<typename Archive>
-    void serialize(Archive& ar, const unsigned int version);
+    void serialize(Archive& ar, const unsigned int);
 };
 
 class MapDescriptor : public HeapDescriptor{
@@ -212,7 +212,7 @@ class MapDescriptor : public HeapDescriptor{
 
     friend class boost::serialization::access;
     template<typename Archive>
-    void serialize(Archive& ar, const unsigned int version);
+    void serialize(Archive& ar, const unsigned int);
 
     
 };
@@ -252,7 +252,7 @@ class VectorDescriptor : public HeapDescriptor, std::enable_shared_from_this<Vec
 
     friend class boost::serialization::access;
     template<typename Archive>
-    void serialize(Archive& ar, const unsigned int version);
+    void serialize(Archive& ar, const unsigned int);
 };
 
 template<TypeDef::BlueshiftConstructible T>
@@ -455,7 +455,7 @@ TYPE getType(const BlsType& obj);
 std::string stringify(const BlsType& value);
 
 template<typename Archive>
-inline void BlsType::serialize(Archive& ar, const unsigned int version) {
+inline void BlsType::serialize(Archive& ar, const unsigned int) {
   auto type = getType(*this);
   ar & type;
   switch (type) {
@@ -535,19 +535,19 @@ inline void BlsType::serialize(Archive& ar, const unsigned int version) {
 }
 
 template<typename Archive>
-void HeapDescriptor::serialize(Archive& ar, const unsigned int version) {
+void HeapDescriptor::serialize(Archive& ar, const unsigned int) {
   ar & objType;
   ar & contType;
 }
 
 template<typename Archive>
-void MapDescriptor::serialize(Archive & ar, const unsigned int version) {
+void MapDescriptor::serialize(Archive & ar, const unsigned int) {
   ar & boost::serialization::base_object<HeapDescriptor>(*this);
   ar & *map.get();
 }
 
 template<typename Archive>
-void VectorDescriptor::serialize(Archive & ar, const unsigned int version) {
+void VectorDescriptor::serialize(Archive & ar, const unsigned int) {
   ar & boost::serialization::base_object<HeapDescriptor>(*this);
   ar & *vector.get();
 }

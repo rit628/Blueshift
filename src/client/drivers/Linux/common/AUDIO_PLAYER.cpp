@@ -30,7 +30,7 @@ void AUDIO_PLAYER::processStates(DynamicMessage& dmsg) {
         }
     }
     if (states.volume != currentVolume) {
-        states.volume = std::max((int64_t)0, std::min(states.volume, (int64_t)100));
+        states.volume = std::max(int64_t(0), std::min(states.volume, int64_t(100)));
         std::cout << "VOLUME: " << states.volume << std::endl;
         float newVolume =  states.volume / 100.0;
         std::cout << "NEW VOLUME: " << newVolume << std::endl;

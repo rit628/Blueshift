@@ -21,7 +21,7 @@ void BytecodeProcessor::loadBytecode(std::istream& bytecode) {
     boost::archive::binary_iarchive ia(bytecode, boost::archive::archive_flags::no_header);
     readHeader(bytecode, ia);
     loadLiterals(bytecode, ia);
-    loadInstructions(bytecode, ia);
+    loadInstructions(bytecode);
 }
 
 void BytecodeProcessor::loadBytecode(const std::string& filename) {
@@ -91,7 +91,7 @@ void BytecodeProcessor::loadLiterals(std::istream& bytecode, boost::archive::bin
     }
 }
 
-void BytecodeProcessor::loadInstructions(std::istream& bytecode, boost::archive::binary_iarchive& ia) {
+void BytecodeProcessor::loadInstructions(std::istream& bytecode) {
     OPCODE code;
     while (bytecode.read(reinterpret_cast<char*>(&code), sizeof(code))) {
         switch (code) {

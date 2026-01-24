@@ -31,9 +31,6 @@ class Connection : public std::enable_shared_from_this<Connection>{
         std::array<SentMessage, IN_MSGSIZE> in_messageBuffer; 
         std::list<int> in_tickets; 
 
-        // Confirm Connection (checks if the targeted device is the right device)
-        bool connectionConfirm; 
-
         // Queues
         TSQ<SentMessage> out_queue; 
         TSQ<OwnedSentMessage> &in_queue; 

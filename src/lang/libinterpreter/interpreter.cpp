@@ -91,7 +91,7 @@ BlsObject Interpreter::visit(AstNode::Function::Task& ast) {
     return std::monostate();
 }
 
-BlsObject Interpreter::visit(AstNode::Setup& ast) {
+BlsObject Interpreter::visit(AstNode::Setup&) {
     return std::monostate(); // setup does not need to be visited in interpreter
 }
 
@@ -470,7 +470,7 @@ BlsObject Interpreter::visit(AstNode::Expression::List& ast) {
     return BlsType(list);
 }
 
-BlsObject Interpreter::visit(AstNode::Expression::Set& ast) {
+BlsObject Interpreter::visit(AstNode::Expression::Set&) {
     return std::monostate(); // no support for sets in phase 0
 }
 
@@ -541,6 +541,6 @@ BlsObject Interpreter::visit(AstNode::Specifier::Type& ast) {
     }
 }
 
-BlsObject Interpreter::visit(AstNode::Initializer::Task& ast) {
+BlsObject Interpreter::visit(AstNode::Initializer::Task&) {
     return std::monostate(); // Task initializers do not need to be visited in interpreter
 }

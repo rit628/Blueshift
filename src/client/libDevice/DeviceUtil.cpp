@@ -105,7 +105,7 @@ void DeviceHandle::transmitDefaultStates(DynamicMessage &dmsg) {
     std::visit(overloads {
         [](std::monostate&) -> void { throw std::runtime_error("Attempt to access device kind for null device."); },
         #define DEVTYPE_BEGIN(name, kind) \
-        [&dmsg](Device::name& dev) -> void { \
+        [&dmsg](Device::name& dev [[ maybe_unused ]]) -> void { \
             auto fallback = TypeDef::name(); \
             dmsg.packStates(fallback); \
         },
@@ -122,7 +122,7 @@ DeviceKind DeviceHandle::getDeviceKind() {
     return std::visit(overloads {
         [](std::monostate&) -> DeviceKind { throw std::runtime_error("Attempt to access device kind for null device."); },
         #define DEVTYPE_BEGIN(name, kind) \
-        [](Device::name& dev) -> DeviceKind { \
+        [](Device::name& dev [[ maybe_unused ]]) -> DeviceKind { \
             return DeviceKind::kind; \
         },
         #define ATTRIBUTE(...)
@@ -323,7 +323,7 @@ void DevicePoller::sendMessage(DeviceTimer& timer) {
     this->device.transmitStates(dmsg); 
 
     // Extract numerical data out the fields and add to the src: 
-    dmsg.getFieldVolatility(timer.attr_history, VOLATILITY_LIST_SIZE); 
+    dmsg.getFieldVolatility(timer.attr_history); 
 
     if(timer.attr_history.size() > 0){
         timer.calcVolMap(); 
@@ -432,7 +432,7 @@ void DeviceInterruptor::disableWatchers() {
                 auto&& [fd, wd, filename] = desc;
                 inotify_rm_watch(fd, wd);
             },
-            [](GpioWatchDescriptor& desc) {
+            [](GpioWatchDescriptor& desc [[ maybe_unused ]]) {
                 #ifdef __RPI64__
                 auto&& [port, callback, callbackData] = desc;
                 gpioSetAlertFuncEx(port, NULL, callbackData);
@@ -463,7 +463,7 @@ void DeviceInterruptor::enableWatchers() {
                     close(fd);
                 }
             },
-            [](GpioWatchDescriptor& desc) {
+            [](GpioWatchDescriptor& desc [[ maybe_unused ]]) {
                 #ifdef __RPI64__
                 auto&& [port, callback, callbackData] = desc;
                 gpioSetAlertFuncEx(port, callback, callbackData);
@@ -537,7 +537,7 @@ void DeviceInterruptor::IFileWatcher(std::stop_token stoken, std::string fname, 
     char event_buffer[sizeof(inotify_event) + 256]; 
     while(!stoken.stop_requested()){
         //std::cout<<"Waiting for event"<<std::endl;
-        int read_length = read(fd, event_buffer, sizeof(event_buffer)); 
+        int read_length [[ maybe_unused ]] = read(fd, event_buffer, sizeof(event_buffer)); 
 
         auto* event = reinterpret_cast<struct inotify_event*>(event_buffer);
         if (event->mask == IN_IGNORED) {

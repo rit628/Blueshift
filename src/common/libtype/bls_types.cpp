@@ -429,7 +429,7 @@ MapDescriptor::MapDescriptor(TYPE contType) {
     this->map = std::make_shared<std::unordered_map<std::string, BlsType>>(); 
 }
 
-MapDescriptor::MapDescriptor(TYPE objType, TYPE keyType, TYPE contType) {
+MapDescriptor::MapDescriptor(TYPE objType, TYPE keyType [[ maybe_unused ]] /* until we track key type */, TYPE contType) {
     this->objType = objType;
     this->contType = contType;
     this->map = std::make_shared<std::unordered_map<std::string, BlsType>>(); 

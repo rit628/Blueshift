@@ -31,10 +31,12 @@ class BytecodeProcessor {
 
         friend struct BlsTrap::Impl;
 
+        virtual ~BytecodeProcessor() = default;
+
     private:
         void readHeader(std::istream& bytecode, boost::archive::binary_iarchive& ia);
         void loadLiterals(std::istream& bytecode, boost::archive::binary_iarchive& ia);
-        void loadInstructions(std::istream& bytecode, boost::archive::binary_iarchive& ia);
+        void loadInstructions(std::istream& bytecode);
 
     protected:
         #define OPCODE_BEGIN(code) \

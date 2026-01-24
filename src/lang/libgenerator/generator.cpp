@@ -152,7 +152,7 @@ BlsObject Generator::visit(AstNode::Function::Task& ast) {
     return 0;
 }
 
-BlsObject Generator::visit(AstNode::Setup& ast) {
+BlsObject Generator::visit(AstNode::Setup&) {
     return 0; // setup() does not need to be visited in generator
 }
 
@@ -310,13 +310,13 @@ BlsObject Generator::visit(AstNode::Statement::Return& ast) {
     return 0;
 }
 
-BlsObject Generator::visit(AstNode::Statement::Continue& ast) {
+BlsObject Generator::visit(AstNode::Statement::Continue&) {
     continueIndices.top().push(instructions.size());
     instructions.push_back(createJMP(0));
     return 0;
 }
 
-BlsObject Generator::visit(AstNode::Statement::Break& ast) {
+BlsObject Generator::visit(AstNode::Statement::Break&) {
     breakIndices.top().push(instructions.size());
     instructions.push_back(createJMP(0));
     return 0;
@@ -643,7 +643,7 @@ BlsObject Generator::visit(AstNode::Expression::List& ast) {
     return 0;
 }
 
-BlsObject Generator::visit(AstNode::Expression::Set& ast) {
+BlsObject Generator::visit(AstNode::Expression::Set&) {
     throw std::runtime_error("no support for sets in phase 0");
 }
 
@@ -666,11 +666,11 @@ BlsObject Generator::visit(AstNode::Expression::Map& ast) {
     return 0;
 }
 
-BlsObject Generator::visit(AstNode::Specifier::Type& ast) {
+BlsObject Generator::visit(AstNode::Specifier::Type&) {
     return 0; // type declarations dont need to be visited in generator
 }
 
-BlsObject Generator::visit(AstNode::Initializer::Task& ast) {
+BlsObject Generator::visit(AstNode::Initializer::Task&) {
     return 0; // task configs dont need to be visited in generator
 }
 

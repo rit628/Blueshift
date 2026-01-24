@@ -8,13 +8,27 @@
 #define MAX_POLLR 100
 
 // Thanks Chat gpt
-struct PairHash {
-    size_t operator()(const std::pair<std::string, int>& p) const {
-        size_t h1 = std::hash<std::string>{}(p.first);
-        size_t h2 = std::hash<int>{}(p.second);
-        return h1 ^ (h2 << 1); // Bitwise combination
+
+namespace {
+    struct PairHash {
+        size_t operator()(const std::pair<std::string, int>& p) const {
+            size_t h1 = std::hash<std::string>{}(p.first);
+            size_t h2 = std::hash<int>{}(p.second);
+            return h1 ^ (h2 << 1); // Bitwise combination
+        }
+    };
+    
+    Timer makeTimer(TimerDesc tdesc, uint16_t dname){
+        Timer newTimer; 
+        newTimer.const_poll = tdesc.isConst; 
+        newTimer.device_num = dname; 
+        newTimer.id = tdesc.id; 
+        newTimer.period = tdesc.period; 
+    
+        return newTimer; 
+    
     }
-};
+}
 
 MTicker::MTicker(std::vector<TaskDescriptor> &Tasks)
 {
@@ -85,17 +99,6 @@ MTicker::MTicker(std::vector<TaskDescriptor> &Tasks)
            this->ticker_table[dev_alias] = device_info;  
         }
     }
-}
-
-Timer makeTimer(TimerDesc tdesc, uint16_t dname){
-    Timer newTimer; 
-    newTimer.const_poll = tdesc.isConst; 
-    newTimer.device_num = dname; 
-    newTimer.id = tdesc.id; 
-    newTimer.period = tdesc.period; 
-
-    return newTimer; 
-
 }
 
 // Send the initial Message (including the constant timers for a certain ctl);

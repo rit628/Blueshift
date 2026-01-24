@@ -9,31 +9,31 @@
 namespace BlsLang {
     class ParserTest : public testing::Test {
         public:
-            void TEST_PARSE_SOURCE(std::vector<Token> sampleTokens, std::unique_ptr<AstNode> expectedAst, bool success = true) {
+            void TEST_PARSE_SOURCE(std::vector<Token> sampleTokens, std::unique_ptr<AstNode> expectedAst) {
                 parser.ts.setStream(sampleTokens);
                 auto ast = parser.parseSource();
                 checkAst(std::move(ast), std::move(expectedAst));
             }
 
-            void TEST_PARSE_FUNCTION(std::vector<Token> sampleTokens, std::unique_ptr<AstNode> expectedAst, bool success = true) {
+            void TEST_PARSE_FUNCTION(std::vector<Token> sampleTokens, std::unique_ptr<AstNode> expectedAst) {
                 parser.ts.setStream(sampleTokens);
                 auto ast = parser.parseFunction();
                 checkAst(std::move(ast), std::move(expectedAst));
             }
 
-            void TEST_PARSE_STATEMENT(std::vector<Token> sampleTokens, std::unique_ptr<AstNode> expectedAst, bool success = true) {
+            void TEST_PARSE_STATEMENT(std::vector<Token> sampleTokens, std::unique_ptr<AstNode> expectedAst) {
                 parser.ts.setStream(sampleTokens);
                 auto ast = parser.parseStatement();
                 checkAst(std::move(ast), std::move(expectedAst));
             }
 
-            void TEST_PARSE_EXPRESSION(std::vector<Token> sampleTokens, std::unique_ptr<AstNode> expectedAst, bool success = true) {
+            void TEST_PARSE_EXPRESSION(std::vector<Token> sampleTokens, std::unique_ptr<AstNode> expectedAst) {
                 parser.ts.setStream(sampleTokens);
                 auto ast = parser.parseExpression();
                 checkAst(std::move(ast), std::move(expectedAst));
             }
 
-            void TEST_PARSE_SPECIFIER(std::vector<Token> sampleTokens, std::unique_ptr<AstNode> expectedAst, bool success = true) {
+            void TEST_PARSE_SPECIFIER(std::vector<Token> sampleTokens, std::unique_ptr<AstNode> expectedAst) {
                 parser.ts.setStream(sampleTokens);
                 auto ast = parser.parseSpecifier();
                 checkAst(std::move(ast), std::move(expectedAst));

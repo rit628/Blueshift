@@ -256,14 +256,14 @@ namespace BlsLang {
         return true;
     }
 
-    inline BlsObject Tester::visit(AstNode::Statement::Continue& ast) {
+    inline BlsObject Tester::visit(AstNode::Statement::Continue&) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         std::ignore = dynamic_cast<AstNode::Statement::Continue&>(*toCast);
         
         return true;
     }
     
-    inline BlsObject Tester::visit(AstNode::Statement::Break& ast) {
+    inline BlsObject Tester::visit(AstNode::Statement::Break&) {
         auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top();
         std::ignore = dynamic_cast<AstNode::Statement::Break&>(*toCast);
         

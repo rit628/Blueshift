@@ -40,7 +40,7 @@ namespace BlsLang {
         public:
             class Task;
 
-            virtual ~Initializer() = default;
+            virtual ~Initializer() override = default;
             virtual std::unique_ptr<AstNode::Initializer> cloneBase() const = 0;
     };
 
@@ -69,7 +69,7 @@ namespace BlsLang {
         public:
             class Type;
         
-            virtual ~Specifier() = default;
+            virtual ~Specifier() override = default;
             virtual std::unique_ptr<AstNode::Specifier> cloneBase() const = 0;
     };
 
@@ -106,7 +106,7 @@ namespace BlsLang {
             class Unary;
             class Binary;
 
-            virtual ~Expression() = default;
+            virtual ~Expression() override = default;
             virtual std::unique_ptr<AstNode::Expression> cloneBase() const = 0;
     };
 
@@ -359,12 +359,10 @@ namespace BlsLang {
             Statement(std::unordered_set<std::string> controllerSplit)
             : controllerSplit(controllerSplit) {}
 
-            virtual ~Statement() = default;
+            virtual ~Statement() override = default;
             virtual std::unique_ptr<AstNode::Statement> cloneBase() const = 0;
 
-            auto& getControllerSplit(){
-                return controllerSplit; 
-            }; 
+            auto& getControllerSplit() { return controllerSplit; }
 
             private:
                 std::unordered_set<std::string> controllerSplit; 
@@ -570,7 +568,7 @@ namespace BlsLang {
                    , std::initializer_list<AstNode::Specifier::Type*> parameterTypes
                    , std::vector<std::string> parameters
                    , std::initializer_list<AstNode::Statement*> statements);
-            virtual ~Function() = default;
+            virtual ~Function() override = default;
             virtual std::unique_ptr<AstNode::Function> cloneBase() const = 0;
 
             auto& getName() { return name; }
@@ -682,4 +680,4 @@ namespace BlsLang {
             std::unique_ptr<AstNode::Setup> setup;
     };
 
-};
+}

@@ -157,12 +157,12 @@ BlsObject Printer::visit(AstNode::Statement::Declaration& ast) {
     return true;
 }
 
-BlsObject Printer::visit(AstNode::Statement::Continue& ast) {
+BlsObject Printer::visit(AstNode::Statement::Continue&) {
     os << "AstNode::Statement::Continue {}" << std::endl; 
     return true;
 }
 
-BlsObject Printer::visit(AstNode::Statement::Break& ast) {
+BlsObject Printer::visit(AstNode::Statement::Break&) {
     os << "AstNode::Statement::Break {}" << std::endl; 
     return true;
 }

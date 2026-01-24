@@ -100,7 +100,7 @@ struct DeviceDescriptor {
     DeviceKind deviceKind = DeviceKind::POLLING;
 
     template<typename Archive>
-    void serialize(Archive& ar, const unsigned int version) {
+    void serialize(Archive& ar, const unsigned int) {
         ar & device_name;
         ar & type;
         ar & controller;
@@ -125,7 +125,7 @@ struct TriggerData {
     uint16_t priority = 1;
 
     template<typename Archive>
-    void serialize(Archive& ar, const unsigned int version) {
+    void serialize(Archive& ar, const unsigned int) {
         ar & rule;
         ar & id;
         ar & priority;
@@ -136,17 +136,17 @@ struct TriggerData {
 
 struct TaskDescriptor {
 
-    std::string name; 
-    std::vector<DeviceDescriptor> binded_devices; 
+    std::string name = "";
+    std::vector<DeviceDescriptor> binded_devices = {}; 
     int bytecode_offset = 0; 
-    std::vector<DeviceDescriptor> inDevices;
-    std::vector<DeviceDescriptor> outDevices; 
+    std::vector<DeviceDescriptor> inDevices = {};
+    std::vector<DeviceDescriptor> outDevices = {}; 
     std::string hostController = "MASTER";
 
     std::vector<TriggerData> triggers = {};
 
     template<typename Archive>
-    void serialize(Archive& ar, const unsigned int version) {
+    void serialize(Archive& ar, const unsigned int version [[ maybe_unused ]]) {
         ar & name;
         ar & binded_devices;
         ar & bytecode_offset;

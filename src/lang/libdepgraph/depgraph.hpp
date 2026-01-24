@@ -72,7 +72,7 @@ namespace BlsLang{
 
         public: 
 
-        DepGraph() : Printer(std::cout){}; 
+        DepGraph() : Printer(std::cout){} 
 
             std::unordered_map<TaskID, TaskContext> getTaskMap(){
                 std::unordered_map<TaskID, TaskContext> sysCtx; 

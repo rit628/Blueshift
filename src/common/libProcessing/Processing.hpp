@@ -81,7 +81,7 @@ class TriggerManager{
                     if((this->currentBitmap & ruleBit) == ruleBit){
                         id = i; 
                         return true;
-                    }; 
+                    }
                     i++; 
                 }
                 return false; 

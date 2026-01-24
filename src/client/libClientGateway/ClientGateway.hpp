@@ -36,7 +36,7 @@ class ClientEU{
         
     public: 
         ClientEU(TaskDescriptor &taskDesc, DeviceScheduler &scheObj, TSQ<SentMessage> &clientMainLine, 
-        IdentData &idData, int ctlCode);
+        IdentData &idData);
 
         void insertDevice(HeapMasterMessage heapDesc);
         void run(); 

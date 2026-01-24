@@ -345,14 +345,14 @@ BlsObject Analyzer::visit(AstNode::Statement::Return& ast) {
     return std::monostate();
 }
 
-BlsObject Analyzer::visit(AstNode::Statement::Continue& ast) {
+BlsObject Analyzer::visit(AstNode::Statement::Continue&) {
     if (!cs.checkContext(CallStack<std::string>::Frame::Context::LOOP)) {
         throw SemanticError("continue statement outside of loop context.");
     }
     return std::monostate();
 }
 
-BlsObject Analyzer::visit(AstNode::Statement::Break& ast) {
+BlsObject Analyzer::visit(AstNode::Statement::Break&) {
     if (!cs.checkContext(CallStack<std::string>::Frame::Context::LOOP)) {
         throw SemanticError("break statement outside of loop context.");
     }
@@ -750,7 +750,7 @@ BlsObject Analyzer::visit(AstNode::Expression::List& ast) {
     return list;
 }
 
-BlsObject Analyzer::visit(AstNode::Expression::Set& ast) {
+BlsObject Analyzer::visit(AstNode::Expression::Set&) {
     throw SemanticError("no support for sets in phase 0");
 }
 

@@ -12,7 +12,7 @@
 
 using namespace Device;
 
-void KEYBOARD::processStates(DynamicMessage& dmsg) {
+void KEYBOARD::processStates(DynamicMessage&) {
     // read only
 }
 

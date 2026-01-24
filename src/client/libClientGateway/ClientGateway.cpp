@@ -12,7 +12,7 @@
 
 ClientEM::ClientEM(std::vector<TaskDescriptor> &descList, TSQ<SentMessage> &readLine,
     TSQ<SentMessage> &writeLine,std::unordered_map<DeviceID, int> data, int ctlCode)
-:   clientScheduler(descList, [](HeapMasterMessage hmm){}), 
+:   clientScheduler(descList, [](HeapMasterMessage){}), 
     clientReadLine(readLine),
     clientWriteLine(writeLine)
 {
@@ -24,7 +24,7 @@ ClientEM::ClientEM(std::vector<TaskDescriptor> &descList, TSQ<SentMessage> &read
         }
 
         this->ident_data.taskMap[taskDesc.name] = i; 
-        this->clientMap.emplace(taskDesc.name ,std::make_unique<ClientEU>(taskDesc, this->clientScheduler, writeLine, this->ident_data, ctlCode));
+        this->clientMap.emplace(taskDesc.name ,std::make_unique<ClientEU>(taskDesc, this->clientScheduler, writeLine, this->ident_data));
         i++;  
     }
 
@@ -88,7 +88,7 @@ void ClientEM::run(){
 }
 
 
-ClientEU::ClientEU(TaskDescriptor &taskDesc, DeviceScheduler &devSche, TSQ<SentMessage> &mainLine, IdentData &data, int ctlCode)
+ClientEU::ClientEU(TaskDescriptor &taskDesc, DeviceScheduler &devSche, TSQ<SentMessage> &mainLine, IdentData &data)
 :EuCache(false, false, taskDesc.name, taskDesc), scheObj(devSche), clientMainLine(mainLine),
 idMaps(data)
 {   
@@ -102,7 +102,7 @@ idMaps(data)
         this->devPosMap[devPos.device_name] = i; 
         i++; 
     }
-}; 
+}
 
 
 void ClientEU::insertDevice(HeapMasterMessage hmm){

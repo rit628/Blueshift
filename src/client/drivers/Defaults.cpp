@@ -5,15 +5,15 @@
 using namespace Device;
 
 #define DEVTYPE_BEGIN(name, ...) \
-[[ gnu::weak ]] void name::init(std::unordered_map<std::string, std::string> &config) { \
+[[ gnu::weak ]] void name::init(std::unordered_map<std::string, std::string>&) { \
     throw std::runtime_error("DEVTYPE " #name " NOT SUPPORTED ON " CONTROLLER_TARGET " CONTROLLERS"); \
 } \
 \
-[[ gnu::weak ]] void name::processStates(DynamicMessage &dmsg) { \
+[[ gnu::weak ]] void name::processStates(DynamicMessage&) { \
     throw std::runtime_error("DEVTYPE " #name " NOT SUPPORTED ON " CONTROLLER_TARGET " CONTROLLERS"); \
 } \
 \
-[[ gnu::weak ]] void name::transmitStates(DynamicMessage &dmsg) { \
+[[ gnu::weak ]] void name::transmitStates(DynamicMessage&) { \
     throw std::runtime_error("DEVTYPE " #name " NOT SUPPORTED ON " CONTROLLER_TARGET " CONTROLLERS"); \
 } \
 \

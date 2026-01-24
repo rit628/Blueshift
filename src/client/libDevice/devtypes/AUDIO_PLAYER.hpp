@@ -9,11 +9,12 @@ namespace Device {
     class AUDIO_PLAYER : public DeviceCore<TypeDef::AUDIO_PLAYER> {
         private:
             std::filesystem::path directory;
-            uint8_t* audioData;
-            uint32_t audioLength;
+            // dont know why these are registering as unused
+            uint8_t* audioData [[ maybe_unused ]];
+            uint32_t audioLength [[ maybe_unused ]];
             #ifdef SDL_ENABLED
-            SDL_AudioStream* stream = nullptr;
-            SDL_AudioSpec spec;
+            SDL_AudioStream* stream [[ maybe_unused ]] = nullptr;
+            SDL_AudioSpec spec [[ maybe_unused ]];
             #endif
 
         public:

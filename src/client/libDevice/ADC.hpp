@@ -33,7 +33,7 @@ class ADS7830{
             #endif
         }
 
-        int readByte(int fromChannel){
+        int readByte(int fromChannel [[ maybe_unused ]]){
             #ifdef __RPI64__
             if(this->handle  != -1){
                 i2cWriteByte(this->handle, channels[fromChannel]);

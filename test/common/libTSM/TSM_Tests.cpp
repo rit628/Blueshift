@@ -47,14 +47,14 @@ TEST(TSMTest, Concurrency)
     const int numIterations = 1000;
     
     // Writer threads: insert/update keys
-    auto writer = [&tsm, numIterations](int start) {
+    auto writer = [&tsm](int start) {
         for (int i = 0; i < numIterations; ++i) {
             tsm.insert(start + i, i);
         }
     };
 
     // Reader threads: read keys
-    auto reader = [&tsm, numIterations](int start) {
+    auto reader = [&tsm](int start) {
         for (int i = 0; i < numIterations; ++i) {
             auto res = tsm.get(start + i);
             // Since writes might not have occurred yet, we only check that if a value exists, it's as expected.

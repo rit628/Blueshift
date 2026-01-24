@@ -37,29 +37,29 @@ using DMM = DynamicMasterMessage;
 //     }
 // }
 
-// Test the shit: 
-
-// Temporary fill until the divider is filly implemented
-void modifyTaskDesc(std::vector<TaskDescriptor> &oDescs,  GlobalContext gcx){
-    std::unordered_map<DeviceID, DeviceDescriptor&> devDesc; 
-    for(auto& task : oDescs){
-        // Construct the device device desc map: 
-        std::unordered_map<DeviceID, DeviceDescriptor> devMap; 
-        for(auto& str : task.binded_devices){
-            devMap[str.device_name] = str; 
+namespace {
+    // Temporary fill until the divider is filly implemented
+    void modifyTaskDesc(std::vector<TaskDescriptor> &oDescs,  GlobalContext gcx){
+        std::unordered_map<DeviceID, DeviceDescriptor&> devDesc; 
+        for(auto& task : oDescs){
+            // Construct the device device desc map: 
+            std::unordered_map<DeviceID, DeviceDescriptor> devMap; 
+            for(auto& str : task.binded_devices){
+                devMap[str.device_name] = str; 
+            }
+    
+            // Fill in the global context: 
+            auto& inMap = gcx.taskConnections[task.name].inDeviceList; 
+            auto& outMap = gcx.taskConnections[task.name].outDeviceList; 
+    
+            for(auto &devId : inMap){
+                task.inDevices.push_back(devMap[devId]);
+            }
+    
+            for(auto& devId : outMap){
+                task.outDevices.push_back(devMap[devId]); 
+            }   
         }
-
-        // Fill in the global context: 
-        auto& inMap = gcx.taskConnections[task.name].inDeviceList; 
-        auto& outMap = gcx.taskConnections[task.name].outDeviceList; 
-
-        for(auto &devId : inMap){
-            task.inDevices.push_back(devMap[devId]);
-        }
-
-        for(auto& devId : outMap){
-            task.outDevices.push_back(devMap[devId]); 
-        }   
     }
 }
 

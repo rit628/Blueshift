@@ -4,12 +4,12 @@
 #include <cstdint>
 #include <cstring>
 #include <deque>
+#include <span>
 #include <stdexcept>
 #include <variant>
 #include <vector> 
 #include <memory> 
 #include <unordered_map> 
-#include <map>
 #include <iostream> 
 #include "bls_types.hpp"
 #include "typedefs.hpp"
@@ -23,7 +23,6 @@ class HeapDescriptor;
 class VectorDescriptor; 
 class PrimDescriptor; 
 class MapDescriptor;
-
 
 // Message Header (Data Map Size ): 
 struct MsgHeader{
@@ -73,7 +72,7 @@ class DynamicMessage{
 
 
     template <typename T> 
-    std::pair<TYPE, uint8_t> peekType(T &obj){
+    std::pair<TYPE, uint8_t> peekType(T&){
         if constexpr (TypeDef::Integer<T>) {
             return std::make_pair(TYPE::int_t, static_cast<uint8_t>(sizeof(T)));
         }
@@ -160,10 +159,8 @@ class DynamicMessage{
     void deserialize(int descPos, std::unordered_map<K, V> &reciever, int &descTrav){
         Descriptor desc = this->Descriptors[descPos]; 
         int mapEle = desc.numElements; 
-        int offset = desc.lumpOffset; 
 
-        int j = 0; 
-        int i = 1; 
+        int i = 1;
 
         for(int j = 0; j < mapEle; j++){
             // Odd offset elements are keys
@@ -448,7 +445,7 @@ class DynamicMessage{
         
         // Clear the input string
         recvString.clear();  
-    }; 
+    } 
 
     bool hasField(std::string targ_field){
         return this->attributeMap.contains(targ_field);
@@ -578,7 +575,7 @@ class DynamicMessage{
     }
 
     template <typename T> 
-    std::shared_ptr<HeapDescriptor> primVecExtract(Descriptor desc, T &cpy){
+    std::shared_ptr<HeapDescriptor> primVecExtract(Descriptor desc){
         int ptrPos = desc.lumpOffset; 
         int eleCount = desc.numElements; 
         auto vecDesc = std::make_shared<VectorDescriptor>(desc.contained_type); 
@@ -605,18 +602,15 @@ class DynamicMessage{
 
         switch(contType){
             case TYPE::float_t : {
-                double t; 
-                return primVecExtract(obj_desc, t); 
+                return primVecExtract<double>(obj_desc); 
                 break; 
             }
             case TYPE::int_t : {
-                int64_t t; 
-                return primVecExtract(obj_desc, t); 
+                return primVecExtract<int64_t>(obj_desc); 
                 break; 
             }
             case TYPE::bool_t: {
-                bool t; 
-                return primVecExtract(obj_desc, t); 
+                return primVecExtract<bool>(obj_desc); 
                 break; 
             }
             case TYPE::map_t: {
@@ -650,7 +644,7 @@ class DynamicMessage{
                 throw std::runtime_error("Unknown vector type"); 
                 return NULL; 
             }
-        }; 
+        }
     }
 
     BlsType primToTree(int descIndex, int &trav1){  
@@ -801,7 +795,7 @@ class DynamicMessage{
 
 
    // Utility function to get the volatility of a field
-    void getFieldVolatility(std::unordered_map<std::string, std::deque<float>>  &vol_list, int vol_field_size){
+    void getFieldVolatility(std::unordered_map<std::string, std::deque<float>>  &vol_list){
         for(auto &obj : this->attributeMap){    
             int desc = obj.second; 
 
