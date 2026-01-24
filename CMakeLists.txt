@@ -63,9 +63,11 @@ set(CMAKE_CXX_FLAGS "-w") # Disable warnings for fetched content
 FetchContent_MakeAvailable(googletest Boost ${FETCHCONTENT_OPTIONAL})
 
 set(ESSENTIAL_FLAGS "-Wall -Wextra -Wnon-virtual-dtor")
-set(SUGGESTED_FLAGS "-Wweak-vtables -Wpadded") # For performance critical code (ie. network buffers or space constrained classes)
 set(STYLE_FLAGS "-Wmissing-prototypes -Wextra-semi -Wextra-semi-stmt -Wredundant-parens -Wsuggest-destructor-override -Wold-style-cast")
 set(NEGATED_FLAGS "-Wno-sign-compare")
+# For performance critical code (ie. network buffers or space constrained classes)
+# Given in list form for use with target_compile_options
+set(SUGGESTED_FLAGS "-Wweak-vtables" "-Wpadded")
 
 # Set compile options after fetch content to suppress external warnings
 string(JOIN " " CMAKE_CXX_FLAGS ${ESSENTIAL_FLAGS} ${STYLE_FLAGS} ${NEGATED_FLAGS})
