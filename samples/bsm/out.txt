@@ -77,7 +77,7 @@
                 "deviceKind" : 1
             }
         ],
-        "bytecode_offset" : 89,
+        "bytecode_offset" : 95,
         "inDevices" : [
 
         ],
@@ -174,7 +174,7 @@
                 "deviceKind" : 1
             }
         ],
-        "bytecode_offset" : 24,
+        "bytecode_offset" : 30,
         "inDevices" : [
 
         ],
@@ -232,7 +232,7 @@
                 "deviceKind" : 0
             }
         ],
-        "bytecode_offset" : 0,
+        "bytecode_offset" : 6,
         "inDevices" : [
 
         ],
@@ -253,12 +253,12 @@
 ]
 LITERALS_BEGIN
 [
+0,
 "msg",
 "green",
 "red",
 "MODE CHANGED TO ",
 "pressed",
-0,
 1,
 "Green was pressed ",
 " times. ",
@@ -269,134 +269,141 @@ true,
 false
 ]
 BYTECODE_BEGIN
+_temp:
+[0] LOAD a
+[1] TRAP print 1
+[2] LOAD a
+[3] CALL temp 1
+[4] PUSH 0
+[5] RETURN
 _changeTask:
-[0] LOAD lw
-[1] PUSH "msg"
-[2] ALOAD
-[3] PUSH "green"
-[4] EQ
-[5] JMPSC_OR 12
 [6] LOAD lw
 [7] PUSH "msg"
 [8] ALOAD
-[9] PUSH "red"
+[9] PUSH "green"
 [10] EQ
-[11] OR
-[12] BRANCH 23
-[13] PUSH "MODE CHANGED TO "
-[14] LOAD message
-[15] ADD
-[16] TRAP println 1
-[17] LOAD lw
-[18] PUSH "msg"
-[19] ALOAD
-[20] STORE message
-[21] LOAD message
-[22] JMP 23
-[23] EMIT STOP
+[11] JMPSC_OR 18
+[12] LOAD lw
+[13] PUSH "msg"
+[14] ALOAD
+[15] PUSH "red"
+[16] EQ
+[17] OR
+[18] BRANCH 29
+[19] PUSH "MODE CHANGED TO "
+[20] LOAD message
+[21] ADD
+[22] TRAP println 1
+[23] LOAD lw
+[24] PUSH "msg"
+[25] ALOAD
+[26] STORE message
+[27] LOAD message
+[28] JMP 29
+[29] EMIT STOP
 _buttonLog:
-[24] LOAD button
-[25] PUSH "pressed"
-[26] ALOAD
-[27] BRANCH 88
-[28] MKTYPE val int
-[29] PUSH 0
-[30] STORE val
-[31] LOAD mode
-[32] PUSH "red"
-[33] EQ
-[34] BRANCH 47
-[35] LOAD countMap
-[36] PUSH "red"
-[37] ALOAD
-[38] LOAD countMap
-[39] PUSH "red"
-[40] LOAD countMap
-[41] PUSH "red"
-[42] ALOAD
-[43] PUSH 1
-[44] ADD
-[45] ASTORE
-[46] JMP 58
-[47] LOAD countMap
-[48] PUSH "green"
-[49] ALOAD
-[50] LOAD countMap
-[51] PUSH "green"
-[52] LOAD countMap
-[53] PUSH "green"
-[54] ALOAD
-[55] PUSH 1
-[56] ADD
-[57] ASTORE
-[58] MKTYPE greenCnt int
-[59] LOAD countMap
-[60] PUSH "green"
-[61] ALOAD
-[62] STORE greenCnt
-[63] MKTYPE redCnt int
-[64] LOAD countMap
-[65] PUSH "red"
-[66] ALOAD
-[67] STORE redCnt
-[68] LOAD fl
-[69] PUSH "msg"
-[70] PUSH "Green was pressed "
-[71] LOAD greenCnt
-[72] TRAP toString 1
-[73] ADD
-[74] PUSH " times. "
-[75] ADD
-[76] PUSH "Red was pressed "
-[77] ADD
-[78] LOAD redCnt
-[79] TRAP toString 1
-[80] ADD
-[81] PUSH " times."
-[82] ADD
-[83] ASTORE
-[84] LOAD fl
-[85] PUSH "msg"
-[86] ALOAD
-[87] JMP 88
-[88] EMIT STOP
+[30] LOAD button
+[31] PUSH "pressed"
+[32] ALOAD
+[33] BRANCH 94
+[34] MKTYPE val int
+[35] PUSH 0
+[36] STORE val
+[37] LOAD mode
+[38] PUSH "red"
+[39] EQ
+[40] BRANCH 53
+[41] LOAD countMap
+[42] PUSH "red"
+[43] ALOAD
+[44] LOAD countMap
+[45] PUSH "red"
+[46] LOAD countMap
+[47] PUSH "red"
+[48] ALOAD
+[49] PUSH 1
+[50] ADD
+[51] ASTORE
+[52] JMP 64
+[53] LOAD countMap
+[54] PUSH "green"
+[55] ALOAD
+[56] LOAD countMap
+[57] PUSH "green"
+[58] LOAD countMap
+[59] PUSH "green"
+[60] ALOAD
+[61] PUSH 1
+[62] ADD
+[63] ASTORE
+[64] MKTYPE greenCnt int
+[65] LOAD countMap
+[66] PUSH "green"
+[67] ALOAD
+[68] STORE greenCnt
+[69] MKTYPE redCnt int
+[70] LOAD countMap
+[71] PUSH "red"
+[72] ALOAD
+[73] STORE redCnt
+[74] LOAD fl
+[75] PUSH "msg"
+[76] PUSH "Green was pressed "
+[77] LOAD greenCnt
+[78] TRAP toString 1
+[79] ADD
+[80] PUSH " times. "
+[81] ADD
+[82] PUSH "Red was pressed "
+[83] ADD
+[84] LOAD redCnt
+[85] TRAP toString 1
+[86] ADD
+[87] PUSH " times."
+[88] ADD
+[89] ASTORE
+[90] LOAD fl
+[91] PUSH "msg"
+[92] ALOAD
+[93] JMP 94
+[94] EMIT STOP
 _buttonLight:
-[89] LOAD button
-[90] PUSH "pressed"
-[91] ALOAD
-[92] BRANCH 113
-[93] LOAD mode
-[94] PUSH "red"
-[95] EQ
-[96] BRANCH 105
-[97] LOAD redLight
-[98] PUSH "on"
-[99] PUSH true
-[100] ASTORE
-[101] LOAD redLight
-[102] PUSH "on"
-[103] ALOAD
-[104] JMP 112
-[105] LOAD greenLight
-[106] PUSH "on"
-[107] PUSH true
-[108] ASTORE
-[109] LOAD greenLight
-[110] PUSH "on"
-[111] ALOAD
-[112] JMP 127
-[113] LOAD redLight
-[114] PUSH "on"
-[115] PUSH false
-[116] ASTORE
-[117] LOAD redLight
-[118] PUSH "on"
-[119] ALOAD
-[120] LOAD greenLight
-[121] PUSH "on"
-[122] PUSH false
-[123] ASTORE
-[124] LOAD greenLight
-[125] PUSH "on"
-[126] ALOAD
-[127] EMIT STOP
+[95] LOAD button
+[96] PUSH "pressed"
+[97] ALOAD
+[98] BRANCH 119
+[99] LOAD mode
+[100] PUSH "red"
+[101] EQ
+[102] BRANCH 111
+[103] LOAD redLight
+[104] PUSH "on"
+[105] PUSH true
+[106] ASTORE
+[107] LOAD redLight
+[108] PUSH "on"
+[109] ALOAD
+[110] JMP 118
+[111] LOAD greenLight
+[112] PUSH "on"
+[113] PUSH true
+[114] ASTORE
+[115] LOAD greenLight
+[116] PUSH "on"
+[117] ALOAD
+[118] JMP 133
+[119] LOAD redLight
+[120] PUSH "on"
+[121] PUSH false
+[122] ASTORE
+[123] LOAD redLight
+[124] PUSH "on"
+[125] ALOAD
+[126] LOAD greenLight
+[127] PUSH "on"
+[128] PUSH false
+[129] ASTORE
+[130] LOAD greenLight
+[131] PUSH "on"
+[132] ALOAD
+[133] EMIT STOP

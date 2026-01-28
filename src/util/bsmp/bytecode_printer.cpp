@@ -204,6 +204,10 @@ void BytecodePrinter::printArgs(Args... args) {
     ((*outputStream << " " << args), ...);
 }
 
+void BytecodePrinter::printCALL(uint16_t address, uint8_t argc) {
+    printArgs(functionMetadata.at(address).first, argc);
+}
+
 void BytecodePrinter::printEMIT(uint8_t signal) {
     using enum SIGNAL;
     switch (static_cast<SIGNAL>(signal)) {
@@ -259,7 +263,10 @@ void BytecodePrinter::code(
         *outputStream << '_' << functionLabel << ":\n"; \
     } \
     *outputStream << "[" << instruction - 1 << "] " << #code; \
-    if constexpr (OPCODE::code == OPCODE::EMIT) { \
+    if constexpr (OPCODE::code == OPCODE::CALL) { \
+        printCALL(args); \
+    } \
+    else if constexpr (OPCODE::code == OPCODE::EMIT) { \
         printEMIT(args); \
     } \
     else if constexpr (OPCODE::code == OPCODE::PUSH) { \

@@ -30,6 +30,7 @@ class BytecodePrinter : public BytecodeProcessor {
     private:
         template<typename... Args>
         void printArgs(Args... args);
+        void printCALL(uint16_t address, uint8_t argc);
         void printEMIT(uint8_t signal);
         void printPUSH(uint8_t index);
         void printMKTYPE(uint8_t index, uint8_t type);
@@ -38,6 +39,7 @@ class BytecodePrinter : public BytecodeProcessor {
         void printMTRAP(uint16_t callnum);
         void printTRAP(uint16_t callnum, uint8_t argc);
         /* C style overloads of specialized functions to get around xmacro error in if constexpr for uncompiled branches */
+        void printCALL(...) { throw std::runtime_error("CALL PRETTY PRINT OUT OF DATE"); }
         void printEMIT(...) { throw std::runtime_error("EMIT PRETTY PRINT OUT OF DATE"); }
         void printPUSH(...) { throw std::runtime_error("PUSH PRETTY PRINT OUT OF DATE"); }
         void printMKTYPE(...) { throw std::runtime_error("MKTYPE PRETTY PRINT OUT OF DATE"); }
