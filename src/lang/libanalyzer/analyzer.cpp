@@ -41,6 +41,7 @@ BlsObject Analyzer::visit(AstNode::Source& ast) {
 
 BlsObject Analyzer::visit(AstNode::Function::Procedure& ast) {
     auto& procedureName = ast.getName();
+    functionSymbols[procedureName]; // default construct symbol metadata
     auto returnType = resolve(ast.getReturnType()->accept(*this));
     
     // add default constructed literal to pool for non-returning control paths
@@ -87,8 +88,11 @@ BlsObject Analyzer::visit(AstNode::Function::Procedure& ast) {
 
     cs.pushFrame(CallStack<std::string>::Frame::Context::FUNCTION, procedureName);
     auto params = ast.getParameters();
+    auto& procedureSymbols = functionSymbols.at(procedureName).second;
+    procedureSymbols.reserve(params.size());
     for (int i = 0; i < params.size(); i++) {
         cs.addLocal(params.at(i), parameterTypes.at(i));
+        procedureSymbols.push_back(params.at(i));
     }
     for (auto&& statement : ast.getStatements()) {
         statement->accept(*this);
@@ -100,6 +104,7 @@ BlsObject Analyzer::visit(AstNode::Function::Procedure& ast) {
 
 BlsObject Analyzer::visit(AstNode::Function::Task& ast) {
     auto& taskName = ast.getName();
+    functionSymbols[taskName]; // default construct symbol metadata
     
     std::vector<BlsType> parameterTypes;
     for (auto&& type : ast.getParameterTypes()) {
@@ -110,9 +115,12 @@ BlsObject Analyzer::visit(AstNode::Function::Task& ast) {
     cs.pushFrame(CallStack<std::string>::Frame::Context::FUNCTION, taskName);
     auto params = ast.getParameters();
     std::unordered_map<std::string, uint8_t> parameterIndices;
+    auto& taskSymbols = functionSymbols.at(taskName).second;
+    taskSymbols.reserve(params.size());
     for (int i = 0; i < params.size(); i++) {
         parameterIndices.emplace(params.at(i), i);
         cs.addLocal(params.at(i), parameterTypes.at(i));
+        taskSymbols.push_back(params.at(i));
     }
     tasks.emplace(taskName, FunctionSignature(taskName, std::monostate(), parameterTypes, parameterIndices));
     
@@ -377,6 +385,7 @@ BlsObject Analyzer::visit(AstNode::Statement::Declaration& ast) {
     }
     cs.addLocal(name, typedObj);
     ast.getLocalIndex() = cs.getLocalIndex(name);
+    functionSymbols.at(cs.getFrameName()).second.push_back(name);
     return std::monostate();
 }
 

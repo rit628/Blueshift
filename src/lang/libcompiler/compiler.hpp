@@ -21,7 +21,8 @@ namespace BlsLang {
         public:
             Compiler()
             : generator(analyzer.getTaskDescriptors()
-                       , analyzer.getLiteralPool()) {}
+                       , analyzer.getLiteralPool()
+                       , analyzer.getFunctionSymbols()) {}
             
             using ostream_t = std::variant<std::reference_wrapper<std::vector<char>>, std::reference_wrapper<std::ostream>>;
 

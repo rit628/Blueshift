@@ -13,6 +13,8 @@
 #include <sstream>
 #include <stdexcept>
 #include <boost/archive/binary_oarchive.hpp>
+#include <string>
+#include <unordered_map>
 #include <utility>
 #include <variant>
 #include <boost/range/adaptor/map.hpp>
@@ -28,10 +30,22 @@ void Generator::writeBytecode(std::ostream& outputStream) {
         throw std::runtime_error("Bad output stream provided.");
     }
     boost::archive::binary_oarchive oa(outputStream, boost::archive::archive_flags::no_header);
-    std::vector<BlsType> orderedLiterals(boost::adaptors::keys(literalPool).begin(), boost::adaptors::keys(literalPool).end());
-    std::sort(orderedLiterals.begin(), orderedLiterals.end(), [this](const auto& a, const auto& b) {
-        return literalPool.at(a) < literalPool.at(b);
-    });
+
+    // write metadata
+    uint32_t metadataEnd = 0;
+    outputStream.seekp(sizeof(metadataEnd));
+    std::unordered_map<uint16_t, std::pair<std::string, std::vector<std::string>>> functionMetadata;
+    for (auto&& [name, metadata] : functionSymbols) {
+        functionMetadata.emplace(metadata.first, std::make_pair(name, std::move(metadata.second)));
+    }
+    oa << functionMetadata;
+
+    /* write here */
+    
+    metadataEnd = outputStream.tellp();
+    outputStream.seekp(0);
+    outputStream.write(reinterpret_cast<const char *>(&metadataEnd), sizeof(metadataEnd));
+    outputStream.seekp(metadataEnd);
     
     // write header
     uint16_t descriptorCount = taskDescriptors.size();
@@ -43,6 +57,10 @@ void Generator::writeBytecode(std::ostream& outputStream) {
     // write literal pool
     uint16_t poolSize = literalPool.size();
     outputStream.write(reinterpret_cast<const char *>(&poolSize), sizeof(poolSize));
+    std::vector<BlsType> orderedLiterals(boost::adaptors::keys(literalPool).begin(), boost::adaptors::keys(literalPool).end());
+    std::sort(orderedLiterals.begin(), orderedLiterals.end(), [this](const auto& a, const auto& b) {
+        return literalPool.at(a) < literalPool.at(b);
+    });
     for (auto&& literal : orderedLiterals) {
         oa << literal;
     }
@@ -93,8 +111,10 @@ BlsObject Generator::visit(AstNode::Source& ast) {
 
 BlsObject Generator::visit(AstNode::Function::Procedure& ast) {
     functionContext = FUNCTION_CONTEXT::PROCEDURE;
+    auto& name = ast.getName();
     uint16_t address = instructions.size();
-    procedureAddresses.emplace(ast.getName(), address);
+    functionSymbols[name].first = address; // use operator[] to account for testing environment
+    procedureAddresses.emplace(name, address);
     for (auto&& statement : ast.getStatements()) {
         statement->accept(*this);
     }
@@ -144,6 +164,7 @@ BlsObject Generator::visit(AstNode::Function::Task& ast) {
     auto& name = ast.getName();
     if (!taskDescriptors.contains(name)) return 0; // skip generating code for unbound tasks
     uint16_t address = instructions.size();
+    functionSymbols[name].first = address; // use operator[] to account for testing environment
     taskDescriptors.at(name).bytecode_offset = address;
     for (auto&& statement : ast.getStatements()) {
         statement->accept(*this);
