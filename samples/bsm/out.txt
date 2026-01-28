@@ -1,16 +1,16 @@
 [
     {
-        "name" : "printAppendedString",
+        "name" : "buttonLight",
         "binded_devices" : [
             {
-                "device_name" : "T1",
-                "type" : 9,
-                "controller" : "CTL",
+                "device_name" : "button",
+                "type" : 17,
+                "controller" : "rpi",
                 "port_maps" : {
-                    "PWR" : "0"
+                    "PIN" : "21"
                 },
                 "initialValue" : {
-                    "test_val" : 0E0
+                    "pressed" : false
                 },
                 "isVtype" : false,
                 "readPolicy" : 0,
@@ -19,34 +19,94 @@
                 "polling_period" : -1,
                 "isConst" : true,
                 "ignoreWriteBacks" : false,
-                "isInterrupt" : false,
-                "isCursor" : false
+                "deviceKind" : 1
+            },
+            {
+                "device_name" : "mode",
+                "type" : 4,
+                "controller" : "MASTER",
+                "port_maps" : {
+
+                },
+                "initialValue" : "red",
+                "isVtype" : true,
+                "readPolicy" : 0,
+                "overwritePolicy" : 3,
+                "isYield" : true,
+                "polling_period" : -1,
+                "isConst" : true,
+                "ignoreWriteBacks" : false,
+                "deviceKind" : 0
+            },
+            {
+                "device_name" : "redLight",
+                "type" : 14,
+                "controller" : "rpi",
+                "port_maps" : {
+                    "PIN" : "17"
+                },
+                "initialValue" : {
+                    "on" : false
+                },
+                "isVtype" : false,
+                "readPolicy" : 0,
+                "overwritePolicy" : 3,
+                "isYield" : true,
+                "polling_period" : -1,
+                "isConst" : true,
+                "ignoreWriteBacks" : false,
+                "deviceKind" : 1
+            },
+            {
+                "device_name" : "greenLight",
+                "type" : 14,
+                "controller" : "rpi",
+                "port_maps" : {
+                    "PIN" : "27"
+                },
+                "initialValue" : {
+                    "on" : false
+                },
+                "isVtype" : false,
+                "readPolicy" : 0,
+                "overwritePolicy" : 3,
+                "isYield" : true,
+                "polling_period" : -1,
+                "isConst" : true,
+                "ignoreWriteBacks" : false,
+                "deviceKind" : 1
             }
         ],
-        "bytecode_offset" : 3,
+        "bytecode_offset" : 89,
         "inDevices" : [
 
         ],
         "outDevices" : [
 
         ],
-        "hostController" : "CTL",
+        "hostController" : "MASTER",
         "triggers" : [
-
+            {
+                "rule" : [
+                    "button"
+                ],
+                "id" : "",
+                "priority" : 1
+            }
         ]
     },
     {
-        "name" : "printString",
+        "name" : "buttonLog",
         "binded_devices" : [
             {
-                "device_name" : "T1",
-                "type" : 9,
-                "controller" : "CTL",
+                "device_name" : "button",
+                "type" : 17,
+                "controller" : "rpi",
                 "port_maps" : {
-                    "PWR" : "0"
+                    "PIN" : "21"
                 },
                 "initialValue" : {
-                    "test_val" : 0E0
+                    "pressed" : false
                 },
                 "isVtype" : false,
                 "readPolicy" : 0,
@@ -55,8 +115,121 @@
                 "polling_period" : -1,
                 "isConst" : true,
                 "ignoreWriteBacks" : false,
-                "isInterrupt" : false,
-                "isCursor" : false
+                "deviceKind" : 1
+            },
+            {
+                "device_name" : "mode",
+                "type" : 4,
+                "controller" : "MASTER",
+                "port_maps" : {
+
+                },
+                "initialValue" : "red",
+                "isVtype" : true,
+                "readPolicy" : 0,
+                "overwritePolicy" : 3,
+                "isYield" : true,
+                "polling_period" : -1,
+                "isConst" : true,
+                "ignoreWriteBacks" : false,
+                "deviceKind" : 0
+            },
+            {
+                "device_name" : "countMap",
+                "type" : 7,
+                "controller" : "MASTER",
+                "port_maps" : {
+
+                },
+                "initialValue" : {
+                    "red" : 0,
+                    "green" : 0
+                },
+                "isVtype" : true,
+                "readPolicy" : 0,
+                "overwritePolicy" : 3,
+                "isYield" : true,
+                "polling_period" : -1,
+                "isConst" : true,
+                "ignoreWriteBacks" : false,
+                "deviceKind" : 0
+            },
+            {
+                "device_name" : "fl",
+                "type" : 10,
+                "controller" : "CTL",
+                "port_maps" : {
+                    "file" : "logfile.txt"
+                },
+                "initialValue" : {
+                    "msg" : ""
+                },
+                "isVtype" : false,
+                "readPolicy" : 0,
+                "overwritePolicy" : 3,
+                "isYield" : true,
+                "polling_period" : -1,
+                "isConst" : true,
+                "ignoreWriteBacks" : false,
+                "deviceKind" : 1
+            }
+        ],
+        "bytecode_offset" : 24,
+        "inDevices" : [
+
+        ],
+        "outDevices" : [
+
+        ],
+        "hostController" : "MASTER",
+        "triggers" : [
+            {
+                "rule" : [
+                    "button"
+                ],
+                "id" : "",
+                "priority" : 1
+            }
+        ]
+    },
+    {
+        "name" : "changeTask",
+        "binded_devices" : [
+            {
+                "device_name" : "lw",
+                "type" : 10,
+                "controller" : "CTL",
+                "port_maps" : {
+                    "file" : "file1.txt"
+                },
+                "initialValue" : {
+                    "msg" : ""
+                },
+                "isVtype" : false,
+                "readPolicy" : 0,
+                "overwritePolicy" : 3,
+                "isYield" : true,
+                "polling_period" : -1,
+                "isConst" : true,
+                "ignoreWriteBacks" : false,
+                "deviceKind" : 1
+            },
+            {
+                "device_name" : "mode",
+                "type" : 4,
+                "controller" : "MASTER",
+                "port_maps" : {
+
+                },
+                "initialValue" : "red",
+                "isVtype" : true,
+                "readPolicy" : 0,
+                "overwritePolicy" : 3,
+                "isYield" : true,
+                "polling_period" : -1,
+                "isConst" : true,
+                "ignoreWriteBacks" : false,
+                "deviceKind" : 0
             }
         ],
         "bytecode_offset" : 0,
@@ -66,31 +239,164 @@
         "outDevices" : [
 
         ],
-        "hostController" : "CTL",
+        "hostController" : "MASTER",
         "triggers" : [
-
+            {
+                "rule" : [
+                    "lw"
+                ],
+                "id" : "",
+                "priority" : 1
+            }
         ]
     }
 ]
 LITERALS_BEGIN
 [
-"A string.",
-" Another string."
+"msg",
+"green",
+"red",
+"MODE CHANGED TO ",
+"pressed",
+0,
+1,
+"Green was pressed ",
+" times. ",
+"Red was pressed ",
+" times.",
+"on",
+true,
+false
 ]
 BYTECODE_BEGIN
-_printString:
-PUSH 0
-TRAP 1 1
-EMIT 1
-_printAppendedString:
-MKTYPE 1 4
-PUSH 0
-STORE 1
-LOAD 1
-PUSH 1
-ADD
-STORE 1
-LOAD 1
-LOAD 1
-TRAP 1 1
-EMIT 1
+_changeTask:
+[0] LOAD lw
+[1] PUSH "msg"
+[2] ALOAD
+[3] PUSH "green"
+[4] EQ
+[5] JMPSC_OR 12
+[6] LOAD lw
+[7] PUSH "msg"
+[8] ALOAD
+[9] PUSH "red"
+[10] EQ
+[11] OR
+[12] BRANCH 23
+[13] PUSH "MODE CHANGED TO "
+[14] LOAD message
+[15] ADD
+[16] TRAP println 1
+[17] LOAD lw
+[18] PUSH "msg"
+[19] ALOAD
+[20] STORE message
+[21] LOAD message
+[22] JMP 23
+[23] EMIT STOP
+_buttonLog:
+[24] LOAD button
+[25] PUSH "pressed"
+[26] ALOAD
+[27] BRANCH 88
+[28] MKTYPE val int
+[29] PUSH 0
+[30] STORE val
+[31] LOAD mode
+[32] PUSH "red"
+[33] EQ
+[34] BRANCH 47
+[35] LOAD countMap
+[36] PUSH "red"
+[37] ALOAD
+[38] LOAD countMap
+[39] PUSH "red"
+[40] LOAD countMap
+[41] PUSH "red"
+[42] ALOAD
+[43] PUSH 1
+[44] ADD
+[45] ASTORE
+[46] JMP 58
+[47] LOAD countMap
+[48] PUSH "green"
+[49] ALOAD
+[50] LOAD countMap
+[51] PUSH "green"
+[52] LOAD countMap
+[53] PUSH "green"
+[54] ALOAD
+[55] PUSH 1
+[56] ADD
+[57] ASTORE
+[58] MKTYPE greenCnt int
+[59] LOAD countMap
+[60] PUSH "green"
+[61] ALOAD
+[62] STORE greenCnt
+[63] MKTYPE redCnt int
+[64] LOAD countMap
+[65] PUSH "red"
+[66] ALOAD
+[67] STORE redCnt
+[68] LOAD fl
+[69] PUSH "msg"
+[70] PUSH "Green was pressed "
+[71] LOAD greenCnt
+[72] TRAP toString 1
+[73] ADD
+[74] PUSH " times. "
+[75] ADD
+[76] PUSH "Red was pressed "
+[77] ADD
+[78] LOAD redCnt
+[79] TRAP toString 1
+[80] ADD
+[81] PUSH " times."
+[82] ADD
+[83] ASTORE
+[84] LOAD fl
+[85] PUSH "msg"
+[86] ALOAD
+[87] JMP 88
+[88] EMIT STOP
+_buttonLight:
+[89] LOAD button
+[90] PUSH "pressed"
+[91] ALOAD
+[92] BRANCH 113
+[93] LOAD mode
+[94] PUSH "red"
+[95] EQ
+[96] BRANCH 105
+[97] LOAD redLight
+[98] PUSH "on"
+[99] PUSH true
+[100] ASTORE
+[101] LOAD redLight
+[102] PUSH "on"
+[103] ALOAD
+[104] JMP 112
+[105] LOAD greenLight
+[106] PUSH "on"
+[107] PUSH true
+[108] ASTORE
+[109] LOAD greenLight
+[110] PUSH "on"
+[111] ALOAD
+[112] JMP 127
+[113] LOAD redLight
+[114] PUSH "on"
+[115] PUSH false
+[116] ASTORE
+[117] LOAD redLight
+[118] PUSH "on"
+[119] ALOAD
+[120] LOAD greenLight
+[121] PUSH "on"
+[122] PUSH false
+[123] ASTORE
+[124] LOAD greenLight
+[125] PUSH "on"
+[126] ALOAD
+[127] EMIT STOP

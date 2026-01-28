@@ -19,6 +19,7 @@ void BytecodeProcessor::loadBytecode(std::istream& bytecode) {
         throw std::runtime_error("Bad bytecode stream provided.");
     }
     boost::archive::binary_iarchive ia(bytecode, boost::archive::archive_flags::no_header);
+    readMetadata(bytecode, ia);
     readHeader(bytecode, ia);
     loadLiterals(bytecode, ia);
     loadInstructions(bytecode);
@@ -69,6 +70,12 @@ void BytecodeProcessor::dispatch() {
         }
     }
     exit: ;
+}
+
+void BytecodeProcessor::readMetadata(std::istream& bytecode, boost::archive::binary_iarchive& ia) {
+    uint32_t metadataEnd; // used later to skip metadata in certain cases
+    bytecode.read(reinterpret_cast<char*>(&metadataEnd), sizeof(metadataEnd));
+    ia >> functionMetadata;
 }
 
 void BytecodeProcessor::readHeader(std::istream& bytecode, boost::archive::binary_iarchive& ia) {

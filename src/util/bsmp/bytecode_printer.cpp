@@ -3,6 +3,7 @@
 #include "bytecode_printer.hpp"
 #include "Serialization.hpp"
 #include "bls_types.hpp"
+#include "traps.hpp"
 #include <algorithm>
 #include <cstdint>
 #include <iostream>
@@ -187,9 +188,6 @@ void BytecodePrinter::setOutputStream(std::ostream& stream) {
 }
 
 void BytecodePrinter::printHeader() {
-    std::for_each(taskDescs.begin(), taskDescs.end(), [this](const auto& desc){
-       taskLabels.emplace(desc.bytecode_offset, desc.name);
-    });
     auto json = value_from(taskDescs);
     prettyPrintHeader(*outputStream, json);
     *outputStream << "LITERALS_BEGIN" << std::endl;
@@ -206,17 +204,85 @@ void BytecodePrinter::printArgs(Args... args) {
     ((*outputStream << " " << args), ...);
 }
 
+void BytecodePrinter::printEMIT(uint8_t signal) {
+    using enum SIGNAL;
+    switch (static_cast<SIGNAL>(signal)) {
+        case START:
+            printArgs("START");
+        break;
+        case STOP:
+            printArgs("STOP");
+        break;
+        default:
+            printArgs("INVALID");
+        break;
+    }
+}
+
+void BytecodePrinter::printPUSH(uint8_t index) {
+    *outputStream << " ";
+    prettyPrintLiteralPool(*outputStream, value_from(literalPool.at(index)));
+}
+
+void BytecodePrinter::printMKTYPE(uint8_t index, uint8_t type) {
+    printArgs(currentFunctionSymbols->at(index), getTypeName(static_cast<TYPE>(type)));
+}
+
+void BytecodePrinter::printSTORE(uint8_t index) {
+    printArgs(currentFunctionSymbols->at(index));
+}
+
+void BytecodePrinter::printLOAD(uint8_t index) {
+    printArgs(currentFunctionSymbols->at(index));
+}
+
+void BytecodePrinter::printMTRAP(uint16_t callnum) {
+    using namespace BlsTrap;
+    printArgs(getMTrapName(static_cast<BlsTrap::MCALLNUM>(callnum)));
+}
+
+void BytecodePrinter::printTRAP(uint16_t callnum, uint8_t argc) {
+    using namespace BlsTrap;
+    printArgs(getTrapName(static_cast<BlsTrap::CALLNUM>(callnum)), argc);
+}
+
 #define OPCODE_BEGIN(code) \
 void BytecodePrinter::code(
 #define ARGUMENT(arg, type) \
     type arg,
 #define OPCODE_END(code, args...) \
     int) { \
-    if (taskLabels.contains(instruction - 1)) { \
-        *outputStream << '_' << taskLabels.at(instruction - 1) << ":\n"; \
+    if (functionMetadata.contains(instruction - 1)) { \
+        auto& metadata = functionMetadata.at(instruction - 1); \
+        auto& functionLabel = metadata.first; \
+        currentFunctionSymbols = &metadata.second; \
+        *outputStream << '_' << functionLabel << ":\n"; \
     } \
-    *outputStream << #code; \
-    printArgs(args);\
+    *outputStream << "[" << instruction - 1 << "] " << #code; \
+    if constexpr (OPCODE::code == OPCODE::EMIT) { \
+        printEMIT(args); \
+    } \
+    else if constexpr (OPCODE::code == OPCODE::PUSH) { \
+        printPUSH(args); \
+    } \
+    else if constexpr (OPCODE::code == OPCODE::MKTYPE) { \
+        printMKTYPE(args); \
+    } \
+    else if constexpr (OPCODE::code == OPCODE::STORE) { \
+        printSTORE(args); \
+    } \
+    else if constexpr (OPCODE::code == OPCODE::LOAD) { \
+        printLOAD(args); \
+    } \
+    else if constexpr (OPCODE::code == OPCODE::MTRAP) { \
+        printMTRAP(args); \
+    } \
+    else if constexpr (OPCODE::code == OPCODE::TRAP) { \
+        printTRAP(args); \
+    } \
+    else { \
+        printArgs(args);\
+    } \
     *outputStream << std::endl; \
     }
 #include "include/OPCODES.LIST"
