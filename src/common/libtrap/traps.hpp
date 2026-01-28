@@ -58,13 +58,30 @@ namespace BlsTrap {
             break;
         }
     }
+
+    constexpr CALLNUM getTrapFromName(std::string callnum) {
+        using enum CALLNUM;
+        #define TRAP_BEGIN(name, ...) \
+        if (callnum == #name) { \
+            return name; \
+        }
+        #define VARIADIC(...)
+        #define ARGUMENT(...)
+        #define TRAP_END
+        #include "include/TRAPS.LIST"
+        #undef TRAP_BEGIN
+        #undef VARIADIC
+        #undef ARGUMENT
+        #undef TRAP_END
+        return COUNT;
+    }
     
     constexpr const std::string getMTrapName(MCALLNUM callnum) {
         using enum MCALLNUM;
         switch (callnum) {
             #define METHOD_BEGIN(name, objType, ...) \
             case objType##__##name: \
-                return #name; \
+                return #objType "::" #name; \
             break;
             #define ARGUMENT(...)
             #define METHOD_END
@@ -77,6 +94,22 @@ namespace BlsTrap {
                 return "";
             break;
         }
+    }
+
+    constexpr MCALLNUM getMTrapFromName(std::string callnum) {
+        using enum MCALLNUM;
+        #define METHOD_BEGIN(name, objType, ...) \
+        if (callnum == #objType "::" #name) { \
+            return objType##__##name; \
+        }
+        #define ARGUMENT(...)
+        #define METHOD_END
+        #include "include/LIST_METHODS.LIST"
+        #include "include/MAP_METHODS.LIST"
+        #undef METHOD_BEGIN
+        #undef ARGUMENT
+        #undef METHOD_END
+        return COUNT;
     }
 
     namespace Detail {
