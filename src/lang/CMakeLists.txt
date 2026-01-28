@@ -9,5 +9,6 @@ add_subdirectory(libsymgraph)
 add_subdirectory(libdivider)
 add_subdirectory(libvirtual_machine)
 add_subdirectory(libcompiler)
+add_subdirectory(liboptimizer)
 
-bls_add_executable(lang main.cpp LINKS symgraph compiler virtual_machine)
+bls_add_executable(lang main.cpp LINKS symgraph compiler virtual_machine optimizer)

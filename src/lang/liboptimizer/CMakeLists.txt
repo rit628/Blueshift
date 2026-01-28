@@ -1,0 +1,1 @@
+bls_add_library(optimizer STATIC LINKS lang_common type bytecode trap)
