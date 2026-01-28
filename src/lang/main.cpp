@@ -1,9 +1,10 @@
 #include "Serialization.hpp"
 #include "compiler.hpp"
+#include "optimizer.hpp"
 #include <fstream>
 #include <stdexcept>
 
-int main() {
+int main(int argc, char** argv) {
 
     // sample engine
     BlsLang::Compiler compiler;
@@ -24,10 +25,13 @@ int main() {
             printAppendedString(T1);
         }
     )";
+    
     auto out = std::ofstream("./samples/bsm/out.bsm", std::ios::out | std::ios::binary);
-    if (!out.is_open()) {
-        throw std::runtime_error("FUCK YOU");
-    }
-    compiler.compileSource(src, out);
+
+    compiler.compileFile(argv[1], out);
+
+    BlsLang::Optimizer opt; 
+    opt.loadBytecode("./samples/bsm/out.bsm"); 
+    opt.optimize(); 
     return 0;
 }

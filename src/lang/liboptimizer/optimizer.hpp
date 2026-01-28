@@ -2,6 +2,7 @@
 #include "EM.hpp"
 #include "Serialization.hpp"
 #include "bytecode_processor.hpp"
+#include "call_stack.hpp"
 #include "opcodes.hpp"
 #include "bls_types.hpp"
 #include <fstream>
@@ -9,6 +10,7 @@
 #include <functional>
 #include <istream>
 #include <memory>
+#include <stack>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -17,10 +19,61 @@
 
 
 namespace BlsLang{
+    
+    enum class ORIGIN{
+        LITERAL, 
+        OPERAND, 
+        LOCALS, 
+    }; 
 
-    struct SymbolMetadata{
-        std::string metadata; 
-        std::set<std::string> deviceDependencies; 
+
+    // Refers to a single stack object
+    struct PRMetadata{
+        std::set<std::string> deviceDeps = {}; 
+        std::set<std::string> controllerDeps = {}; 
+
+        TYPE type; 
+        ORIGIN og; 
+        int index; 
+    }; 
+
+    PRMetadata combineDeps(PRMetadata& a, PRMetadata& b){
+        PRMetadata pr; 
+        
+        pr.deviceDeps.insert(a.deviceDeps.begin(),a.deviceDeps.end());
+        pr.deviceDeps.insert(b.deviceDeps.begin(), b.deviceDeps.end());
+
+        pr.deviceDeps.insert(a.controllerDeps.begin(),a.controllerDeps.end());
+        pr.deviceDeps.insert(b.controllerDeps.begin(), b.controllerDeps.end());
+
+        return pr; 
+    }
+
+
+    // Refers to a information within a single stack view
+    class MetadataFrame{
+        public: 
+            MetadataFrame(std::span<PRMetadata> &args); 
+            void addLocal(PRMetadata &pm, int index); 
+            void pushOperand(PRMetadata &pr); 
+            PRMetadata popOperand(); 
+            PRMetadata& getLocal(int index); 
+            void setLocal(int index, PRMetadata& newPos); 
+
+
+            int returnAddress; 
+            std::vector<PRMetadata> locals; 
+            std::stack<PRMetadata>  pr_stk; 
+
+    }; 
+
+    class MetadataStack{
+        public: 
+            std::stack<MetadataFrame> metadataStack; 
+            void pushFrame(int ret, std::span<PRMetadata> args); 
+            int popFrame(); 
+            MetadataFrame& getCurrentFrame(); 
+        private: 
     }; 
 
 
@@ -43,9 +96,17 @@ namespace BlsLang{
 
 
         private:    
+            // Literal List:
+            std::vector<PRMetadata> literalList; 
+            MetadataStack metadataStack; 
+            
+
             std::unordered_map<int64_t, std::string> taskClientMap; 
             std::unordered_map<int64_t, int64_t> executionMap; 
 
+
+
+            
     }; 
 
 }
