@@ -48,6 +48,8 @@ task buttonLight(BUTTON button, string mode, LIGHT redLight, LIGHT greenLight)
 int temp(int a) {
     print(a);
     temp(a);
+    list<int> x;
+    x.append(1);
 }
 
 

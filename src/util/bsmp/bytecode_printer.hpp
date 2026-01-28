@@ -12,6 +12,8 @@
 class BytecodePrinter : public BytecodeProcessor {
     public:
         void setOutputStream(std::ostream& stream = std::cout);
+        void printAll();
+        void printMetadata();
         void printHeader();
         void printLiteralPool();
 

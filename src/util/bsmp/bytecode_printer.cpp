@@ -187,16 +187,34 @@ void BytecodePrinter::setOutputStream(std::ostream& stream) {
     outputStream = &stream;
 }
 
+void BytecodePrinter::printAll() {
+    *outputStream << "METADATA_BEGIN" << std::endl;
+    printMetadata();
+    *outputStream << "HEADER_BEGIN" << std::endl;
+    printHeader();
+    *outputStream << "LITERALS_BEGIN" << std::endl;
+    printLiteralPool();
+    *outputStream << "BYTECODE_BEGIN" << std::endl;
+    dispatch();
+}
+
+void BytecodePrinter::printMetadata() {
+    std::unordered_map<std::string, std::pair<uint16_t, std::vector<std::string>&>> functionSymbols;
+    for (auto&& [address, metadata] : functionMetadata) {
+        functionSymbols.emplace(metadata.first, std::make_pair(address, std::ref(metadata.second)));
+    }
+    auto json = value_from(functionSymbols);
+    prettyPrintHeader(*outputStream, json);
+}
+
 void BytecodePrinter::printHeader() {
     auto json = value_from(taskDescs);
     prettyPrintHeader(*outputStream, json);
-    *outputStream << "LITERALS_BEGIN" << std::endl;
 }
 
 void BytecodePrinter::printLiteralPool() {
     auto json = value_from(literalPool);
     prettyPrintLiteralPool(*outputStream, json, true);
-    *outputStream << "BYTECODE_BEGIN" << std::endl;
 }
 
 template<typename... Args>
@@ -260,7 +278,7 @@ void BytecodePrinter::code(
         auto& metadata = functionMetadata.at(instruction - 1); \
         auto& functionLabel = metadata.first; \
         currentFunctionSymbols = &metadata.second; \
-        *outputStream << '_' << functionLabel << ":\n"; \
+        *outputStream << functionLabel << ":\n"; \
     } \
     *outputStream << "[" << instruction - 1 << "] " << #code; \
     if constexpr (OPCODE::code == OPCODE::CALL) { \
