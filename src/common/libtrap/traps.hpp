@@ -38,6 +38,47 @@ namespace BlsTrap {
         COUNT
     };
 
+    constexpr const std::string getTrapName(CALLNUM callnum) {
+        using enum CALLNUM;
+        switch (callnum) {
+            #define TRAP_BEGIN(name, ...) \
+            case name: \
+                return #name; \
+            break;
+            #define VARIADIC(...)
+            #define ARGUMENT(...)
+            #define TRAP_END
+            #include "include/TRAPS.LIST"
+            #undef TRAP_BEGIN
+            #undef VARIADIC
+            #undef ARGUMENT
+            #undef TRAP_END
+            default:
+                return "";
+            break;
+        }
+    }
+    
+    constexpr const std::string getMTrapName(MCALLNUM callnum) {
+        using enum MCALLNUM;
+        switch (callnum) {
+            #define METHOD_BEGIN(name, objType, ...) \
+            case objType##__##name: \
+                return #name; \
+            break;
+            #define ARGUMENT(...)
+            #define METHOD_END
+            #include "include/LIST_METHODS.LIST"
+            #include "include/MAP_METHODS.LIST"
+            #undef METHOD_BEGIN
+            #undef ARGUMENT
+            #undef METHOD_END
+            default:
+                return "";
+            break;
+        }
+    }
+
     namespace Detail {
 
         #define TRAP_BEGIN(trapName, ...) \
