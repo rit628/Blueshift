@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -18,7 +19,7 @@ namespace BlsLang {
     class GeneratorTest : public testing::Test {
         public:
             void INIT(std::unordered_map<std::string, TaskDescriptor>& taskDescriptors, std::unordered_map<BlsType, uint8_t>& literalPool) {
-                generator = std::make_unique<Generator>(Generator(taskDescriptors, literalPool));
+                generator = std::make_unique<Generator>(Generator(taskDescriptors, literalPool, functionSymbols));
                 INIT_FLAG = true;
             }
 
@@ -48,19 +49,6 @@ namespace BlsLang {
                     }
                 }
             }
-
-            #define OPCODE_BEGIN(code) \
-            static std::unique_ptr<INSTRUCTION::code> create##code(
-            #define ARGUMENT(arg, type) \
-            type arg,
-            #define OPCODE_END(code, args...) \
-            int = 0) { \
-                return Generator::create##code(args); \
-            }
-            #include "include/OPCODES.LIST"
-            #undef OPCODE_BEGIN
-            #undef ARGUMENT
-            #undef OPCODE_END
         
             template<typename... InstructionPtr> requires (std::convertible_to<InstructionPtr, std::unique_ptr<INSTRUCTION>> && ...)
             static std::vector<std::unique_ptr<INSTRUCTION>> makeInstructions(InstructionPtr&&... instructions) {
@@ -71,6 +59,7 @@ namespace BlsLang {
 
         private:
             bool INIT_FLAG = false;
+            std::remove_reference_t<decltype(Generator::functionSymbols)> functionSymbols; // just to satisfy constructor
             std::unique_ptr<Generator> generator = nullptr;
     };
 }

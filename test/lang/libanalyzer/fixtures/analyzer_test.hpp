@@ -22,6 +22,7 @@ namespace BlsLang {
 
             void TEST_ANALYZE(std::unique_ptr<AstNode>& ast, std::unique_ptr<AstNode>& decoratedAst = defaultAst, Metadata metadata = Metadata(), CallStack<std::string> cs = CallStack<std::string>(CallStack<std::string>::Frame::Context::FUNCTION)) {
                 analyzer.cs = cs;
+                analyzer.functionSymbols[cs.getFrameName()];
                 ast->accept(analyzer);
                 static auto compareDeviceDescriptors = [](const DeviceDescriptor& desc, const DeviceDescriptor& expectedDesc) {
                     EXPECT_EQ(desc.device_name, expectedDesc.device_name);

@@ -16,9 +16,11 @@ namespace BlsLang {
         public:
             friend class GeneratorTest;
             Generator(std::unordered_map<std::string, TaskDescriptor>& taskDescriptors
-                    , std::unordered_map<BlsType, uint8_t>& literalPool)
+                    , std::unordered_map<BlsType, uint8_t>& literalPool
+                    , std::unordered_map<std::string, std::pair<uint16_t, std::vector<std::string>>>& functionSymbols)
                     : taskDescriptors(taskDescriptors)
-                    , literalPool(literalPool) {}
+                    , literalPool(literalPool)
+                    , functionSymbols(functionSymbols) {}
 
             #define AST_NODE(Node, ...) \
             BlsObject visit(Node& ast) override;
@@ -39,19 +41,9 @@ namespace BlsLang {
                 , TASK
             };
 
-            #define OPCODE_BEGIN(code) \
-            static std::unique_ptr<INSTRUCTION::code> create##code(
-            #define ARGUMENT(arg, type) \
-            type arg,
-            #define OPCODE_END(code, args...) \
-            int = 0);
-            #include "include/OPCODES.LIST"
-            #undef OPCODE_BEGIN
-            #undef ARGUMENT
-            #undef OPCODE_END
-
             std::unordered_map<std::string, TaskDescriptor>& taskDescriptors;
             std::unordered_map<BlsType, uint8_t>& literalPool;
+            std::unordered_map<std::string, std::pair<uint16_t, std::vector<std::string>>>& functionSymbols;
             std::unordered_map<std::string, uint16_t> procedureAddresses;
             std::vector<std::unique_ptr<INSTRUCTION>> instructions;
             std::stack<std::stack<uint16_t>> continueIndices, breakIndices; // needed for break and continue generation

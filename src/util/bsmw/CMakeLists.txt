@@ -1,1 +1,1 @@
-bls_add_executable(bsmw LINKS bytecode type)
+bls_add_executable(bsmw LINKS bytecode type trap)

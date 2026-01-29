@@ -1,16 +1,55 @@
+METADATA_BEGIN
+{
+    "temp" : [
+        0,
+        [
+            "a",
+            "x"
+        ]
+    ],
+    "changeTask" : [
+        10,
+        [
+            "lw",
+            "message"
+        ]
+    ],
+    "buttonLog" : [
+        34,
+        [
+            "button",
+            "mode",
+            "countMap",
+            "fl",
+            "val",
+            "greenCnt",
+            "redCnt"
+        ]
+    ],
+    "buttonLight" : [
+        99,
+        [
+            "button",
+            "mode",
+            "redLight",
+            "greenLight"
+        ]
+    ]
+}
+HEADER_BEGIN
 [
     {
-        "name" : "printAppendedString",
+        "name" : "buttonLight",
         "binded_devices" : [
             {
-                "device_name" : "T1",
-                "type" : 9,
-                "controller" : "CTL",
+                "device_name" : "button",
+                "type" : 17,
+                "controller" : "rpi",
                 "port_maps" : {
-                    "PWR" : "0"
+                    "PIN" : "21"
                 },
                 "initialValue" : {
-                    "test_val" : 0E0
+                    "pressed" : false
                 },
                 "isVtype" : false,
                 "readPolicy" : 0,
@@ -19,34 +58,94 @@
                 "polling_period" : -1,
                 "isConst" : true,
                 "ignoreWriteBacks" : false,
-                "isInterrupt" : false,
-                "isCursor" : false
+                "deviceKind" : 1
+            },
+            {
+                "device_name" : "mode",
+                "type" : 4,
+                "controller" : "MASTER",
+                "port_maps" : {
+
+                },
+                "initialValue" : "red",
+                "isVtype" : true,
+                "readPolicy" : 0,
+                "overwritePolicy" : 3,
+                "isYield" : true,
+                "polling_period" : -1,
+                "isConst" : true,
+                "ignoreWriteBacks" : false,
+                "deviceKind" : 0
+            },
+            {
+                "device_name" : "redLight",
+                "type" : 14,
+                "controller" : "rpi",
+                "port_maps" : {
+                    "PIN" : "17"
+                },
+                "initialValue" : {
+                    "on" : false
+                },
+                "isVtype" : false,
+                "readPolicy" : 0,
+                "overwritePolicy" : 3,
+                "isYield" : true,
+                "polling_period" : -1,
+                "isConst" : true,
+                "ignoreWriteBacks" : false,
+                "deviceKind" : 1
+            },
+            {
+                "device_name" : "greenLight",
+                "type" : 14,
+                "controller" : "rpi",
+                "port_maps" : {
+                    "PIN" : "27"
+                },
+                "initialValue" : {
+                    "on" : false
+                },
+                "isVtype" : false,
+                "readPolicy" : 0,
+                "overwritePolicy" : 3,
+                "isYield" : true,
+                "polling_period" : -1,
+                "isConst" : true,
+                "ignoreWriteBacks" : false,
+                "deviceKind" : 1
             }
         ],
-        "bytecode_offset" : 3,
+        "bytecode_offset" : 99,
         "inDevices" : [
 
         ],
         "outDevices" : [
 
         ],
-        "hostController" : "CTL",
+        "hostController" : "MASTER",
         "triggers" : [
-
+            {
+                "rule" : [
+                    "button"
+                ],
+                "id" : "",
+                "priority" : 1
+            }
         ]
     },
     {
-        "name" : "printString",
+        "name" : "buttonLog",
         "binded_devices" : [
             {
-                "device_name" : "T1",
-                "type" : 9,
-                "controller" : "CTL",
+                "device_name" : "button",
+                "type" : 17,
+                "controller" : "rpi",
                 "port_maps" : {
-                    "PWR" : "0"
+                    "PIN" : "21"
                 },
                 "initialValue" : {
-                    "test_val" : 0E0
+                    "pressed" : false
                 },
                 "isVtype" : false,
                 "readPolicy" : 0,
@@ -55,42 +154,299 @@
                 "polling_period" : -1,
                 "isConst" : true,
                 "ignoreWriteBacks" : false,
-                "isInterrupt" : false,
-                "isCursor" : false
+                "deviceKind" : 1
+            },
+            {
+                "device_name" : "mode",
+                "type" : 4,
+                "controller" : "MASTER",
+                "port_maps" : {
+
+                },
+                "initialValue" : "red",
+                "isVtype" : true,
+                "readPolicy" : 0,
+                "overwritePolicy" : 3,
+                "isYield" : true,
+                "polling_period" : -1,
+                "isConst" : true,
+                "ignoreWriteBacks" : false,
+                "deviceKind" : 0
+            },
+            {
+                "device_name" : "countMap",
+                "type" : 7,
+                "controller" : "MASTER",
+                "port_maps" : {
+
+                },
+                "initialValue" : {
+                    "red" : 0,
+                    "green" : 0
+                },
+                "isVtype" : true,
+                "readPolicy" : 0,
+                "overwritePolicy" : 3,
+                "isYield" : true,
+                "polling_period" : -1,
+                "isConst" : true,
+                "ignoreWriteBacks" : false,
+                "deviceKind" : 0
+            },
+            {
+                "device_name" : "fl",
+                "type" : 10,
+                "controller" : "CTL",
+                "port_maps" : {
+                    "file" : "logfile.txt"
+                },
+                "initialValue" : {
+                    "msg" : ""
+                },
+                "isVtype" : false,
+                "readPolicy" : 0,
+                "overwritePolicy" : 3,
+                "isYield" : true,
+                "polling_period" : -1,
+                "isConst" : true,
+                "ignoreWriteBacks" : false,
+                "deviceKind" : 1
             }
         ],
-        "bytecode_offset" : 0,
+        "bytecode_offset" : 34,
         "inDevices" : [
 
         ],
         "outDevices" : [
 
         ],
-        "hostController" : "CTL",
+        "hostController" : "MASTER",
         "triggers" : [
+            {
+                "rule" : [
+                    "button"
+                ],
+                "id" : "",
+                "priority" : 1
+            }
+        ]
+    },
+    {
+        "name" : "changeTask",
+        "binded_devices" : [
+            {
+                "device_name" : "lw",
+                "type" : 10,
+                "controller" : "CTL",
+                "port_maps" : {
+                    "file" : "file1.txt"
+                },
+                "initialValue" : {
+                    "msg" : ""
+                },
+                "isVtype" : false,
+                "readPolicy" : 0,
+                "overwritePolicy" : 3,
+                "isYield" : true,
+                "polling_period" : -1,
+                "isConst" : true,
+                "ignoreWriteBacks" : false,
+                "deviceKind" : 1
+            },
+            {
+                "device_name" : "mode",
+                "type" : 4,
+                "controller" : "MASTER",
+                "port_maps" : {
 
+                },
+                "initialValue" : "red",
+                "isVtype" : true,
+                "readPolicy" : 0,
+                "overwritePolicy" : 3,
+                "isYield" : true,
+                "polling_period" : -1,
+                "isConst" : true,
+                "ignoreWriteBacks" : false,
+                "deviceKind" : 0
+            }
+        ],
+        "bytecode_offset" : 10,
+        "inDevices" : [
+
+        ],
+        "outDevices" : [
+
+        ],
+        "hostController" : "MASTER",
+        "triggers" : [
+            {
+                "rule" : [
+                    "lw"
+                ],
+                "id" : "",
+                "priority" : 1
+            }
         ]
     }
 ]
 LITERALS_BEGIN
 [
-"A string.",
-" Another string."
+0,
+1,
+"msg",
+"green",
+"red",
+"MODE CHANGED TO ",
+"pressed",
+"Green was pressed ",
+" times. ",
+"Red was pressed ",
+" times.",
+"on",
+true,
+false
 ]
 BYTECODE_BEGIN
-_printString:
-PUSH 0
-TRAP 1 1
-EMIT 1
-_printAppendedString:
-MKTYPE 1 4
-PUSH 0
-STORE 1
-LOAD 1
-PUSH 1
-ADD
-STORE 1
-LOAD 1
-LOAD 1
-TRAP 1 1
-EMIT 1
+temp:
+[0] LOAD a
+[1] TRAP print 1
+[2] LOAD a
+[3] CALL temp 1
+[4] MKTYPE x list
+[5] LOAD x
+[6] PUSH 1
+[7] MTRAP list::append
+[8] PUSH 0
+[9] RETURN
+changeTask:
+[10] LOAD lw
+[11] PUSH "msg"
+[12] ALOAD
+[13] PUSH "green"
+[14] EQ
+[15] JMPSC_OR 22
+[16] LOAD lw
+[17] PUSH "msg"
+[18] ALOAD
+[19] PUSH "red"
+[20] EQ
+[21] OR
+[22] BRANCH 33
+[23] PUSH "MODE CHANGED TO "
+[24] LOAD message
+[25] ADD
+[26] TRAP println 1
+[27] LOAD lw
+[28] PUSH "msg"
+[29] ALOAD
+[30] STORE message
+[31] LOAD message
+[32] JMP 33
+[33] EMIT STOP
+buttonLog:
+[34] LOAD button
+[35] PUSH "pressed"
+[36] ALOAD
+[37] BRANCH 98
+[38] MKTYPE val int
+[39] PUSH 0
+[40] STORE val
+[41] LOAD mode
+[42] PUSH "red"
+[43] EQ
+[44] BRANCH 57
+[45] LOAD countMap
+[46] PUSH "red"
+[47] ALOAD
+[48] LOAD countMap
+[49] PUSH "red"
+[50] LOAD countMap
+[51] PUSH "red"
+[52] ALOAD
+[53] PUSH 1
+[54] ADD
+[55] ASTORE
+[56] JMP 68
+[57] LOAD countMap
+[58] PUSH "green"
+[59] ALOAD
+[60] LOAD countMap
+[61] PUSH "green"
+[62] LOAD countMap
+[63] PUSH "green"
+[64] ALOAD
+[65] PUSH 1
+[66] ADD
+[67] ASTORE
+[68] MKTYPE greenCnt int
+[69] LOAD countMap
+[70] PUSH "green"
+[71] ALOAD
+[72] STORE greenCnt
+[73] MKTYPE redCnt int
+[74] LOAD countMap
+[75] PUSH "red"
+[76] ALOAD
+[77] STORE redCnt
+[78] LOAD fl
+[79] PUSH "msg"
+[80] PUSH "Green was pressed "
+[81] LOAD greenCnt
+[82] TRAP toString 1
+[83] ADD
+[84] PUSH " times. "
+[85] ADD
+[86] PUSH "Red was pressed "
+[87] ADD
+[88] LOAD redCnt
+[89] TRAP toString 1
+[90] ADD
+[91] PUSH " times."
+[92] ADD
+[93] ASTORE
+[94] LOAD fl
+[95] PUSH "msg"
+[96] ALOAD
+[97] JMP 98
+[98] EMIT STOP
+buttonLight:
+[99] LOAD button
+[100] PUSH "pressed"
+[101] ALOAD
+[102] BRANCH 123
+[103] LOAD mode
+[104] PUSH "red"
+[105] EQ
+[106] BRANCH 115
+[107] LOAD redLight
+[108] PUSH "on"
+[109] PUSH true
+[110] ASTORE
+[111] LOAD redLight
+[112] PUSH "on"
+[113] ALOAD
+[114] JMP 122
+[115] LOAD greenLight
+[116] PUSH "on"
+[117] PUSH true
+[118] ASTORE
+[119] LOAD greenLight
+[120] PUSH "on"
+[121] ALOAD
+[122] JMP 137
+[123] LOAD redLight
+[124] PUSH "on"
+[125] PUSH false
+[126] ASTORE
+[127] LOAD redLight
+[128] PUSH "on"
+[129] ALOAD
+[130] LOAD greenLight
+[131] PUSH "on"
+[132] PUSH false
+[133] ASTORE
+[134] LOAD greenLight
+[135] PUSH "on"
+[136] ALOAD
+[137] EMIT STOP

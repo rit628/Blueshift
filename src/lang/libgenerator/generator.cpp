@@ -1,6 +1,8 @@
 #include "generator.hpp"
+#include "Serialization.hpp"
 #include "ast.hpp"
 #include "bytecode_processor.hpp"
+#include "bytecode_serializer.hpp"
 #include "opcodes.hpp"
 #include "bls_types.hpp"
 #include "traps.hpp"
@@ -10,12 +12,14 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <ranges>
 #include <sstream>
 #include <stdexcept>
 #include <boost/archive/binary_oarchive.hpp>
+#include <string>
+#include <unordered_map>
 #include <utility>
 #include <variant>
-#include <boost/range/adaptor/map.hpp>
 #include <vector>
 
 using namespace BlsLang;
@@ -27,46 +31,14 @@ void Generator::writeBytecode(std::ostream& outputStream) {
     if (outputStream.bad()) {
         throw std::runtime_error("Bad output stream provided.");
     }
-    boost::archive::binary_oarchive oa(outputStream, boost::archive::archive_flags::no_header);
-    std::vector<BlsType> orderedLiterals(boost::adaptors::keys(literalPool).begin(), boost::adaptors::keys(literalPool).end());
-    std::sort(orderedLiterals.begin(), orderedLiterals.end(), [this](const auto& a, const auto& b) {
-        return literalPool.at(a) < literalPool.at(b);
-    });
-    
-    // write header
-    uint16_t descriptorCount = taskDescriptors.size();
-    outputStream.write(reinterpret_cast<const char *>(&descriptorCount), sizeof(descriptorCount));
-    for (auto&& desc : boost::adaptors::values(taskDescriptors)) {
-        oa << desc;
-    }
+    BytecodeSerializer bs(outputStream);
 
-    // write literal pool
-    uint16_t poolSize = literalPool.size();
-    outputStream.write(reinterpret_cast<const char *>(&poolSize), sizeof(poolSize));
-    for (auto&& literal : orderedLiterals) {
-        oa << literal;
-    }
+    bs.writeMetadata(functionSymbols);
+    bs.writeHeader(std::views::values(taskDescriptors));
+    bs.writeLiteralPool(literalPool);
 
-    // write instructions
     for (auto&& instruction : instructions) {
-        switch (instruction->opcode) {
-            #define OPCODE_BEGIN(code) \
-            case OPCODE::code: { \
-                auto& resolvedInstruction [[ maybe_unused ]] = reinterpret_cast<INSTRUCTION::code&>(*instruction); \
-                outputStream.write(reinterpret_cast<const char *>(&instruction->opcode), sizeof(OPCODE));
-            #define ARGUMENT(arg, type) \
-                type& arg = resolvedInstruction.arg; \
-                outputStream.write(reinterpret_cast<const char *>(&arg), sizeof(type));
-            #define OPCODE_END(code, args...) \
-                break; \
-            } 
-            #include "include/OPCODES.LIST"
-            #undef OPCODE_BEGIN
-            #undef ARGUMENT
-            #undef OPCODE_END
-            default:
-            break;
-        }
+        bs.writeInstruction(*instruction);
     }
 }
 
@@ -93,8 +65,10 @@ BlsObject Generator::visit(AstNode::Source& ast) {
 
 BlsObject Generator::visit(AstNode::Function::Procedure& ast) {
     functionContext = FUNCTION_CONTEXT::PROCEDURE;
+    auto& name = ast.getName();
     uint16_t address = instructions.size();
-    procedureAddresses.emplace(ast.getName(), address);
+    functionSymbols[name].first = address; // use operator[] to account for testing environment
+    procedureAddresses.emplace(name, address);
     for (auto&& statement : ast.getStatements()) {
         statement->accept(*this);
     }
@@ -144,6 +118,7 @@ BlsObject Generator::visit(AstNode::Function::Task& ast) {
     auto& name = ast.getName();
     if (!taskDescriptors.contains(name)) return 0; // skip generating code for unbound tasks
     uint16_t address = instructions.size();
+    functionSymbols[name].first = address; // use operator[] to account for testing environment
     taskDescriptors.at(name).bytecode_offset = address;
     for (auto&& statement : ast.getStatements()) {
         statement->accept(*this);
@@ -673,16 +648,3 @@ BlsObject Generator::visit(AstNode::Specifier::Type&) {
 BlsObject Generator::visit(AstNode::Initializer::Task&) {
     return 0; // task configs dont need to be visited in generator
 }
-
-#define OPCODE_BEGIN(code) \
-std::unique_ptr<INSTRUCTION::code> Generator::create##code(
-#define ARGUMENT(arg, type) \
-type arg,
-#define OPCODE_END(code, args...) \
-int) { \
-    return std::make_unique<INSTRUCTION::code>(INSTRUCTION::code{{OPCODE::code}, args}); \
-}
-#include "include/OPCODES.LIST"
-#undef OPCODE_BEGIN
-#undef ARGUMENT
-#undef OPCODE_END

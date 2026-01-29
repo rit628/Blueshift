@@ -38,6 +38,80 @@ namespace BlsTrap {
         COUNT
     };
 
+    constexpr const std::string getTrapName(CALLNUM callnum) {
+        using enum CALLNUM;
+        switch (callnum) {
+            #define TRAP_BEGIN(name, ...) \
+            case name: \
+                return #name; \
+            break;
+            #define VARIADIC(...)
+            #define ARGUMENT(...)
+            #define TRAP_END
+            #include "include/TRAPS.LIST"
+            #undef TRAP_BEGIN
+            #undef VARIADIC
+            #undef ARGUMENT
+            #undef TRAP_END
+            default:
+                return "";
+            break;
+        }
+    }
+
+    constexpr CALLNUM getTrapFromName(std::string callnum) {
+        using enum CALLNUM;
+        #define TRAP_BEGIN(name, ...) \
+        if (callnum == #name) { \
+            return name; \
+        }
+        #define VARIADIC(...)
+        #define ARGUMENT(...)
+        #define TRAP_END
+        #include "include/TRAPS.LIST"
+        #undef TRAP_BEGIN
+        #undef VARIADIC
+        #undef ARGUMENT
+        #undef TRAP_END
+        return COUNT;
+    }
+    
+    constexpr const std::string getMTrapName(MCALLNUM callnum) {
+        using enum MCALLNUM;
+        switch (callnum) {
+            #define METHOD_BEGIN(name, objType, ...) \
+            case objType##__##name: \
+                return #objType "::" #name; \
+            break;
+            #define ARGUMENT(...)
+            #define METHOD_END
+            #include "include/LIST_METHODS.LIST"
+            #include "include/MAP_METHODS.LIST"
+            #undef METHOD_BEGIN
+            #undef ARGUMENT
+            #undef METHOD_END
+            default:
+                return "";
+            break;
+        }
+    }
+
+    constexpr MCALLNUM getMTrapFromName(std::string callnum) {
+        using enum MCALLNUM;
+        #define METHOD_BEGIN(name, objType, ...) \
+        if (callnum == #objType "::" #name) { \
+            return objType##__##name; \
+        }
+        #define ARGUMENT(...)
+        #define METHOD_END
+        #include "include/LIST_METHODS.LIST"
+        #include "include/MAP_METHODS.LIST"
+        #undef METHOD_BEGIN
+        #undef ARGUMENT
+        #undef METHOD_END
+        return COUNT;
+    }
+
     namespace Detail {
 
         #define TRAP_BEGIN(trapName, ...) \

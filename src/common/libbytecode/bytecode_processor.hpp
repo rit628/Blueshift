@@ -5,6 +5,7 @@
 #include <fstream>
 #include <cstdint>
 #include <functional>
+#include <istream>
 #include <memory>
 #include <vector>
 #include <boost/archive/binary_iarchive.hpp>
@@ -34,6 +35,7 @@ class BytecodeProcessor {
         virtual ~BytecodeProcessor() = default;
 
     private:
+        void readMetadata(std::istream& bytecode, boost::archive::binary_iarchive& ia);
         void readHeader(std::istream& bytecode, boost::archive::binary_iarchive& ia);
         void loadLiterals(std::istream& bytecode, boost::archive::binary_iarchive& ia);
         void loadInstructions(std::istream& bytecode);
@@ -51,8 +53,13 @@ class BytecodeProcessor {
         #undef OPCODE_END
 
         size_t instruction = 0;
+        /* metadata */
+        std::unordered_map<uint16_t, std::pair<std::string, std::vector<std::string>>> functionMetadata;
+        /* header data */
         std::vector<TaskDescriptor> taskDescs;
+        /* literal pool */
         std::vector<BlsType> literalPool;
+        /* bytecode */
         std::vector<std::unique_ptr<INSTRUCTION>> instructions;
         SIGNAL signal = SIGNAL::START;
         ExecutionUnit* ownerUnit = nullptr; // should be a member of VM but here for now to avoid circular header deps
