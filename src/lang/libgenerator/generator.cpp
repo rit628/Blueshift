@@ -1,6 +1,8 @@
 #include "generator.hpp"
+#include "Serialization.hpp"
 #include "ast.hpp"
 #include "bytecode_processor.hpp"
+#include "bytecode_serializer.hpp"
 #include "opcodes.hpp"
 #include "bls_types.hpp"
 #include "traps.hpp"
@@ -10,6 +12,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <ranges>
 #include <sstream>
 #include <stdexcept>
 #include <boost/archive/binary_oarchive.hpp>
@@ -17,7 +20,6 @@
 #include <unordered_map>
 #include <utility>
 #include <variant>
-#include <boost/range/adaptor/map.hpp>
 #include <vector>
 
 using namespace BlsLang;
@@ -29,60 +31,14 @@ void Generator::writeBytecode(std::ostream& outputStream) {
     if (outputStream.bad()) {
         throw std::runtime_error("Bad output stream provided.");
     }
-    boost::archive::binary_oarchive oa(outputStream, boost::archive::archive_flags::no_header);
+    BytecodeSerializer bs(outputStream);
 
-    // write metadata
-    uint32_t metadataEnd = 0;
-    outputStream.write(reinterpret_cast<const char *>(&metadataEnd), sizeof(metadataEnd));
-    std::unordered_map<uint16_t, std::pair<std::string, std::vector<std::string>&>> functionMetadata;
-    for (auto&& [name, metadata] : functionSymbols) {
-        functionMetadata.emplace(metadata.first, std::make_pair(name, std::ref(metadata.second)));
-    }
-    oa << functionMetadata;
+    bs.writeMetadata(functionSymbols);
+    bs.writeHeader(std::views::values(taskDescriptors));
+    bs.writeLiteralPool(literalPool);
 
-    metadataEnd = outputStream.tellp();
-    outputStream.seekp(0);
-    outputStream.write(reinterpret_cast<const char *>(&metadataEnd), sizeof(metadataEnd));
-    outputStream.seekp(metadataEnd);
-    
-    // write header
-    uint16_t descriptorCount = taskDescriptors.size();
-    outputStream.write(reinterpret_cast<const char *>(&descriptorCount), sizeof(descriptorCount));
-    for (auto&& desc : boost::adaptors::values(taskDescriptors)) {
-        oa << desc;
-    }
-
-    // write literal pool
-    uint16_t poolSize = literalPool.size();
-    outputStream.write(reinterpret_cast<const char *>(&poolSize), sizeof(poolSize));
-    std::vector<BlsType> orderedLiterals(boost::adaptors::keys(literalPool).begin(), boost::adaptors::keys(literalPool).end());
-    std::sort(orderedLiterals.begin(), orderedLiterals.end(), [this](const auto& a, const auto& b) {
-        return literalPool.at(a) < literalPool.at(b);
-    });
-    for (auto&& literal : orderedLiterals) {
-        oa << literal;
-    }
-
-    // write instructions
     for (auto&& instruction : instructions) {
-        switch (instruction->opcode) {
-            #define OPCODE_BEGIN(code) \
-            case OPCODE::code: { \
-                auto& resolvedInstruction [[ maybe_unused ]] = reinterpret_cast<INSTRUCTION::code&>(*instruction); \
-                outputStream.write(reinterpret_cast<const char *>(&instruction->opcode), sizeof(OPCODE));
-            #define ARGUMENT(arg, type) \
-                type& arg = resolvedInstruction.arg; \
-                outputStream.write(reinterpret_cast<const char *>(&arg), sizeof(type));
-            #define OPCODE_END(code, args...) \
-                break; \
-            } 
-            #include "include/OPCODES.LIST"
-            #undef OPCODE_BEGIN
-            #undef ARGUMENT
-            #undef OPCODE_END
-            default:
-            break;
-        }
+        bs.writeInstruction(*instruction);
     }
 }
 
@@ -692,16 +648,3 @@ BlsObject Generator::visit(AstNode::Specifier::Type&) {
 BlsObject Generator::visit(AstNode::Initializer::Task&) {
     return 0; // task configs dont need to be visited in generator
 }
-
-#define OPCODE_BEGIN(code) \
-std::unique_ptr<INSTRUCTION::code> Generator::create##code(
-#define ARGUMENT(arg, type) \
-type arg,
-#define OPCODE_END(code, args...) \
-int) { \
-    return std::make_unique<INSTRUCTION::code>(INSTRUCTION::code{{OPCODE::code}, args}); \
-}
-#include "include/OPCODES.LIST"
-#undef OPCODE_BEGIN
-#undef ARGUMENT
-#undef OPCODE_END

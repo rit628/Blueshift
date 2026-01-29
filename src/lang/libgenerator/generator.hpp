@@ -41,17 +41,6 @@ namespace BlsLang {
                 , TASK
             };
 
-            #define OPCODE_BEGIN(code) \
-            static std::unique_ptr<INSTRUCTION::code> create##code(
-            #define ARGUMENT(arg, type) \
-            type arg,
-            #define OPCODE_END(code, args...) \
-            int = 0);
-            #include "include/OPCODES.LIST"
-            #undef OPCODE_BEGIN
-            #undef ARGUMENT
-            #undef OPCODE_END
-
             std::unordered_map<std::string, TaskDescriptor>& taskDescriptors;
             std::unordered_map<BlsType, uint8_t>& literalPool;
             std::unordered_map<std::string, std::pair<uint16_t, std::vector<std::string>>>& functionSymbols;

@@ -49,19 +49,6 @@ namespace BlsLang {
                     }
                 }
             }
-
-            #define OPCODE_BEGIN(code) \
-            static std::unique_ptr<INSTRUCTION::code> create##code(
-            #define ARGUMENT(arg, type) \
-            type arg,
-            #define OPCODE_END(code, args...) \
-            int = 0) { \
-                return Generator::create##code(args); \
-            }
-            #include "include/OPCODES.LIST"
-            #undef OPCODE_BEGIN
-            #undef ARGUMENT
-            #undef OPCODE_END
         
             template<typename... InstructionPtr> requires (std::convertible_to<InstructionPtr, std::unique_ptr<INSTRUCTION>> && ...)
             static std::vector<std::unique_ptr<INSTRUCTION>> makeInstructions(InstructionPtr&&... instructions) {

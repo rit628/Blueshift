@@ -1,12 +1,11 @@
 #include "bytecode_writer.hpp"
 #include "Serialization.hpp"
 #include "bytecode_processor.hpp"
-#include "DynamicMessage.hpp"
 #include "bls_types.hpp"
+#include "bytecode_serializer.hpp"
 #include "opcodes.hpp"
 #include "traps.hpp"
 #include <cstdint>
-#include <functional>
 #include <memory>
 #include <sstream>
 #include <iostream>
@@ -14,8 +13,6 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
-#include <utility>
-#include <variant>
 #include <vector>
 
 using namespace boost::json;
@@ -38,17 +35,9 @@ std::string BytecodeWriter::loadJSON(std::string jsonDelimiter) {
     return result;
 }
 
-template<bool Parse, typename T>
-void BytecodeWriter::writeArg(T arg) {
-    if constexpr (Parse) {
-        mnemonicBytecode >> arg;
-    }
-    outputStream->write(reinterpret_cast<const char *>(&arg), sizeof(T));
-}
-
-template<bool Parse, typename... Args>
-void BytecodeWriter::writeArgs(Args... args) {
-    (writeArg<Parse>(args), ...);
+template<typename... Args>
+void BytecodeWriter::parseArgs(Args&... args) {
+    ((mnemonicBytecode >> args), ...);
 }
 
 void BytecodeWriter::loadMnemonicBytecode(const std::string& filename) {
@@ -60,56 +49,38 @@ void BytecodeWriter::loadMnemonicBytecode(const std::string& filename) {
     mnemonicBytecode << input.rdbuf();
 }
 
-void BytecodeWriter::writeMetadata(std::ostream& stream, boost::archive::binary_oarchive& oa) {
+void BytecodeWriter::writeMetadata() {
     std::string buf;
     std::getline(mnemonicBytecode, buf); // skip METADATA_BEGIN
     auto metadataJSON = loadJSON("HEADER_BEGIN");
     functionSymbols = value_to<decltype(functionSymbols)>(parse(metadataJSON));
-    uint32_t metadataEnd = 0;
-    stream.write(reinterpret_cast<const char *>(&metadataEnd), sizeof(metadataEnd));
-    std::unordered_map<uint16_t, std::pair<std::string, std::vector<std::string>&>> functionMetadata;
-    for (auto&& [name, metadata] : functionSymbols) {
-        functionMetadata.emplace(metadata.first, std::make_pair(name, std::ref(metadata.second)));
-    }
-    oa << functionMetadata;
-    metadataEnd = stream.tellp();
-    stream.seekp(0);
-    stream.write(reinterpret_cast<const char *>(&metadataEnd), sizeof(metadataEnd));
-    stream.seekp(metadataEnd);
+    bs->writeMetadata(functionSymbols);
 }
 
-void BytecodeWriter::writeHeader(std::ostream& stream, boost::archive::binary_oarchive& oa) {
+void BytecodeWriter::writeHeader() {
     auto taskDescJSON = loadJSON("LITERALS_BEGIN");
-    array descArray = parse(taskDescJSON).get_array();
-    uint16_t descSize = descArray.size();
-    stream.write(reinterpret_cast<const char *>(&descSize), sizeof(descSize));
-    for (auto&& desc : descArray) {
-        oa << value_to<TaskDescriptor>(desc);
-    }
+    auto descriptors = value_to<std::vector<TaskDescriptor>>(parse(taskDescJSON));
+    bs->writeHeader(descriptors);
 }
 
-void BytecodeWriter::writeLiteralPool(std::ostream& stream, boost::archive::binary_oarchive& oa) {
+void BytecodeWriter::writeLiteralPool() {
     auto poolJSON = loadJSON("BYTECODE_BEGIN");
-    array pool = parse(poolJSON).get_array();
-    uint16_t poolSize = pool.size();
-    stream.write(reinterpret_cast<const char *>(&poolSize), sizeof(poolSize));
+    auto pool = value_to<std::vector<BlsType>>(parse(poolJSON));
     uint8_t index = 0;
     for (auto&& literal : pool) {
-        auto value = value_to<BlsType>(literal);
-        literalPool[value] = index++;
-        oa << value;
+        literalPool[literal] = index++;
     }
+    bs->writeLiteralPool(pool);
 }
 
-void BytecodeWriter::writeCALL(uint16_t address, uint8_t argc) {
+void BytecodeWriter::parseCALL(uint16_t& address, uint8_t& argc) {
     std::string functionName;
     mnemonicBytecode >> functionName;
     address = functionSymbols.at(functionName).first;
-    writeArgs<false>(address);
-    writeArgs(argc);
+    parseArgs(argc);
 }
 
-void BytecodeWriter::writeEMIT(uint8_t signal) {
+void BytecodeWriter::parseEMIT(uint8_t& signal) {
     using enum BytecodeProcessor::SIGNAL;
     std::string signalString;
     mnemonicBytecode >> signalString;
@@ -122,96 +93,89 @@ void BytecodeWriter::writeEMIT(uint8_t signal) {
     else {
         signal = static_cast<uint8_t>(COUNT);
     }
-    writeArgs<false>(signal);
 }
 
-void BytecodeWriter::writePUSH(uint8_t index) {
+void BytecodeWriter::parsePUSH(uint8_t& index) {
     std::string buf;
     std::getline(mnemonicBytecode, buf);
     auto literal = value_to<BlsType>(parse(buf));
     index = literalPool.at(literal);
-    writeArgs<false>(index);
 }
 
-void BytecodeWriter::writeMKTYPE(uint8_t index, uint8_t type) {
+void BytecodeWriter::parseMKTYPE(uint8_t& index, uint8_t& type) {
     std::string buf;
     mnemonicBytecode >> buf;
     index = currentFunctionSymbols.at(buf);
     mnemonicBytecode >> buf;
     type = static_cast<uint8_t>(getTypeFromName(buf));
-    writeArgs<false>(index, type);
 }
 
-void BytecodeWriter::writeSTORE(uint8_t index) {
+void BytecodeWriter::parseSTORE(uint8_t& index) {
     std::string buf;
     mnemonicBytecode >> buf;
     index = currentFunctionSymbols.at(buf);
-    writeArgs<false>(index);
 }
 
-void BytecodeWriter::writeLOAD(uint8_t index) {
+void BytecodeWriter::parseLOAD(uint8_t& index) {
     std::string buf;
     mnemonicBytecode >> buf;
     index = currentFunctionSymbols.at(buf);
-    writeArgs<false>(index);
 }
 
-void BytecodeWriter::writeMTRAP(uint16_t callnum) {
+void BytecodeWriter::parseMTRAP(uint16_t& callnum) {
     using namespace BlsTrap;
     std::string buf;
     mnemonicBytecode >> buf;
     callnum = static_cast<uint16_t>(getMTrapFromName(buf));
-    writeArgs<false>(callnum);
 }
 
-void BytecodeWriter::writeTRAP(uint16_t callnum, uint8_t argc) {
+void BytecodeWriter::parseTRAP(uint16_t& callnum, uint8_t& argc) {
     using namespace BlsTrap;
     std::string buf;
     mnemonicBytecode >> buf;
     callnum = static_cast<uint16_t>(getTrapFromName(buf));
-    writeArgs<false>(callnum);
-    writeArgs(argc);
+    parseArgs(argc);
 }
 
-void BytecodeWriter::writeBody(std::ostream& stream) {
+void BytecodeWriter::writeBody() {
     std::string buf;
-    outputStream = &stream; // quick and dirty; will fix shortly
     while (mnemonicBytecode >> buf) {
         if (false) { } // hack to force short circuiting and invalid input checking
         #define OPCODE_BEGIN(code) \
         else if (buf == #code) { \
             constexpr OPCODE c = OPCODE::code; \
-            stream.write(reinterpret_cast<const char *>(&c), sizeof(c));
+            auto instruction = create##code();
         #define ARGUMENT(arg, type) \
-            type arg = type();
+            type& arg = instruction->arg;
         #define OPCODE_END(code, args...) \
             if constexpr (c == OPCODE::CALL) { \
-                writeCALL(args); \
+                parseCALL(args); \
             } \
             else if constexpr (c == OPCODE::EMIT) { \
-                writeEMIT(args); \
+                parseEMIT(args); \
             } \
             else if constexpr (c == OPCODE::PUSH) { \
-                writePUSH(args); \
+                parsePUSH(args); \
             } \
             else if constexpr (c == OPCODE::MKTYPE) { \
-                writeMKTYPE(args); \
+                parseMKTYPE(args); \
             } \
             else if constexpr (c == OPCODE::STORE) { \
-                writeSTORE(args); \
+                parseSTORE(args); \
             } \
             else if constexpr (c == OPCODE::LOAD) { \
-                writeLOAD(args); \
+                parseLOAD(args); \
             } \
             else if constexpr (c == OPCODE::MTRAP) { \
-                writeMTRAP(args); \
+                parseMTRAP(args); \
             } \
             else if constexpr (c == OPCODE::TRAP) { \
-                writeTRAP(args); \
+                parseTRAP(args); \
             } \
             else { \
-                writeArgs(args); \
+                parseArgs(args); \
             } \
+            bs->writeInstruction(*instruction); \
         }
         #include "include/OPCODES.LIST"
         #undef OPCODE_BEGIN
@@ -239,9 +203,9 @@ void BytecodeWriter::convertToBinary(std::ostream& stream) {
     if (stream.bad()) {
         throw std::runtime_error("Bad output stream provided.");
     }
-    boost::archive::binary_oarchive oa(stream, boost::archive::archive_flags::no_header);
-    writeMetadata(stream, oa);
-    writeHeader(stream, oa);
-    writeLiteralPool(stream, oa);
-    writeBody(stream);
+    bs = std::make_unique<BytecodeSerializer>(stream);
+    writeMetadata();
+    writeHeader();
+    writeLiteralPool();
+    writeBody();
 }

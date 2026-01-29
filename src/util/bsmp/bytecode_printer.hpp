@@ -50,6 +50,6 @@ class BytecodePrinter : public BytecodeProcessor {
         void printMTRAP(...) { throw std::runtime_error("MTRAP PRETTY PRINT OUT OF DATE"); }
         void printTRAP(...) { throw std::runtime_error("TRAP PRETTY PRINT OUT OF DATE"); }
 
-        std::ostream* outputStream;
-        std::vector<std::string>* currentFunctionSymbols;
+        std::ostream* outputStream = nullptr;
+        std::vector<std::string>* currentFunctionSymbols = nullptr;
 };

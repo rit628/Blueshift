@@ -108,7 +108,7 @@ void BytecodeProcessor::loadInstructions(std::istream& bytecode) {
                 type arg; \
                 bytecode.read(reinterpret_cast<char*>(&arg), sizeof(type));
             #define OPCODE_END(code, args...) \
-                instructions.push_back(std::make_unique<INSTRUCTION::code>(INSTRUCTION::code{{OPCODE::code}, args})); \
+                instructions.push_back(create##code(args)); \
                 break; \
             } 
             #include "include/OPCODES.LIST"
