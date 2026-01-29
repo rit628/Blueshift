@@ -1,16 +1,19 @@
 #pragma once
-#include "traps.hpp"
 #include "bls_types.hpp"
 #include "call_stack.hpp"
 #include "bytecode_processor.hpp"
 #include <cstddef>
 #include <vector>
 
+namespace BlsTrap {
+    struct Impl;
+}
+
 class ExecutionUnit;
 
 namespace BlsLang {
     
-    class VirtualMachine : public BytecodeProcessor {
+    class VirtualMachine : public BytecodeProcessor<VirtualMachine> {
         public:
             void setParentExecutionUnit(ExecutionUnit* ownerUnit);
             void setTaskOffset(size_t taskOffset);
@@ -18,6 +21,7 @@ namespace BlsLang {
             std::vector<bool>& getModifiedStates();
 
             friend struct BlsTrap::Impl;
+            friend class BytecodeProcessor<VirtualMachine>;
 
         protected:
             #define OPCODE_BEGIN(code) \
@@ -25,7 +29,7 @@ namespace BlsLang {
             #define ARGUMENT(arg, type) \
             type arg,
             #define OPCODE_END(...) \
-            int = 0) override;
+            int = 0);
             #include "include/OPCODES.LIST"
             #undef OPCODE_BEGIN
             #undef ARGUMENT
@@ -35,6 +39,7 @@ namespace BlsLang {
             std::vector<bool> modifiedStates;
             size_t taskOffset = 0;
             CallStack<size_t> cs;
+            ExecutionUnit* ownerUnit = nullptr;
     };
 
 }

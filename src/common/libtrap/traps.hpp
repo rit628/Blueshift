@@ -1,5 +1,5 @@
 #pragma once
-#include "bytecode_processor.hpp"
+#include "virtual_machine.hpp"
 #include "bls_types.hpp"
 #include "typedefs.hpp"
 #include <cstdint>
@@ -206,7 +206,7 @@ namespace BlsTrap {
         #define ARGUMENT(argName, argType...) \
             resolved_t<argType> argName,
         #define TRAP_END \
-        BytecodeProcessor* vm = nullptr);
+        BlsLang::VirtualMachine* vm = nullptr);
         #include "include/TRAPS.LIST"
         #undef TRAP_BEGIN
         #undef VARIADIC
@@ -216,7 +216,7 @@ namespace BlsTrap {
 
 
     template<CALLNUM T>
-    BlsType executeTrap(std::vector<BlsType> args, BytecodeProcessor* vm = nullptr) {
+    BlsType executeTrap(std::vector<BlsType> args, BlsLang::VirtualMachine* vm = nullptr) {
         #define TRAP_BEGIN(name, ...) \
         if constexpr (T == CALLNUM::name) { \
             using argnum [[ maybe_unused ]] = Detail::name::ARGNUM; \

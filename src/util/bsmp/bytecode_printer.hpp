@@ -9,7 +9,7 @@
 #include <vector>
 
 
-class BytecodePrinter : public BytecodeProcessor {
+class BytecodePrinter : public BytecodeProcessor<BytecodePrinter, false> {
     public:
         void setOutputStream(std::ostream& stream = std::cout);
         void printAll();
@@ -17,13 +17,15 @@ class BytecodePrinter : public BytecodeProcessor {
         void printHeader();
         void printLiteralPool();
 
+        friend class BytecodeProcessor<BytecodePrinter, false>;
+
     protected:
         #define OPCODE_BEGIN(code) \
         void code(
         #define ARGUMENT(arg, type) \
         type arg,
         #define OPCODE_END(...) \
-        int = 0) override;
+        int = 0);
         #include "include/OPCODES.LIST"
         #undef OPCODE_BEGIN
         #undef ARGUMENT
