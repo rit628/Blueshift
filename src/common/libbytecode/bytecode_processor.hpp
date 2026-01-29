@@ -14,8 +14,6 @@ namespace BlsTrap {
     struct Impl;
 }
 
-class ExecutionUnit;
-
 class BytecodeProcessor {
     public:
         enum class SIGNAL : uint8_t {
@@ -62,5 +60,4 @@ class BytecodeProcessor {
         /* bytecode */
         std::vector<std::unique_ptr<INSTRUCTION>> instructions;
         SIGNAL signal = SIGNAL::START;
-        ExecutionUnit* ownerUnit = nullptr; // should be a member of VM but here for now to avoid circular header deps
 };

@@ -19,11 +19,12 @@
 #include <boost/asio.hpp>
 
 using namespace BlsTrap;
+using namespace BlsLang;
 namespace asio = boost::asio; 
 namespace beast = boost::beast; 
 namespace http = beast::http; 
 
-std::monostate Impl::print(std::vector<BlsType> values, BytecodeProcessor*) {
+std::monostate Impl::print(std::vector<BlsType> values, VirtualMachine*) {
     if (values.size() > 0) {
         std::cout << values.at(0) << std::flush;
         for (auto&& arg : boost::make_iterator_range(values.begin()+1, values.end())) {
@@ -34,57 +35,61 @@ std::monostate Impl::print(std::vector<BlsType> values, BytecodeProcessor*) {
     return std::monostate();
 }
 
-std::monostate Impl::println(std::vector<BlsType> values, BytecodeProcessor*) {
+std::monostate Impl::println(std::vector<BlsType> values, VirtualMachine*) {
     for (auto&& value : values) {
         std::cout << value << std::endl;
     }
     return std::monostate();
 }
 
-std::monostate Impl::sleep(int64_t ms, BytecodeProcessor*) {
+std::monostate Impl::sleep(int64_t ms, VirtualMachine*) {
     std::this_thread::sleep_for(std::chrono::milliseconds(ms));
     return std::monostate();
 }
 
-int64_t Impl::stoi(std::string input, BytecodeProcessor*) {
+int64_t Impl::stoi(std::string input, VirtualMachine*) {
     return std::stoi(input);
 }
 
-std::string Impl::toString(double input, BytecodeProcessor*) {
+std::string Impl::toString(double input, VirtualMachine*) {
     // use a stringstream for now for better formatted output; eventually overloads will allow for std::to_string
     std::stringstream out;
     out << input;
     return out.str();
 }
 
-std::string Impl::getTrigger(BytecodeProcessor* vm) {
+std::string Impl::getTrigger(VirtualMachine* vm) {
     if (!vm) return "";
     return vm->ownerUnit->TriggerName;
 }
 
-std::string Impl::time(BytecodeProcessor*) {
+std::string Impl::time(VirtualMachine*) {
     std::time_t result = std::time(nullptr);
     return std::asctime(std::localtime(&result));
 }
 
 
-std::monostate Impl::disableTrigger(std::string triggerName, std::string taskID, BytecodeProcessor* vm){
+std::monostate Impl::disableTrigger(std::string triggerName, std::string taskID, VirtualMachine* vm){
+    if (!vm) return std::monostate();
     vm->ownerUnit->sendTriggerChange(triggerName, taskID, false); 
     return std::monostate();
 }
 
-std::monostate Impl::enableTrigger(std::string triggerName, std::string taskID, BytecodeProcessor* vm){
-    vm->ownerUnit->sendTriggerChange(triggerName, taskID, true); 
+std::monostate Impl::enableTrigger(std::string triggerName, std::string taskID, VirtualMachine* vm){
+    if (!vm) return std::monostate();
+    vm->ownerUnit->sendTriggerChange(triggerName, taskID, true);
     return std::monostate(); 
 }
 
-std::monostate Impl::push(std::vector<BlsType> blsList, BytecodeProcessor *vm){
+std::monostate Impl::push(std::vector<BlsType> blsList, VirtualMachine* vm){
+    if (!vm) return std::monostate();
     // imagine a push function here
     vm->ownerUnit->sendPushState(blsList); 
     return std::monostate(); 
 }
 
-std::monostate Impl::pull(std::vector<BlsType> blsList, BytecodeProcessor *vm){
+std::monostate Impl::pull(std::vector<BlsType> blsList, VirtualMachine* vm){
+    if (!vm) return std::monostate();
     auto newStates = vm->ownerUnit->sendPullState(blsList); 
     int i = 0; 
     for(auto oldVal : blsList){
@@ -105,24 +110,24 @@ std::monostate Impl::pull(std::vector<BlsType> blsList, BytecodeProcessor *vm){
     return std::monostate(); 
 }
 
-std::monostate Impl::sync(std::vector<BlsType> blsList, BytecodeProcessor*){
+std::monostate Impl::sync(std::vector<BlsType> blsList, VirtualMachine*){
     Impl::push(blsList); 
     return Impl::pull(blsList);
 }
 
-BlsType Impl::loadJson(std::string json, BytecodeProcessor*) {
+BlsType Impl::loadJson(std::string json, VirtualMachine*) {
     using namespace boost::json;
     return value_to<BlsType>(parse(json));
 }
 
-std::string Impl::jsonify(BlsType value, BytecodeProcessor*) {
+std::string Impl::jsonify(BlsType value, VirtualMachine*) {
     using namespace boost::json;
     return serialize(value_from(value));
 }
 
-std::string Impl::httpRequest(std::string method, std::string host, std::string target, std::string body, BytecodeProcessor *vm){
-    
-    
+std::string Impl::httpRequest(std::string method, std::string host, std::string target, std::string body, VirtualMachine* vm){
+    if (!vm) return "";
+
     asio::ip::tcp::resolver res(vm->ownerUnit->ctx); 
     beast::tcp_stream stream(vm->ownerUnit->ctx); 
     int version = 11; 
@@ -159,7 +164,7 @@ std::string Impl::httpRequest(std::string method, std::string host, std::string 
 
 }
 
-bool Impl::containsType(BlsType value, std::string typeName, BytecodeProcessor*) {
+bool Impl::containsType(BlsType value, std::string typeName, VirtualMachine*) {
     auto type = getTypeFromName(typeName);
 
     switch (type) {

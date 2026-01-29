@@ -1,5 +1,4 @@
 #pragma once
-#include "traps.hpp"
 #include "bls_types.hpp"
 #include "call_stack.hpp"
 #include "bytecode_processor.hpp"
@@ -35,6 +34,7 @@ namespace BlsLang {
             std::vector<bool> modifiedStates;
             size_t taskOffset = 0;
             CallStack<size_t> cs;
+            ExecutionUnit* ownerUnit = nullptr;
     };
 
 }
