@@ -14,7 +14,7 @@ namespace BlsTrap {
     struct Impl;
 }
 
-template<bool SkipMetadata = true>
+template<typename Derived = void, bool SkipMetadata = true>
 class BytecodeProcessor {
     public:
         enum class SIGNAL : uint8_t {
@@ -27,11 +27,8 @@ class BytecodeProcessor {
         void loadBytecode(const std::string& filename);
         void loadBytecode(const std::vector<char>& bytecode);
         void dispatch();
-        std::vector<TaskDescriptor> getTaskDescriptors() { return taskDescs; }
 
         friend struct BlsTrap::Impl;
-
-        virtual ~BytecodeProcessor() = default;
 
     private:
         void readMetadata(std::istream& bytecode, boost::archive::binary_iarchive& ia);
@@ -40,18 +37,20 @@ class BytecodeProcessor {
         void loadInstructions(std::istream& bytecode);
 
     protected:
+        /* use crtp for now until we upgrade to c++ 23 */
+        BytecodeProcessor() = default;    
+
         #define OPCODE_BEGIN(code) \
-        virtual void code(
+        void code(
         #define ARGUMENT(arg, type) \
         type arg,
-        #define OPCODE_END(...) \
-        int = 0) = 0;
+        #define OPCODE_END(code, args...) \
+        int = 0) { static_cast<Derived*>(this)->code(args); }
         #include "include/OPCODES.LIST"
         #undef OPCODE_BEGIN
         #undef ARGUMENT
         #undef OPCODE_END
 
-        size_t instruction = 0;
         /* metadata */
         std::unordered_map<uint16_t, std::pair<std::string, std::vector<std::string>>> functionMetadata;
         /* header data */
@@ -60,6 +59,8 @@ class BytecodeProcessor {
         std::vector<BlsType> literalPool;
         /* bytecode */
         std::vector<std::unique_ptr<INSTRUCTION>> instructions;
+        /* execution data */
+        size_t instruction = 0;
         SIGNAL signal = SIGNAL::START;
 };
 

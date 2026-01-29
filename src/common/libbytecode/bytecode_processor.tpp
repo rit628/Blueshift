@@ -15,8 +15,8 @@
 #include <stdexcept>
 #include <vector>
 
-template<bool SkipMetadata>
-inline void BytecodeProcessor<SkipMetadata>::readMetadata(std::istream& bytecode, boost::archive::binary_iarchive& ia) {
+template<typename Derived, bool SkipMetadata>
+inline void BytecodeProcessor<Derived, SkipMetadata>::readMetadata(std::istream& bytecode, boost::archive::binary_iarchive& ia) {
     uint32_t metadataEnd;
     bytecode.read(reinterpret_cast<char*>(&metadataEnd), sizeof(metadataEnd));
     if constexpr (SkipMetadata) {
@@ -27,8 +27,8 @@ inline void BytecodeProcessor<SkipMetadata>::readMetadata(std::istream& bytecode
     }
 }
 
-template<bool SkipMetadata>
-inline void BytecodeProcessor<SkipMetadata>::readHeader(std::istream& bytecode, boost::archive::binary_iarchive& ia) {
+template<typename Derived, bool SkipMetadata>
+inline void BytecodeProcessor<Derived, SkipMetadata>::readHeader(std::istream& bytecode, boost::archive::binary_iarchive& ia) {
     uint16_t descriptorCount;
     bytecode.read(reinterpret_cast<char*>(&descriptorCount), sizeof(descriptorCount));
     for (uint16_t i = 0; i < descriptorCount; i++) {
@@ -38,8 +38,8 @@ inline void BytecodeProcessor<SkipMetadata>::readHeader(std::istream& bytecode, 
     }
 }
 
-template<bool SkipMetadata>
-inline void BytecodeProcessor<SkipMetadata>::loadLiterals(std::istream& bytecode, boost::archive::binary_iarchive& ia) {
+template<typename Derived, bool SkipMetadata>
+inline void BytecodeProcessor<Derived, SkipMetadata>::loadLiterals(std::istream& bytecode, boost::archive::binary_iarchive& ia) {
     uint16_t poolSize;
     bytecode.read(reinterpret_cast<char*>(&poolSize), sizeof(poolSize));
     for (uint16_t i = 0; i < poolSize; i++) {
@@ -49,8 +49,8 @@ inline void BytecodeProcessor<SkipMetadata>::loadLiterals(std::istream& bytecode
     }
 }
 
-template<bool SkipMetadata>
-inline void BytecodeProcessor<SkipMetadata>::loadInstructions(std::istream& bytecode) {
+template<typename Derived, bool SkipMetadata>
+inline void BytecodeProcessor<Derived, SkipMetadata>::loadInstructions(std::istream& bytecode) {
     OPCODE code;
     while (bytecode.read(reinterpret_cast<char*>(&code), sizeof(code))) {
         switch (code) {
@@ -74,8 +74,8 @@ inline void BytecodeProcessor<SkipMetadata>::loadInstructions(std::istream& byte
     }
 }
 
-template<bool SkipMetadata>
-inline void BytecodeProcessor<SkipMetadata>::loadBytecode(std::istream& bytecode) {
+template<typename Derived, bool SkipMetadata>
+inline void BytecodeProcessor<Derived, SkipMetadata>::loadBytecode(std::istream& bytecode) {
     if (bytecode.bad()) {
         throw std::runtime_error("Bad bytecode stream provided.");
     }
@@ -86,8 +86,8 @@ inline void BytecodeProcessor<SkipMetadata>::loadBytecode(std::istream& bytecode
     loadInstructions(bytecode);
 }
 
-template<bool SkipMetadata>
-inline void BytecodeProcessor<SkipMetadata>::loadBytecode(const std::string& filename) {
+template<typename Derived, bool SkipMetadata>
+inline void BytecodeProcessor<Derived, SkipMetadata>::loadBytecode(const std::string& filename) {
     auto bytecode = std::ifstream(filename, std::ios::binary);
     if (!bytecode.is_open()) {
         throw std::runtime_error("Invalid Filename.");
@@ -95,14 +95,14 @@ inline void BytecodeProcessor<SkipMetadata>::loadBytecode(const std::string& fil
     loadBytecode(bytecode);
 }
 
-template<bool SkipMetadata>
-inline void BytecodeProcessor<SkipMetadata>::loadBytecode(const std::vector<char>& bytecode) {
+template<typename Derived, bool SkipMetadata>
+inline void BytecodeProcessor<Derived, SkipMetadata>::loadBytecode(const std::vector<char>& bytecode) {
     auto bytecodeStream = std::istringstream({bytecode.data(), bytecode.size()}, std::ios::binary);
     loadBytecode(bytecodeStream);
 }
 
-template<bool SkipMetadata>
-inline void BytecodeProcessor<SkipMetadata>::dispatch() {
+template<typename Derived, bool SkipMetadata>
+inline void BytecodeProcessor<Derived, SkipMetadata>::dispatch() {
     while (instruction != instructions.size()) {
         auto& instructionStruct = instructions[instruction];
         instruction++;

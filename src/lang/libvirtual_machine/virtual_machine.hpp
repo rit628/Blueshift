@@ -9,7 +9,7 @@ class ExecutionUnit;
 
 namespace BlsLang {
     
-    class VirtualMachine : public BytecodeProcessor<> {
+    class VirtualMachine : public BytecodeProcessor<VirtualMachine> {
         public:
             void setParentExecutionUnit(ExecutionUnit* ownerUnit);
             void setTaskOffset(size_t taskOffset);
@@ -17,6 +17,7 @@ namespace BlsLang {
             std::vector<bool>& getModifiedStates();
 
             friend struct BlsTrap::Impl;
+            friend class BytecodeProcessor<VirtualMachine>;
 
         protected:
             #define OPCODE_BEGIN(code) \
@@ -24,7 +25,7 @@ namespace BlsLang {
             #define ARGUMENT(arg, type) \
             type arg,
             #define OPCODE_END(...) \
-            int = 0) override;
+            int = 0);
             #include "include/OPCODES.LIST"
             #undef OPCODE_BEGIN
             #undef ARGUMENT
