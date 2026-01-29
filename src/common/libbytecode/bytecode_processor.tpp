@@ -102,9 +102,11 @@ inline void BytecodeProcessor<Derived, SkipMetadata>::loadBytecode(const std::ve
 }
 
 template<typename Derived, bool SkipMetadata>
-inline void BytecodeProcessor<Derived, SkipMetadata>::dispatch() {
+template<std::invocable<INSTRUCTION&, size_t, typename BytecodeProcessor<Derived, SkipMetadata>::SIGNAL> F>
+inline void BytecodeProcessor<Derived, SkipMetadata>::dispatch(F&& preExecFunction, F&& postExecFunction) {
     while (instruction != instructions.size()) {
         auto& instructionStruct = instructions[instruction];
+        preExecFunction(*instructionStruct, instruction, signal);
         instruction++;
         switch (instructionStruct->opcode) {
             #define OPCODE_BEGIN(code) \
@@ -123,6 +125,7 @@ inline void BytecodeProcessor<Derived, SkipMetadata>::dispatch() {
             default:
             break;
         }
+        postExecFunction(*instructionStruct, instruction, signal);
         switch (signal) {
             case SIGNAL::START:
             break;

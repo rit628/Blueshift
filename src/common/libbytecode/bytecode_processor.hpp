@@ -2,6 +2,8 @@
 #include "Serialization.hpp"
 #include "opcodes.hpp"
 #include "bls_types.hpp"
+#include <concepts>
+#include <cstddef>
 #include <fstream>
 #include <cstdint>
 #include <functional>
@@ -23,12 +25,14 @@ class BytecodeProcessor {
             COUNT
         };
 
+        /* default callback for dispatch() */
+        [[ gnu::always_inline ]] static inline void nop(INSTRUCTION&, size_t, SIGNAL) noexcept { }
+
         void loadBytecode(std::istream& bytecode);
         void loadBytecode(const std::string& filename);
         void loadBytecode(const std::vector<char>& bytecode);
-        void dispatch();
-
-        friend struct BlsTrap::Impl;
+        template<std::invocable<INSTRUCTION&, size_t, SIGNAL> F = decltype(nop)>
+        void dispatch(F&& preExecFunction = nop, F&& postExecFunction = nop);
 
     private:
         void readMetadata(std::istream& bytecode, boost::archive::binary_iarchive& ia);
@@ -38,7 +42,7 @@ class BytecodeProcessor {
 
     protected:
         /* use crtp for now until we upgrade to c++ 23 */
-        BytecodeProcessor() = default;    
+        BytecodeProcessor() = default;
 
         #define OPCODE_BEGIN(code) \
         void code(
