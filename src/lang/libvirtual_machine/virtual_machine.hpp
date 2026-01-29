@@ -5,6 +5,10 @@
 #include <cstddef>
 #include <vector>
 
+namespace BlsTrap {
+    struct Impl;
+}
+
 class ExecutionUnit;
 
 namespace BlsLang {

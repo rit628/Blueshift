@@ -4,17 +4,11 @@
 #include "bls_types.hpp"
 #include <concepts>
 #include <cstddef>
-#include <fstream>
 #include <cstdint>
-#include <functional>
 #include <istream>
 #include <memory>
 #include <vector>
 #include <boost/archive/binary_iarchive.hpp>
-
-namespace BlsTrap {
-    struct Impl;
-}
 
 template<typename Derived = void, bool SkipMetadata = true>
 class BytecodeProcessor {
