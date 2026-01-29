@@ -9,7 +9,7 @@ class ExecutionUnit;
 
 namespace BlsLang {
     
-    class VirtualMachine : public BytecodeProcessor {
+    class VirtualMachine : public BytecodeProcessor<> {
         public:
             void setParentExecutionUnit(ExecutionUnit* ownerUnit);
             void setTaskOffset(size_t taskOffset);

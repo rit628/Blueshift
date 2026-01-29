@@ -1499,7 +1499,7 @@ namespace BlsLang {
             createPUSH(0),
             createRETURN(), // end of g()
             createCALL(2, 0),
-            createEMIT(static_cast<uint8_t>(BytecodeProcessor::SIGNAL::STOP)) // end of h()
+            createEMIT(static_cast<uint8_t>(VirtualMachine::SIGNAL::STOP)) // end of h()
         );
 
         TEST_GENERATE(ast, expectedInstructions);

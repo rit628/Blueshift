@@ -81,7 +81,7 @@ void BytecodeWriter::parseCALL(uint16_t& address, uint8_t& argc) {
 }
 
 void BytecodeWriter::parseEMIT(uint8_t& signal) {
-    using enum BytecodeProcessor::SIGNAL;
+    using enum BytecodeProcessor<>::SIGNAL;
     std::string signalString;
     mnemonicBytecode >> signalString;
     if (signalString == "START") {

@@ -1,1 +1,1 @@
-bls_add_library(bytecode STATIC LINKS network)
+bls_add_library(bytecode INTERFACE LINKS network)

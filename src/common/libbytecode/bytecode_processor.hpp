@@ -14,6 +14,7 @@ namespace BlsTrap {
     struct Impl;
 }
 
+template<bool SkipMetadata = true>
 class BytecodeProcessor {
     public:
         enum class SIGNAL : uint8_t {
@@ -61,3 +62,5 @@ class BytecodeProcessor {
         std::vector<std::unique_ptr<INSTRUCTION>> instructions;
         SIGNAL signal = SIGNAL::START;
 };
+
+#include "bytecode_processor.tpp"

@@ -9,7 +9,7 @@
 #include <vector>
 
 
-class BytecodePrinter : public BytecodeProcessor {
+class BytecodePrinter : public BytecodeProcessor<false> {
     public:
         void setOutputStream(std::ostream& stream = std::cout);
         void printAll();

@@ -123,7 +123,7 @@ BlsObject Generator::visit(AstNode::Function::Task& ast) {
     for (auto&& statement : ast.getStatements()) {
         statement->accept(*this);
     }
-    instructions.push_back(createEMIT(static_cast<uint8_t>(BytecodeProcessor::SIGNAL::STOP)));
+    instructions.push_back(createEMIT(static_cast<uint8_t>(VirtualMachine::SIGNAL::STOP)));
     return 0;
 }
 
@@ -270,7 +270,7 @@ BlsObject Generator::visit(AstNode::Statement::While& ast) {
 
 BlsObject Generator::visit(AstNode::Statement::Return& ast) {
     if (functionContext == FUNCTION_CONTEXT::TASK) { // return statement within task will emit a stop signal instead of returning
-        instructions.push_back(createEMIT(static_cast<uint8_t>(BytecodeProcessor::SIGNAL::STOP)));
+        instructions.push_back(createEMIT(static_cast<uint8_t>(VirtualMachine::SIGNAL::STOP)));
         return 0;
     }
 
