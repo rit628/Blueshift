@@ -33,7 +33,7 @@ void Generator::writeBytecode(std::ostream& outputStream) {
 
     // write metadata
     uint32_t metadataEnd = 0;
-    outputStream.seekp(sizeof(metadataEnd));
+    outputStream.write(reinterpret_cast<const char *>(&metadataEnd), sizeof(metadataEnd));
     std::unordered_map<uint16_t, std::pair<std::string, std::vector<std::string>&>> functionMetadata;
     for (auto&& [name, metadata] : functionSymbols) {
         functionMetadata.emplace(metadata.first, std::make_pair(name, std::ref(metadata.second)));

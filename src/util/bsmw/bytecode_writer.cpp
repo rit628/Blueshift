@@ -66,7 +66,7 @@ void BytecodeWriter::writeMetadata(std::ostream& stream, boost::archive::binary_
     auto metadataJSON = loadJSON("HEADER_BEGIN");
     functionSymbols = value_to<decltype(functionSymbols)>(parse(metadataJSON));
     uint32_t metadataEnd = 0;
-    stream.seekp(sizeof(metadataEnd));
+    stream.write(reinterpret_cast<const char *>(&metadataEnd), sizeof(metadataEnd));
     std::unordered_map<uint16_t, std::pair<std::string, std::vector<std::string>&>> functionMetadata;
     for (auto&& [name, metadata] : functionSymbols) {
         functionMetadata.emplace(metadata.first, std::make_pair(name, std::ref(metadata.second)));
