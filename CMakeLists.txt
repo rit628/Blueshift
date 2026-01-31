@@ -59,19 +59,19 @@ if(NOT DISABLE_CURL)
     set(SYSTEM_LINK_LIBRARIES ${SYSTEM_LINK_LIBRARIES} ssl crypto)
 endif()
 
-set(CMAKE_CXX_FLAGS "-w") # Disable warnings for fetched content
+get_directory_property(current_compile_options COMPILE_OPTIONS)
+add_compile_options(-w) # Disable warnings for fetched content
 FetchContent_MakeAvailable(googletest Boost ${FETCHCONTENT_OPTIONAL})
+set_directory_properties(PROPERTIES COMPILE_OPTIONS "${current_compile_options}") # restore old compile options
 
-set(ESSENTIAL_FLAGS "-Wall -Wextra -Wnon-virtual-dtor")
-set(STYLE_FLAGS "-Wmissing-prototypes -Wextra-semi -Wextra-semi-stmt -Wredundant-parens -Wsuggest-destructor-override -Wold-style-cast")
-set(NEGATED_FLAGS "-Wno-sign-compare")
+set(ESSENTIAL_FLAGS -Wall -Wextra -Wnon-virtual-dtor)
+set(STYLE_FLAGS -Wmissing-prototypes -Wextra-semi -Wextra-semi-stmt -Wredundant-parens -Wsuggest-destructor-override -Wold-style-cast)
+set(NEGATED_FLAGS -Wno-sign-compare)
 # For performance critical code (ie. network buffers or space constrained classes)
-# Given in list form for use with target_compile_options
-set(SUGGESTED_FLAGS "-Wweak-vtables" "-Wpadded")
+set(SUGGESTED_FLAGS -Wweak-vtables -Wpadded)
 
 # Set compile options after fetch content to suppress external warnings
-string(JOIN " " CMAKE_CXX_FLAGS ${ESSENTIAL_FLAGS} ${STYLE_FLAGS} ${NEGATED_FLAGS})
-message("FLAGS: ${CMAKE_CXX_FLAGS}")
+add_compile_options(${ESSENTIAL_FLAGS} ${STYLE_FLAGS} ${NEGATED_FLAGS})
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -glldb -gfull")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 set(CMAKE_CXX_FLAGS_MINSIZEREL "-Os -DNDEBUG")
