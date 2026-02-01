@@ -26,55 +26,78 @@ namespace BlsLang{
         LOCALS, 
     }; 
 
+    // Substask Metadata:
+    struct SubtaskMetadata{
+        // Controller (the id should be the offset of the task): 
+        int id = 0; 
+        std::string controller; 
+        std::set<std::string> ctlDeps; 
+        std::vector<size_t> code; 
+        
+        // Data: 
+        std::vector<int> dependents; 
+        std::unordered_map<size_t, size_t> literalOffset; 
+        std::unordered_map<size_t, size_t> localOffset; 
+        
 
-    // Refers to a single stack object
-    struct PRMetadata{
-        std::set<std::string> deviceDeps = {}; 
-        std::set<std::string> controllerDeps = {}; 
-
-        TYPE type; 
-        ORIGIN og; 
-        int index; 
     }; 
 
-    PRMetadata combineDeps(PRMetadata& a, PRMetadata& b){
-        PRMetadata pr; 
+
+    // Refers to a single stack object
+    struct TaskMetadata{
+
+    
+        std::pair<size_t, size_t> codeOffsets; 
+        std::set<std::string> controllerDeps = {}; 
+        std::string ctl = "UNKNOWN"; 
+        int Task_ID = 0; 
         
-        pr.deviceDeps.insert(a.deviceDeps.begin(),a.deviceDeps.end());
-        pr.deviceDeps.insert(b.deviceDeps.begin(), b.deviceDeps.end());
+        // Contains instruction, literal and local dependencies 
+        std::set<size_t> instructionDeps; 
+        
+        // Type metadata
+        TYPE type = static_cast<TYPE>(0); 
+        ORIGIN og = static_cast<ORIGIN>(0); 
+        int index = 0; 
 
-        pr.deviceDeps.insert(a.controllerDeps.begin(),a.controllerDeps.end());
-        pr.deviceDeps.insert(b.controllerDeps.begin(), b.controllerDeps.end());
+        // Determines if the write is final: 
+        bool complete = false; 
+        bool junction = false; 
 
-        return pr; 
-    }
+        // Omar
+        std::vector<TaskMetadata> taskDeps; 
 
+    }; 
 
     // Refers to a information within a single stack view
     class MetadataFrame{
         public: 
-            MetadataFrame(std::span<PRMetadata> &args); 
-            void addLocal(PRMetadata &pm, int index); 
-            void pushOperand(PRMetadata &pr); 
-            PRMetadata popOperand(); 
-            PRMetadata& getLocal(int index); 
-            void setLocal(int index, PRMetadata& newPos); 
+            MetadataFrame(std::span<TaskMetadata> &args); 
+            void addLocal(TaskMetadata &pm, int index); 
+            void pushOperand(TaskMetadata &Task); 
+            TaskMetadata popOperand(); 
+            TaskMetadata& topOperand(); 
+            TaskMetadata& getLocal(int index); 
+            void setLocal(int index, TaskMetadata& newPos); 
 
 
             int returnAddress; 
-            std::vector<PRMetadata> locals; 
-            std::stack<PRMetadata>  pr_stk; 
+            std::vector<TaskMetadata> locals; 
+            std::stack<TaskMetadata>  task_stk; 
+            std::string hostingCtl; 
 
     }; 
 
     class MetadataStack{
         public: 
             std::stack<MetadataFrame> metadataStack; 
-            void pushFrame(int ret, std::span<PRMetadata> args); 
+            void pushFrame(int ret, std::span<TaskMetadata> args); 
             int popFrame(); 
             MetadataFrame& getCurrentFrame(); 
         private: 
     }; 
+
+
 
 
     class Optimizer : public BytecodeProcessor{
@@ -96,13 +119,24 @@ namespace BlsLang{
 
 
         private:    
-            // Literal List:
-            std::vector<PRMetadata> literalList; 
-            MetadataStack metadataStack; 
-            
+        
+            // Loaded Subtask
+            std::set<std::string> loadCtlDeps; 
 
-            std::unordered_map<int64_t, std::string> taskClientMap; 
-            std::unordered_map<int64_t, int64_t> executionMap; 
+            // Literal List:
+            std::vector<TaskMetadata> literalList; 
+            MetadataStack metadataStack; 
+        
+            // Contains the map from controller to subtask 
+            std::vector<SubtaskMetadata> subtaskInfo; 
+ 
+            TaskMetadata combineDeps(std::vector<TaskMetadata>&& taskSet); 
+            void divideTree(int index); 
+            void divideTreeH(TaskMetadata &tm); 
+
+          
+            
+            
 
 
 

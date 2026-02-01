@@ -1,5 +1,5 @@
 #include "compiler.hpp"
-#include <cstddef>
+#include "DynamicMessage.hpp"
 #include <fstream>
 #include <functional>
 #include <iostream>
@@ -27,6 +27,32 @@ void Compiler::compileSource(const std::string& source, ostream_t outputStream) 
     tokens = lexer.lex(source);
     ast = parser.parse(tokens);
     ast->accept(analyzer);
+   
+
+    /*
+    // Alter the bytecode with the in and out devices
+    for(auto& [name, descriptor] : this->analyzer.getTaskDescriptors()){
+
+        std::unordered_map<DeviceID, DeviceDescriptor> devDescMap;
+        
+        for(auto& devDesc : descriptor.binded_devices){
+            devDescMap.emplace(devDesc.device_name, devDesc); 
+        }
+        auto& inList = this->depGraph.getGlobalContext().taskConnections.at(descriptor.name).inDeviceList; 
+        auto& outList = this->depGraph.getGlobalContext().taskConnections.at(descriptor.name).outDeviceList; 
+        
+        for(auto& name : inList){
+            descriptor.inDevices.push_back(devDescMap.find(name)->second); 
+        }
+
+        for(auto& name : outList){
+            descriptor.outDevices.push_back(devDescMap.find(name)->second); 
+        }
+
+    }
+    */ 
+
+    
     ast->accept(generator);
     if (auto* stream = std::get_if<std::reference_wrapper<std::vector<char>>>(&outputStream)) {
         generator.writeBytecode(*stream);
@@ -35,7 +61,9 @@ void Compiler::compileSource(const std::string& source, ostream_t outputStream) 
         generator.writeBytecode(std::get<std::reference_wrapper<std::ostream>>(outputStream));
     }
     ast->accept(this->depGraph);
-    // auto tempTask = this->depGraph.getTaskMap();  
+ 
+   
+    //auto tempTask = this->depGraph.getTaskMap();  
 
 
     /*
@@ -91,11 +119,17 @@ void Compiler::compileSource(const std::string& source, ostream_t outputStream) 
     auto& masterTasks = masterInterpreter.getTasks();
     euInterpreters.assign(descriptors.size(), masterInterpreter);
     for (auto&& [descPair, interpreter] : boost::combine(descriptors, euInterpreters)) {
+        
         auto& [taskName, descriptor] = descPair;
+
+        // Populating in and out devices (for serialization)
+
         if (!masterTasks.contains(taskName)) { continue; }
         auto& task = masterTasks.at(taskName);
         tasks.emplace(taskName, [&task, &interpreter](std::vector<BlsType> v) { return task(interpreter, v); });
         taskDescriptors.push_back(descriptor);
     }
+
+    std::cout<<"All done!"<<std::endl;
 
 }
