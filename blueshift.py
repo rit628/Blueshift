@@ -572,7 +572,7 @@ build_parser.add_argument("-b", "--build-type",
                           default="Debug")
 build_parser.add_argument("-t", "--target",
                           help="set target platform",
-                          choices=["local", "rpi64", "win64"],
+                          choices=["local", "rpi64", "win64", "osx64"],
                           default="local")
 build_parser.add_argument("-v", "--verbose",
                           help="get verbose output from cmake",
