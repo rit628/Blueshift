@@ -1,10 +1,8 @@
-# TODO: fix redundant rebuilds when using this toolchain 
-
 # TARGET CONFIG
-set(CMAKE_SYSTEM_NAME Linux)
-set(CMAKE_SYSTEM_PROCESSOR arm64)
+set(CMAKE_SYSTEM_NAME Windows)
+set(CMAKE_SYSTEM_PROCESSOR x86_64)
 
-set(CMAKE_SYSROOT ${CMAKE_SOURCE_DIR}/build/sysroot/rpi64)
+set(CMAKE_SYSROOT ${CMAKE_SOURCE_DIR}/build/sysroot/win64/usr)
 set(CMAKE_FIND_ROOT_PATH ${CMAKE_SYSROOT})
 
 # COMPILER CONFIG
@@ -12,12 +10,16 @@ set(CMAKE_C_COMPILER clang)
 set(CMAKE_CXX_COMPILER clang++)
 set(CMAKE_ASM_COMPILER ${CMAKE_C_COMPILER})
 
-set(CMAKE_C_COMPILER_TARGET arm64-linux-gnu)
-set(CMAKE_CXX_COMPILER_TARGET arm64-linux-gnu)
-set(CMAKE_ASM_COMPILER_TARGET arm64-linux-gnu)
+set(CMAKE_C_COMPILER_TARGET x86_64-w64-mingw32ucrt)
+set(CMAKE_CXX_COMPILER_TARGET x86_64-w64-mingw32ucrt)
+set(CMAKE_ASM_COMPILER_TARGET x86_64-w64-mingw32ucrt)
 
 set(CMAKE_C_FLAGS_INIT   "--sysroot=${CMAKE_SYSROOT}" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS_INIT "--sysroot=${CMAKE_SYSROOT}" CACHE STRING "" FORCE)
+
+# LINKER CONFIG
+# Statically compile to avoid packaging with mingw64 dlls 
+add_link_options(-static-libgcc -static-libstdc++ --static -lwinpthread -lws2_32 -lmswsock)
 
 # PACKAGE LOCATION CONFIG
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
@@ -26,12 +28,9 @@ set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 
 # CONDITIONAL COMPILATION VARIABLES
-add_compile_definitions(CONTROLLER_TARGET="RPI64")
-add_compile_definitions(__RPI64__)
+add_compile_definitions(CONTROLLER_TARGET="WINDOWS")
+add_compile_definitions(BOOST_ALL_NO_LIB)
 
 # DISABLED LIBS
 set(DISABLE_SDL true)
 set(DISABLE_CURL true)
-
-# REQUIRED LIBS
-set(SYSTEM_LINK_LIBRARIES pigpio)

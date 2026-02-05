@@ -335,14 +335,14 @@ def build(args):
     TARGET_PLATFORM = args.target if args.target != "local" else ""
     ARTIFACT_DIR = Path(BUILD_OUTPUT_DIRECTORY, TARGET_PLATFORM, ARTIFACT_TYPE)
     COMPILE_DB_PATH = Path(BUILD_OUTPUT_DIRECTORY, "compile_commands.json")
-    build_args = [f"--build-type", args.build_type,
+    remote_args = [f"--build-type", args.build_type,
                   "--compiler", args.compiler,
                   "--parallel", str(args.parallel),
                   "--target", args.target]
     if args.image_build:
         run_cmd(["docker", "compose", "build"])
     if args.clean:
-        build_args.append("--clean")
+        remote_args.append("--clean")
         rmtree(ARTIFACT_DIR, ignore_errors=True)
     if TARGET_PLATFORM:
         make_sysroot(TARGET_PLATFORM, args.local)
@@ -370,7 +370,9 @@ def build(args):
 
         # 1 <= j <= n-1 (keep 1 core free for background tasks)
         core_count = str(max(1, min(args.parallel, NUM_CORES - 1)))
-        run_cmd(["cmake", "--build", ".", "-j", core_count, "-t", *args.make],
+        build_args = [args.verbose, "-j", core_count]
+        build_args = list(filter(None, build_args))
+        run_cmd(["cmake", "--build", ".", *build_args, "-t", *args.make],
                        cwd=f"./{ARTIFACT_DIR}")
         if not TARGET_PLATFORM:
             # only update binary targets if built for current machine's arch
@@ -404,7 +406,7 @@ def build(args):
         atexit.register(link_compile_commands)
         initialize_host()
         run_cmd(["docker", "compose", "run", "--rm", "builder",
-                        "build", "-l", *build_args, *args.make])
+                        "build", "-l", *remote_args, *args.make])
 
 def test(args):
     os.environ["GTEST_COLOR"] = "1"
@@ -570,8 +572,12 @@ build_parser.add_argument("-b", "--build-type",
                           default="Debug")
 build_parser.add_argument("-t", "--target",
                           help="set target platform",
-                          choices=["local", "rpi64"],
+                          choices=["local", "rpi64", "win64"],
                           default="local")
+build_parser.add_argument("-v", "--verbose",
+                          help="get verbose output from cmake",
+                          action="store_const",
+                          const="--verbose")
 build_parser.add_argument("-l", "--local",
                           help="build for local host only; container builds are not updated",
                           action="store_true")
