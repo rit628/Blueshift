@@ -1,19 +1,24 @@
-FROM debian:12
+FROM debian:13
 
 ARG WORKDIR
-ARG LLVM_VERSION=19
+ARG LLVM_VERSION=20
 ARG CMAKE_VERSION=3.30
 
 WORKDIR ${WORKDIR}
 
+# TODO: Remove SHA1 deprecation workaround after llvm fixes their repository
+
 RUN apt-get update && \
-apt-get install --no-install-recommends -y build-essential procps python3 python3-venv ca-certificates lsb-release wget software-properties-common gnupg gdbserver \ 
-libssl-dev libpsl-dev \
+apt-get install --no-install-recommends -y build-essential procps python3 python3-venv ca-certificates lsb-release wget gnupg gdbserver \ 
+libssl-dev libpsl-dev mingw-w64 g++-mingw-w64-x86-64 gcc-mingw-w64-x86-64 g++-mingw-w64-ucrt64 gcc-mingw-w64-ucrt64 \
 libasound2-dev libpulse-dev libaudio-dev libjack-dev libsndio-dev libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev \
 libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libpipewire-0.3-dev libwayland-dev libdecor-0-dev liburing-dev && \
 wget -qO- https://cmake.org/files/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.0-rc2-linux-$(uname -m).tar.gz | tar --strip-components=1 -xz -C /usr/local && \
-echo "deb http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-${LLVM_VERSION} main" | tee /etc/apt/sources.list.d/llvm.list && \
-echo "deb-src http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-${LLVM_VERSION} main" | tee -a /etc/apt/sources.list.d/llvm.list && \
+mkdir -p /etc/crypto-policies/back-ends/ && \
+cp /usr/share/apt/default-sequoia.config /etc/crypto-policies/back-ends/apt-sequoia.config && \
+sed -i 's/2026/2027/g' /etc/crypto-policies/back-ends/apt-sequoia.config && \
+echo "deb http://apt.llvm.org/trixie/ llvm-toolchain-trixie-${LLVM_VERSION} main" | tee /etc/apt/sources.list.d/llvm.list && \
+echo "deb-src http://apt.llvm.org/trixie/ llvm-toolchain-trixie-${LLVM_VERSION} main" | tee -a /etc/apt/sources.list.d/llvm.list && \
 wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/llvm.asc && \
 apt-get update && \
 apt-get install -y clang-${LLVM_VERSION} lldb-${LLVM_VERSION} lld-${LLVM_VERSION} llvm-${LLVM_VERSION} && \

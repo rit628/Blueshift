@@ -9,12 +9,13 @@ set(CMAKE_FIND_ROOT_PATH ${CMAKE_SYSROOT})
 set(CMAKE_C_COMPILER clang)
 set(CMAKE_CXX_COMPILER clang++)
 set(CMAKE_ASM_COMPILER ${CMAKE_C_COMPILER})
+set(CMAKE_RC_COMPILER x86_64-w64-mingw32ucrt-windres)
 
 set(CMAKE_C_COMPILER_TARGET x86_64-w64-mingw32ucrt)
 set(CMAKE_CXX_COMPILER_TARGET x86_64-w64-mingw32ucrt)
 set(CMAKE_ASM_COMPILER_TARGET x86_64-w64-mingw32ucrt)
 
-set(CMAKE_C_FLAGS_INIT   "--sysroot=${CMAKE_SYSROOT}" CACHE STRING "" FORCE)
+set(CMAKE_C_FLAGS_INIT   "--sysroot=${CMAKE_SYSROOT} -Wno-unused-command-line-argument" CACHE STRING "" FORCE)
 set(CMAKE_CXX_FLAGS_INIT "--sysroot=${CMAKE_SYSROOT}" CACHE STRING "" FORCE)
 
 # LINKER CONFIG
@@ -32,5 +33,4 @@ add_compile_definitions(CONTROLLER_TARGET="WINDOWS")
 add_compile_definitions(BOOST_ALL_NO_LIB)
 
 # DISABLED LIBS
-set(DISABLE_SDL true)
 set(DISABLE_CURL true)
