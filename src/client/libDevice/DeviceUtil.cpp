@@ -14,12 +14,14 @@
 #include <optional>
 #include <stdexcept>
 #include <stop_token>
-#include <sys/inotify.h>
 #include <thread>
 #include <tuple>
 #include <utility>
 #include <variant>
 #include <boost/range/adaptor/map.hpp>
+#ifdef __linux__
+#include <sys/inotify.h>
+#endif
 #ifdef __RPI64__
 #include <pigpio.h>
 #endif
@@ -430,7 +432,9 @@ void DeviceInterruptor::disableWatchers() {
         std::visit(overloads {
             [](FileWatchDescriptor& desc) {
                 auto&& [fd, wd, filename] = desc;
+                #ifdef __linux__
                 inotify_rm_watch(fd, wd);
+                #endif
             },
             [](GpioWatchDescriptor& desc [[ maybe_unused ]]) {
                 #ifdef __RPI64__
@@ -457,7 +461,9 @@ void DeviceInterruptor::enableWatchers() {
         std::visit(overloads {
             [](FileWatchDescriptor& desc) {
                 auto&& [fd, wd, filename] = desc;
-                wd = inotify_add_watch(fd, filename.c_str(), IN_CLOSE_WRITE); 
+                #ifdef __linux__
+                wd = inotify_add_watch(fd, filename.c_str(), IN_CLOSE_WRITE);
+                #endif
                 if(wd < 0){
                     std::cerr<<"Could not add watcher"<<std::endl; 
                     close(fd);
@@ -519,8 +525,9 @@ void DeviceInterruptor::manageWatchers(std::stop_token stoken) {
 
 void DeviceInterruptor::IFileWatcher(std::stop_token stoken, std::string fname, std::function<bool()> handler){
     // Check if the file exists relative to the deviceCore; 
+    #ifdef __linux__
+    int fd = inotify_init();
 
-    int fd = inotify_init(); 
     if(fd < 0){
         std::cerr<<"Could not make Inotify object"<<std::endl; 
         close(fd); 
@@ -552,6 +559,7 @@ void DeviceInterruptor::IFileWatcher(std::stop_token stoken, std::string fname, 
         }
     }
     running.wait(true); // terminate thread once watcher manager has shutdown
+    #endif
 }
 
 void DeviceInterruptor::IGpioWatcher(std::stop_token stoken, int portNum, std::function<bool(int, int , uint32_t)> handler) {

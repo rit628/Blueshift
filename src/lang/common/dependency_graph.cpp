@@ -177,3 +177,7 @@ BlsObject DependencyGraph::visit(AstNode::Source& ast) {
     }
     return std::monostate();
 }
+
+BlsObject DependencyGraph::visit(AstNode::Initializer::Task& ast) {
+
+}

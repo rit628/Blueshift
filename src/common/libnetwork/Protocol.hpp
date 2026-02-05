@@ -41,7 +41,7 @@ enum class Protocol : uint8_t{
     CONFIG_NAME, 
     SEND_STATE_INIT, 
     SEND_STATE, 
-    CALLBACK, 
+    DEVICE_CALLBACK, 
     CLIENT_ERROR, 
     OWNER_GRANT, 
     OWNER_CONFIRM_OK,
