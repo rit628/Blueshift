@@ -430,10 +430,10 @@ def reset(args):
     
     run_cmd(["docker", "compose", "down", "--rmi", "all", "-v", "--remove-orphans"])
 
-    network_id = get_output(f"docker network ls | grep {NETWORK_NAME} | awk '{{ print $1 }}'", shell=True)
-    container_ids = get_output(f"docker container ls | grep {PROJECT_PREFIX} | awk '{{ print $1 }}'", shell=True)
-    image_ids = get_output(f"docker image ls | grep {PROJECT_PREFIX} | awk '{{ print $3 }}'", shell=True)
-    volumes = get_output(f"docker volume ls | grep {PROJECT_NAME} | awk '{{ print $2 }}'", shell=True)
+    network_id = get_output(f"docker network ls -f 'name={NETWORK_NAME}' --format '{{{{.ID}}}}'", shell=True)
+    container_ids = get_output(f"docker container ls -af 'name={PROJECT_PREFIX}-*' --format '{{{{.ID}}}}'", shell=True)
+    image_ids = get_output(f"docker image ls -af 'reference={PROJECT_PREFIX}-*' --format '{{{{.ID}}}}'", shell=True)
+    volumes = get_output(f"docker volume ls -f 'name={PROJECT_PREFIX}_*' --format '{{{{.Name}}}}'", shell=True)
         
     if network_id:
         run_cmd(["docker", "network", "rm", network_id])
@@ -441,7 +441,6 @@ def reset(args):
         run_cmd(["docker", "container", "stop"] + container_ids.split('\n'), exit_on_failure=False)
         run_cmd(["docker", "container", "rm", "-f"] + container_ids.split('\n'))
     if image_ids:
-        run_cmd(["docker", "image", "prune", "-f"])
         run_cmd(["docker", "image", "rm", "-f"] + image_ids.split('\n'))
     if volumes:
         run_cmd(["docker", "volume", "rm", "-f"] + volumes.split('\n'))
