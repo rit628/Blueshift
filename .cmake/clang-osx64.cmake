@@ -6,8 +6,8 @@ set(CMAKE_SYSROOT ${CMAKE_SOURCE_DIR}/build/sysroot/osx64/osxcross/SDK/MacOSX26.
 set(CMAKE_FIND_ROOT_PATH ${CMAKE_SYSROOT})
 
 # COMPILER CONFIG
-set(CMAKE_C_COMPILER clang)
-set(CMAKE_CXX_COMPILER clang++)
+set(CMAKE_C_COMPILER ${CMAKE_SOURCE_DIR}/build/sysroot/osx64/bin/clang)
+set(CMAKE_CXX_COMPILER ${CMAKE_SOURCE_DIR}/build/sysroot/osx64/bin/clang++)
 set(CMAKE_ASM_COMPILER ${CMAKE_C_COMPILER})
 
 set(CMAKE_C_COMPILER_TARGET arm64-apple-darwin-macho)
@@ -36,5 +36,4 @@ set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 add_compile_definitions(CONTROLLER_TARGET="MAC")
 
 # DISABLED LIBS
-set(DISABLE_SDL true)
 set(DISABLE_CURL true)
