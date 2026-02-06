@@ -10,7 +10,8 @@ WORKDIR ${WORKDIR}
 
 RUN apt-get update && \
 apt-get install --no-install-recommends -y build-essential procps python3 python3-venv ca-certificates lsb-release wget gnupg gdbserver \ 
-libssl-dev libpsl-dev mingw-w64 g++-mingw-w64-x86-64 gcc-mingw-w64-x86-64 g++-mingw-w64-ucrt64 gcc-mingw-w64-ucrt64 \
+mingw-w64 g++-mingw-w64-x86-64 gcc-mingw-w64-x86-64 g++-mingw-w64-ucrt64 gcc-mingw-w64-ucrt64 \
+libssl-dev libpsl-dev \
 libasound2-dev libpulse-dev libaudio-dev libjack-dev libsndio-dev libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev \
 libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libpipewire-0.3-dev libwayland-dev libdecor-0-dev liburing-dev && \
 wget -qO- https://cmake.org/files/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.0-rc2-linux-$(uname -m).tar.gz | tar --strip-components=1 -xz -C /usr/local && \

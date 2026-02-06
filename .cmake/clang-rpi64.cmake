@@ -16,8 +16,10 @@ set(CMAKE_C_COMPILER_TARGET arm64-linux-gnu)
 set(CMAKE_CXX_COMPILER_TARGET arm64-linux-gnu)
 set(CMAKE_ASM_COMPILER_TARGET arm64-linux-gnu)
 
-set(CMAKE_C_FLAGS_INIT   "--sysroot=${CMAKE_SYSROOT}" CACHE STRING "" FORCE)
-set(CMAKE_CXX_FLAGS_INIT "--sysroot=${CMAKE_SYSROOT}" CACHE STRING "" FORCE)
+# sysroot gcc located at /usr/lib/gcc/aarch64-linux-gnu instead of /usr/lib/gcc/arm64-linux-gnu
+set(GCC_TRIPLE aarch64-linux-gnu)
+set(CMAKE_C_FLAGS_INIT   "--sysroot=${CMAKE_SYSROOT} --gcc-triple=${GCC_TRIPLE}" CACHE STRING "" FORCE)
+set(CMAKE_CXX_FLAGS_INIT "--sysroot=${CMAKE_SYSROOT} --gcc-triple=${GCC_TRIPLE}" CACHE STRING "" FORCE)
 
 # PACKAGE LOCATION CONFIG
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
