@@ -32,10 +32,11 @@ services:
     privileged: true
     build:
       context: .
-      dockerfile: .docker/builder/Dockerfile
+      dockerfile: .docker/builder/${PLATFORM_TAG}/Dockerfile
       args:
         - WORKDIR=${CONTAINER_MOUNT_DIRECTORY}
-    image: ${BUILD_IMAGE_NAME}
+        - BUILD_IMAGE_NAME=${BUILD_IMAGE_NAME}
+    image: ${BUILD_IMAGE_NAME}:${PLATFORM_TAG}
     volumes:
       - .:${CONTAINER_MOUNT_DIRECTORY}
       - ./${REMOTE_OUTPUT_DIRECTORY}:${CONTAINER_MOUNT_DIRECTORY}/build
@@ -46,6 +47,7 @@ services:
       - XDG_RUNTIME_DIR=/run/user/${CONTAINER_UID}
     env_file:
       - .env
+    entrypoint: ["./bls"]
 
   debugger:
     profiles:

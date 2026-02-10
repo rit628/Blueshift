@@ -160,22 +160,6 @@ def symlink(source : Path | str, target : Path | str, is_directory = False):
     source.symlink_to(target, target_is_directory=is_directory)
     return source
 
-@run_as_src_user
-def make_sysroot(target, local):
-    base_path = "build" if local else Path("build", "remote")
-    sysroot_path = Path(base_path, "sysroot", target)
-    sysroot_path.mkdir(parents=True, exist_ok=True)
-    if not os.listdir(sysroot_path):
-        platform = os.getenv(f"{target.upper()}_PLATFORM")
-        archive_path = Path("build", f"{target}-rootfs.tar")
-        atexit.register(run_cmd, ["docker", "rm", f"{target}-sysroot"], exit_on_failure=False, stderr=subprocess.DEVNULL)
-        run_cmd(["docker", "build", "--platform", platform, "-t", f"{PROJECT_PREFIX}-{target}-sysroot-generator", Path(".docker", "sysroot", target)])
-        run_cmd(["docker", "create", "-q", "--platform", platform, "--name", f"{target}-sysroot", f"{PROJECT_PREFIX}-{target}-sysroot-generator"])
-        run_cmd(["docker", "export", f"{target}-sysroot", "-o", archive_path])
-        with tarfile.open(archive_path, "r") as tar:
-            tar.extractall(sysroot_path, filter="fully_trusted")
-        os.remove(archive_path)
-
 def open_vnc_display():
     os.environ["DISPLAY_NAME"] = f"{VNC_CONTAINER_NAME}:0.0"
     wait_for_container_server(VNC_PORT)
@@ -339,13 +323,9 @@ def build(args):
                   "--compiler", args.compiler,
                   "--parallel", str(args.parallel),
                   "--target", args.target]
-    if args.image_build:
-        run_cmd(["docker", "compose", "build"])
     if args.clean:
         remote_args.append("--clean")
         rmtree(ARTIFACT_DIR, ignore_errors=True)
-    if TARGET_PLATFORM:
-        make_sysroot(TARGET_PLATFORM, args.local)
 
     if args.local:
         cpp_compiler = "-DCMAKE_CXX_COMPILER="
@@ -405,6 +385,11 @@ def build(args):
                     out.write(line)
         atexit.register(link_compile_commands)
         initialize_host()
+        if TARGET_PLATFORM:
+            run_cmd(["docker", "compose", "build", "builder"])
+            os.environ["PLATFORM_TAG"] = TARGET_PLATFORM
+        if args.image_build:
+            run_cmd(["docker", "compose", "build"])
         run_cmd(["docker", "compose", "run", "--rm", "builder",
                         "build", "-l", *remote_args, *args.make])
 

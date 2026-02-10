@@ -2,12 +2,12 @@
 set(CMAKE_SYSTEM_NAME Darwin)
 set(CMAKE_SYSTEM_PROCESSOR arm64)
 
-set(CMAKE_SYSROOT ${CMAKE_SOURCE_DIR}/build/sysroot/osx64/osxcross/SDK/MacOSX26.1.sdk)
+set(CMAKE_SYSROOT /osx64/SDK/MacOSX26.1.sdk)
 set(CMAKE_FIND_ROOT_PATH ${CMAKE_SYSROOT})
 
 # COMPILER CONFIG
-set(CMAKE_C_COMPILER ${CMAKE_SOURCE_DIR}/build/sysroot/osx64/bin/clang)
-set(CMAKE_CXX_COMPILER ${CMAKE_SOURCE_DIR}/build/sysroot/osx64/bin/clang++)
+set(CMAKE_C_COMPILER clang)
+set(CMAKE_CXX_COMPILER clang++)
 set(CMAKE_ASM_COMPILER ${CMAKE_C_COMPILER})
 
 set(CMAKE_C_COMPILER_TARGET arm64-apple-darwin-macho)
@@ -21,7 +21,7 @@ set(CMAKE_CXX_FLAGS_INIT "--sysroot=${CMAKE_SYSROOT}" CACHE STRING "" FORCE)
 set(CMAKE_OBJC_FLAGS_INIT "--sysroot=${CMAKE_SYSROOT}" CACHE STRING "" FORCE)
 set(CMAKE_OBJCXX_FLAGS_INIT "--sysroot=${CMAKE_SYSROOT}" CACHE STRING "" FORCE)
 
-set(MACTOOLS_DIR ${CMAKE_SOURCE_DIR}/build/sysroot/osx64/osxcross/bin)
+set(MACTOOLS_DIR /osx64/bin)
 set(CMAKE_INSTALL_NAME_TOOL ${MACTOOLS_DIR}/arm64-apple-darwin25.1-install_name_tool CACHE FILEPATH "install_name_tool" FORCE)
 set(CMAKE_RANLIB ${MACTOOLS_DIR}/arm64-apple-darwin25.1-ranlib CACHE FILEPATH "ranlib" FORCE)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "osx minimum deployment target" FORCE)
