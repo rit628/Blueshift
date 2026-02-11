@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+import os
+from pathlib import Path
+from time import sleep
+
+build_info = Path("build", ".info")
+while not build_info.exists():
+    sleep(1)
+
+with build_info.open() as info:
+    container_path, platform = info.readline().split()
+cwd = os.getcwd()
+os.environ["PLATFORM_TAG"] = platform
+
+os.execvp("docker", ["docker", "compose", "run",
+                     "--name", "bls-clangd", "--rm", "--entrypoint", "clangd", "builder",
+                     f"--path-mappings={cwd}={container_path}"])

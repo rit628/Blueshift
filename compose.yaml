@@ -39,7 +39,6 @@ services:
     image: ${BUILD_IMAGE_NAME}:${PLATFORM_TAG}
     volumes:
       - .:${CONTAINER_MOUNT_DIRECTORY}
-      - ./${REMOTE_OUTPUT_DIRECTORY}:${CONTAINER_MOUNT_DIRECTORY}/build
       - venv:${CONTAINER_MOUNT_DIRECTORY}/.venv
       - ${DISPLAY_MOUNT}:/tmp/.X11-unix
     environment:
@@ -89,7 +88,7 @@ services:
       - ${MASTER_PORT}
     pid: ${DEPLOY_NAMESPACE}
     volumes:
-      - ./${REMOTE_OUTPUT_DIRECTORY}:${CONTAINER_MOUNT_DIRECTORY}/build
+      - ./${BUILD_OUTPUT_DIRECTORY}:${CONTAINER_MOUNT_DIRECTORY}/build
       - ./samples/src:${CONTAINER_MOUNT_DIRECTORY}/samples/src
     environment:
       - DEPLOY_NAMESPACE=${DEPLOY_NAMESPACE}
@@ -121,7 +120,7 @@ services:
       - ${BROADCAST_PORT}
     pid: ${DEPLOY_NAMESPACE}
     volumes:
-      - ./${REMOTE_OUTPUT_DIRECTORY}:${CONTAINER_MOUNT_DIRECTORY}/build
+      - ./${BUILD_OUTPUT_DIRECTORY}:${CONTAINER_MOUNT_DIRECTORY}/build
       - ./samples/client:${CONTAINER_MOUNT_DIRECTORY}/samples/client
       - ${DISPLAY_MOUNT}:/tmp/.X11-unix
     environment:
