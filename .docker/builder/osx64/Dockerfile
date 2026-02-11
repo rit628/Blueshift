@@ -1,6 +1,6 @@
 ARG BUILD_IMAGE_NAME=bls-builder
 
-FROM ${BUILD_IMAGE_NAME}:base
+FROM ${BUILD_IMAGE_NAME}:linux64
 
 WORKDIR /tmp
 
