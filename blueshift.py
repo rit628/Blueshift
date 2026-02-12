@@ -338,7 +338,6 @@ def build(args):
     ARTIFACT_DIR = Path(BUILD_OUTPUT_DIRECTORY, PLATFORM_TAG, ARTIFACT_TYPE)
     COMPILE_DB_PATH = Path(BUILD_OUTPUT_DIRECTORY, "compile_commands.json")
     remote_args = [f"--build-type", args.build_type,
-                  "--compiler", args.compiler,
                   "--parallel", str(args.parallel),
                   "--target", args.target]
     if args.clean: remote_args.append("--clean")
@@ -346,26 +345,10 @@ def build(args):
     if args.local:
         if args.clean: rmtree(ARTIFACT_DIR, ignore_errors=True)
 
-        cpp_compiler = "-DCMAKE_CXX_COMPILER="
-        c_compiler = "-DCMAKE_C_COMPILER="
-        linker = "-DCMAKE_LINKER_TYPE="
-        archiver = "-DCMAKE_AR="
-        build_type = f"-DCMAKE_BUILD_TYPE={args.build_type}"
-        toolchain_file = "-DCMAKE_TOOLCHAIN_FILE="
-        if args.compiler == 'clang':
-            c_compiler += "clang"
-            cpp_compiler += "clang++"
-            linker += "LLD"
-            archiver += "llvm-ar"
-        else:
-            c_compiler += "gcc"
-            cpp_compiler += "g++"
-            linker += "BFD"
-            archiver += "ar"
-        if PLATFORM_TAG != "linux64": # only cross compile when not compiling for linux
-            toolchain_file += str(Path(os.getcwd(), ".cmake", f"{args.compiler}-{PLATFORM_TAG}.cmake"))
-        
-        cmake_args = [c_compiler, cpp_compiler, linker, build_type, toolchain_file, "-Wno-dev"]
+        cmake_args = [f"-DCMAKE_BUILD_TYPE={args.build_type}", "-Wno-dev"]
+        if PLATFORM_TAG != "linux64": # specify toolchain file for cross compilation
+            cmake_args.append(f"-DCMAKE_TOOLCHAIN_FILE={Path(os.getcwd(), ".cmake", f"{PLATFORM_TAG}.cmake")}")
+
         run_cmd(["cmake", *cmake_args, "-S", ".", "-B", ARTIFACT_DIR])
         symlink(COMPILE_DB_PATH, Path(".", PLATFORM_TAG, ARTIFACT_TYPE, "compile_commands.json"))
         # used for clangd and debugger source maps
@@ -532,10 +515,6 @@ build_parser.add_argument("make",
 build_parser.add_argument("-i", "--image-build",
                           help="build container images instead of source",
                           action="store_true")
-build_parser.add_argument("-c", "--compiler",
-                          help="set compiler used for building",
-                          choices=["clang", "gcc"],
-                          default="clang")
 build_parser.add_argument("-j", "--parallel",
                           help="set number of logical cores to use for compilation",
                           metavar="JOBS",
@@ -547,7 +526,7 @@ build_parser.add_argument("-b", "--build-type",
                           default="Debug")
 build_parser.add_argument("-t", "--target",
                           help="set target platform",
-                          choices=["linux64", "rpi64", "win64", "osx64"],
+                          choices=["linux64", "rpi64", "win64", "osx64", "wasm32"],
                           default="linux64")
 build_parser.add_argument("-v", "--verbose",
                           help="get verbose output from cmake",

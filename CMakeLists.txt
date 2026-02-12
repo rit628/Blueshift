@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.29) # for some reason setting 3.30 causes redundant rebuilds
 
+set(CMAKE_C_COMPILER clang)
+set(CMAKE_CXX_COMPILER clang++)
+set(CMAKE_LINKER_TYPE LLD)
+set(CMAKE_AR llvm-ar)
+
 project($ENV{PROJECT_NAME})
 
 set(CMAKE_CXX_EXTENSIONS OFF)
