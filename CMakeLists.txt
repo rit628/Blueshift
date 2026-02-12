@@ -71,7 +71,7 @@ set_directory_properties(PROPERTIES COMPILE_OPTIONS "${current_compile_options}"
 
 set(ESSENTIAL_FLAGS -Wall -Wextra -Wnon-virtual-dtor)
 set(STYLE_FLAGS -Wmissing-prototypes -Wextra-semi -Wextra-semi-stmt -Wredundant-parens -Wsuggest-destructor-override -Wold-style-cast)
-set(NEGATED_FLAGS -Wno-sign-compare)
+set(NEGATED_FLAGS -Wno-sign-compare -Wno-nontrivial-memcall)
 # For performance critical code (ie. network buffers or space constrained classes)
 set(SUGGESTED_FLAGS -Wweak-vtables -Wpadded)
 

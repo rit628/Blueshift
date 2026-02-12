@@ -36,6 +36,8 @@ services:
       args:
         - WORKDIR=${CONTAINER_MOUNT_DIRECTORY}
         - BUILD_IMAGE_NAME=${BUILD_IMAGE_NAME}
+        - LLVM_VERSION=${LLVM_VERSION}
+        - CMAKE_VERSION=${CMAKE_VERSION}
     image: ${BUILD_IMAGE_NAME}:${PLATFORM_TAG}
     volumes:
       - .:${CONTAINER_MOUNT_DIRECTORY}
