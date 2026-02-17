@@ -345,6 +345,14 @@ def build(args):
     if args.local:
         if args.clean: rmtree(ARTIFACT_DIR, ignore_errors=True)
 
+        if PLATFORM_TAG == "wasm32" and not ARTIFACT_DIR.exists(): # skip confirmation on rebuilds
+            proceed = input("WARNING: Compilation for wasm32 is experimental!\n"
+                            "Expect runtime errors even if compilation is successful, especially if using threading or networking libraries.\n"
+                            "Proceed anyways? [Y/n]: ")
+            if proceed and proceed.lower() != "y":
+                print("Compilation cancelled.")
+                return
+
         cmake_args = [f"-DCMAKE_BUILD_TYPE={args.build_type}", "-Wno-dev"]
         if PLATFORM_TAG != "linux64": # specify toolchain file for cross compilation
             cmake_args.append(f"-DCMAKE_TOOLCHAIN_FILE={Path(os.getcwd(), ".cmake", f"{PLATFORM_TAG}.cmake")}")
