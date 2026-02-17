@@ -36,6 +36,7 @@ NUM_CORES = mp.cpu_count()
 CODELLDB_ADDRESS = ("127.0.0.1", 7349)
 
 def run_cmd(cmd, exit_on_failure=True, **kwargs) -> subprocess.CompletedProcess | None:
+    cmd = list(filter(None, cmd))
     try:
         process_result = subprocess.run(cmd, **kwargs)
     except KeyboardInterrupt:
@@ -329,10 +330,6 @@ def deploy(args):
     run_cmd(command)
 
 def build(args):
-    if args.image_build:
-        run_cmd(["docker", "compose", "build"])
-        return
-
     ARTIFACT_TYPE = args.build_type.lower()
     PLATFORM_TAG = args.target
     ARTIFACT_DIR = Path(BUILD_OUTPUT_DIRECTORY, PLATFORM_TAG, ARTIFACT_TYPE)
@@ -367,23 +364,21 @@ def build(args):
         # 1 <= j <= n-1 (keep 1 core free for background tasks)
         core_count = str(max(1, min(args.parallel, NUM_CORES - 1)))
         build_args = [args.verbose, "-j", core_count]
-        build_args = list(filter(None, build_args))
         run_cmd(["cmake", "--build", ".", *build_args, "-t", *args.make],
                        cwd=f"./{ARTIFACT_DIR}")
         symlink(get_target(PLATFORM_TAG), Path(".", ARTIFACT_TYPE), True)
     else: # build binaries in remote container
         initialize_host()
-        # ensure builder base image (linux64) is built
-        run_cmd(["docker", "compose", "build", "builder"])
+        if PLATFORM_TAG != "linux64": # ensure builder base image is built
+            run_cmd(["docker", "compose", "build", "builder"])
         # use correct platform for building
         os.environ["PLATFORM_TAG"] = PLATFORM_TAG
-        run_cmd(["docker", "compose", "run", "--rm", "builder",
+        run_cmd(["docker", "compose", "run", args.image_build, "--rm", "builder",
                         "build", "-l", *remote_args, *args.make])
 
 def test(args):
     os.environ["GTEST_COLOR"] = "1"
     ctest_args = [args.verbose, "-R", args.tests_regex]
-    ctest_args = list(filter(None, ctest_args))
     if args.local: # TODO: fix local test execution in non container environments (map container src dir to host src dir in ctest?)
         fail_output = ["--output-on-failure"] if not args.no_output_on_failure else []
         TARGET_DIR = get_target()
@@ -521,8 +516,9 @@ build_parser.add_argument("make",
                           nargs="*",
                           default=["all"])
 build_parser.add_argument("-i", "--image-build",
-                          help="build container images instead of source",
-                          action="store_true")
+                          help="build container images prior to running",
+                          action="store_const",
+                          const="--build")
 build_parser.add_argument("-j", "--parallel",
                           help="set number of logical cores to use for compilation",
                           metavar="JOBS",

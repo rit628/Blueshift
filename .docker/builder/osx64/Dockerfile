@@ -4,8 +4,10 @@ FROM ${BUILD_IMAGE_NAME}:linux64
 
 WORKDIR /tmp
 
-RUN apt-get update && \
-apt-get install --no-install-recommends -y git libxml2-dev libz-dev xz-utils bzip2 cpio pkg-config curl && \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+--mount=type=cache,target=/var/lib/apt,sharing=locked \
+apt-get update && \
+apt-get install --no-install-recommends -y git libxml2-dev libz-dev bzip2 cpio pkg-config curl && \
 git clone https://github.com/tpoechtrager/osxcross.git && \
 cd osxcross && \
 curl -sSL https://github.com/joseluisq/macosx-sdks/releases/download/26.1/MacOSX26.1.sdk.tar.xz -o tarballs/MacOSX26.1.sdk.tar.xz && \

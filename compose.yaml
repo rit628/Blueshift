@@ -42,10 +42,12 @@ services:
     volumes:
       - .:${CONTAINER_MOUNT_DIRECTORY}
       - venv:${CONTAINER_MOUNT_DIRECTORY}/.venv
+      - ccache:/ccache
       - ${DISPLAY_MOUNT}:/tmp/.X11-unix
     environment:
       - DISPLAY=${DISPLAY_NAME}
       - XDG_RUNTIME_DIR=/run/user/${CONTAINER_UID}
+      - CCACHE_DIR=/ccache
     env_file:
       - .env
     entrypoint: ["./bls"]
@@ -138,4 +140,6 @@ services:
 volumes:
   venv:
     name: ${PROJECT_PREFIX}_venv
+  ccache:
+    name: ${PROJECT_PREFIX}_ccache
   nullvolume:
