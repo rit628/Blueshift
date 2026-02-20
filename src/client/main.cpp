@@ -8,6 +8,9 @@
 #include <SDL3/SDL.h>
 #endif
 
+#ifndef HOST_NAME_MAX
+#define HOST_NAME_MAX 64
+#endif
 
 int main(int argc, char* argv[]) {
     std::string name;

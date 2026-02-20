@@ -23,6 +23,9 @@ namespace Device {
     until support for modules improves in clang and cmake
 */
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-private-field"
+
 #include "devtypes/TIMER_TEST.hpp"
 #include "devtypes/LINE_WRITER.hpp"
 #include "devtypes/READ_FILE.hpp"
@@ -52,7 +55,7 @@ namespace Device {
 #include "devtypes/TEXT_FILE.hpp"
 #include "devtypes/AUDIO_PLAYER.hpp"
 
-
+#pragma GCC diagnostic pop
 
 template<typename T>
 concept DeviceDriver = requires (T device, std::unordered_map<std::string, std::string>& config, DynamicMessage& dmsg) {

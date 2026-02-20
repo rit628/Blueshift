@@ -7,7 +7,6 @@ logs
 
 # Build artifacts
 build/
-!build/remote
 CMakeCache.txt
 CMakeFiles/
 Makefile

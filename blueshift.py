@@ -4,10 +4,8 @@ import os
 import sys
 import subprocess
 import socket
-import re
 import atexit
 import time
-import tarfile
 import webbrowser
 import platform
 import multiprocessing as mp
@@ -26,8 +24,8 @@ NUM_CLIENTS = os.getenv("NUM_CLIENTS")
 CONTAINER_MOUNT_DIRECTORY = os.getenv("CONTAINER_MOUNT_DIRECTORY")
 BUILD_OUTPUT_DIRECTORY = os.getenv("BUILD_OUTPUT_DIRECTORY")
 RUNTIME_OUTPUT_DIRECTORY = os.getenv("RUNTIME_OUTPUT_DIRECTORY")
-REMOTE_OUTPUT_DIRECTORY = os.getenv("REMOTE_OUTPUT_DIRECTORY")
 TARGET_OUTPUT_DIRECTORY = os.getenv("TARGET_OUTPUT_DIRECTORY")
+PLATFORM_TAG = os.getenv("PLATFORM_TAG")
 DEBUG_SERVER_PORT_MIN = os.getenv("DEBUG_SERVER_PORT_MIN")
 DEBUG_SERVER_PORT_MAX = os.getenv("DEBUG_SERVER_PORT_MAX")
 MASTER_PORT = os.getenv("MASTER_PORT")
@@ -38,6 +36,7 @@ NUM_CORES = mp.cpu_count()
 CODELLDB_ADDRESS = ("127.0.0.1", 7349)
 
 def run_cmd(cmd, exit_on_failure=True, **kwargs) -> subprocess.CompletedProcess | None:
+    cmd = list(filter(None, cmd))
     try:
         process_result = subprocess.run(cmd, **kwargs)
     except KeyboardInterrupt:
@@ -72,11 +71,6 @@ def run_as_src_user(f):
 
 @run_as_src_user
 def initialize_host():
-    Path(REMOTE_OUTPUT_DIRECTORY, "debug").mkdir(parents=True, exist_ok=True)
-    Path(REMOTE_OUTPUT_DIRECTORY, "release").mkdir(parents=True, exist_ok=True)
-    Path(REMOTE_OUTPUT_DIRECTORY, "minsizerel").mkdir(parents=True, exist_ok=True)
-    Path(REMOTE_OUTPUT_DIRECTORY, "relwithdebinfo").mkdir(parents=True, exist_ok=True)
-
     run_cmd(["docker", "network", "create", NETWORK_NAME, "--label", "com.docker.compose.network=default", "--label", f"com.docker.compose.project={PROJECT_NAME}"],
             exit_on_failure=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     
@@ -160,22 +154,6 @@ def symlink(source : Path | str, target : Path | str, is_directory = False):
     source.symlink_to(target, target_is_directory=is_directory)
     return source
 
-@run_as_src_user
-def make_sysroot(target, local):
-    base_path = "build" if local else Path("build", "remote")
-    sysroot_path = Path(base_path, "sysroot", target)
-    sysroot_path.mkdir(parents=True, exist_ok=True)
-    if not os.listdir(sysroot_path):
-        platform = os.getenv(f"{target.upper()}_PLATFORM")
-        archive_path = Path("build", f"{target}-rootfs.tar")
-        atexit.register(run_cmd, ["docker", "rm", f"{target}-sysroot"], exit_on_failure=False, stderr=subprocess.DEVNULL)
-        run_cmd(["docker", "build", "--platform", platform, "-t", f"{PROJECT_PREFIX}-{target}-sysroot-generator", Path(".docker", "sysroot", target)])
-        run_cmd(["docker", "create", "-q", "--platform", platform, "--name", f"{target}-sysroot", f"{PROJECT_PREFIX}-{target}-sysroot-generator"])
-        run_cmd(["docker", "export", f"{target}-sysroot", "-o", archive_path])
-        with tarfile.open(archive_path, "r") as tar:
-            tar.extractall(sysroot_path, filter="fully_trusted")
-        os.remove(archive_path)
-
 def open_vnc_display():
     os.environ["DISPLAY_NAME"] = f"{VNC_CONTAINER_NAME}:0.0"
     wait_for_container_server(VNC_PORT)
@@ -189,14 +167,32 @@ def initialize_vnc_display():
     atexit.register(run_cmd, ["docker", "compose", "down", "-t", "1", VNC_CONTAINER_NAME], exit_on_failure=False, stderr=subprocess.DEVNULL)
     open_vnc_display()
 
+def get_host_os():
+    system = platform.system()
+    if system == "Linux":
+        return "linux64"
+    if system == "Windows":
+        return "win64"
+    if system == "Darwin":
+        return "osx64"
+    return system
+
+def get_target(PLATFORM_TAG=""):
+    if not PLATFORM_TAG:
+        PLATFORM_TAG = get_host_os()
+    return Path(BUILD_OUTPUT_DIRECTORY, PLATFORM_TAG, TARGET_OUTPUT_DIRECTORY)
+
+def get_remote_path(build_path):
+    with Path(build_path, ".info").open() as info:
+        remote_path, _ = info.readline().split()
+    return remote_path
+
 def run(args):
     if args.local:
-        binary_folder = Path(REMOTE_OUTPUT_DIRECTORY, "target") if args.container_binary else TARGET_OUTPUT_DIRECTORY
-        executable = Path(".", binary_folder, RUNTIME_OUTPUT_DIRECTORY, args.binary)
+        executable = Path(".", get_target(), RUNTIME_OUTPUT_DIRECTORY, args.binary)
         run_cmd([executable, *args.binary_args])
     else:
-        if args.vnc:
-            initialize_vnc_display()
+        if args.vnc: initialize_vnc_display()
         if args.packet_forward:
             context = subprocess.check_output(["docker", "context", "show"], text=True).strip()
             if context == "rootless":
@@ -210,8 +206,8 @@ def run(args):
 
 def debug(args):
     debug_target_path = "relwithdebinfo" if args.release else "debug"
-    executable = Path(BUILD_OUTPUT_DIRECTORY, debug_target_path, RUNTIME_OUTPUT_DIRECTORY, args.binary)
-    sourceMap = ""
+    build_path = Path(BUILD_OUTPUT_DIRECTORY, PLATFORM_TAG, debug_target_path)
+    executable = Path(build_path, RUNTIME_OUTPUT_DIRECTORY, args.binary)
     allow_visual = not args.terminal and args.debugger == "lldb"
     stop_on_entry = "true" if args.stop_on_entry else "false"
     # use controller name as debug name for readability if debugging client
@@ -226,10 +222,11 @@ def debug(args):
         run_cmd(["lldb-server", "platform", "--listen", f"*:{args.listen}", "--server",
                  "--min-gdbserver-port", args.min_server_port, "--max-gdbserver-port", args.max_server_port])
     elif args.local:
-        if args.container_binary:
-            executable = Path(REMOTE_OUTPUT_DIRECTORY, debug_target_path, RUNTIME_OUTPUT_DIRECTORY, args.binary)
-            sourceMap = f"sourceMap: {{ {CONTAINER_MOUNT_DIRECTORY} : {os.getcwd()} }},"
-        
+        # update executable to use platform specific binary
+        build_path = Path(BUILD_OUTPUT_DIRECTORY, get_host_os(), debug_target_path)
+        executable = Path(build_path, RUNTIME_OUTPUT_DIRECTORY, args.binary)
+        remote_path = get_remote_path(build_path)
+
         if allow_visual: # debug locally with codelldb
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.connect(CODELLDB_ADDRESS)
@@ -239,22 +236,24 @@ def debug(args):
                     token: blueshift,
                     terminal: console,
                     stopOnEntry: {stop_on_entry},
-                    {sourceMap}
+                    sourceMap: {{ {remote_path} : {os.getcwd()} }},
                     program: {executable},
                     args: {args.binary_args}
                 }}
                 """.encode())
-        else: # debug locally in terminal
-            args_command = "--" if args.debugger == "lldb" else "--args"
-            run_cmd([args.debugger, args_command, executable, *args.binary_args])
+        elif args.debugger == "lldb": # debug locally with lldb tui
+            run_cmd(["lldb", "-o", f"settings set target.source-map {remote_path} {cwd}",
+                             "--", executable, *args.binary_args])
+        else: # debug locally with gdb tui
+            run_cmd(["gdb", "-ex", f"set substitute-path {remote_path} {cwd}",
+                            "--args", executable, *args.binary_args])
     else: # debug on container gdbserver
-        if args.vnc:
-            initialize_vnc_display()
+        if args.vnc: initialize_vnc_display()
         initialize_host()
         DEBUG_SERVER_PORT = get_free_port()
-        remote_binary = Path(REMOTE_OUTPUT_DIRECTORY, debug_target_path, RUNTIME_OUTPUT_DIRECTORY, args.binary)
-        sourceMap = f"sourceMap: {{ {CONTAINER_MOUNT_DIRECTORY} : {os.getcwd()} }},"
         cwd = os.getcwd()
+        remote_path = get_remote_path(build_path)
+
         # Initialize debug server
         run_cmd(["docker", "compose", "--profile", "debug", "run", "-d", "--no-deps",
                         "-p", f"{DEBUG_SERVER_PORT}:{DEBUG_SERVER_PORT}", "--name", debug_name, "--rm",
@@ -273,20 +272,20 @@ def debug(args):
                     terminal: console,
                     request: attach,
                     stopOnEntry: {stop_on_entry},
-                    {sourceMap}
-                    targetCreateCommands: [target create {remote_binary}],
+                    sourceMap: {{ {remote_path} : {cwd} }},
+                    targetCreateCommands: [target create {executable}],
                     processCreateCommands: [gdb-remote localhost:{DEBUG_SERVER_PORT}]
                 }}
                 """.encode())
                 time.sleep(1) # externally extend gdb-remote connection timeout
             wait_for_container_server(DEBUG_SERVER_PORT, wait_for_exit=True)
         elif args.debugger == "lldb": # debug remotely with lldb tui
-            run_cmd(["lldb", "-o", f"settings set target.source-map {CONTAINER_MOUNT_DIRECTORY} {cwd}",
-                            "-o", f"gdb-remote localhost:{DEBUG_SERVER_PORT}", "--", remote_binary, *args.binary_args])
+            run_cmd(["lldb", "-o", f"settings set target.source-map {remote_path} {cwd}",
+                             "-o", f"gdb-remote localhost:{DEBUG_SERVER_PORT}", "--", executable, *args.binary_args])
         else: # debug remotely with gdb tui
             run_cmd(["gdb", "-ex", f"target remote localhost:{DEBUG_SERVER_PORT}",
-                            "-ex", f"set substitute-path {CONTAINER_MOUNT_DIRECTORY} {cwd}",
-                            "--args", remote_binary, *args.binary_args])
+                            "-ex", f"set substitute-path {remote_path} {cwd}",
+                            "--args", executable, *args.binary_args])
 
 def deploy(args):
     # container never issues deploy command
@@ -320,7 +319,7 @@ def deploy(args):
         os.environ["DEBUG_PORT"] = str(DEBUG_SERVER_PORT)
         os.environ["DEBUG_SERVER_PORT_MAX"] = str(int(DEBUG_SERVER_PORT_MIN) + num_clients + 1) # +1 for master
 
-        debug_target_path = Path(REMOTE_OUTPUT_DIRECTORY, os.getenv("BUILD_TYPE").lower(), RUNTIME_OUTPUT_DIRECTORY)
+        debug_target_path = Path(BUILD_OUTPUT_DIRECTORY, PLATFORM_TAG, os.getenv("BUILD_TYPE").lower(), RUNTIME_OUTPUT_DIRECTORY)
         master_binary = Path(debug_target_path, "master")
         client_binary = Path(debug_target_path, "client")
         # start watchers to attach to each target process when spawned in container
@@ -332,122 +331,100 @@ def deploy(args):
 
 def build(args):
     ARTIFACT_TYPE = args.build_type.lower()
-    TARGET_PLATFORM = args.target if args.target != "local" else ""
-    ARTIFACT_DIR = Path(BUILD_OUTPUT_DIRECTORY, TARGET_PLATFORM, ARTIFACT_TYPE)
+    PLATFORM_TAG = args.target
+    ARTIFACT_DIR = Path(BUILD_OUTPUT_DIRECTORY, PLATFORM_TAG, ARTIFACT_TYPE)
     COMPILE_DB_PATH = Path(BUILD_OUTPUT_DIRECTORY, "compile_commands.json")
-    build_args = [f"--build-type", args.build_type,
-                  "--compiler", args.compiler,
+    remote_args = [f"--build-type", args.build_type,
                   "--parallel", str(args.parallel),
                   "--target", args.target]
-    if args.image_build:
-        run_cmd(["docker", "compose", "build"])
-    if args.clean:
-        build_args.append("--clean")
-        rmtree(ARTIFACT_DIR, ignore_errors=True)
-    if TARGET_PLATFORM:
-        make_sysroot(TARGET_PLATFORM, args.local)
+    if args.clean: remote_args.append("--clean")
 
     if args.local:
-        cpp_compiler = "-DCMAKE_CXX_COMPILER="
-        c_compiler = "-DCMAKE_C_COMPILER="
-        linker = "-DCMAKE_LINKER_TYPE="
-        archiver = "-DCMAKE_AR="
-        build_type = f"-DCMAKE_BUILD_TYPE={args.build_type}"
-        toolchain_file = "-DCMAKE_TOOLCHAIN_FILE=" + (str(Path(os.getcwd(), ".cmake", f"{args.compiler}-{TARGET_PLATFORM}.cmake")) if TARGET_PLATFORM else "")
-        if args.compiler == 'clang':
-            c_compiler += "clang"
-            cpp_compiler += "clang++"
-            linker += "LLD"
-            archiver += "llvm-ar"
-        else:
-            c_compiler += "gcc"
-            cpp_compiler += "g++"
-            linker += "BFD"
-            archiver += "ar"
-        cmake_args = [c_compiler, cpp_compiler, linker, build_type, toolchain_file, "-Wno-dev"]
+        if args.clean: rmtree(ARTIFACT_DIR, ignore_errors=True)
+
+        if PLATFORM_TAG == "wasm32" and not ARTIFACT_DIR.exists(): # skip confirmation on rebuilds
+            proceed = input("WARNING: Compilation for wasm32 is experimental!\n"
+                            "Expect runtime errors even if compilation is successful, especially if using threading or networking libraries.\n"
+                            "Proceed anyways? [Y/n]: ")
+            if proceed and proceed.lower() != "y":
+                print("Compilation cancelled.")
+                return
+
+        cmake_args = [f"-DCMAKE_BUILD_TYPE={args.build_type}", "-Wno-dev"]
+        if PLATFORM_TAG != "linux64": # specify toolchain file for cross compilation
+            cmake_args.append(f"-DCMAKE_TOOLCHAIN_FILE={Path(os.getcwd(), ".cmake", f"{PLATFORM_TAG}.cmake")}")
+
         run_cmd(["cmake", *cmake_args, "-S", ".", "-B", ARTIFACT_DIR])
-        symlink(COMPILE_DB_PATH, Path(".", TARGET_PLATFORM, ARTIFACT_TYPE, "compile_commands.json"))
+        symlink(COMPILE_DB_PATH, Path(".", PLATFORM_TAG, ARTIFACT_TYPE, "compile_commands.json"))
+        # used for clangd and debugger source maps
+        with Path(ARTIFACT_DIR, ".info").open("w") as build_info:
+            build_info.write(f"{os.getcwd()} {PLATFORM_TAG}")
+        symlink(Path(BUILD_OUTPUT_DIRECTORY, ".info"), Path(".", PLATFORM_TAG, ARTIFACT_TYPE, ".info"))
 
         # 1 <= j <= n-1 (keep 1 core free for background tasks)
         core_count = str(max(1, min(args.parallel, NUM_CORES - 1)))
-        run_cmd(["cmake", "--build", ".", "-j", core_count, "-t", *args.make],
+        build_args = [args.verbose, "-j", core_count]
+        run_cmd(["cmake", "--build", ".", *build_args, "-t", *args.make],
                        cwd=f"./{ARTIFACT_DIR}")
-        if not TARGET_PLATFORM:
-            # only update binary targets if built for current machine's arch
-            symlink(TARGET_OUTPUT_DIRECTORY, Path(".", ARTIFACT_TYPE), True)
+        symlink(get_target(PLATFORM_TAG), Path(".", ARTIFACT_TYPE), True)
     else: # build binaries in remote container
-        @run_as_src_user
-        def link_compile_commands():
-            remote_target_path = Path(".", "remote", TARGET_PLATFORM, ARTIFACT_TYPE)
-            if not TARGET_PLATFORM:
-                # only update binary targets if built for current machine's arch
-                symlink(TARGET_OUTPUT_DIRECTORY, remote_target_path)
-                build_location = TARGET_OUTPUT_DIRECTORY
-            else:
-                cross_target_path = Path(BUILD_OUTPUT_DIRECTORY, TARGET_PLATFORM)
-                symlink(cross_target_path, remote_target_path)
-                symlink(Path(BUILD_OUTPUT_DIRECTORY, "sysroot"), Path(".", "remote", "sysroot"))
-                build_location = cross_target_path
-
-            curr_db_path = Path(REMOTE_OUTPUT_DIRECTORY, TARGET_PLATFORM, ARTIFACT_TYPE, "compile_commands.json")
-            if not curr_db_path.exists():
-                return # If configuration failed, compile commands linking is not possible
-            
-            with (curr_db_path.open("r") as db, COMPILE_DB_PATH.open("w") as out):
-                cwd = os.getcwd()
-                build_dir = str(Path(CONTAINER_MOUNT_DIRECTORY, ARTIFACT_DIR))
-                replacement_dir = str(Path(cwd, build_location))
-                for line in db:
-                    line = line.replace(build_dir, replacement_dir)  # replace build dir
-                    line = line.replace(CONTAINER_MOUNT_DIRECTORY, cwd)  # replace source dir
-                    out.write(line)
-        atexit.register(link_compile_commands)
         initialize_host()
-        run_cmd(["docker", "compose", "run", "--rm", "builder",
-                        "build", "-l", *build_args, *args.make])
+        if PLATFORM_TAG != "linux64": # ensure builder base image is built
+            run_cmd(["docker", "compose", "build", "builder"])
+        # use correct platform for building
+        os.environ["PLATFORM_TAG"] = PLATFORM_TAG
+        run_cmd(["docker", "compose", "run", args.image_build, "--rm", "builder",
+                        "build", "-l", *remote_args, *args.make])
 
 def test(args):
     os.environ["GTEST_COLOR"] = "1"
     ctest_args = [args.verbose, "-R", args.tests_regex]
-    ctest_args = list(filter(None, ctest_args))
-    if args.local:
+    if args.local: # TODO: fix local test execution in non container environments (map container src dir to host src dir in ctest?)
         fail_output = ["--output-on-failure"] if not args.no_output_on_failure else []
-        if not Path(TARGET_OUTPUT_DIRECTORY).exists():
+        TARGET_DIR = get_target()
+        if not TARGET_DIR.exists():
             print("No tests to run.")
             sys.exit(0)
-        run_cmd(["ctest", *fail_output, *ctest_args], cwd=f"./{TARGET_OUTPUT_DIRECTORY}")
+        run_cmd(["ctest", *fail_output, *ctest_args], cwd=f"./{TARGET_DIR}")
     else: # test in remote container
         initialize_host()
         run_cmd(["docker", "compose", "run", "--rm", "builder", "test", "-l", *ctest_args])
 
 def reset(args):
+    print("Removing build directory and venv...")
     rmtree(BUILD_OUTPUT_DIRECTORY, ignore_errors=True)
     rmtree(".venv", ignore_errors=True)
     
     if args.preserve_images: return
     
+    print("Shutting down all containers...")
     run_cmd(["docker", "compose", "down", "--rmi", "all", "-v", "--remove-orphans"])
 
-    network_id = get_output(f"docker network ls | grep {NETWORK_NAME} | awk '{{ print $1 }}'", shell=True)
-    container_ids = get_output(f"docker container ls | grep {PROJECT_PREFIX} | awk '{{ print $1 }}'", shell=True)
-    image_ids = get_output(f"docker image ls | grep {PROJECT_PREFIX} | awk '{{ print $3 }}'", shell=True)
-    volumes = get_output(f"docker volume ls | grep {PROJECT_NAME} | awk '{{ print $2 }}'", shell=True)
-        
+    network_id = get_output(f"docker network ls -f 'name={NETWORK_NAME}' --format '{{{{.ID}}}}'", shell=True)
+    container_ids = get_output(f"docker container ls -af 'name={PROJECT_PREFIX}-*' --format '{{{{.ID}}}}'", shell=True)
+    image_ids = get_output(f"docker image ls -af 'reference={PROJECT_PREFIX}-*' --format '{{{{.ID}}}}'", shell=True)
+    volumes = get_output(f"docker volume ls -f 'name={PROJECT_PREFIX}_*' --format '{{{{.Name}}}}'", shell=True)
+    
     if network_id:
+        print("Removing dangling networks...")
         run_cmd(["docker", "network", "rm", network_id])
     if container_ids:
+        print("Removing dangling containers...")
         run_cmd(["docker", "container", "stop"] + container_ids.split('\n'), exit_on_failure=False)
         run_cmd(["docker", "container", "rm", "-f"] + container_ids.split('\n'))
     if image_ids:
-        run_cmd(["docker", "image", "prune", "-f"])
+        print("Removing dangling images...")
         run_cmd(["docker", "image", "rm", "-f"] + image_ids.split('\n'))
     if volumes:
+        print("Removing dangling volumes...")
         run_cmd(["docker", "volume", "rm", "-f"] + volumes.split('\n'))
 
     if args.system_prune:
+        print("Pruning everything in current docker context...")
         run_cmd(["docker", "system", "prune", "--volumes", "-af"])
 
     if args.rm_build_cache:
+        print("Removing dangling image build cache for current docker context...")
         run_cmd(["docker", "buildx", "prune", "-f"])
 
 parser = argparse.ArgumentParser(description=f"{PROJECT_NAME} development environment build script", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -462,9 +439,6 @@ run_parser.add_argument("binary_args",
                         default=None)
 run_parser.add_argument("-l", "--local",
                         help="run selected binary on local host instead of in containerized environment",
-                        action="store_true")
-run_parser.add_argument("-c", "--container-binary",
-                        help="when used with --local, run the container built binary instead of a locally built version.",
                         action="store_true")
 run_parser.add_argument("-p", "--packet-forward",
                         help="forward all network packets from container LAN to host LAN",
@@ -487,9 +461,6 @@ debug_parser.add_argument("binary_args",
                         default=None)
 debug_parser.add_argument("-l", "--local",
                         help="debug selected binary on local host instead of in containerized environment",
-                        action="store_true")
-debug_parser.add_argument("-c", "--container-binary",
-                        help="when used with --local, debug the container built binary instead of a locally built version.",
                         action="store_true")
 debug_parser.add_argument("-t", "--terminal",
                         help="force debugging through terminal alone",
@@ -553,12 +524,9 @@ build_parser.add_argument("make",
                           nargs="*",
                           default=["all"])
 build_parser.add_argument("-i", "--image-build",
-                          help="build container images",
-                          action="store_true")
-build_parser.add_argument("-c", "--compiler",
-                          help="set compiler used for building",
-                          choices=["clang", "gcc"],
-                          default="clang")
+                          help="build container images prior to running",
+                          action="store_const",
+                          const="--build")
 build_parser.add_argument("-j", "--parallel",
                           help="set number of logical cores to use for compilation",
                           metavar="JOBS",
@@ -570,8 +538,12 @@ build_parser.add_argument("-b", "--build-type",
                           default="Debug")
 build_parser.add_argument("-t", "--target",
                           help="set target platform",
-                          choices=["local", "rpi64"],
-                          default="local")
+                          choices=["linux64", "rpi64", "win64", "osx64", "wasm32"],
+                          default="linux64")
+build_parser.add_argument("-v", "--verbose",
+                          help="get verbose output from cmake",
+                          action="store_const",
+                          const="--verbose")
 build_parser.add_argument("-l", "--local",
                           help="build for local host only; container builds are not updated",
                           action="store_true")

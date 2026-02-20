@@ -412,7 +412,7 @@ void MasterNM::handleMessage(OwnedSentMessage &in_msg){
             }
             break;
         }
-        case(Protocol::CALLBACK): {
+        case(Protocol::DEVICE_CALLBACK): {
 
             DMM new_msg = this->makeDMM(in_msg.sm, PROTOCOLS::CALLBACKRECIEVED);
             new_msg.isInterrupt = in_msg.sm.header.fromInterrupt;

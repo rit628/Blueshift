@@ -32,20 +32,25 @@ services:
     privileged: true
     build:
       context: .
-      dockerfile: .docker/builder/Dockerfile
+      dockerfile: .docker/builder/${PLATFORM_TAG}/Dockerfile
       args:
         - WORKDIR=${CONTAINER_MOUNT_DIRECTORY}
-    image: ${BUILD_IMAGE_NAME}
+        - BUILD_IMAGE_NAME=${BUILD_IMAGE_NAME}
+        - LLVM_VERSION=${LLVM_VERSION}
+        - CMAKE_VERSION=${CMAKE_VERSION}
+    image: ${BUILD_IMAGE_NAME}:${PLATFORM_TAG}
     volumes:
       - .:${CONTAINER_MOUNT_DIRECTORY}
-      - ./${REMOTE_OUTPUT_DIRECTORY}:${CONTAINER_MOUNT_DIRECTORY}/build
       - venv:${CONTAINER_MOUNT_DIRECTORY}/.venv
+      - ccache:/ccache
       - ${DISPLAY_MOUNT}:/tmp/.X11-unix
     environment:
       - DISPLAY=${DISPLAY_NAME}
       - XDG_RUNTIME_DIR=/run/user/${CONTAINER_UID}
+      - CCACHE_DIR=/ccache
     env_file:
       - .env
+    entrypoint: ["./bls"]
 
   debugger:
     profiles:
@@ -81,13 +86,13 @@ services:
     develop:
       watch:
         - action: sync+restart
-          path: ${TARGET_OUTPUT_DIRECTORY}/${RUNTIME_OUTPUT_DIRECTORY}/master
+          path: ${MASTER_PROGRAM_NAME}
           target: ${MASTER_PROGRAM_NAME}
     expose:
       - ${MASTER_PORT}
     pid: ${DEPLOY_NAMESPACE}
     volumes:
-      - ./${REMOTE_OUTPUT_DIRECTORY}:${CONTAINER_MOUNT_DIRECTORY}/build
+      - ./${BUILD_OUTPUT_DIRECTORY}:${CONTAINER_MOUNT_DIRECTORY}/build
       - ./samples/src:${CONTAINER_MOUNT_DIRECTORY}/samples/src
     environment:
       - DEPLOY_NAMESPACE=${DEPLOY_NAMESPACE}
@@ -113,13 +118,13 @@ services:
     develop:
       watch:
         - action: sync+restart
-          path: ${TARGET_OUTPUT_DIRECTORY}/${RUNTIME_OUTPUT_DIRECTORY}/client
+          path: ${CLIENT_PROGRAM_NAME}
           target: ${CLIENT_PROGRAM_NAME}
     expose:
       - ${BROADCAST_PORT}
     pid: ${DEPLOY_NAMESPACE}
     volumes:
-      - ./${REMOTE_OUTPUT_DIRECTORY}:${CONTAINER_MOUNT_DIRECTORY}/build
+      - ./${BUILD_OUTPUT_DIRECTORY}:${CONTAINER_MOUNT_DIRECTORY}/build
       - ./samples/client:${CONTAINER_MOUNT_DIRECTORY}/samples/client
       - ${DISPLAY_MOUNT}:/tmp/.X11-unix
     environment:
@@ -135,4 +140,6 @@ services:
 volumes:
   venv:
     name: ${PROJECT_PREFIX}_venv
+  ccache:
+    name: ${PROJECT_PREFIX}_ccache
   nullvolume:

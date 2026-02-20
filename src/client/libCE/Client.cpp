@@ -10,7 +10,6 @@
 #include <memory>
 #include <ostream>
 #include <stdexcept>
-#include <sys/socket.h>
 #include <unordered_map>
 
 Client::Client(std::string c_name): bc_socket(client_ctx, udp::endpoint(udp::v4(), BROADCAST_PORT)), client_socket(client_ctx), threadPool(std::thread::hardware_concurrency()){
@@ -199,7 +198,7 @@ void Client::listener(std::stop_token stoken){
                             cursors.at(dev_index).addQueryHandler(task_id);
                             device.processStates(dmsg);
                             cursors.at(dev_index).awaitQueryCompletion(stoken);
-                            this->sendMessage(dev_index, Protocol::CALLBACK, false, task_id);
+                            this->sendMessage(dev_index, Protocol::DEVICE_CALLBACK, false, task_id);
                         }
                         catch(std::exception e){
                             std::cout<<"Failure to change the state detected"<<std::endl; 
@@ -214,7 +213,7 @@ void Client::listener(std::stop_token stoken){
                         try{   
                             auto& device = this->deviceList.at(dev_index).device;
                             device.processStates(dmsg);
-                            this->sendMessage(dev_index, Protocol::CALLBACK, false, task_id);
+                            this->sendMessage(dev_index, Protocol::DEVICE_CALLBACK, false, task_id);
                         }
                         catch(std::exception e){
                             std::cout<<"Failure to change the state detected"<<std::endl; 

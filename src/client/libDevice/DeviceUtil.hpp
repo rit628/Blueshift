@@ -16,7 +16,6 @@
 #include <memory>
 #include <shared_mutex>
 #include <stop_token>
-#include <sys/inotify.h>
 #include <tuple>
 #include <unistd.h> 
 #include <unordered_map>
