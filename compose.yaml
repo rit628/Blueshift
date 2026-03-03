@@ -38,11 +38,17 @@ services:
         - BUILD_IMAGE_NAME=${BUILD_IMAGE_NAME}
         - LLVM_VERSION=${LLVM_VERSION}
         - CMAKE_VERSION=${CMAKE_VERSION}
+      cache_from:
+        - ${BUILD_IMAGE_NAME}:${PLATFORM_TAG}
+      cache_to:
+        - type=inline,mode=min
     image: ${BUILD_IMAGE_NAME}:${PLATFORM_TAG}
+    labels:
+      - org.opencontainers.image.source=${BUILD_IMAGE_LABEL}
     volumes:
       - .:${CONTAINER_MOUNT_DIRECTORY}
       - venv:${CONTAINER_MOUNT_DIRECTORY}/.venv
-      - ccache:/ccache
+      - ${CCACHE_VOLUME}:/ccache
       - ${DISPLAY_MOUNT}:/tmp/.X11-unix
     environment:
       - DISPLAY=${DISPLAY_NAME}
@@ -143,3 +149,6 @@ volumes:
   ccache:
     name: ${PROJECT_PREFIX}_ccache
   nullvolume:
+  ccache_external:
+    name: ${PROJECT_PREFIX}_ccache
+    external: true

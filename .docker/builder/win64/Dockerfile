@@ -1,6 +1,6 @@
 ARG BUILD_IMAGE_NAME=bls-builder
 
-FROM ${BUILD_IMAGE_NAME}:linux64
+FROM ${BUILD_IMAGE_NAME}:base
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 --mount=type=cache,target=/var/lib/apt,sharing=locked \
