@@ -20,6 +20,7 @@ include(.cmake/macros.cmake)
 # Packages
 include(FetchContent)
 set(FETCHCONTENT_QUIET OFF)
+set(FETCHCONTENT_BASE_DIR ${CMAKE_SOURCE_DIR}/$ENV{DEPENDENCY_DIRECTORY})
 
 # GoogleTest
 FetchContent_Declare(
