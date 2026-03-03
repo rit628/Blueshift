@@ -351,7 +351,7 @@ def build(args):
                 return
 
         cmake_args = [f"-DCMAKE_BUILD_TYPE={args.build_type}", "-Wno-dev"]
-        if PLATFORM_TAG != "linux64": # specify toolchain file for cross compilation
+        if PLATFORM_TAG != get_host_os(): # specify toolchain file for cross compilation
             cmake_args.append(f"-DCMAKE_TOOLCHAIN_FILE={Path(os.getcwd(), ".cmake", f"{PLATFORM_TAG}.cmake")}")
 
         run_cmd(["cmake", *cmake_args, "-S", ".", "-B", ARTIFACT_DIR])
@@ -369,10 +369,10 @@ def build(args):
         symlink(get_target(PLATFORM_TAG), Path(".", ARTIFACT_TYPE), True)
     else: # build binaries in remote container
         initialize_host()
-        if PLATFORM_TAG != "linux64": # ensure builder base image is built
+        if args.image_build: # ensure builder base image is up to date
+            os.environ["PLATFORM_TAG"] = "base"
             run_cmd(["docker", "compose", "build", "builder"])
-        # use correct platform for building
-        os.environ["PLATFORM_TAG"] = PLATFORM_TAG
+        os.environ["PLATFORM_TAG"] = PLATFORM_TAG # use correct platform for building
         run_cmd(["docker", "compose", "run", args.image_build, "--rm", "builder",
                         "build", "-l", *remote_args, *args.make])
 
@@ -428,6 +428,11 @@ def reset(args):
         run_cmd(["docker", "buildx", "prune", "-f"])
 
 parser = argparse.ArgumentParser(description=f"{PROJECT_NAME} development environment build script", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument("-e", "--env",
+                    help="set environment variable",
+                    action="append",
+                    default=[])
+
 subparsers = parser.add_subparsers(title="commands")
 
 run_parser = subparsers.add_parser("run", help=f"run selected {PROJECT_NAME} binaries")
@@ -582,4 +587,7 @@ reset_parser.add_argument("--system-prune",
 reset_parser.set_defaults(fn=reset)
 
 args = parser.parse_args(args=None if len(sys.argv) > 1 else ["--help"])
+for env in args.env:
+    var, val = env.split("=")
+    os.environ[var] = val
 args.fn(args)
