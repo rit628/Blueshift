@@ -25,6 +25,7 @@ CONTAINER_MOUNT_DIRECTORY = os.getenv("CONTAINER_MOUNT_DIRECTORY")
 BUILD_OUTPUT_DIRECTORY = os.getenv("BUILD_OUTPUT_DIRECTORY")
 RUNTIME_OUTPUT_DIRECTORY = os.getenv("RUNTIME_OUTPUT_DIRECTORY")
 TARGET_OUTPUT_DIRECTORY = os.getenv("TARGET_OUTPUT_DIRECTORY")
+DEPENDENCY_DIRECTORY = os.getenv("DEPENDENCY_DIRECTORY")
 PLATFORM_TAG = os.getenv("PLATFORM_TAG")
 DEBUG_SERVER_PORT_MIN = os.getenv("DEBUG_SERVER_PORT_MIN")
 DEBUG_SERVER_PORT_MAX = os.getenv("DEBUG_SERVER_PORT_MAX")
@@ -391,8 +392,9 @@ def test(args):
         run_cmd(["docker", "compose", "run", "--rm", "builder", "test", "-l", *ctest_args])
 
 def reset(args):
-    print("Removing build directory and venv...")
+    print("Removing build directory, dependency directory, and venv...")
     rmtree(BUILD_OUTPUT_DIRECTORY, ignore_errors=True)
+    rmtree(DEPENDENCY_DIRECTORY, ignore_errors=True)
     rmtree(".venv", ignore_errors=True)
     
     if args.preserve_images: return

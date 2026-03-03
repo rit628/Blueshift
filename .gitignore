@@ -3,6 +3,7 @@ logs
 *.log
 
 # Build artifacts
+.cdeps/
 build/
 CMakeCache.txt
 CMakeFiles/

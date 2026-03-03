@@ -1,0 +1,110 @@
+name: Build Test
+
+on:
+    pull_request:
+      branches: [main]
+    
+    workflow_run:
+      branches: [main]
+      workflows: [Image Build]
+      types: [completed]
+
+jobs:
+    build_and_test_code:
+      if: >-
+        ${{
+            (github.event_name == 'pull_request') ||
+            (
+              (github.event.workflow_run.event != 'workflow_dispatch')
+              &&
+              (github.event.workflow_run.conclusion == 'success')
+            )
+        }}
+      permissions:
+        contents: read
+        packages: read
+        actions: write
+      strategy:
+        matrix:
+          platform: [linux64, rpi64, win64, osx64]
+      env:
+        PROJECT_PREFIX: bls
+        FILE_GLOB: |
+          src/**
+          test/**
+          config/**
+          .cmake/**
+          CMakeLists.txt
+          .env
+      runs-on: ubuntu-latest
+      steps:
+          -
+            name: Login to Github Package Registry
+            uses: docker/login-action@v3
+            with:
+              registry: ghcr.io
+              username: ${{ github.actor }}
+              password: ${{ secrets.GITHUB_TOKEN }}
+
+          -
+            name: Checkout Repository
+            uses: actions/checkout@v4
+
+          -
+            name: Cache Build
+            uses: actions/cache@v4
+            with:
+              key: ${{ env.PROJECT_PREFIX }}-build-${{ matrix.platform }}-${{ github.ref_name }}-${{ hashFiles(env.FILE_GLOB) }}
+              restore-keys: |
+                ${{ env.PROJECT_PREFIX }}-build-${{ matrix.platform }}-${{ github.ref_name }}-
+                ${{ env.PROJECT_PREFIX }}-build-${{ matrix.platform }}-
+                ${{ env.PROJECT_PREFIX }}-build-
+              path: |
+                ./.cdeps
+                ./build
+
+          -
+            name: Restore CCache Volume
+            uses: BYK/docker-volume-cache-action/restore@main
+            id: restore_cache
+            with:
+              key: ${{ env.PROJECT_PREFIX }}-ccache-${{ matrix.platform }}-${{ github.ref_name }}-${{ hashFiles(env.FILE_GLOB) }}
+              restore-keys: |
+                ${{ env.PROJECT_PREFIX }}-ccache-${{ matrix.platform }}-${{ github.ref_name }}-
+                ${{ env.PROJECT_PREFIX }}-ccache-${{ matrix.platform }}-
+                ${{ env.PROJECT_PREFIX }}-ccache-
+              volumes: |
+                ${{ env.PROJECT_PREFIX }}_ccache
+
+          -
+            name: Set Environment Variables
+            env:
+              CCACHE_VOLUME: ${{ steps.restore_cache.outputs.cache-hit && 'ccache_external' || 'ccache' }} # ternary operator
+            run: echo "CCACHE_VOLUME=${{ env.CCACHE_VOLUME }}" >> ${GITHUB_ENV}
+
+          -
+            name: Build
+            run: ./bls -e CCACHE_VOLUME=${CCACHE_VOLUME} build -it ${{ matrix.platform }}
+          
+          - 
+            name: Test
+            if: ${{ matrix.platform  == 'linux64' }}
+            run: ./bls -e CCACHE_VOLUME=${CCACHE_VOLUME} test
+
+          - name: Evict Old Cache
+            continue-on-error: true
+            env:
+              GH_TOKEN: ${{ github.token }}
+            if: (github.ref_name != 'main') && (steps.restore_cache.outputs.cache-hit != 'true')
+            run: |
+              gh cache delete ${{ env.PROJECT_PREFIX }}-build-${{ matrix.platform }}- --ref ${{ github.ref }}
+              gh cache delete ${{ env.PROJECT_PREFIX }}-ccache-${{ matrix.platform }}- --ref ${{ github.ref }}
+
+          -
+            name: Save CCache Volume
+            uses: BYK/docker-volume-cache-action/save@main
+            if: steps.restore_cache.outputs.cache-hit != 'true'
+            with:
+              key: ${{ env.PROJECT_PREFIX }}-ccache-${{ matrix.platform }}-${{ github.ref_name }}-${{ hashFiles(env.FILE_GLOB) }}
+              volumes: |
+                ${{ env.PROJECT_PREFIX }}_ccache

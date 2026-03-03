@@ -1,0 +1,22 @@
+name: Clean Cache
+
+on:
+    pull_request:
+        branches: ["main"]
+        types: [closed]
+
+jobs:
+    clean_branch_cache:
+        permissions:
+            contents: read
+            actions: write
+        runs-on: ubuntu-latest
+        steps:
+            -
+              name: Checkout Repository
+              uses: actions/checkout@v4
+
+            - name: Evict Branch Cache
+              env:
+                GH_TOKEN: ${{ github.token }}
+              run: gh cache delete --all --succeed-on-no-caches --ref refs/pull/${{ github.event.pull_request.number }}/merge
