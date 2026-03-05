@@ -1,4 +1,5 @@
 #include "Client.hpp"
+#include <SDL3/SDL_video.h>
 #include <functional>
 #include <string>
 #include <thread>
@@ -37,6 +38,7 @@ int main(int argc, char* argv[]) {
             sdlRunning = false;
             std::cerr << "Input window creation failed: " << SDL_GetError() << ". Some devices may not work properly." << std::endl;
         }
+        SDL_SetHint("SDL_HINT_INPUT_WINDOW_ID", std::to_string(SDL_GetWindowID(window)).c_str());
         SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
 
         std::jthread clientEngine(std::bind(&Client::start, std::ref(client)));

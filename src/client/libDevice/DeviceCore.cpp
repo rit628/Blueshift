@@ -5,6 +5,11 @@
 #define HTTP_PORT 8080
 
 #ifdef SDL_ENABLED
+    SDL_Window* getInputWindow() {
+        auto id = std::stoi(SDL_GetHint("SDL_HINT_INPUT_WINDOW_ID"));
+        return SDL_GetWindowFromID(id);
+    }
+
     void showAndFocusWindow(SDL_Window* window) {
         auto renderer = SDL_GetRenderer(window);
         if (SDL_WINDOW_HIDDEN & SDL_GetWindowFlags(window)) {

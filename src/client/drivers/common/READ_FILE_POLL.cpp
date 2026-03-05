@@ -1,5 +1,3 @@
-#ifdef __linux__
-
 #include "READ_FILE_POLL.hpp"
 
 using namespace Device;
@@ -28,5 +26,3 @@ void READ_FILE_POLL::transmitStates(DynamicMessage &dmsg) {
 READ_FILE_POLL::~READ_FILE_POLL() {
     this->file_stream.close();
 }
-
-#endif

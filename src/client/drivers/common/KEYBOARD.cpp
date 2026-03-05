@@ -1,4 +1,4 @@
-#if defined(__linux__) &&  defined(SDL_ENABLED)
+#ifdef SDL_ENABLED
 
 #include "KEYBOARD.hpp"
 #include "Protocol.hpp"
@@ -24,7 +24,7 @@ void KEYBOARD::init(std::unordered_map<std::string, std::string>& config) {
     else if (mode == "select") {
         auto selectKeyboard = [](void* self) -> void {
             auto& keyboard = *reinterpret_cast<KEYBOARD*>(self);
-            auto window = SDL_GL_GetCurrentWindow();
+            auto window = getInputWindow();
             showAndFocusWindow(window);
             SDL_Log("Press a key on the keyboard you would like to use...\n");
             while (true) {

@@ -1,5 +1,3 @@
-#ifdef __linux__
-
 #include "Connection.hpp"
 #include "Protocol.hpp"
 #include "typedefs.hpp"
@@ -55,5 +53,3 @@ void TEXT_FILE::transmitStates(DynamicMessage &dmsg) {
 TEXT_FILE::~TEXT_FILE() {
 
 }
-
-#endif

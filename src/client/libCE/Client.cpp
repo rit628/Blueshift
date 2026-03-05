@@ -4,6 +4,8 @@
 #include "ADC.hpp"
 #include "Connection.hpp"
 #include "Protocol.hpp"
+#include <SDL3/SDL_error.h>
+#include <SDL3/SDL_log.h>
 #include <cstdint>
 #include <functional>
 #include <exception>
@@ -317,9 +319,9 @@ void Client::listener(std::stop_token stoken){
 
             #ifdef SDL_ENABLED
             SDL_RunOnMainThread([](void*) -> void {
-                auto window = SDL_GL_GetCurrentWindow();
+                auto window = getInputWindow();
                 if (SDL_GetHintBoolean("SDL_HINT_INPUT_WINDOW_REQUIRED", false)) {
-                    SDL_ShowWindow(window);
+                    showAndFocusWindow(window);
                 }
                 else {
                     SDL_Event event;

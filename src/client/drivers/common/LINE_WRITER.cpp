@@ -1,5 +1,3 @@
-#ifdef __linux__
-
 #include "Connection.hpp"
 #include "Protocol.hpp"
 #include "LINE_WRITER.hpp"
@@ -78,5 +76,3 @@ void LINE_WRITER::transmitStates(DynamicMessage &dmsg) {
 LINE_WRITER::~LINE_WRITER() {
     file_stream.close();
 }
-
-#endif

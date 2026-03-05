@@ -1,4 +1,4 @@
-#if defined(__linux__) &&  defined(SDL_ENABLED)
+#ifdef SDL_ENABLED
 
 #include "MOUSE.hpp"
 #include "Protocol.hpp"
@@ -24,7 +24,7 @@ void MOUSE::init(std::unordered_map<std::string, std::string>& config) {
     else if (mode == "select") {
         auto selectMouse = [](void* self) -> void {
             auto& mouse = *reinterpret_cast<MOUSE*>(self);
-            auto window = SDL_GL_GetCurrentWindow();
+            auto window = getInputWindow();
             showAndFocusWindow(window);
             SDL_Log("Waggle the mouse you would like to use...\n");
             while (true) {

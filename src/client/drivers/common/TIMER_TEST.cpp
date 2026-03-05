@@ -1,5 +1,3 @@
-#ifdef __linux__
-
 #include "Connection.hpp"
 #include "Protocol.hpp"
 #include "TIMER_TEST.hpp"
@@ -31,5 +29,3 @@ void TIMER_TEST::transmitStates(DynamicMessage &dmsg) {
 TIMER_TEST::~TIMER_TEST() {
     write_file.close();
 }
-
-#endif

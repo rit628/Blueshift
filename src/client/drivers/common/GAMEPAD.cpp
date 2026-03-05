@@ -1,4 +1,4 @@
-#if defined(__linux__) &&  defined(SDL_ENABLED)
+#ifdef SDL_ENABLED
 
 #include "GAMEPAD.hpp"
 #include "DynamicMessage.hpp"
@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <functional>
 #include <stdexcept>
+#include <numbers>
 #include <SDL3/SDL.h>
 
 using namespace Device;
@@ -52,7 +53,7 @@ void GAMEPAD::init(std::unordered_map<std::string, std::string>& config) {
             addGamepad(gamepadIds[i]);
         }
         
-        auto window = SDL_GL_GetCurrentWindow();
+        auto window = getInputWindow();
         showAndFocusWindow(window);
         SDL_Log("Press a button on the gamepad you would like to use...\n");
         while (true) {
@@ -95,7 +96,7 @@ void GAMEPAD::init(std::unordered_map<std::string, std::string>& config) {
             SDL_GUIDToString(guid, guidBuff, 33);
             std::string mapping = guidBuff + ","s + SDL_GetGamepadName(gamepad.gamepad) + ","s;
 
-            auto window = SDL_GL_GetCurrentWindow();
+            auto window = getInputWindow();
             showAndFocusWindow(window);
 
             auto mapButtonInput = [&gamepad, &mapping](std::string&& buttonName, SDL_GamepadButton button) {
@@ -368,8 +369,8 @@ bool GAMEPAD::handleSensorUpdate(SDL_Event* event) {
         rollRadians = gyroCoeff * rollRadians  + (1.0 - gyroCoeff) * accelRoll;
         pitchRadians = gyroCoeff * pitchRadians + (1.0 - gyroCoeff) * accelPitch;
 
-        states.pitch = pitchRadians * 180.0 / M_PI;
-        states.roll = rollRadians * 180.0 / M_PI;
+        states.pitch = pitchRadians * 180.0 / std::numbers::pi;
+        states.roll = rollRadians * 180.0 / std::numbers::pi;
 
         auto pitchDiff = std::abs(states.pitch - prevPitch);
         auto rollDiff = std::abs(states.roll - prevRoll);

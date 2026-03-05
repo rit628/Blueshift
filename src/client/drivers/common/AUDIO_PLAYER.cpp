@@ -1,4 +1,4 @@
-#if defined(__linux__) &&  defined(SDL_ENABLED)
+#ifdef SDL_ENABLED
 
 #include "AUDIO_PLAYER.hpp"
 #include "Protocol.hpp"
@@ -18,7 +18,8 @@ void AUDIO_PLAYER::processStates(DynamicMessage& dmsg) {
     dmsg.unpackStates(states);
     
     if (states.file != "" && states.file != currentFile) {
-        auto newFile = directory / states.file;
+        // needed to consistently return const char * on all platforms
+        auto newFile = (directory / states.file).string();
         std::cout << newFile << std::endl;
         if (!SDL_LoadWAV(newFile.c_str(), &spec, &audioData, &audioLength)) {
             SDL_Log("Invalid file provided: %s", SDL_GetError());

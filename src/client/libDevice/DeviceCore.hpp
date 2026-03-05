@@ -53,6 +53,7 @@ using InterruptDescriptor = std::variant<
 >;
 
 #ifdef SDL_ENABLED
+    SDL_Window* getInputWindow();
     void showAndFocusWindow(SDL_Window* window);
 #endif
 

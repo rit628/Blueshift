@@ -1,5 +1,3 @@
-#ifdef __linux__
-
 #include "Connection.hpp"
 #include "Protocol.hpp"
 #include "typedefs.hpp"
@@ -34,5 +32,3 @@ void READ_FILE::transmitStates(DynamicMessage &dmsg) {
 READ_FILE::~READ_FILE() {
     this->file_stream.close();
 }
-
-#endif
