@@ -10,7 +10,12 @@
 using namespace BlsLang;
 
 #define AST_NODE(Node, Base) \
-BlsObject Node::accept(Visitor& v) { return v.visit(*this); } \
+BlsObject Node::accept(Visitor& v) { \
+    v.preVisit(*this); \
+    auto result = v.visit(*this); \
+    v.postVisit(*this); \
+    return result; \
+} \
 std::unique_ptr<AstNode> Node::clone() const { return std::unique_ptr<AstNode>(new Node(*this)); } \
 std::unique_ptr<Base> Node::cloneBase() const { return std::unique_ptr<Base>(new Node(*this)); } \
 Node& Node::operator=(const Node& rhs) { \

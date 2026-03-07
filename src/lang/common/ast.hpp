@@ -34,6 +34,8 @@ namespace BlsLang {
             virtual ~AstNode() = default;
 
             friend std::ostream& operator<<(std::ostream& os, const AstNode& node);
+        
+            size_t bytecodeStart = 0, bytecodeEnd = 0;
     };
 
     class AstNode::Initializer : public AstNode {

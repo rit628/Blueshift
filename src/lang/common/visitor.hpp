@@ -14,6 +14,9 @@ namespace BlsLang {
             #include "include/NODE_TYPES.LIST"
             #undef AST_NODE
 
+            virtual void preVisit(AstNode&) { }
+            virtual void postVisit(AstNode&) { }
+
             virtual ~Visitor() = default;
         
         protected:
