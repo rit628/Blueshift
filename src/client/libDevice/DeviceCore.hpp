@@ -19,7 +19,7 @@
 
 inline bool sendState() { return true; }
 
-struct UnixFileInterruptor {
+struct FileInterruptor {
     std::string file;
     std::function<bool()> interruptCallback;
 };
@@ -43,7 +43,7 @@ struct HttpInterruptor{
 
 
 using InterruptDescriptor = std::variant<
-      UnixFileInterruptor
+      FileInterruptor
     , GpioInterruptor
     , HttpInterruptor
     #ifdef SDL_ENABLED

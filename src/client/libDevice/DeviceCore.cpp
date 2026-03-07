@@ -23,7 +23,7 @@
 
 template<Driveable T>
 void DeviceCore<T>::addFileIWatch(std::string &fileName, std::function<bool()> handler) {
-    this->Idesc_list.push_back(UnixFileInterruptor{fileName, handler}); 
+    this->Idesc_list.push_back(FileInterruptor{fileName, handler}); 
 }
 
 template<Driveable T>

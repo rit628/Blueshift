@@ -676,7 +676,7 @@ void DeviceInterruptor::IHttpWatcher(std::stop_token stoken, std::shared_ptr<Htt
 void DeviceInterruptor::setupThreads() {
     for(auto& idesc : this->device.getIdescList()){
         std::visit(overloads {
-            [this](UnixFileInterruptor& idesc) {
+            [this](FileInterruptor& idesc) {
                 this->globalWatcherThreads.emplace_back(
                     std::bind(&DeviceInterruptor::IFileWatcher, std::ref(*this), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
                     idesc.file, idesc.interruptCallback
