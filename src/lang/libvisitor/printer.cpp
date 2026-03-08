@@ -1,4 +1,4 @@
-#include "print_visitor.hpp"
+#include "printer.hpp"
 #include "ast.hpp"
 
 using namespace BlsLang;
@@ -261,6 +261,10 @@ BlsObject Printer::visit(AstNode::Function::Procedure& ast) {
 
 BlsObject Printer::visit(AstNode::Function::Task& ast) {
     os << "AstNode::Function::Task {\n  name = " << ast.getName() << "\n}" << std::endl;
+    os << "\n  configOptions = ";
+    for (auto&& option : ast.getConfigOptions()) {
+        option->accept(*this);
+    }
     os << "\n  parameterTypes = [";
     for (auto&& type : ast.getParameterTypes()) {
         type->accept(*this);

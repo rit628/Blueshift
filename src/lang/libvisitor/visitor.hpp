@@ -7,18 +7,29 @@
 
 namespace BlsLang {
 
-    class Visitor {
+    class VisitorBase {
         public:
             #define AST_NODE(Node, ...) \
             virtual BlsObject visit(Node& ast) = 0;
             #include "include/NODE_TYPES.LIST"
             #undef AST_NODE
 
-            virtual void preVisit(AstNode&) { }
-            virtual void postVisit(AstNode&) { }
+            virtual void preVisit(AstNode&) = 0;
+            virtual void postVisit(AstNode&) = 0;
 
-            virtual ~Visitor() = default;
-        
+            virtual ~VisitorBase() = default;
+    };
+
+    class Visitor : public VisitorBase {
+        public:
+            #define AST_NODE(Node, ...) \
+            virtual BlsObject visit(Node& ast) override;
+            #include "include/NODE_TYPES.LIST"
+            #undef AST_NODE
+
+            inline virtual void preVisit(AstNode&) override { }
+            inline virtual void postVisit(AstNode&) override { }
+
         protected:
             enum class BINARY_OPERATOR : uint8_t {
                   AND
@@ -46,14 +57,14 @@ namespace BlsLang {
             };
 
             enum class UNARY_OPERATOR : uint8_t {
-              NOT
-            , NEG
-            , INC
-            , DEC
-            , COUNT
+                  NOT
+                , NEG
+                , INC
+                , DEC
+                , COUNT
             };
 
-            constexpr BINARY_OPERATOR getBinOpEnum(std::string_view op) {
+            static constexpr BINARY_OPERATOR getBinOpEnum(std::string_view op) {
                 if (op == LOGICAL_AND) return BINARY_OPERATOR::AND;
                 if (op == LOGICAL_OR) return BINARY_OPERATOR::OR;
                 if (op == COMPARISON_LT) return BINARY_OPERATOR::LT;
@@ -78,7 +89,7 @@ namespace BlsLang {
                 return BINARY_OPERATOR::COUNT;
             }
 
-            constexpr UNARY_OPERATOR getUnOpEnum(std::string_view op) {
+            static constexpr UNARY_OPERATOR getUnOpEnum(std::string_view op) {
                 if (op == UNARY_NOT) return UNARY_OPERATOR::NOT;
                 if (op == UNARY_NEGATIVE) return UNARY_OPERATOR::NEG;
                 if (op == UNARY_INCREMENT) return UNARY_OPERATOR::INC;
@@ -86,8 +97,8 @@ namespace BlsLang {
                 return UNARY_OPERATOR::COUNT;
             }
 
-            BlsType resolve(BlsObject&& obj);
-            BlsType& resolve(BlsObject& obj);
+            static BlsType resolve(BlsObject&& obj);
+            static BlsType& resolve(BlsObject& obj);
     };
 
     inline BlsType Visitor::resolve(BlsObject&& obj) {
