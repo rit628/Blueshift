@@ -3,6 +3,7 @@
 #include <cstddef>
 #include<sstream>
 #include <exception>
+#include <string>
 #include <utility>
 
 namespace BlsLang {
@@ -15,9 +16,8 @@ namespace BlsLang {
                 this->message = os.str();
             }
 
-            explicit SyntaxError(const std::string& message, std::pair<size_t, size_t> location) {
-                SyntaxError(message, location.first, location.second);
-            }
+            explicit SyntaxError(const std::string& message, std::pair<size_t, size_t> location) 
+                   : SyntaxError(message, location.first, location.second) { }
         
             const char* what() const noexcept override { return message.c_str(); }
 
@@ -35,10 +35,13 @@ namespace BlsLang {
 
             explicit SemanticError(const std::string& message, const AstNode& ast) {
                 std::ostringstream os;
-                os << "Ln " << ast.lineStart << "-" << ast.lineEnd
-                << ", Col " << ast.columnStart << "-" << ast.columnEnd
-                << ": " << message;
-                SemanticError(os.str());
+                auto makeIndexRange = [](size_t start, size_t end) {
+                    return (start == end) ? std::to_string(start) : std::to_string(start) + "-" + std::to_string(end);
+                };
+                std::string lineRange = makeIndexRange(ast.lineStart, ast.lineEnd);
+                std::string columnRange = makeIndexRange(ast.columnStart, ast.columnEnd);
+                os << "Ln " << lineRange << ", Col " << columnRange << ": " << message;
+                this->message = os.str();
             }
         
             const char* what() const noexcept override { return message.c_str(); }
