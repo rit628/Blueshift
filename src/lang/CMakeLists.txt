@@ -1,4 +1,6 @@
-add_subdirectory(common)
+add_subdirectory(libsyntax)
+add_subdirectory(libvisitor)
+add_subdirectory(libexecution)
 add_subdirectory(liblexer)
 add_subdirectory(libparser)
 add_subdirectory(libinterpreter)

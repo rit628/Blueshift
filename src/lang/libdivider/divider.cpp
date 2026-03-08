@@ -1,6 +1,5 @@
 #include "divider.hpp"
 #include "ast.hpp"
-#include "symbolicator.hpp"
 #include <algorithm>
 #include <memory>
 #include <sys/stat.h>

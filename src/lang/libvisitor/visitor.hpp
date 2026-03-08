@@ -1,6 +1,6 @@
 #pragma once
 #include "ast.hpp"
-#include "include/reserved_tokens.hpp"
+#include "reserved_tokens.hpp"
 #include "bls_types.hpp"
 #include <functional>
 #include <variant>

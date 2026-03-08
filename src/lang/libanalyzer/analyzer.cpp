@@ -2,7 +2,7 @@
 #include "binding_parser.hpp"
 #include "error_types.hpp"
 #include "Serialization.hpp"
-#include "include/reserved_tokens.hpp"
+#include "reserved_tokens.hpp"
 #include "typedefs.hpp"
 #include "analyzer.hpp"
 #include "bls_types.hpp"
@@ -171,7 +171,7 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
                 if (value.has_value()) {
                     devtypeObj = resolve(value->get()->accept(*this));
                 }
-                devDesc.controller = "MASTER";
+                devDesc.controller = RESERVED_MASTER;
                 devDesc.isVtype = true;
             }
             

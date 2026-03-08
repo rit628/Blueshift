@@ -1,1 +1,1 @@
-bls_add_library(generator STATIC LINKS lang_common type trap)
+bls_add_library(generator STATIC LINKS visitor type trap)

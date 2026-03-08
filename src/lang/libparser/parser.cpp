@@ -1,6 +1,6 @@
 #include "parser.hpp"
 #include "ast.hpp"
-#include "include/reserved_tokens.hpp"
+#include "reserved_tokens.hpp"
 #include "error_types.hpp"
 #include <algorithm>
 #include <cstddef>

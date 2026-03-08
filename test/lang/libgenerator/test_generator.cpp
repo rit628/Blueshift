@@ -1,7 +1,7 @@
 #include "ast.hpp"
 #include "fixtures/generator_test.hpp"
 #include "Serialization.hpp"
-#include "include/reserved_tokens.hpp"
+#include "reserved_tokens.hpp"
 #include "bytecode_processor.hpp"
 #include "opcodes.hpp"
 #include "traps.hpp"

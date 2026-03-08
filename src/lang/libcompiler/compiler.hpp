@@ -2,7 +2,6 @@
 #include "ast.hpp"
 #include "Serialization.hpp"
 #include "generator.hpp"
-#include "dependency_graph.hpp"
 #include "lexer.hpp"
 #include "parser.hpp"
 #include "interpreter.hpp"

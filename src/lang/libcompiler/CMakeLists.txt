@@ -1,1 +1,1 @@
-bls_add_library(compiler STATIC LINKS lang_common lexer parser interpreter analyzer generator depgraph symgraph divider)
+bls_add_library(compiler STATIC LINKS visitor lexer parser interpreter analyzer generator depgraph symgraph divider)

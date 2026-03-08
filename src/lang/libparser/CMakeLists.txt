@@ -1,1 +1,1 @@
-bls_add_library(parser STATIC LINKS lang_common)
+bls_add_library(parser STATIC LINKS visitor execution)

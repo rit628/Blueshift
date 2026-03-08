@@ -1,7 +1,6 @@
 #pragma once
 #include "ast.hpp"
 #include "visitor.hpp"
-#include <any>
 
 namespace BlsLang {
 

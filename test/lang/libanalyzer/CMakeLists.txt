@@ -1,1 +1,1 @@
-bls_add_test(libanalyzer LINKS analyzer lang_common)
+bls_add_test(libanalyzer LINKS analyzer visitor)

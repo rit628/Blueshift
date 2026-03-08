@@ -1,0 +1,1 @@
+bls_add_library(syntax INTERFACE LINKS type)
