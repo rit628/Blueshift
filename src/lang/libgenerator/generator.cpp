@@ -58,32 +58,32 @@ void Generator::postVisit(AstNode& ast) {
 }
 
 BlsObject Generator::visit(AstNode::Source& ast) {
-    for (auto&& procedure : ast.getProcedures()) {
+    for (auto&& procedure : ast.procedures) {
         procedure->accept(*this);
     }
 
-    for (auto&& task : ast.getTasks()) {
+    for (auto&& task : ast.tasks) {
         task->accept(*this);
     }
 
-    ast.getSetup()->accept(*this);
+    ast.setup->accept(*this);
 
     return 0;
 }
 
 BlsObject Generator::visit(AstNode::Function::Procedure& ast) {
     functionContext = FUNCTION_CONTEXT::PROCEDURE;
-    auto& name = ast.getName();
+    auto& name = ast.name;
     uint16_t address = instructions.size();
     functionSymbols[name].first = address; // use operator[] to account for testing environment
     procedureAddresses.emplace(name, address);
-    for (auto&& statement : ast.getStatements()) {
+    for (auto&& statement : ast.statements) {
         statement->accept(*this);
     }
     
     // add default return statement at end of function to account for non-returning control paths
     // will only be necessary for void once control path checking is implemented
-    switch (getTypeFromName(ast.getReturnType()->getName())) {
+    switch (getTypeFromName(ast.returnType->name)) {
         case TYPE::void_t:
             instructions.push_back(createPUSH(literalPool.at(std::monostate())));
         break;
@@ -123,12 +123,12 @@ BlsObject Generator::visit(AstNode::Function::Procedure& ast) {
 
 BlsObject Generator::visit(AstNode::Function::Task& ast) {
     functionContext = FUNCTION_CONTEXT::TASK;
-    auto& name = ast.getName();
+    auto& name = ast.name;
     if (!taskDescriptors.contains(name)) return 0; // skip generating code for unbound tasks
     uint16_t address = instructions.size();
     functionSymbols[name].first = address; // use operator[] to account for testing environment
     taskDescriptors.at(name).bytecode_offset = address;
-    for (auto&& statement : ast.getStatements()) {
+    for (auto&& statement : ast.statements) {
         statement->accept(*this);
     }
     instructions.push_back(createEMIT(static_cast<uint8_t>(VirtualMachine::SIGNAL::STOP)));
@@ -141,11 +141,11 @@ BlsObject Generator::visit(AstNode::Setup&) {
 
 BlsObject Generator::visit(AstNode::Statement::If& ast) {
 
-    ast.getCondition()->accept(*this);
+    ast.condition->accept(*this);
     auto conditionBranch = createBRANCH(0);
     auto* branchInstruction = conditionBranch.get();
     instructions.push_back(std::move(conditionBranch));
-    for (auto&& statement : ast.getBlock()) {
+    for (auto&& statement : ast.block) {
         statement->accept(*this);   
     }
 
@@ -157,12 +157,12 @@ BlsObject Generator::visit(AstNode::Statement::If& ast) {
     instructions.push_back(std::move(endOfBodyJmp));
     branchInstruction->address = instructions.size();
 
-    for (auto&& elif : ast.getElseIfStatements()) {
+    for (auto&& elif : ast.elseIfStatements) {
         elif->accept(*this);
         // final instruction is guaranteed to be JMP, add it to jmp list
         jmpInstructions.push_back(static_cast<INSTRUCTION::JMP*>(instructions.back().get()));
     }
-    for (auto&& statement : ast.getElseBlock()) {
+    for (auto&& statement : ast.elseBlock) {
         statement->accept(*this);
     }
 
@@ -177,13 +177,13 @@ BlsObject Generator::visit(AstNode::Statement::For& ast) {
     // ensure we only break / continue the innermost loop
     continueIndices.emplace();
     breakIndices.emplace();
-    auto& initStatement = ast.getInitStatement();
+    auto& initStatement = ast.initStatement;
     if (initStatement.has_value()) {
         initStatement->get()->accept(*this);
     }
     uint16_t loopStart = instructions.size();
 
-    auto& condition = ast.getCondition();
+    auto& condition = ast.condition;
     INSTRUCTION::BRANCH* loopBranchInstruction = nullptr; // no branch needed if no condition provided
     if (condition.has_value()) {
         condition->get()->accept(*this);
@@ -192,12 +192,12 @@ BlsObject Generator::visit(AstNode::Statement::For& ast) {
         instructions.push_back(std::move(loopBranch));
     }
 
-    for (auto&& statement : ast.getBlock()) {
+    for (auto&& statement : ast.block) {
         statement->accept(*this);
     }
 
     uint16_t incrementIndex = instructions.size();
-    auto& incrementExpression = ast.getIncrementExpression();
+    auto& incrementExpression = ast.incrementExpression;
     if (incrementExpression.has_value()) {
         incrementExpression->get()->accept(*this);
     }
@@ -234,14 +234,14 @@ BlsObject Generator::visit(AstNode::Statement::While& ast) {
     continueIndices.emplace();
     breakIndices.emplace();
     std::optional<std::reference_wrapper<INSTRUCTION::JMP>> doJMPInstruction;
-    if (ast.getType() == AstNode::Statement::While::LOOP_TYPE::DO) {
+    if (ast.type == AstNode::Statement::While::LOOP_TYPE::DO) {
         auto jmpPtr = createJMP(0);
         doJMPInstruction = *jmpPtr;
         instructions.push_back(std::move(jmpPtr));
     }
     uint16_t loopStart = instructions.size();
 
-    ast.getCondition()->accept(*this);
+    ast.condition->accept(*this);
     auto loopBranch = createBRANCH(0);
     auto* loopBranchInstruction = loopBranch.get();
     instructions.push_back(std::move(loopBranch));
@@ -249,7 +249,7 @@ BlsObject Generator::visit(AstNode::Statement::While& ast) {
         doJMPInstruction->get().address = instructions.size();
     }
 
-    for (auto&& statement : ast.getBlock()) {
+    for (auto&& statement : ast.block) {
         statement->accept(*this);
     }
     instructions.push_back(createJMP(loopStart));
@@ -282,7 +282,7 @@ BlsObject Generator::visit(AstNode::Statement::Return& ast) {
         return 0;
     }
 
-    auto& returnExpression = ast.getValue();
+    auto& returnExpression = ast.value;
     if (returnExpression.has_value()) {
         returnExpression->get()->accept(*this);
     }
@@ -306,10 +306,10 @@ BlsObject Generator::visit(AstNode::Statement::Break&) {
 }
 
 BlsObject Generator::visit(AstNode::Statement::Declaration& ast) {
-    auto type = getTypeFromName(ast.getType()->getName());
-    auto index = ast.getLocalIndex();
+    auto type = getTypeFromName(ast.type->name);
+    auto index = ast.localIndex;
     instructions.push_back(createMKTYPE(index, static_cast<uint8_t>(type)));
-    auto& value = ast.getValue();
+    auto& value = ast.value;
     if (value.has_value()) {
         value->get()->accept(*this);
         instructions.push_back(createSTORE(index));
@@ -318,21 +318,21 @@ BlsObject Generator::visit(AstNode::Statement::Declaration& ast) {
 }
 
 BlsObject Generator::visit(AstNode::Statement::Expression& ast) {
-    return ast.getExpression()->accept(*this);
+    return ast.expression->accept(*this);
 }
 
 BlsObject Generator::visit(AstNode::Expression::Binary& ast) {
-    auto op = getBinOpEnum(ast.getOp());
+    auto op = getBinOpEnum(ast.op);
     auto createBinaryOperation = [&ast, this](std::unique_ptr<INSTRUCTION>&& instruction) {
-        ast.getLeft()->accept(*this);
-        ast.getRight()->accept(*this);
+        ast.left->accept(*this);
+        ast.right->accept(*this);
         instructions.push_back(std::move(instruction));
     };
 
     auto createCompoundAssignment = [&ast, &createBinaryOperation, this](std::unique_ptr<INSTRUCTION>&& instruction) {
         // visit lhs as write target
         accessContext = ACCESS_CONTEXT::WRITE;
-        ast.getLeft()->accept(*this);
+        ast.left->accept(*this);
 
         // visit both sides to create operation and move store past it
         auto storeInstruction = std::move(instructions.back());
@@ -340,25 +340,25 @@ BlsObject Generator::visit(AstNode::Expression::Binary& ast) {
         createBinaryOperation(std::move(instruction));
         instructions.push_back(std::move(storeInstruction));
 
-        ast.getLeft()->accept(*this); // visit lhs as operation result
+        ast.left->accept(*this); // visit lhs as operation result
     };
 
     switch (op) {
         case BINARY_OPERATOR::OR: {
-            ast.getLeft()->accept(*this);
+            ast.left->accept(*this);
             instructions.push_back(createJMPSC_OR(0)); // create short circuit jump
             auto& jmp = static_cast<INSTRUCTION::JMPSC_OR&>(*instructions.back());
-            ast.getRight()->accept(*this);
+            ast.right->accept(*this);
             instructions.push_back(createOR());
             jmp.address = instructions.size();
             break;
         }
 
         case BINARY_OPERATOR::AND: {
-            ast.getLeft()->accept(*this);
+            ast.left->accept(*this);
             instructions.push_back(createJMPSC_AND(0)); // create short circuit jump
             auto& jmp = static_cast<INSTRUCTION::JMPSC_AND&>(*instructions.back());
-            ast.getRight()->accept(*this);
+            ast.right->accept(*this);
             instructions.push_back(createAND());
             jmp.address = instructions.size();
             break;
@@ -415,15 +415,15 @@ BlsObject Generator::visit(AstNode::Expression::Binary& ast) {
         case BINARY_OPERATOR::ASSIGN: {
             // visit lhs as write target
             accessContext = ACCESS_CONTEXT::WRITE;
-            ast.getLeft()->accept(*this);
+            ast.left->accept(*this);
 
             // visit rhs and move store past rhs instructions
             auto storeInstruction = std::move(instructions.back());
             instructions.pop_back();
-            ast.getRight()->accept(*this);
+            ast.right->accept(*this);
             instructions.push_back(std::move(storeInstruction));
 
-            ast.getLeft()->accept(*this); // visit lhs as operation result
+            ast.left->accept(*this); // visit lhs as operation result
         }
         break;
 
@@ -459,41 +459,41 @@ BlsObject Generator::visit(AstNode::Expression::Binary& ast) {
 }
 
 BlsObject Generator::visit(AstNode::Expression::Unary& ast) {
-    auto op = getUnOpEnum(ast.getOp());
-    auto position = ast.getPosition();
+    auto op = getUnOpEnum(ast.op);
+    auto position = ast.position;
 
     auto createCompoundAssignment = [&, this](std::unique_ptr<INSTRUCTION>&& instruction) {
         if (position == AstNode::Expression::Unary::OPERATOR_POSITION::POSTFIX) {
-            ast.getExpression()->accept(*this); // read before operation
+            ast.expression->accept(*this); // read before operation
         }
 
         // visit expression as write target
         accessContext = ACCESS_CONTEXT::WRITE;
-        ast.getExpression()->accept(*this);
+        ast.expression->accept(*this);
 
         auto storeInstruction = std::move(instructions.back());
         instructions.pop_back();
 
         // create unary op
-        ast.getExpression()->accept(*this); // visit as operand
+        ast.expression->accept(*this); // visit as operand
         instructions.push_back(createPUSH(literalPool.at(1))); // push literal 1
         instructions.push_back(std::move(instruction));
 
         instructions.push_back(std::move(storeInstruction)); // move store past unary op
 
         if (position == AstNode::Expression::Unary::OPERATOR_POSITION::PREFIX) {
-            ast.getExpression()->accept(*this); // read after operation
+            ast.expression->accept(*this); // read after operation
         }
     };
     
     switch (op) {
         case UNARY_OPERATOR::NOT:
-            ast.getExpression()->accept(*this);
+            ast.expression->accept(*this);
             instructions.push_back(createNOT());
         break;
 
         case UNARY_OPERATOR::NEG:
-            ast.getExpression()->accept(*this);
+            ast.expression->accept(*this);
             instructions.push_back(createNEG());
         break;
 
@@ -514,14 +514,14 @@ BlsObject Generator::visit(AstNode::Expression::Unary& ast) {
 }
 
 BlsObject Generator::visit(AstNode::Expression::Group& ast) {
-    return ast.getExpression()->accept(*this);
+    return ast.expression->accept(*this);
 }
 
 BlsObject Generator::visit(AstNode::Expression::Method& ast) {
-    instructions.push_back(createLOAD(ast.getLocalIndex()));
-    auto& objectType = ast.getObjectType();
-    auto& methodName = ast.getMethodName();
-    for (auto&& arg : ast.getArguments()) {
+    instructions.push_back(createLOAD(ast.localIndex));
+    auto& objectType = ast.objectType;
+    auto& methodName = ast.methodName;
+    for (auto&& arg : ast.arguments) {
         arg->accept(*this);
     }
     if (false) { } // short circuit hack
@@ -541,11 +541,11 @@ BlsObject Generator::visit(AstNode::Expression::Method& ast) {
 }
 
 BlsObject Generator::visit(AstNode::Expression::Function& ast) {
-    auto& args = ast.getArguments();
+    auto& args = ast.arguments;
     for (auto&& arg : args) {
         arg->accept(*this);
     }
-    auto& name = ast.getName();
+    auto& name = ast.name;
     if (false) { } // hack to force short circuiting
     #define TRAP_BEGIN(trapName, ...) \
     else if (name == #trapName) { \
@@ -567,9 +567,9 @@ BlsObject Generator::visit(AstNode::Expression::Function& ast) {
 }
 
 BlsObject Generator::visit(AstNode::Expression::Access& ast) {
-    auto localIndex = ast.getLocalIndex();
-    auto& member = ast.getMember();
-    auto& subscript = ast.getSubscript();
+    auto localIndex = ast.localIndex;
+    auto& member = ast.member;
+    auto& subscript = ast.subscript;
     if (member.has_value()) {
         instructions.push_back(createLOAD(localIndex));
         instructions.push_back(createPUSH(literalPool.at(member.value())));
@@ -605,14 +605,14 @@ BlsObject Generator::visit(AstNode::Expression::Access& ast) {
 }
 
 BlsObject Generator::visit(AstNode::Expression::Literal& ast) {
-    BlsType literal = std::visit([](auto& l){ return BlsType(l); }, ast.getLiteral());
+    BlsType literal = std::visit([](auto& l){ return BlsType(l); }, ast.literal);
     instructions.push_back(createPUSH(literalPool.at(literal)));
     return 0;
 }
 
 BlsObject Generator::visit(AstNode::Expression::List& ast) {
-    auto& literal = ast.getLiteral();
-    auto& expressions = ast.getElements();
+    auto& literal = ast.literal;
+    auto& expressions = ast.elements;
     auto& list = std::dynamic_pointer_cast<VectorDescriptor>(std::get<std::shared_ptr<HeapDescriptor>>(literal))->getVector();
     for (size_t i = 0; i < list.size(); i++) {
         if (std::holds_alternative<std::monostate>(list.at(i))) { // sub expression needs to be evaluated at runtime
@@ -631,13 +631,13 @@ BlsObject Generator::visit(AstNode::Expression::Set&) {
 }
 
 BlsObject Generator::visit(AstNode::Expression::Map& ast) {
-    auto& literal = ast.getLiteral();
-    auto& expressions = ast.getElements();
+    auto& literal = ast.literal;
+    auto& expressions = ast.elements;
     auto& map = std::dynamic_pointer_cast<MapDescriptor>(std::get<std::shared_ptr<HeapDescriptor>>(literal))->getMap();
     for (auto&& [key, value] : expressions) {
         auto* keyLiteral = dynamic_cast<AstNode::Expression::Literal*>(key.get());
         if (!keyLiteral
-         || std::holds_alternative<std::monostate>(map.at(std::get<std::string>(keyLiteral->getLiteral())))) {
+         || std::holds_alternative<std::monostate>(map.at(std::get<std::string>(keyLiteral->literal)))) {
             // key value pair not in map literal at runtime; emplace
             instructions.push_back(createPUSH(literalPool.at(literal)));
             key->accept(*this);

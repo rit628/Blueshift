@@ -9,10 +9,9 @@ namespace BlsLang {
     class Symbolicator : public Visitor {
         public:
             Symbolicator() = default;
-            #define AST_NODE(Node, ...) \
-            BlsObject visit(Node& ast) override;
-            #include "include/NODE_TYPES.LIST"
-            #undef AST_NODE
+
+            BlsObject visit(AstNode::Expression::Access& ast) override;
+            BlsObject visit(AstNode::Statement::Declaration& ast) override;
         
             auto& getSymbols() { return symbols; }
 

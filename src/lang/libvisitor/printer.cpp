@@ -8,9 +8,9 @@ struct overloads : Ts... { using Ts::operator()...; };
 
 BlsObject Printer::visit(AstNode::Initializer::Task& ast) {
     os << "AstNode::Initializer::Task {\n";
-    os << "  option = " << ast.getOption() << "\n";
+    os << "  option = " << ast.option << "\n";
     os << "  " << "arguments = <";
-    for (auto&& arg : ast.getArgs()) {
+    for (auto&& arg : ast.args) {
         arg->accept((*this));
     }
     os << " >\n}" << std::endl;
@@ -19,9 +19,9 @@ BlsObject Printer::visit(AstNode::Initializer::Task& ast) {
 
 BlsObject Printer::visit(AstNode::Specifier::Type& ast) {
     os << "AstNode::Specifier::Type {\n";
-    os << "  name = " << ast.getName() << "\n";
+    os << "  name = " << ast.name << "\n";
     os << "  " << "typeArgs = <";
-    for (auto&& arg : ast.getTypeArgs()) {
+    for (auto&& arg : ast.typeArgs) {
         arg->accept((*this));
     }
     os << " >\n}" << std::endl;
@@ -37,7 +37,7 @@ BlsObject Printer::visit(AstNode::Expression::Literal& ast) {
     };
     os << "AstNode::Expression::Literal {\n";
     os << "  literal = ";
-    std::visit(visitor, ast.getLiteral());
+    std::visit(visitor, ast.literal);
     os << "\n}" << std::endl;
     return true;
 }
@@ -45,7 +45,7 @@ BlsObject Printer::visit(AstNode::Expression::Literal& ast) {
 BlsObject Printer::visit(AstNode::Expression::List& ast) {
     os << "AstNode::Expression::List {\n";
     os << "  elements = [";
-    for (auto&& element : ast.getElements()) {
+    for (auto&& element : ast.elements) {
         element->accept(*this);
     }
     os << "\n}" << std::endl;
@@ -55,7 +55,7 @@ BlsObject Printer::visit(AstNode::Expression::List& ast) {
 BlsObject Printer::visit(AstNode::Expression::Set& ast) {
     os << "AstNode::Expression::Set {\n";
     os << "  elements = [";
-    for (auto&& element : ast.getElements()) {
+    for (auto&& element : ast.elements) {
         element->accept(*this);
     }
     os << "\n}" << std::endl;
@@ -65,7 +65,7 @@ BlsObject Printer::visit(AstNode::Expression::Set& ast) {
 BlsObject Printer::visit(AstNode::Expression::Map& ast) {
     os << "AstNode::Expression::Map {\n";
     os << "  elements = [";
-    for (auto&& element : ast.getElements()) {
+    for (auto&& element : ast.elements) {
         element.first->accept(*this);
         os << " : ";
         element.second->accept(*this);
@@ -76,15 +76,15 @@ BlsObject Printer::visit(AstNode::Expression::Map& ast) {
 
 BlsObject Printer::visit(AstNode::Expression::Access& ast) {
     os << "AstNode::Expression::Access {\n";
-    os << "  object = " << ast.getObject();
-    if (ast.getSubscript().has_value()) {
+    os << "  object = " << ast.object;
+    if (ast.subscript.has_value()) {
         os << "  subscript = ";
-        ast.getSubscript()->get()->accept(*this);
+        ast.subscript->get()->accept(*this);
         os << "\n";
     }
         
-    if (ast.getMember().has_value()) {
-        os << "  member = " << *ast.getMember() << "\n"; 
+    if (ast.member.has_value()) {
+        os << "  member = " << *ast.member << "\n"; 
     }
     
     os << "}" << std::endl;
@@ -92,8 +92,8 @@ BlsObject Printer::visit(AstNode::Expression::Access& ast) {
 }
 
 BlsObject Printer::visit(AstNode::Expression::Function& ast) {
-    os << "AstNode::Expression::Function {\n  name = " << ast.getName() << "\n  arguments = [";
-    for (auto&& arg : ast.getArguments()) {
+    os << "AstNode::Expression::Function {\n  name = " << ast.name << "\n  arguments = [";
+    for (auto&& arg : ast.arguments) {
         os << " ";
         arg->accept(*this);
     }
@@ -102,8 +102,8 @@ BlsObject Printer::visit(AstNode::Expression::Function& ast) {
 }
 
 BlsObject Printer::visit(AstNode::Expression::Method& ast) {
-    os << "AstNode::Expression::Method {\n  object = " << ast.getObject() << "\n  methodName = " << ast.getMethodName() << "\n  arguments = [";
-    for (auto&& arg : ast.getArguments()) {
+    os << "AstNode::Expression::Method {\n  object = " << ast.object << "\n  methodName = " << ast.methodName << "\n  arguments = [";
+    for (auto&& arg : ast.arguments) {
         os << " ";
         arg->accept(*this);
     }
@@ -113,42 +113,42 @@ BlsObject Printer::visit(AstNode::Expression::Method& ast) {
 
 BlsObject Printer::visit(AstNode::Expression::Group& ast) {
     os << "AstNode::Expression::Group {\n  expression = ";
-    ast.getExpression()->accept(*this);
+    ast.expression->accept(*this);
     os << "\n}" << std::endl;
     return true;
 }
 
 BlsObject Printer::visit(AstNode::Expression::Unary& ast) {
-    os << "AstNode::Expression::Unary {\n  op = " << ast.getOp() << "\n  expression = ";
-    ast.getExpression()->accept(*this);
-    os << "\n  position = " << ((ast.getPosition() == AstNode::Expression::Unary::OPERATOR_POSITION::PREFIX) ? "prefix" : "postfix");
+    os << "AstNode::Expression::Unary {\n  op = " << ast.op << "\n  expression = ";
+    ast.expression->accept(*this);
+    os << "\n  position = " << ((ast.position == AstNode::Expression::Unary::OPERATOR_POSITION::PREFIX) ? "prefix" : "postfix");
     os << "\n}" << std::endl;
     return true;
 }
 
 BlsObject Printer::visit(AstNode::Expression::Binary& ast) {
-    os << "AstNode::Expression::Binary {\n  op = " << ast.getOp() << "\n  left = ";
-    ast.getLeft()->accept(*this);
+    os << "AstNode::Expression::Binary {\n  op = " << ast.op << "\n  left = ";
+    ast.left->accept(*this);
     os << "\n  right = ";
-    ast.getRight()->accept(*this);
+    ast.right->accept(*this);
     os << "\n}" << std::endl;
     return true;
 }
 
 BlsObject Printer::visit(AstNode::Statement::Expression& ast) {
     os << "AstNode::Statement::Expression {\n  expression = ";
-    ast.getExpression()->accept(*this);
+    ast.expression->accept(*this);
     os << "\n}" << std::endl;
     return true;
 }
 
 BlsObject Printer::visit(AstNode::Statement::Declaration& ast) {
-    os << "AstNode::Statement::Declaration {\n  name = " << ast.getName();
+    os << "AstNode::Statement::Declaration {\n  name = " << ast.name;
     os << "\n  type = ";
-    ast.getType()->accept(*this);
+    ast.type->accept(*this);
     os << "\n  value = ";
-    if (ast.getValue().has_value()) {
-        ast.getValue()->get()->accept(*this);
+    if (ast.value.has_value()) {
+        ast.value->get()->accept(*this);
     }
     else {
         os << "";
@@ -169,8 +169,8 @@ BlsObject Printer::visit(AstNode::Statement::Break&) {
 
 BlsObject Printer::visit(AstNode::Statement::Return& ast) {
     os << "AstNode::Statement::Return {\n  value = ";
-    if (ast.getValue().has_value()) {
-        ast.getValue()->get()->accept(*this);
+    if (ast.value.has_value()) {
+        ast.value->get()->accept(*this);
     }
     else {
         os << "";
@@ -180,11 +180,11 @@ BlsObject Printer::visit(AstNode::Statement::Return& ast) {
 }
 
 BlsObject Printer::visit(AstNode::Statement::While& ast) {
-    os << "AstNode::Statement::While {\n  type = " << ((ast.getType() == AstNode::Statement::While::LOOP_TYPE::DO) ? "do" : "while");
+    os << "AstNode::Statement::While {\n  type = " << ((ast.type == AstNode::Statement::While::LOOP_TYPE::DO) ? "do" : "while");
     os << "\n  condition = ";
-    ast.getCondition()->accept(*this);
+    ast.condition->accept(*this);
     os << "\n  block = [";
-    for (auto&& statement : ast.getBlock()) {
+    for (auto&& statement : ast.block) {
         os << " ";
         statement->accept(*this);
     }
@@ -194,20 +194,20 @@ BlsObject Printer::visit(AstNode::Statement::While& ast) {
 
 BlsObject Printer::visit(AstNode::Statement::For& ast) {
     os << "AstNode::Statement::For {";
-    if (ast.getInitStatement().has_value()) {
+    if (ast.initStatement.has_value()) {
         os << "\n  initStatement = ";
-        ast.getInitStatement()->get()->accept(*this);
+        ast.initStatement->get()->accept(*this);
     }
-    if (ast.getCondition().has_value()) {
+    if (ast.condition.has_value()) {
         os << "\n  condition = ";
-        ast.getCondition()->get()->accept(*this);
+        ast.condition->get()->accept(*this);
     }
-    if (ast.getIncrementExpression().has_value()) {
+    if (ast.incrementExpression.has_value()) {
         os << "\n  incrementExpression = ";
-        ast.getIncrementExpression()->get()->accept(*this);
+        ast.incrementExpression->get()->accept(*this);
     }
     os << "\n  block = [";
-    for (auto&& statement : ast.getBlock()) {
+    for (auto&& statement : ast.block) {
         os << " ";
         statement->accept(*this);
     }
@@ -217,19 +217,19 @@ BlsObject Printer::visit(AstNode::Statement::For& ast) {
 
 BlsObject Printer::visit(AstNode::Statement::If& ast) {
     os << "AstNode::Statement::If {\n  condition = ";
-    ast.getCondition()->accept(*this);
+    ast.condition->accept(*this);
     os << "\n  block = [";
-    for (auto&& statement : ast.getBlock()) {
+    for (auto&& statement : ast.block) {
         os << " ";
         statement->accept(*this);
     }
     os << " ]\n  elseIfStatements = [";
-    for (auto&& elif : ast.getElseIfStatements()) {
+    for (auto&& elif : ast.elseIfStatements) {
         os << " ";
         elif->accept(*this);
     }
     os << " ]\n  elseBlock = [";
-    for (auto&& statement : ast.getElseBlock()) {
+    for (auto&& statement : ast.elseBlock) {
         os << " ";
         statement->accept(*this);
     }
@@ -238,20 +238,20 @@ BlsObject Printer::visit(AstNode::Statement::If& ast) {
 }
 
 BlsObject Printer::visit(AstNode::Function::Procedure& ast) {
-    os << "AstNode::Function::Procedure {\n  name = " << ast.getName();
+    os << "AstNode::Function::Procedure {\n  name = " << ast.name;
     os << "\n  returnType = ";
-    ast.getReturnType()->accept(*this);
+    ast.returnType->accept(*this);
     os << "\n  parameterTypes = [";
-    for (auto&& type : ast.getParameterTypes()) {
+    for (auto&& type : ast.parameterTypes) {
         type->accept(*this);
         os << " ";
     }
     os << " ]\n  parameters = [";
-    for (auto&& parameter : ast.getParameters()) {
+    for (auto&& parameter : ast.parameters) {
         os << " " << parameter;
     }
     os << "\n  statements = [";
-    for (auto&& statement : ast.getStatements()) {
+    for (auto&& statement : ast.statements) {
         os << " ";
         statement->accept(*this);
     }
@@ -260,22 +260,22 @@ BlsObject Printer::visit(AstNode::Function::Procedure& ast) {
 }
 
 BlsObject Printer::visit(AstNode::Function::Task& ast) {
-    os << "AstNode::Function::Task {\n  name = " << ast.getName() << "\n}" << std::endl;
+    os << "AstNode::Function::Task {\n  name = " << ast.name << "\n}" << std::endl;
     os << "\n  configOptions = ";
-    for (auto&& option : ast.getConfigOptions()) {
+    for (auto&& option : ast.configOptions) {
         option->accept(*this);
     }
     os << "\n  parameterTypes = [";
-    for (auto&& type : ast.getParameterTypes()) {
+    for (auto&& type : ast.parameterTypes) {
         type->accept(*this);
         os << " ";
     }
     os << " ]\n  parameters = [";
-    for (auto&& parameter : ast.getParameters()) {
+    for (auto&& parameter : ast.parameters) {
         os << " " << parameter;
     }
     os << "\n  statements = [";
-    for (auto&& statement : ast.getStatements()) {
+    for (auto&& statement : ast.statements) {
         os << " ";
         statement->accept(*this);
     }
@@ -285,7 +285,7 @@ BlsObject Printer::visit(AstNode::Function::Task& ast) {
 
 BlsObject Printer::visit(AstNode::Setup& ast) {
     os << "AstNode::Setup {\n  statements = [";
-    for (auto&& statement : ast.getStatements()) {
+    for (auto&& statement : ast.statements) {
         os << " ";
         statement->accept(*this);
     }
@@ -295,17 +295,17 @@ BlsObject Printer::visit(AstNode::Setup& ast) {
 
 BlsObject Printer::visit(AstNode::Source& ast) {
     os << "AstNode::Source {\n  procedures = [";
-    for (auto&& proc : ast.getProcedures()) {
+    for (auto&& proc : ast.procedures) {
         os << " ";
         proc->accept(*this);
     }
     os << " ]\n  tasks = [";
-    for (auto&& task : ast.getTasks()) {
+    for (auto&& task : ast.tasks) {
         os << " ";
         task->accept(*this);
     }
     os << " ]\n  setup = ";
-    ast.getSetup()->accept(*this);
+    ast.setup->accept(*this);
     os << "\n}" << std::endl;
     return true;
 }

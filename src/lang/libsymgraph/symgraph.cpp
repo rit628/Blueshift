@@ -150,10 +150,10 @@ void Symgraph::clearContext(){
 */ 
 
 BlsObject Symgraph::visit(AstNode::Source& ast){
-    auto& taskNodes = ast.getTasks(); 
+    auto& taskNodes = ast.tasks; 
     for(auto& task : taskNodes){
         auto &src = this->ctx;
-        std::string name = task->getName(); 
+        std::string name = task->name; 
         this->ctx.currentTask = name; 
         auto& taskCtx = this->taskCtxMap[name]; 
         src.aliasDevMap = taskCtx.devAliasMap; 
@@ -168,7 +168,7 @@ BlsObject Symgraph::visit(AstNode::Source& ast){
 }
 
 BlsObject Symgraph::visit(AstNode::Function::Task& ast){
-    for(auto& stmt : ast.getStatements()){
+    for(auto& stmt : ast.statements){
         auto stmtPtr = makeStData(stmt.get(), StatementType::STATEMENT);
         this->ctx.parentData.push(stmtPtr); 
         stmt->accept(*this); 
@@ -183,9 +183,9 @@ BlsObject Symgraph::visit(AstNode::Function::Task& ast){
 */
 BlsObject Symgraph::visit(AstNode::Statement::If& ast){
     this->ctx.parentData.top()->stype = StatementType::IF; 
-    auto& condition = ast.getCondition();
+    auto& condition = ast.condition;
     auto [symbolDeps, devicesDeps] = getDeps(*condition); 
-    for(auto& stmt : ast.getBlock()){
+    for(auto& stmt : ast.block){
         auto stmtPtr = makeStData(stmt.get(), StatementType::STATEMENT);
         stmtPtr->devDeps = devicesDeps;  
         stmtPtr->symbolDeps = symbolDeps; 
@@ -197,7 +197,7 @@ BlsObject Symgraph::visit(AstNode::Statement::If& ast){
     auto ifCpy = this->ctx.parentData.top(); 
     ifCpy->stype = StatementType::ELSE; 
     this->ctx.parentData.push(ifCpy); 
-    for(auto& stmt : ast.getElseBlock()){
+    for(auto& stmt : ast.elseBlock){
         auto stmtPtr = makeStData(stmt.get(), StatementType::STATEMENT);
         this->ctx.parentData.push(stmtPtr); 
         stmt->accept(*this); 
@@ -212,26 +212,26 @@ BlsObject Symgraph::visit(AstNode::Statement::If& ast){
 
 // Fix the ast to use the ast indexing
 BlsObject Symgraph::visit(AstNode::Statement::Declaration &ast){
-    this->ctx.redefCount.emplace(ast.getName(), 0); 
-    std::string symbolName = ast.getName() + "%" + std::to_string(static_cast<int>(ast.getLocalIndex())) + "?0";  
+    this->ctx.redefCount.emplace(ast.name, 0); 
+    std::string symbolName = ast.name + "%" + std::to_string(static_cast<int>(ast.localIndex)) + "?0";  
 
-    auto& val = ast.getValue();
+    auto& val = ast.value;
     std::unordered_set<SymbolID> symbolDeps; 
     std::unordered_set<DeviceID> deviceDeps; 
 
     if(val.has_value()){
-       auto obj = this->getDeps(*ast.getValue()->get()); 
+       auto obj = this->getDeps(*ast.value->get()); 
        symbolDeps = obj.first; 
        deviceDeps = obj.second; 
     }
 
 
     DeviceRedef newRedef; 
-    newRedef.object = ast.getName(); 
+    newRedef.object = ast.name; 
     newRedef.redefStatement = this->ctx.parentData.top();
     newRedef.symbol = symbolName; 
 
-    this->ctx.devRedefMap[ast.getName()].deviceRedefStack.push_back(newRedef);
+    this->ctx.devRedefMap[ast.name].deviceRedefStack.push_back(newRedef);
 
     this->ctx.symbolMap[symbolName].symbolDeps = symbolDeps; 
     this->ctx.symbolMap[symbolName].symbolDevice = deviceDeps; 
@@ -243,16 +243,16 @@ BlsObject Symgraph::visit(AstNode::Statement::Declaration &ast){
 
 
 BlsObject Symgraph::visit(AstNode::Statement::Expression &ast){
-    ast.getExpression()->accept(*this); 
+    ast.expression->accept(*this); 
     return true; 
 }
 
 BlsObject Symgraph::visit(AstNode::Expression::Binary &ast){
     // if equality 
-    if(ast.getOp() == "="){
+    if(ast.op == "="){
         SymbolID newSymbol; 
         this->ctx.leftHandAs = true; 
-        auto ans = resolve(ast.getLeft()->accept(*this)); 
+        auto ans = resolve(ast.left->accept(*this)); 
         this->ctx.leftHandAs = false; 
 
         if(std::holds_alternative<std::string>(ans)){
@@ -266,7 +266,7 @@ BlsObject Symgraph::visit(AstNode::Expression::Binary &ast){
         auto parentSymbol = extractRawSymbol(newSymbol) + "?0"; 
 
         // Process right hand side: 
-        auto op = this->getDeps(*ast.getRight()); 
+        auto op = this->getDeps(*ast.right); 
         std::unordered_set<SymbolID> symSet = op.first; 
         std::unordered_set<DeviceID> devSet = op.second; 
 
@@ -361,12 +361,12 @@ BlsObject Symgraph::visit(AstNode::Expression::Binary &ast){
 // Used on the lhs side that gets the pure (unordered symbol)
 BlsObject Symgraph::visit(AstNode::Expression::Access &ast){
     if(this->ctx.leftHandAs){
-        std::string symbol = ast.getObject(); 
-        if(ast.getMember().has_value()){
-            symbol += "." + ast.getMember().value(); 
+        std::string symbol = ast.object; 
+        if(ast.member.has_value()){
+            symbol += "." + ast.member.value(); 
         }
 
-        return symbol + "%" + std::to_string(static_cast<int>(ast.getLocalIndex())); 
+        return symbol + "%" + std::to_string(static_cast<int>(ast.localIndex)); 
     }
     return std::monostate(); 
 }
@@ -521,7 +521,7 @@ std::vector<std::pair<DeviceID, ControllerID>> Symgraph::findDivisions(){
     exhaustiveStatementFillH(symbolData.statementInit->initiatorPtr, visitedSymbols, ctl, visitedStatements); 
 
     visitedSymbols.insert(originSymbol); 
-    symbolData.statementInit->ptr->getControllerSplit().insert(ctl); 
+    symbolData.statementInit->ptr->controllerSplit.insert(ctl); 
 
  }
 

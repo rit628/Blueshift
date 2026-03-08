@@ -18,7 +18,7 @@ BlsObject Divider::visit(AstNode::Source &ast){
 
     }
    
-    for(auto& TaskPtr : ast.getTasks()){
+    for(auto& TaskPtr : ast.tasks){
         this->inTask = true; 
         TaskPtr->accept(*this); 
         this->inTask = false; 
@@ -30,7 +30,7 @@ BlsObject Divider::visit(AstNode::Source &ast){
         auto& ctlData = pair.second; 
         auto& srcObj = this->ctlSourceMap[ctlData.ctlName];
         auto& srcPtr = srcObj.ctlSource; 
-        srcPtr->getTasks() = std::move(srcObj.task_list);   
+        srcPtr->tasks = std::move(srcObj.task_list);   
 
         for(auto& item : ctlData.taskData){
             srcObj.taskDesc[item.second.taskDesc.name] =  item.second.taskDesc; 
@@ -44,7 +44,7 @@ BlsObject Divider::visit(AstNode::Setup &ast){
 
     this->inSetup = true; 
 
-    for(auto& stmt : ast.getStatements()){
+    for(auto& stmt : ast.statements){
         stmt->accept(*this); 
     }
 
@@ -54,8 +54,8 @@ BlsObject Divider::visit(AstNode::Setup &ast){
 }
 
 BlsObject Divider::visit(AstNode::Function::Task &ast){
-    auto& ctlNames = this->DivMeta.TaskControllerSplit[ast.getName()]; 
-    TaskID ogTaskName = ast.getName(); 
+    auto& ctlNames = this->DivMeta.TaskControllerSplit[ast.name]; 
+    TaskID ogTaskName = ast.name; 
     
   
     for(auto& ctl: ctlNames){
@@ -63,21 +63,21 @@ BlsObject Divider::visit(AstNode::Function::Task &ast){
         tci.taskPtr = std::make_unique<AstNode::Function::Task>(); 
         // Naming Schema used for now
         TaskID taskName = ogTaskName + "_" + ctl; 
-        tci.taskPtr->getName() = taskName; 
+        tci.taskPtr->name = taskName; 
         tci.blockStack.push({}); 
 
         /* 
             Fill out Task header data
         */ 
 
-        auto& derTask = this->DivMeta.ctlMetaData[ctl].taskData[ast.getName()];
+        auto& derTask = this->DivMeta.ctlMetaData[ctl].taskData[ast.name];
         std::unordered_set<DeviceID> derivedDevSet; 
-        tci.taskPtr->getParameters() = derTask.parameterList;  
+        tci.taskPtr->parameters = derTask.parameterList;  
         this->taskCopyMap.emplace(taskName, std::move(tci)); 
     }
 
 
-    for(auto& stmt : ast.getStatements() ){
+    for(auto& stmt : ast.statements ){
         stmt->accept(*this); 
     }
 
@@ -89,7 +89,7 @@ BlsObject Divider::visit(AstNode::Function::Task &ast){
 
         auto& statementStack = this->taskCopyMap[taskName].blockStack; 
         if(statementStack.size() == 1){
-            taskPtr->getStatements() = std::move(statementStack.top()); 
+            taskPtr->statements = std::move(statementStack.top()); 
             statementStack.pop(); 
         }
         else{
@@ -109,14 +109,14 @@ BlsObject Divider::visit(AstNode::Function::Task &ast){
 
 
 BlsObject Divider::visit(AstNode::Statement::If &ast){
-    auto ctlSet = ast.getControllerSplit(); 
+    auto ctlSet = ast.controllerSplit; 
 
     for(auto ctl : ctlSet){
         auto taskName = this->currTask + "_" + ctl; 
         this->taskCopyMap[taskName].blockStack.push({}); 
     }
 
-    for(auto& stmt : ast.getBlock()){
+    for(auto& stmt : ast.block){
         stmt->accept(*this); 
     }
 
@@ -129,8 +129,8 @@ BlsObject Divider::visit(AstNode::Statement::If &ast){
         
         // make a new statement object
         auto derivedIf = std::make_unique<AstNode::Statement::If>(); 
-        *derivedIf->getCondition() = *ast.getCondition();  
-        derivedIf->getBlock() = std::move(newStack); 
+        *derivedIf->condition = *ast.condition;  
+        derivedIf->block = std::move(newStack); 
     }
 
 
@@ -141,7 +141,7 @@ BlsObject Divider::visit(AstNode::Statement::If &ast){
 
 BlsObject Divider::visit(AstNode::Statement::Declaration &ast){
     auto totalCntSplit = this->DivMeta.TaskControllerSplit[this->currTask]; 
-    auto writeCtls = ast.getControllerSplit();
+    auto writeCtls = ast.controllerSplit;
     
     if(this->inSetup){
         // Add the statement to the declaration
@@ -153,14 +153,14 @@ BlsObject Divider::visit(AstNode::Statement::Declaration &ast){
         auto TaskName = this->currTask + "_" + ctlName;
         auto splitDecl = std::make_unique<AstNode::Statement::Declaration>();
 
-        splitDecl->getName() = ast.getName(); 
+        splitDecl->name = ast.name; 
 
-        auto& typeObj = ast.getType(); 
-        splitDecl->getType()->getName() = typeObj->getName(); 
+        auto& typeObj = ast.type; 
+        splitDecl->type->name = typeObj->name; 
 
         if(writeCtls.contains(ctlName)){
-            if(ast.getValue().has_value()){
-                *splitDecl->getValue()->get() = *ast.getValue()->get();
+            if(ast.value.has_value()){
+                *splitDecl->value->get() = *ast.value->get();
             }
         }
     
@@ -179,11 +179,11 @@ BlsObject Divider::visit(AstNode::Statement::Expression &ast){
         return std::monostate(); 
     }
 
-    auto ctlList = ast.getControllerSplit(); 
+    auto ctlList = ast.controllerSplit; 
     for(auto& ctlName : ctlList){
         auto TaskName = this->currTask + "_" + ctlName; 
         auto newExpr = std::make_unique<AstNode::Statement::Expression>(); 
-        *newExpr->getExpression() = *ast.getExpression(); 
+        *newExpr->expression = *ast.expression; 
 
         this->taskCopyMap[TaskName].blockStack.top().push_back(std::move(newExpr)); 
     }

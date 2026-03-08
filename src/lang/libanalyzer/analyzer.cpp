@@ -25,23 +25,23 @@ template<class... Ts>
 struct overloads : Ts... { using Ts::operator()...; };
 
 BlsObject Analyzer::visit(AstNode::Source& ast) {
-    for (auto&& procedure : ast.getProcedures()) {
+    for (auto&& procedure : ast.procedures) {
         procedure->accept(*this);
     }
 
-    for (auto&& task : ast.getTasks()) {
+    for (auto&& task : ast.tasks) {
         task->accept(*this);
     }
 
-    ast.getSetup()->accept(*this);
+    ast.setup->accept(*this);
 
     return std::monostate();
 }
 
 BlsObject Analyzer::visit(AstNode::Function::Procedure& ast) {
-    auto& procedureName = ast.getName();
+    auto& procedureName = ast.name;
     functionSymbols[procedureName]; // default construct symbol metadata
-    auto returnType = resolve(ast.getReturnType()->accept(*this));
+    auto returnType = resolve(ast.returnType->accept(*this));
     
     // add default constructed literal to pool for non-returning control paths
     // will only be necessary for void once control path checking is implemented
@@ -79,21 +79,21 @@ BlsObject Analyzer::visit(AstNode::Function::Procedure& ast) {
     }
     
     std::vector<BlsType> parameterTypes;
-    for (auto&& type : ast.getParameterTypes()) {
+    for (auto&& type : ast.parameterTypes) {
         auto typeObject = resolve(type->accept(*this));
         parameterTypes.push_back(typeObject);
     }
     procedures.emplace(procedureName, FunctionSignature(procedureName, returnType, parameterTypes));
 
     cs.pushFrame(CallStack<std::string>::Frame::Context::FUNCTION, procedureName);
-    auto params = ast.getParameters();
+    auto params = ast.parameters;
     auto& procedureSymbols = functionSymbols.at(procedureName).second;
     procedureSymbols.reserve(params.size());
     for (int i = 0; i < params.size(); i++) {
         cs.addLocal(params.at(i), parameterTypes.at(i));
         procedureSymbols.push_back(params.at(i));
     }
-    for (auto&& statement : ast.getStatements()) {
+    for (auto&& statement : ast.statements) {
         statement->accept(*this);
     }
     cs.popFrame();
@@ -102,17 +102,17 @@ BlsObject Analyzer::visit(AstNode::Function::Procedure& ast) {
 }
 
 BlsObject Analyzer::visit(AstNode::Function::Task& ast) {
-    auto& taskName = ast.getName();
+    auto& taskName = ast.name;
     functionSymbols[taskName]; // default construct symbol metadata
     
     std::vector<BlsType> parameterTypes;
-    for (auto&& type : ast.getParameterTypes()) {
+    for (auto&& type : ast.parameterTypes) {
         auto typeObject = resolve(type->accept(*this));
         parameterTypes.push_back(typeObject);
     }
     
     cs.pushFrame(CallStack<std::string>::Frame::Context::FUNCTION, taskName);
-    auto params = ast.getParameters();
+    auto params = ast.parameters;
     std::unordered_map<std::string, uint8_t> parameterIndices;
     auto& taskSymbols = functionSymbols.at(taskName).second;
     taskSymbols.reserve(params.size());
@@ -127,11 +127,11 @@ BlsObject Analyzer::visit(AstNode::Function::Task& ast) {
     desc.name = taskName;
     desc.binded_devices.resize(params.size());
     taskDescriptors.emplace(taskName, std::move(desc));
-    for (auto&& option : ast.getConfigOptions()) {
+    for (auto&& option : ast.configOptions) {
         option->accept(*this);
     }
     
-    for (auto&& statement : ast.getStatements()) {
+    for (auto&& statement : ast.statements) {
         statement->accept(*this);
     }
     cs.popFrame();
@@ -143,12 +143,12 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
     auto completedLiteralPool = std::move(literalPool); // save initial literal pool as setup values arent necessary at runtime
     std::unordered_set<std::string> boundTasks;
 
-    for (auto&& statement : ast.getStatements()) {
+    for (auto&& statement : ast.statements) {
         if (auto* deviceBinding = dynamic_cast<AstNode::Statement::Declaration*>(statement.get())) {
-            auto& name = deviceBinding->getName();
-            auto devtypeObj = resolve(deviceBinding->getType()->accept(*this));
+            auto& name = deviceBinding->name;
+            auto devtypeObj = resolve(deviceBinding->type->accept(*this));
             auto type = getType(devtypeObj);
-            auto& value = deviceBinding->getValue();
+            auto& value = deviceBinding->value;
             DeviceDescriptor devDesc;
 
             if (type > TYPE::CONTAINERS_END) {  // use binding parser for devtypes
@@ -162,10 +162,10 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
                 }
                 auto& bindStr = std::get<std::string>(binding);
                 devDesc = parseDeviceBinding(bindStr);
-                devDesc.isVtype = deviceBinding->getModifiers().contains(RESERVED_VIRTUAL);
+                devDesc.isVtype = deviceBinding->modifiers.contains(RESERVED_VIRTUAL);
             }
             else {
-                if (!deviceBinding->getModifiers().contains(RESERVED_VIRTUAL)) {
+                if (!deviceBinding->modifiers.contains(RESERVED_VIRTUAL)) {
                     throw SemanticError("Non DEVTYPE devices must be declared as virtual.", ast);
                 }
                 if (value.has_value()) {
@@ -195,12 +195,12 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
             deviceDescriptors.emplace(name, devDesc);
         }
         else if (auto* statementExpression = dynamic_cast<AstNode::Statement::Expression*>(statement.get())) {
-            auto* taskBinding = dynamic_cast<AstNode::Expression::Function*>(statementExpression->getExpression().get());
+            auto* taskBinding = dynamic_cast<AstNode::Expression::Function*>(statementExpression->expression.get());
             if (!taskBinding) {
                 throw SemanticError("Statement within setup() must be an task binding expression or device binding declaration", ast);
             }
-            auto& name = taskBinding->getName();
-            auto& args = taskBinding->getArguments();
+            auto& name = taskBinding->name;
+            auto& args = taskBinding->arguments;
             if (!tasks.contains(name)) {
                 throw SemanticError(name + " does not refer to an task", ast);
             }
@@ -214,11 +214,11 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
             auto& devices = desc.binded_devices;
             for (size_t i = 0; i < args.size(); i++) {
                 auto* expr = dynamic_cast<AstNode::Expression::Access*>(args.at(i).get());
-                if (expr == nullptr || expr->getMember().has_value() || expr->getSubscript().has_value()) {
+                if (expr == nullptr || expr->member.has_value() || expr->subscript.has_value()) {
                     throw SemanticError("Invalid task binding in setup()", ast);
                 }
                 try {
-                    auto& declaredDev = deviceDescriptors.at(expr->getObject());
+                    auto& declaredDev = deviceDescriptors.at(expr->object);
                     auto& dev = devices.at(i);
                     dev.device_name = declaredDev.device_name;
                     dev.initialValue = declaredDev.initialValue;
@@ -238,7 +238,7 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
                     }
                 }
                 catch (std::out_of_range) {
-                    throw SemanticError(expr->getObject() + " does not refer to a device binding", ast);
+                    throw SemanticError(expr->object + " does not refer to a device binding", ast);
                 }
             }
             // update trigger rules to point to device names rather than alias indices
@@ -262,10 +262,10 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
 }
 
 BlsObject Analyzer::visit(AstNode::Statement::If& ast) {
-    auto& condition = ast.getCondition();
-    auto& statements = ast.getBlock();
-    auto& elifStatements = ast.getElseIfStatements();
-    auto& elseBlock = ast.getElseBlock();
+    auto& condition = ast.condition;
+    auto& statements = ast.block;
+    auto& elifStatements = ast.elseIfStatements;
+    auto& elseBlock = ast.elseBlock;
 
     auto execBlock = [this](std::vector<std::unique_ptr<AstNode::Statement>>& statements) {
         cs.pushFrame(CallStack<std::string>::Frame::Context::CONDITIONAL);
@@ -289,10 +289,10 @@ BlsObject Analyzer::visit(AstNode::Statement::If& ast) {
 }
 
 BlsObject Analyzer::visit(AstNode::Statement::For& ast) {
-    auto& initStatement = ast.getInitStatement();
-    auto& condition = ast.getCondition();
-    auto& incrementExpression = ast.getIncrementExpression();
-    auto& statements = ast.getBlock();
+    auto& initStatement = ast.initStatement;
+    auto& condition = ast.condition;
+    auto& incrementExpression = ast.incrementExpression;
+    auto& statements = ast.block;
 
     cs.pushFrame(CallStack<std::string>::Frame::Context::LOOP);
     if (initStatement.has_value()) {
@@ -316,8 +316,8 @@ BlsObject Analyzer::visit(AstNode::Statement::For& ast) {
 }
 
 BlsObject Analyzer::visit(AstNode::Statement::While& ast) {
-    auto& condition = ast.getCondition();
-    auto& statements = ast.getBlock();
+    auto& condition = ast.condition;
+    auto& statements = ast.block;
 
     cs.pushFrame(CallStack<std::string>::Frame::Context::LOOP);
     auto conditionResult = resolve(condition->accept(*this));
@@ -336,7 +336,7 @@ BlsObject Analyzer::visit(AstNode::Statement::Return& ast) {
     auto& functionName = cs.getFrameName();
     auto parentSignature = (procedures.contains(functionName)) ? procedures.at(functionName) : tasks.at(functionName);
     auto expectedReturnType = getType(parentSignature.returnType);
-    auto& value = ast.getValue();
+    auto& value = ast.value;
     if (value.has_value()) {
         if (expectedReturnType == TYPE::void_t) {
             throw SemanticError("void function should not return a value", ast);
@@ -367,9 +367,9 @@ BlsObject Analyzer::visit(AstNode::Statement::Break& ast) {
 }
 
 BlsObject Analyzer::visit(AstNode::Statement::Declaration& ast) {
-    auto typedObj = resolve(ast.getType()->accept(*this));
-    auto& name = ast.getName();
-    auto& value = ast.getValue();
+    auto typedObj = resolve(ast.type->accept(*this));
+    auto& name = ast.name;
+    auto& value = ast.value;
     if (cs.checkLocalInFrame(name)) {
         throw SemanticError("Redeclaration of variable \"" + name + "\".", ast);
     }
@@ -383,18 +383,18 @@ BlsObject Analyzer::visit(AstNode::Statement::Declaration& ast) {
         }
     }
     cs.addLocal(name, typedObj);
-    ast.getLocalIndex() = cs.getLocalIndex(name);
+    ast.localIndex = cs.getLocalIndex(name);
     functionSymbols.at(cs.getFrameName()).second.push_back(name);
     return std::monostate();
 }
 
 BlsObject Analyzer::visit(AstNode::Statement::Expression& ast) {
-    return ast.getExpression()->accept(*this);
+    return ast.expression->accept(*this);
 }
 
 BlsObject Analyzer::visit(AstNode::Expression::Binary& ast) {
-    auto leftResult = ast.getLeft()->accept(*this);
-    auto rightResult = ast.getRight()->accept(*this);
+    auto leftResult = ast.left->accept(*this);
+    auto rightResult = ast.right->accept(*this);
     auto& lhs = resolve(leftResult);
     auto& rhs = resolve(rightResult);
 
@@ -409,7 +409,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Binary& ast) {
         throw SemanticError("Invalid operands for binary expression", ast);
     }
 
-    auto op = getBinOpEnum(ast.getOp());
+    auto op = getBinOpEnum(ast.op);
     if ((op >= BINARY_OPERATOR::ASSIGN) && std::holds_alternative<BlsType>(leftResult)) {
         throw SemanticError("Assignments to temporary not permitted", ast);
     }
@@ -506,10 +506,10 @@ BlsObject Analyzer::visit(AstNode::Expression::Binary& ast) {
 }
 
 BlsObject Analyzer::visit(AstNode::Expression::Unary& ast) {
-    auto expression = ast.getExpression()->accept(*this);
+    auto expression = ast.expression->accept(*this);
     auto& object = resolve(expression);
-    auto op = getUnOpEnum(ast.getOp());
-    auto position = ast.getPosition();
+    auto op = getUnOpEnum(ast.op);
+    auto position = ast.position;
 
     if (op >= UNARY_OPERATOR::INC) {
         addToPool(1); // literal 1 needs to be pushed for increment/decrement
@@ -563,16 +563,16 @@ BlsObject Analyzer::visit(AstNode::Expression::Unary& ast) {
 }
 
 BlsObject Analyzer::visit(AstNode::Expression::Group& ast) {
-    return ast.getExpression()->accept(*this);
+    return ast.expression->accept(*this);
 }
 
 BlsObject Analyzer::visit(AstNode::Expression::Method& ast) {
-    auto& objectName = ast.getObject();
+    auto& objectName = ast.object;
     auto& object = cs.getLocal(objectName);
-    auto& methodName = ast.getMethodName();
-    auto& methodArgs = ast.getArguments();
+    auto& methodName = ast.methodName;
+    auto& methodArgs = ast.arguments;
     auto objType = getType(object);
-    ast.getLocalIndex() = cs.getLocalIndex(objectName);
+    ast.localIndex = cs.getLocalIndex(objectName);
 
     if (objType == TYPE::ANY) { // skip every check for now (may cause issues)
         for (auto&& arg : methodArgs) {
@@ -612,7 +612,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Method& ast) {
             throw SemanticError("Invalid type for argument " #argName ".", ast); \
         }
         #define METHOD_END \
-        ast.getObjectType() = objType; \
+        ast.objectType = objType; \
         return result; \
     }
     #include "include/LIST_METHODS.LIST"
@@ -626,8 +626,8 @@ BlsObject Analyzer::visit(AstNode::Expression::Method& ast) {
 }
 
 BlsObject Analyzer::visit(AstNode::Expression::Function& ast) {
-    auto& name = ast.getName();
-    auto& args = ast.getArguments();
+    auto& name = ast.name;
+    auto& args = ast.arguments;
     if (!procedures.contains(name)) {
         throw SemanticError("Procedure " + name + " is not defined.", ast);
     }
@@ -653,12 +653,12 @@ BlsObject Analyzer::visit(AstNode::Expression::Function& ast) {
 }
 
 BlsObject Analyzer::visit(AstNode::Expression::Access& ast) {
-    auto& objectName = ast.getObject();
+    auto& objectName = ast.object;
     auto& object = cs.getLocal(objectName);
     auto objType = getType(object);
-    auto& member = ast.getMember();
-    auto& subscript = ast.getSubscript();
-    ast.getLocalIndex() = cs.getLocalIndex(objectName);
+    auto& member = ast.member;
+    auto& subscript = ast.subscript;
+    ast.localIndex = cs.getLocalIndex(objectName);
 
     if (objType == TYPE::ANY) { // skip every check for now (may cause issues)
         if (member.has_value()) {
@@ -714,7 +714,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Literal& ast) {
     const auto convert = overloads {
         [&literal](auto& value) { literal = value; }
     };
-    std::visit(convert, ast.getLiteral());
+    std::visit(convert, ast.literal);
     addToPool(literal);
     return literal;
 }
@@ -722,7 +722,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Literal& ast) {
 BlsObject Analyzer::visit(AstNode::Expression::List& ast) {
     auto list = std::make_shared<VectorDescriptor>(TYPE::ANY);
     auto listLiteral = std::make_shared<VectorDescriptor>(TYPE::ANY);
-    auto& elements = ast.getElements();
+    auto& elements = ast.elements;
     BlsType initIdx = 0;
     auto addElement = [&, this](size_t index, auto& element) {
         auto literal = resolve(element->accept(*this));
@@ -754,7 +754,7 @@ BlsObject Analyzer::visit(AstNode::Expression::List& ast) {
     }
 
     addToPool(listLiteral);
-    ast.getLiteral() = listLiteral;
+    ast.literal = listLiteral;
     return list;
 }
 
@@ -765,7 +765,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Set& ast) {
 BlsObject Analyzer::visit(AstNode::Expression::Map& ast) {
     auto map = std::make_shared<MapDescriptor>(TYPE::ANY);
     auto mapLiteral = std::make_shared<MapDescriptor>(TYPE::ANY);
-    auto& elements = ast.getElements();
+    auto& elements = ast.elements;
     BlsType initKey, initVal;
     auto addElement = [&, this](auto& element) {
         auto key = resolve(element.first->accept(*this));
@@ -804,14 +804,14 @@ BlsObject Analyzer::visit(AstNode::Expression::Map& ast) {
     }
 
     addToPool(mapLiteral);
-    ast.getLiteral() = mapLiteral;
+    ast.literal = mapLiteral;
 
     return map;
 }
 
 BlsObject Analyzer::visit(AstNode::Specifier::Type& ast) {
-    TYPE primaryType = getTypeFromName(ast.getName());
-    const auto& typeArgs = ast.getTypeArgs();
+    TYPE primaryType = getTypeFromName(ast.name);
+    const auto& typeArgs = ast.typeArgs;
     switch (primaryType) {
         // explicit default constructors for declaration
         case TYPE::void_t:
@@ -841,7 +841,7 @@ BlsObject Analyzer::visit(AstNode::Specifier::Type& ast) {
 
         case TYPE::list_t: {
             if (typeArgs.size() != 1) throw SemanticError("List may only have a single type argument.", ast);
-            auto argType = getTypeFromName(typeArgs.at(0)->getName());
+            auto argType = getTypeFromName(typeArgs.at(0)->name);
             auto list = std::make_shared<VectorDescriptor>(argType);
             auto arg = resolve(typeArgs.at(0)->accept(*this));
             list->getSampleElement().assign({arg});
@@ -851,11 +851,11 @@ BlsObject Analyzer::visit(AstNode::Specifier::Type& ast) {
 
         case TYPE::map_t: {
             if (typeArgs.size() != 2) throw SemanticError("Map must have two type arguments.", ast);
-            auto keyType = getTypeFromName(typeArgs.at(0)->getName());
+            auto keyType = getTypeFromName(typeArgs.at(0)->name);
             if (keyType > TYPE::PRIMITIVES_END || keyType == TYPE::void_t) {
                 throw SemanticError("Invalid key type for map.", ast);
             }
-            auto valType = getTypeFromName(typeArgs.at(1)->getName());
+            auto valType = getTypeFromName(typeArgs.at(1)->name);
             if (valType == TYPE::void_t) {
                 throw SemanticError("Invalid value type for map.", ast);
             }
@@ -885,7 +885,7 @@ BlsObject Analyzer::visit(AstNode::Specifier::Type& ast) {
         break;
 
         default:
-            throw SemanticError("Invalid type: " + ast.getName(), ast);
+            throw SemanticError("Invalid type: " + ast.name, ast);
         break;
     }
 }
@@ -896,8 +896,8 @@ BlsObject Analyzer::visit(AstNode::Initializer::Task& ast) {
     auto& signature = tasks.at(taskName);
     auto& boundDevices = desc.binded_devices;
     auto& parameterIndices = signature.parameterIndices;
-    auto& option = ast.getOption();
-    auto& args = ast.getArgs();
+    auto& option = ast.option;
+    auto& args = ast.args;
     if (option == "triggerOn") {
         if (args.empty()) {
             throw SemanticError("At least one argument must be supplied to triggerOn.", ast);
@@ -905,7 +905,7 @@ BlsObject Analyzer::visit(AstNode::Initializer::Task& ast) {
 
         auto updateRule = [this, &parameterIndices, &ast](std::unique_ptr<AstNode::Expression>& arg, std::vector<std::string>& rule) {
             if (auto* resolvedArg = dynamic_cast<AstNode::Expression::Access*>(arg.get())) {
-                auto& param = resolvedArg->getObject();
+                auto& param = resolvedArg->object;
                 cs.getLocal(param); // check that param exists
                 // push back index of param to convert to device name in setup() visitor
                 rule.push_back(std::to_string(parameterIndices.at(param)));
@@ -917,7 +917,7 @@ BlsObject Analyzer::visit(AstNode::Initializer::Task& ast) {
 
         auto createRule = [&updateRule](std::unique_ptr<AstNode::Expression>& ruleExpr, std::vector<std::string>& rule) {
             if (auto* resolvedList = dynamic_cast<AstNode::Expression::List*>(ruleExpr.get())) {
-                for (auto&& element : resolvedList->getElements()) {
+                for (auto&& element : resolvedList->elements) {
                     updateRule(element, rule); // create conjunction rule
                 }
             }
@@ -931,33 +931,33 @@ BlsObject Analyzer::visit(AstNode::Initializer::Task& ast) {
             std::string id = "";
             uint8_t priority = 1;
             if (auto* resolvedMap = dynamic_cast<AstNode::Expression::Map*>(arg.get())) { // verbose syntax
-                for (auto&& [attrExpr, valExpr] : resolvedMap->getElements()) {
+                for (auto&& [attrExpr, valExpr] : resolvedMap->elements) {
                     auto* attrVal = dynamic_cast<AstNode::Expression::Literal*>(attrExpr.get());
-                    if (!attrVal || !std::holds_alternative<std::string>(attrVal->getLiteral())) {
+                    if (!attrVal || !std::holds_alternative<std::string>(attrVal->literal)) {
                         throw SemanticError("Trigger attributes must be given as strings.", ast);
                     }
-                    auto attribute = std::get<std::string>(attrVal->getLiteral());
+                    auto attribute = std::get<std::string>(attrVal->literal);
                     boost::algorithm::to_lower(attribute);
                     if (attribute == "id") {
                         auto* idVal = dynamic_cast<AstNode::Expression::Literal*>(valExpr.get());
-                        if (!idVal || !std::holds_alternative<std::string>(idVal->getLiteral())) {
+                        if (!idVal || !std::holds_alternative<std::string>(idVal->literal)) {
                             throw SemanticError("id attribute must be a string.", ast);
                         }
-                        id = std::get<std::string>(idVal->getLiteral());
+                        id = std::get<std::string>(idVal->literal);
                     }
                     else if (attribute == "priority") {
                         auto* priorityVal = dynamic_cast<AstNode::Expression::Literal*>(valExpr.get());
-                        if (!priorityVal || !std::holds_alternative<int64_t>(priorityVal->getLiteral())) {
+                        if (!priorityVal || !std::holds_alternative<int64_t>(priorityVal->literal)) {
                             throw SemanticError("priority attribute must be an integer.", ast);
                         }
-                        priority = std::get<int64_t>(priorityVal->getLiteral());
+                        priority = std::get<int64_t>(priorityVal->literal);
                     }
                     else if (attribute == "rule") {
                         createRule(valExpr, rule);
                     }
                     else {
                         // get original string (no lowercasing) for error clarity
-                        throw SemanticError("Invalid attribute " + std::get<std::string>(attrVal->getLiteral()) + " for trigger declaration.", ast);
+                        throw SemanticError("Invalid attribute " + std::get<std::string>(attrVal->literal) + " for trigger declaration.", ast);
                     }
                 }
                 if (rule.empty()) {
@@ -978,18 +978,18 @@ BlsObject Analyzer::visit(AstNode::Initializer::Task& ast) {
         if (!pollMap) {
             throw SemanticError("constPoll must be supplied a mapping of task parameters to polling rates.", ast);
         }
-        for (auto&& [key, value] : pollMap->getElements()) {
+        for (auto&& [key, value] : pollMap->elements) {
             auto* paramExpr = dynamic_cast<AstNode::Expression::Access*>(key.get());
             auto* rateExpr = dynamic_cast<AstNode::Expression::Literal*>(value.get());
             if (!paramExpr) {
                 throw SemanticError("Mapping keys must be task parameters.", ast);
             }
             if (!rateExpr
-             || std::holds_alternative<std::string>(rateExpr->getLiteral())
-             || std::holds_alternative<bool>(rateExpr->getLiteral())) {
+             || std::holds_alternative<std::string>(rateExpr->literal)
+             || std::holds_alternative<bool>(rateExpr->literal)) {
                 throw SemanticError("Polling rate values must be integers or floats.", ast);
             }
-            auto& param = paramExpr->getObject();
+            auto& param = paramExpr->object;
             cs.getLocal(param); // check that param exists
             auto rate = resolve(rateExpr->accept(*this));
             literalPool.erase(rate);
@@ -1007,7 +1007,7 @@ BlsObject Analyzer::visit(AstNode::Initializer::Task& ast) {
         if (!configMap) {
             throw SemanticError("processPolicy must be supplied a mapping of task parameters to policy options.", ast);
         }
-        for (auto&& [key, value] : configMap->getElements()) {
+        for (auto&& [key, value] : configMap->elements) {
             auto* paramExpr = dynamic_cast<AstNode::Expression::Access*>(key.get());
             auto* policyMap = dynamic_cast<AstNode::Expression::Map*>(value.get());
             if (!paramExpr) {
@@ -1017,22 +1017,22 @@ BlsObject Analyzer::visit(AstNode::Initializer::Task& ast) {
                 throw SemanticError("Mapping values must be policy option mappings", ast);
             }
 
-            auto& param = paramExpr->getObject();
+            auto& param = paramExpr->object;
             cs.getLocal(param); // check that param exists
             auto& dev = boundDevices.at(parameterIndices.at(param));
 
-            for (auto&& [key, value] : policyMap->getElements()) {
+            for (auto&& [key, value] : policyMap->elements) {
                 auto* policyExpr = dynamic_cast<AstNode::Expression::Literal*>(key.get());
                 auto* optionExpr = dynamic_cast<AstNode::Expression::Literal*>(value.get());
-                if (!policyExpr || !std::holds_alternative<std::string>(policyExpr->getLiteral())) {
+                if (!policyExpr || !std::holds_alternative<std::string>(policyExpr->literal)) {
                     throw SemanticError("Policy name must be a string literal.", ast);
                 }
-                auto policy = std::get<std::string>(policyExpr->getLiteral());
+                auto policy = std::get<std::string>(policyExpr->literal);
                 if (policy == "read") {
-                    if (!optionExpr || !std::holds_alternative<std::string>(optionExpr->getLiteral())) {
+                    if (!optionExpr || !std::holds_alternative<std::string>(optionExpr->literal)) {
                         throw SemanticError("Read policy must be a string literal.", ast);
                     }
-                    auto option = std::get<std::string>(optionExpr->getLiteral());
+                    auto option = std::get<std::string>(optionExpr->literal);
                     if (option == "all") {
                         dev.readPolicy = READ_POLICY::ALL;
                     }
@@ -1044,16 +1044,16 @@ BlsObject Analyzer::visit(AstNode::Initializer::Task& ast) {
                     }
                 }
                 else if (policy == "yield") {
-                    if (!optionExpr || !std::holds_alternative<bool>(optionExpr->getLiteral())) {
+                    if (!optionExpr || !std::holds_alternative<bool>(optionExpr->literal)) {
                         throw SemanticError("Yield policy must be a bool literal.", ast);
                     }
-                    dev.isYield = std::get<bool>(optionExpr->getLiteral());
+                    dev.isYield = std::get<bool>(optionExpr->literal);
                 }
                 else if (policy == "ignoreWriteBacks") {
-                    if (!optionExpr || !std::holds_alternative<bool>(optionExpr->getLiteral())) {
+                    if (!optionExpr || !std::holds_alternative<bool>(optionExpr->literal)) {
                         throw SemanticError("WriteBack processing policy must be a bool literal.", ast);
                     }
-                    dev.ignoreWriteBacks = std::get<bool>(optionExpr->getLiteral());
+                    dev.ignoreWriteBacks = std::get<bool>(optionExpr->literal);
                 }
                 else {
                     throw SemanticError("Invalid process policy supplied", ast);
@@ -1070,21 +1070,21 @@ BlsObject Analyzer::visit(AstNode::Initializer::Task& ast) {
         if (!configMap) {
             throw SemanticError("overwritePolicy must be supplied a mapping of task parameters to policy options.", ast);
         }
-        for (auto&& [key, value] : configMap->getElements()) {
+        for (auto&& [key, value] : configMap->elements) {
             auto* paramExpr = dynamic_cast<AstNode::Expression::Access*>(key.get());
             auto* policyExpr = dynamic_cast<AstNode::Expression::Literal*>(value.get());
             if (!paramExpr) {
                 throw SemanticError("Mapping keys must be task parameters.", ast);
             }
-            if (!policyExpr || !std::holds_alternative<std::string>(policyExpr->getLiteral())) {
+            if (!policyExpr || !std::holds_alternative<std::string>(policyExpr->literal)) {
                 throw SemanticError("Mapping values must be string literals", ast);
             }
             
-            auto& param = paramExpr->getObject();
+            auto& param = paramExpr->object;
             cs.getLocal(param); // check that param exists
             auto& dev = boundDevices.at(parameterIndices.at(param));
 
-            auto policy = std::get<std::string>(policyExpr->getLiteral());
+            auto policy = std::get<std::string>(policyExpr->literal);
             if (policy == "clear") {
                 dev.overwritePolicy = OVERWRITE_POLICY::CLEAR;
             }
