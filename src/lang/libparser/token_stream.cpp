@@ -31,3 +31,7 @@ size_t TokenStream::getColumn() const {
     auto idx = std::min(index, ts.size() - 1);
     return ts.at(idx).getColNum();
 }
+
+std::pair<size_t, size_t> TokenStream::getLocation() const {
+    return {getLine(), getColumn()};
+}
