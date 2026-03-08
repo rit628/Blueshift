@@ -49,6 +49,14 @@ void Generator::writeBytecode(std::vector<char>& outputVector) {
     outputVector = {bytecode.begin(), bytecode.end()};
 }
 
+void Generator::preVisit(AstNode& ast) {
+    ast.bytecodeStart = this->instructions.size();
+}
+
+void Generator::postVisit(AstNode& ast) {
+    ast.bytecodeEnd = this->instructions.size();
+}
+
 BlsObject Generator::visit(AstNode::Source& ast) {
     for (auto&& procedure : ast.getProcedures()) {
         procedure->accept(*this);

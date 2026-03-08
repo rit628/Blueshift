@@ -9,7 +9,6 @@
 #include "call_stack.hpp"
 #include <cstdint>
 #include <functional>
-#include <iostream>
 #include <memory>
 #include <string>
 #include <tuple>
@@ -154,12 +153,12 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
 
             if (type > TYPE::CONTAINERS_END) {  // use binding parser for devtypes
                 if (!value.has_value()) {
-                    throw SemanticError("DEVTYPE binding cannot be empty");
+                    throw SemanticError("DEVTYPE binding cannot be empty", ast);
                 }
     
                 auto binding = resolve(value->get()->accept(*this));
                 if (!std::holds_alternative<std::string>(binding)) {
-                    throw SemanticError("DEVTYPE binding must be a string literal");
+                    throw SemanticError("DEVTYPE binding must be a string literal", ast);
                 }
                 auto& bindStr = std::get<std::string>(binding);
                 devDesc = parseDeviceBinding(bindStr);
@@ -167,7 +166,7 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
             }
             else {
                 if (!deviceBinding->getModifiers().contains(RESERVED_VIRTUAL)) {
-                    throw SemanticError("Non DEVTYPE devices must be declared as virtual.");
+                    throw SemanticError("Non DEVTYPE devices must be declared as virtual.", ast);
                 }
                 if (value.has_value()) {
                     devtypeObj = resolve(value->get()->accept(*this));
@@ -198,16 +197,16 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
         else if (auto* statementExpression = dynamic_cast<AstNode::Statement::Expression*>(statement.get())) {
             auto* taskBinding = dynamic_cast<AstNode::Expression::Function*>(statementExpression->getExpression().get());
             if (!taskBinding) {
-                throw SemanticError("Statement within setup() must be an task binding expression or device binding declaration");
+                throw SemanticError("Statement within setup() must be an task binding expression or device binding declaration", ast);
             }
             auto& name = taskBinding->getName();
             auto& args = taskBinding->getArguments();
             if (!tasks.contains(name)) {
-                throw SemanticError(name + " does not refer to an task");
+                throw SemanticError(name + " does not refer to an task", ast);
             }
             auto argc = tasks.at(name).parameterTypes.size();
             if (argc != args.size()) {
-                throw SemanticError("Invalid number of arguments supplied to " + name + " (received " + std::to_string(args.size()) + " expected " + std::to_string(argc) + " )");
+                throw SemanticError("Invalid number of arguments supplied to " + name + " (received " + std::to_string(args.size()) + " expected " + std::to_string(argc) + " )", ast);
             }
             auto& desc = taskDescriptors.at(name);
             desc.name = name;
@@ -216,7 +215,7 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
             for (size_t i = 0; i < args.size(); i++) {
                 auto* expr = dynamic_cast<AstNode::Expression::Access*>(args.at(i).get());
                 if (expr == nullptr || expr->getMember().has_value() || expr->getSubscript().has_value()) {
-                    throw SemanticError("Invalid task binding in setup()");
+                    throw SemanticError("Invalid task binding in setup()", ast);
                 }
                 try {
                     auto& declaredDev = deviceDescriptors.at(expr->getObject());
@@ -239,7 +238,7 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
                     }
                 }
                 catch (std::out_of_range) {
-                    throw SemanticError(expr->getObject() + " does not refer to a device binding");
+                    throw SemanticError(expr->getObject() + " does not refer to a device binding", ast);
                 }
             }
             // update trigger rules to point to device names rather than alias indices
@@ -251,7 +250,7 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
             boundTasks.emplace(name);
         }
         else {
-            throw SemanticError("Statement within setup() must be an task binding expression or device binding declaration");
+            throw SemanticError("Statement within setup() must be an task binding expression or device binding declaration", ast);
         }
     }
 
@@ -278,7 +277,7 @@ BlsObject Analyzer::visit(AstNode::Statement::If& ast) {
 
     auto conditionResult = resolve(condition->accept(*this));
     if (getType(conditionResult) != TYPE::bool_t) {
-        throw SemanticError("Condition must resolve to a boolean value");
+        throw SemanticError("Condition must resolve to a boolean value", ast);
     }
     // TODO: add checks for unreachable code
     execBlock(statements);
@@ -302,7 +301,7 @@ BlsObject Analyzer::visit(AstNode::Statement::For& ast) {
     if (condition.has_value()) {
         auto conditionResult = resolve(condition->get()->accept(*this));
         if (getType(conditionResult) != TYPE::bool_t) {
-            throw SemanticError("Condition must resolve to a boolean value");
+            throw SemanticError("Condition must resolve to a boolean value", ast);
         }
     }
     if (incrementExpression.has_value()) {
@@ -323,7 +322,7 @@ BlsObject Analyzer::visit(AstNode::Statement::While& ast) {
     cs.pushFrame(CallStack<std::string>::Frame::Context::LOOP);
     auto conditionResult = resolve(condition->accept(*this));
     if (getType(conditionResult) != TYPE::bool_t) {
-        throw SemanticError("Condition must resolve to a boolean value");
+        throw SemanticError("Condition must resolve to a boolean value", ast);
     }
     // TODO: add checks for unreachable code
     for (auto&& statement : statements) {
@@ -340,29 +339,29 @@ BlsObject Analyzer::visit(AstNode::Statement::Return& ast) {
     auto& value = ast.getValue();
     if (value.has_value()) {
         if (expectedReturnType == TYPE::void_t) {
-            throw SemanticError("void function should not return a value");
+            throw SemanticError("void function should not return a value", ast);
         }
         auto returnType = resolve(value->get()->accept(*this));
         if (!typeCompatible(parentSignature.returnType, returnType)) {
-            throw SemanticError("Invalid return type for " + functionName);
+            throw SemanticError("Invalid return type for " + functionName, ast);
         }
     }
     else if (expectedReturnType != TYPE::void_t) {
-        throw SemanticError("non void function should return a value");
+        throw SemanticError("non void function should return a value", ast);
     }
     return std::monostate();
 }
 
-BlsObject Analyzer::visit(AstNode::Statement::Continue&) {
+BlsObject Analyzer::visit(AstNode::Statement::Continue& ast) {
     if (!cs.checkContext(CallStack<std::string>::Frame::Context::LOOP)) {
-        throw SemanticError("continue statement outside of loop context.");
+        throw SemanticError("continue statement outside of loop context.", ast);
     }
     return std::monostate();
 }
 
-BlsObject Analyzer::visit(AstNode::Statement::Break&) {
+BlsObject Analyzer::visit(AstNode::Statement::Break& ast) {
     if (!cs.checkContext(CallStack<std::string>::Frame::Context::LOOP)) {
-        throw SemanticError("break statement outside of loop context.");
+        throw SemanticError("break statement outside of loop context.", ast);
     }
     return std::monostate();
 }
@@ -372,12 +371,12 @@ BlsObject Analyzer::visit(AstNode::Statement::Declaration& ast) {
     auto& name = ast.getName();
     auto& value = ast.getValue();
     if (cs.checkLocalInFrame(name)) {
-        throw SemanticError("Redeclaration of variable \"" + name + "\".");
+        throw SemanticError("Redeclaration of variable \"" + name + "\".", ast);
     }
     if (value.has_value()) {
         auto literal = resolve(value->get()->accept(*this));
         if (!typeCompatible(typedObj, literal)) {
-            throw SemanticError("Invalid initialization for declaration");
+            throw SemanticError("Invalid initialization for declaration", ast);
         }
         if (getType(typedObj) != TYPE::ANY) {
             typedObj.assign(literal);
@@ -407,12 +406,12 @@ BlsObject Analyzer::visit(AstNode::Expression::Binary& ast) {
     }
 
     if (!typeCompatible(lhs, rhs)) {
-        throw SemanticError("Invalid operands for binary expression");
+        throw SemanticError("Invalid operands for binary expression", ast);
     }
 
     auto op = getBinOpEnum(ast.getOp());
     if ((op >= BINARY_OPERATOR::ASSIGN) && std::holds_alternative<BlsType>(leftResult)) {
-        throw SemanticError("Assignments to temporary not permitted");
+        throw SemanticError("Assignments to temporary not permitted", ast);
     }
     // operator type checking done by overload specialization
     switch (op) {
@@ -501,7 +500,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Binary& ast) {
         break;
 
         default:
-            throw SemanticError("Invalid operator supplied.");
+            throw SemanticError("Invalid operator supplied.", ast);
         break;
     }
 }
@@ -515,7 +514,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Unary& ast) {
     if (op >= UNARY_OPERATOR::INC) {
         addToPool(1); // literal 1 needs to be pushed for increment/decrement
         if (std::holds_alternative<BlsType>(expression)) {
-            throw SemanticError("Assignments to temporary not permitted");
+            throw SemanticError("Assignments to temporary not permitted", ast);
         }
     }
 
@@ -558,7 +557,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Unary& ast) {
         break;
 
         default:
-            throw SemanticError("Invalid operator supplied.");
+            throw SemanticError("Invalid operator supplied.", ast);
         break;
     }
 }
@@ -583,7 +582,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Method& ast) {
     }
 
     if (objType < TYPE::PRIMITIVES_END || objType > TYPE::CONTAINERS_END) {
-        throw SemanticError("Methods may only be applied on container type objects.");
+        throw SemanticError("Methods may only be applied on container type objects.", ast);
     }
     auto& operable = std::get<std::shared_ptr<HeapDescriptor>>(object);
 
@@ -605,12 +604,12 @@ BlsObject Analyzer::visit(AstNode::Expression::Method& ast) {
         BlsType result = deduceType.operator()<typeArgIdx, returnType>(operable);
         #define ARGUMENT(argName, typeArgIdx, type...) \
         if (methodArgs.size() != argnum::COUNT) { \
-            throw SemanticError("Invalid number of arguments provided to " + methodName + "."); \
+            throw SemanticError("Invalid number of arguments provided to " + methodName + ".", ast); \
         } \
         auto argName = resolve(methodArgs.at(argnum::argName)->accept(*this)); \
         BlsType expected_##argName = deduceType.operator()<typeArgIdx, type>(operable); \
         if (!typeCompatible(argName, expected_##argName)) { \
-            throw SemanticError("Invalid type for argument " #argName "."); \
+            throw SemanticError("Invalid type for argument " #argName ".", ast); \
         }
         #define METHOD_END \
         ast.getObjectType() = objType; \
@@ -622,7 +621,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Method& ast) {
     #undef ARGUMENT
     #undef METHOD_END
     else {
-        throw SemanticError("Invalid method " + methodName + " for " + getTypeName(objType));
+        throw SemanticError("Invalid method " + methodName + " for " + getTypeName(objType), ast);
     }
 }
 
@@ -630,7 +629,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Function& ast) {
     auto& name = ast.getName();
     auto& args = ast.getArguments();
     if (!procedures.contains(name)) {
-        throw SemanticError("Procedure " + name + " is not defined.");
+        throw SemanticError("Procedure " + name + " is not defined.", ast);
     }
     auto& signature = procedures.at(name);
 
@@ -641,12 +640,12 @@ BlsObject Analyzer::visit(AstNode::Expression::Function& ast) {
     }
     else {
         if (signature.parameterTypes.size() != args.size()) {
-            throw SemanticError("Invalid number of arguments passed into " + name);
+            throw SemanticError("Invalid number of arguments passed into " + name, ast);
         }
         for (auto&& [argType, arg] : boost::combine(signature.parameterTypes, args)) {
             auto result = resolve(arg->accept(*this));
             if (!typeCompatible(argType, result)) {
-                throw SemanticError("Invalid argument provided to " + name);
+                throw SemanticError("Invalid argument provided to " + name, ast);
             }
         }
     }
@@ -680,7 +679,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Access& ast) {
                 else if (member.value() == #name) { }
             #define DEVTYPE_END \
             else { \
-                throw SemanticError("Invalid attribute for devtype"); \
+                throw SemanticError("Invalid attribute for devtype", ast); \
             } \
             break;
             #include "DEVTYPES.LIST"
@@ -688,7 +687,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Access& ast) {
             #undef ATTRIBUTE
             #undef DEVTYPE_END
             default:
-                throw SemanticError("Attribute access only possible on devtypes");
+                throw SemanticError("Attribute access only possible on devtypes", ast);
             break;
         }
         auto& accessible = std::get<std::shared_ptr<HeapDescriptor>>(object);
@@ -698,7 +697,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Access& ast) {
     }
     else if (subscript.has_value()) {
         if (objType < TYPE::PRIMITIVES_END || objType > TYPE::CONTAINERS_END) {
-            throw SemanticError("Subscript access only possible on container type objects");
+            throw SemanticError("Subscript access only possible on container type objects", ast);
         }
         auto& subscriptable = std::get<std::shared_ptr<HeapDescriptor>>(object);
         auto index = resolve(subscript->get()->accept(*this));
@@ -749,7 +748,7 @@ BlsObject Analyzer::visit(AstNode::Expression::List& ast) {
         for (size_t i = 1; i < elements.size(); i++) {
             auto value = addElement(i, elements.at(i));
             if (!typeCompatible(list->access(initIdx), value)) {
-                throw SemanticError("List literal declaration must be of homogeneous type.");
+                throw SemanticError("List literal declaration must be of homogeneous type.", ast);
             }
         }
     }
@@ -759,8 +758,8 @@ BlsObject Analyzer::visit(AstNode::Expression::List& ast) {
     return list;
 }
 
-BlsObject Analyzer::visit(AstNode::Expression::Set&) {
-    throw SemanticError("no support for sets in phase 0");
+BlsObject Analyzer::visit(AstNode::Expression::Set& ast) {
+    throw SemanticError("no support for sets in phase 0", ast);
 }
 
 BlsObject Analyzer::visit(AstNode::Expression::Map& ast) {
@@ -772,7 +771,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Map& ast) {
         auto key = resolve(element.first->accept(*this));
         auto keyType = getType(key);
         if (keyType > TYPE::PRIMITIVES_END) {
-            throw SemanticError("Invalid key type for map");
+            throw SemanticError("Invalid key type for map", ast);
         }
         auto value = resolve(element.second->accept(*this));
         map->add(key, value);
@@ -799,7 +798,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Map& ast) {
             auto&& [key, value] = addElement(element);
             if (!typeCompatible(initKey, key)
              || !typeCompatible(initVal,value)) {
-                throw SemanticError("Map literal declaration must be of homogeneous type.");
+                throw SemanticError("Map literal declaration must be of homogeneous type.", ast);
             }
         }
     }
@@ -816,32 +815,32 @@ BlsObject Analyzer::visit(AstNode::Specifier::Type& ast) {
     switch (primaryType) {
         // explicit default constructors for declaration
         case TYPE::void_t:
-            if (!typeArgs.empty()) throw SemanticError("Primitives cannot include type arguments.");
+            if (!typeArgs.empty()) throw SemanticError("Primitives cannot include type arguments.", ast);
             return BlsType(std::monostate());
         break;
 
         case TYPE::bool_t:
-            if (!typeArgs.empty()) throw SemanticError("Primitives cannot include type arguments.");
+            if (!typeArgs.empty()) throw SemanticError("Primitives cannot include type arguments.", ast);
             return BlsType(bool(false));
         break;
 
         case TYPE::int_t:
-            if (!typeArgs.empty()) throw SemanticError("Primitives cannot include type arguments.");
+            if (!typeArgs.empty()) throw SemanticError("Primitives cannot include type arguments.", ast);
             return BlsType(int64_t(0));
         break;
 
         case TYPE::float_t:
-            if (!typeArgs.empty()) throw SemanticError("Primitives cannot include type arguments.");
+            if (!typeArgs.empty()) throw SemanticError("Primitives cannot include type arguments.", ast);
             return BlsType(double(0.0));
         break;
 
         case TYPE::string_t:
-            if (!typeArgs.empty()) throw SemanticError("Primitives cannot include type arguments.");
+            if (!typeArgs.empty()) throw SemanticError("Primitives cannot include type arguments.", ast);
             return BlsType(std::string(""));
         break;
 
         case TYPE::list_t: {
-            if (typeArgs.size() != 1) throw SemanticError("List may only have a single type argument.");
+            if (typeArgs.size() != 1) throw SemanticError("List may only have a single type argument.", ast);
             auto argType = getTypeFromName(typeArgs.at(0)->getName());
             auto list = std::make_shared<VectorDescriptor>(argType);
             auto arg = resolve(typeArgs.at(0)->accept(*this));
@@ -851,14 +850,14 @@ BlsObject Analyzer::visit(AstNode::Specifier::Type& ast) {
         break;
 
         case TYPE::map_t: {
-            if (typeArgs.size() != 2) throw SemanticError("Map must have two type arguments.");
+            if (typeArgs.size() != 2) throw SemanticError("Map must have two type arguments.", ast);
             auto keyType = getTypeFromName(typeArgs.at(0)->getName());
             if (keyType > TYPE::PRIMITIVES_END || keyType == TYPE::void_t) {
-                throw SemanticError("Invalid key type for map.");
+                throw SemanticError("Invalid key type for map.", ast);
             }
             auto valType = getTypeFromName(typeArgs.at(1)->getName());
             if (valType == TYPE::void_t) {
-                throw SemanticError("Invalid value type for map.");
+                throw SemanticError("Invalid value type for map.", ast);
             }
             auto map = std::make_shared<MapDescriptor>(TYPE::map_t, keyType, valType);
             auto key = resolve(typeArgs.at(0)->accept(*this));
@@ -871,7 +870,7 @@ BlsObject Analyzer::visit(AstNode::Specifier::Type& ast) {
         #define DEVTYPE_BEGIN(name, ...) \
         case TYPE::name: \
             using namespace TypeDef; \
-            if (!typeArgs.empty()) throw SemanticError("Devtypes cannot include type arguments."); \
+            if (!typeArgs.empty()) throw SemanticError("Devtypes cannot include type arguments.", ast); \
             return createBlsType(name());
         #define ATTRIBUTE(...)
         #define DEVTYPE_END
@@ -886,7 +885,7 @@ BlsObject Analyzer::visit(AstNode::Specifier::Type& ast) {
         break;
 
         default:
-            throw SemanticError("Invalid type: " + ast.getName());
+            throw SemanticError("Invalid type: " + ast.getName(), ast);
         break;
     }
 }
@@ -901,10 +900,10 @@ BlsObject Analyzer::visit(AstNode::Initializer::Task& ast) {
     auto& args = ast.getArgs();
     if (option == "triggerOn") {
         if (args.empty()) {
-            throw SemanticError("At least one argument must be supplied to triggerOn.");
+            throw SemanticError("At least one argument must be supplied to triggerOn.", ast);
         }
 
-        auto updateRule = [this, &parameterIndices](std::unique_ptr<AstNode::Expression>& arg, std::vector<std::string>& rule) {
+        auto updateRule = [this, &parameterIndices, &ast](std::unique_ptr<AstNode::Expression>& arg, std::vector<std::string>& rule) {
             if (auto* resolvedArg = dynamic_cast<AstNode::Expression::Access*>(arg.get())) {
                 auto& param = resolvedArg->getObject();
                 cs.getLocal(param); // check that param exists
@@ -912,7 +911,7 @@ BlsObject Analyzer::visit(AstNode::Initializer::Task& ast) {
                 rule.push_back(std::to_string(parameterIndices.at(param)));
             }
             else {
-                throw SemanticError("Trigger rules must be task parameters or list of task parameters.");
+                throw SemanticError("Trigger rules must be task parameters or list of task parameters.", ast);
             }
         };
 
@@ -935,21 +934,21 @@ BlsObject Analyzer::visit(AstNode::Initializer::Task& ast) {
                 for (auto&& [attrExpr, valExpr] : resolvedMap->getElements()) {
                     auto* attrVal = dynamic_cast<AstNode::Expression::Literal*>(attrExpr.get());
                     if (!attrVal || !std::holds_alternative<std::string>(attrVal->getLiteral())) {
-                        throw SemanticError("Trigger attributes must be given as strings.");
+                        throw SemanticError("Trigger attributes must be given as strings.", ast);
                     }
                     auto attribute = std::get<std::string>(attrVal->getLiteral());
                     boost::algorithm::to_lower(attribute);
                     if (attribute == "id") {
                         auto* idVal = dynamic_cast<AstNode::Expression::Literal*>(valExpr.get());
                         if (!idVal || !std::holds_alternative<std::string>(idVal->getLiteral())) {
-                            throw SemanticError("id attribute must be a string.");
+                            throw SemanticError("id attribute must be a string.", ast);
                         }
                         id = std::get<std::string>(idVal->getLiteral());
                     }
                     else if (attribute == "priority") {
                         auto* priorityVal = dynamic_cast<AstNode::Expression::Literal*>(valExpr.get());
                         if (!priorityVal || !std::holds_alternative<int64_t>(priorityVal->getLiteral())) {
-                            throw SemanticError("priority attribute must be an integer.");
+                            throw SemanticError("priority attribute must be an integer.", ast);
                         }
                         priority = std::get<int64_t>(priorityVal->getLiteral());
                     }
@@ -958,11 +957,11 @@ BlsObject Analyzer::visit(AstNode::Initializer::Task& ast) {
                     }
                     else {
                         // get original string (no lowercasing) for error clarity
-                        throw SemanticError("Invalid attribute " + std::get<std::string>(attrVal->getLiteral()) + " for trigger declaration.");
+                        throw SemanticError("Invalid attribute " + std::get<std::string>(attrVal->getLiteral()) + " for trigger declaration.", ast);
                     }
                 }
                 if (rule.empty()) {
-                    throw SemanticError("Trigger declaration must provide a rule attribute.");
+                    throw SemanticError("Trigger declaration must provide a rule attribute.", ast);
                 }
             }
             else { // shortcut syntax
@@ -973,22 +972,22 @@ BlsObject Analyzer::visit(AstNode::Initializer::Task& ast) {
     }
     else if (option == "constPollOn") {
         if (args.size() != 1) {
-            throw SemanticError("Exactly one argument must be supplied to constPoll.");
+            throw SemanticError("Exactly one argument must be supplied to constPoll.", ast);
         }
         auto* pollMap = dynamic_cast<AstNode::Expression::Map*>(args.at(0).get());
         if (!pollMap) {
-            throw SemanticError("constPoll must be supplied a mapping of task parameters to polling rates.");
+            throw SemanticError("constPoll must be supplied a mapping of task parameters to polling rates.", ast);
         }
         for (auto&& [key, value] : pollMap->getElements()) {
             auto* paramExpr = dynamic_cast<AstNode::Expression::Access*>(key.get());
             auto* rateExpr = dynamic_cast<AstNode::Expression::Literal*>(value.get());
             if (!paramExpr) {
-                throw SemanticError("Mapping keys must be task parameters.");
+                throw SemanticError("Mapping keys must be task parameters.", ast);
             }
             if (!rateExpr
              || std::holds_alternative<std::string>(rateExpr->getLiteral())
              || std::holds_alternative<bool>(rateExpr->getLiteral())) {
-                throw SemanticError("Polling rate values must be integers or floats.");
+                throw SemanticError("Polling rate values must be integers or floats.", ast);
             }
             auto& param = paramExpr->getObject();
             cs.getLocal(param); // check that param exists
@@ -1002,20 +1001,20 @@ BlsObject Analyzer::visit(AstNode::Initializer::Task& ast) {
     }
     else if (option == "processPolicy") {
         if (args.size() != 1) {
-            throw SemanticError("Exactly one argument must be supplied to processPolicy.");
+            throw SemanticError("Exactly one argument must be supplied to processPolicy.", ast);
         }
         auto* configMap = dynamic_cast<AstNode::Expression::Map*>(args.at(0).get());
         if (!configMap) {
-            throw SemanticError("processPolicy must be supplied a mapping of task parameters to policy options.");
+            throw SemanticError("processPolicy must be supplied a mapping of task parameters to policy options.", ast);
         }
         for (auto&& [key, value] : configMap->getElements()) {
             auto* paramExpr = dynamic_cast<AstNode::Expression::Access*>(key.get());
             auto* policyMap = dynamic_cast<AstNode::Expression::Map*>(value.get());
             if (!paramExpr) {
-                throw SemanticError("Mapping keys must be task parameters.");
+                throw SemanticError("Mapping keys must be task parameters.", ast);
             }
             if (!policyMap) {
-                throw SemanticError("Mapping values must be policy option mappings");
+                throw SemanticError("Mapping values must be policy option mappings", ast);
             }
 
             auto& param = paramExpr->getObject();
@@ -1026,12 +1025,12 @@ BlsObject Analyzer::visit(AstNode::Initializer::Task& ast) {
                 auto* policyExpr = dynamic_cast<AstNode::Expression::Literal*>(key.get());
                 auto* optionExpr = dynamic_cast<AstNode::Expression::Literal*>(value.get());
                 if (!policyExpr || !std::holds_alternative<std::string>(policyExpr->getLiteral())) {
-                    throw SemanticError("Policy name must be a string literal.");
+                    throw SemanticError("Policy name must be a string literal.", ast);
                 }
                 auto policy = std::get<std::string>(policyExpr->getLiteral());
                 if (policy == "read") {
                     if (!optionExpr || !std::holds_alternative<std::string>(optionExpr->getLiteral())) {
-                        throw SemanticError("Read policy must be a string literal.");
+                        throw SemanticError("Read policy must be a string literal.", ast);
                     }
                     auto option = std::get<std::string>(optionExpr->getLiteral());
                     if (option == "all") {
@@ -1041,23 +1040,23 @@ BlsObject Analyzer::visit(AstNode::Initializer::Task& ast) {
                         dev.readPolicy = READ_POLICY::ANY;
                     }
                     else {
-                        throw SemanticError("Read policy must be either \"any\" or \"all\".");
+                        throw SemanticError("Read policy must be either \"any\" or \"all\".", ast);
                     }
                 }
                 else if (policy == "yield") {
                     if (!optionExpr || !std::holds_alternative<bool>(optionExpr->getLiteral())) {
-                        throw SemanticError("Yield policy must be a bool literal.");
+                        throw SemanticError("Yield policy must be a bool literal.", ast);
                     }
                     dev.isYield = std::get<bool>(optionExpr->getLiteral());
                 }
                 else if (policy == "ignoreWriteBacks") {
                     if (!optionExpr || !std::holds_alternative<bool>(optionExpr->getLiteral())) {
-                        throw SemanticError("WriteBack processing policy must be a bool literal.");
+                        throw SemanticError("WriteBack processing policy must be a bool literal.", ast);
                     }
                     dev.ignoreWriteBacks = std::get<bool>(optionExpr->getLiteral());
                 }
                 else {
-                    throw SemanticError("Invalid process policy supplied");
+                    throw SemanticError("Invalid process policy supplied", ast);
                 }
             }
             
@@ -1065,20 +1064,20 @@ BlsObject Analyzer::visit(AstNode::Initializer::Task& ast) {
     }
     else if (option == "overwritePolicy") {
         if (args.size() != 1) {
-            throw SemanticError("Exactly one argument must be supplied to overwritePolicy.");
+            throw SemanticError("Exactly one argument must be supplied to overwritePolicy.", ast);
         }
         auto* configMap = dynamic_cast<AstNode::Expression::Map*>(args.at(0).get());
         if (!configMap) {
-            throw SemanticError("overwritePolicy must be supplied a mapping of task parameters to policy options.");
+            throw SemanticError("overwritePolicy must be supplied a mapping of task parameters to policy options.", ast);
         }
         for (auto&& [key, value] : configMap->getElements()) {
             auto* paramExpr = dynamic_cast<AstNode::Expression::Access*>(key.get());
             auto* policyExpr = dynamic_cast<AstNode::Expression::Literal*>(value.get());
             if (!paramExpr) {
-                throw SemanticError("Mapping keys must be task parameters.");
+                throw SemanticError("Mapping keys must be task parameters.", ast);
             }
             if (!policyExpr || !std::holds_alternative<std::string>(policyExpr->getLiteral())) {
-                throw SemanticError("Mapping values must be string literals");
+                throw SemanticError("Mapping values must be string literals", ast);
             }
             
             auto& param = paramExpr->getObject();
@@ -1096,12 +1095,12 @@ BlsObject Analyzer::visit(AstNode::Initializer::Task& ast) {
                 dev.overwritePolicy = OVERWRITE_POLICY::DISCARD;
             }
             else {
-                throw SemanticError("Overwrite policy must be either \"clear\", \"current\", or \"discard\".");
+                throw SemanticError("Overwrite policy must be either \"clear\", \"current\", or \"discard\".", ast);
             }
         }
     }
     else {
-        throw SemanticError("Invalid task configuration option: " + option + ".");
+        throw SemanticError("Invalid task configuration option: " + option + ".", ast);
     }
     return std::monostate();
 } 

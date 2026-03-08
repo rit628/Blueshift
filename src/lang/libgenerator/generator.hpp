@@ -20,12 +20,15 @@ namespace BlsLang {
                     , std::unordered_map<std::string, std::pair<uint16_t, std::vector<std::string>>>& functionSymbols)
                     : taskDescriptors(taskDescriptors)
                     , literalPool(literalPool)
-                    , functionSymbols(functionSymbols) {}
+                    , functionSymbols(functionSymbols) { }
 
             #define AST_NODE(Node, ...) \
             BlsObject visit(Node& ast) override;
             #include "include/NODE_TYPES.LIST"
             #undef AST_NODE
+
+            void preVisit(AstNode& ast) override;
+            void postVisit(AstNode& ast) override;
 
             void writeBytecode(std::ostream& outputStream);
             void writeBytecode(std::vector<char>& outputVector);
