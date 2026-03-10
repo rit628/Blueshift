@@ -27,6 +27,7 @@ namespace BlsLang {
 
             void compileFile(const std::string& source, ostream_t outputStream = std::cout);
             void compileSource(const std::string& source, ostream_t outputStream = std::cout);
+            auto& getAst() { return ast; }
             auto& getTasks() { return tasks; }
             auto& getTaskDescriptors() { return taskDescriptors; }
             auto& getTaskDescriptorMap() { return analyzer.getTaskDescriptors(); }

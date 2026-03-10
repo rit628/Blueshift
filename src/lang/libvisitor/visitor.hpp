@@ -2,8 +2,8 @@
 #include "ast.hpp"
 #include "reserved_tokens.hpp"
 #include "bls_types.hpp"
-#include <functional>
-#include <variant>
+#include <concepts>
+#include <memory>
 
 namespace BlsLang {
 
@@ -21,9 +21,23 @@ namespace BlsLang {
     };
 
     class Visitor : public VisitorBase {
+        private:
+            BlsObject visitChild(auto&);
+            template<std::derived_from<AstNode> Node>
+            BlsObject visitChild(std::unique_ptr<Node>& node);
+            template<std::derived_from<AstNode> Node>
+            BlsObject visitChild(std::optional<std::unique_ptr<Node>>& node);
+            template<std::derived_from<AstNode> Node>
+            BlsObject visitChild(std::vector<std::unique_ptr<Node>>& nodes);
+            template<std::derived_from<AstNode> Node>
+            BlsObject visitChild(std::vector<std::pair<std::unique_ptr<Node>, std::unique_ptr<Node>>>& nodes);
+        
         public:
+            template<std::derived_from<AstNode> Node>
+            BlsObject visitChildren(Node& node);
+
             #define AST_NODE(Node, ...) \
-            virtual BlsObject visit(Node& ast) override;
+            inline virtual BlsObject visit(Node& ast) override { return visitChildren(ast); }
             #include "include/NODE_TYPES.LIST"
             #undef AST_NODE
 
@@ -64,59 +78,13 @@ namespace BlsLang {
                 , COUNT
             };
 
-            static constexpr BINARY_OPERATOR getBinOpEnum(std::string_view op) {
-                if (op == LOGICAL_AND) return BINARY_OPERATOR::AND;
-                if (op == LOGICAL_OR) return BINARY_OPERATOR::OR;
-                if (op == COMPARISON_LT) return BINARY_OPERATOR::LT;
-                if (op == COMPARISON_LE) return BINARY_OPERATOR::LE;
-                if (op == COMPARISON_GT) return BINARY_OPERATOR::GT;
-                if (op == COMPARISON_GE) return BINARY_OPERATOR::GE;
-                if (op == COMPARISON_NE) return BINARY_OPERATOR::NE;
-                if (op == COMPARISON_EQ) return BINARY_OPERATOR::EQ;
-                if (op == ARITHMETIC_ADDITION) return BINARY_OPERATOR::ADD;
-                if (op == ARITHMETIC_SUBTRACTION) return BINARY_OPERATOR::SUB;
-                if (op == ARITHMETIC_MULTIPLICATION) return BINARY_OPERATOR::MUL;
-                if (op == ARITHMETIC_DIVISION) return BINARY_OPERATOR::DIV;
-                if (op == ARITHMETIC_REMAINDER) return BINARY_OPERATOR::MOD;
-                if (op == ARITHMETIC_EXPONENTIATION) return BINARY_OPERATOR::EXP;
-                if (op == ASSIGNMENT) return BINARY_OPERATOR::ASSIGN;
-                if (op == ASSIGNMENT_ADDITION) return BINARY_OPERATOR::ASSIGN_ADD;
-                if (op == ASSIGNMENT_SUBTRACTION) return BINARY_OPERATOR::ASSIGN_SUB;
-                if (op == ASSIGNMENT_MULTIPLICATION) return BINARY_OPERATOR::ASSIGN_MUL;
-                if (op == ASSIGNMENT_DIVISION) return BINARY_OPERATOR::ASSIGN_DIV;
-                if (op == ASSIGNMENT_REMAINDER) return BINARY_OPERATOR::ASSIGN_MOD;
-                if (op == ASSIGNMENT_EXPONENTIATION) return BINARY_OPERATOR::ASSIGN_EXP;
-                return BINARY_OPERATOR::COUNT;
-            }
-
-            static constexpr UNARY_OPERATOR getUnOpEnum(std::string_view op) {
-                if (op == UNARY_NOT) return UNARY_OPERATOR::NOT;
-                if (op == UNARY_NEGATIVE) return UNARY_OPERATOR::NEG;
-                if (op == UNARY_INCREMENT) return UNARY_OPERATOR::INC;
-                if (op == UNARY_DECREMENT) return UNARY_OPERATOR::DEC;
-                return UNARY_OPERATOR::COUNT;
-            }
+            static constexpr BINARY_OPERATOR getBinOpEnum(std::string_view op);
+            static constexpr UNARY_OPERATOR getUnOpEnum(std::string_view op);
 
             static BlsType resolve(BlsObject&& obj);
             static BlsType& resolve(BlsObject& obj);
     };
 
-    inline BlsType Visitor::resolve(BlsObject&& obj) {
-        if (std::holds_alternative<BlsType>(obj)) {
-            return std::get<BlsType>(obj);
-        }
-        else {
-            return std::get<std::reference_wrapper<BlsType>>(obj);
-        }
-    }
-
-    inline BlsType& Visitor::resolve(BlsObject& obj) {
-        if (std::holds_alternative<BlsType>(obj)) {
-            return std::ref(std::get<BlsType>(obj));
-        }
-        else {
-            return std::get<std::reference_wrapper<BlsType>>(obj);
-        }
-    }
-
 }
+
+#include "visitor.tpp"

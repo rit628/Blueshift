@@ -1,5 +1,6 @@
 #pragma once
 #include "bls_types.hpp"
+#include <tuple>
 #include <unordered_set>
 #include <variant>
 #include <cstddef>
@@ -20,22 +21,35 @@ namespace BlsLang {
     using BlsObject = std::variant<BlsType, std::reference_wrapper<BlsType>>;
 
     struct AstNode {
-        struct Initializer;
-        struct Specifier;
-        struct Expression;
-        struct Statement;
-        struct Function;
-        struct Setup;
-        struct Source;
-        
-        virtual BlsObject accept(Visitor& v) = 0;
-        virtual std::unique_ptr<AstNode> clone() const = 0;
-        virtual ~AstNode() = default;
+        protected:
+            template<typename... Args>
+            static auto packMembers(Args&... members) { return std::make_tuple(std::ref(members)...); }
 
-        friend std::ostream& operator<<(std::ostream& os, const AstNode& node);
-        
-        size_t lineStart = 0, lineEnd = 0, columnStart = 0, columnEnd = 0;
-        size_t bytecodeStart = 0, bytecodeEnd = 0;
+            template<typename... Args>
+            auto packChildren(Args&... childMembers)
+            { return packMembers(lineStart, lineEnd, columnStart, columnEnd, bytecodeStart, bytecodeEnd, childMembers...); }
+
+            template<typename... Args>
+            constexpr auto packChildNames(Args&&... childNames) const
+            { return std::make_tuple("lineStart", "lineEnd", "columnStart", "columnEnd", "bytecodeStart", "bytecodeEnd", childNames...); }
+
+        public:
+            struct Initializer;
+            struct Specifier;
+            struct Expression;
+            struct Statement;
+            struct Function;
+            struct Setup;
+            struct Source;
+            
+            virtual BlsObject accept(Visitor& v) = 0;
+            virtual std::unique_ptr<AstNode> clone() const = 0;
+            virtual ~AstNode() = default;
+
+            friend std::ostream& operator<<(std::ostream& os, const AstNode& node);
+            
+            size_t lineStart = 0, lineEnd = 0, columnStart = 0, columnEnd = 0;
+            size_t bytecodeStart = 0, bytecodeEnd = 0;
     };
 
     struct AstNode::Initializer : public AstNode {
@@ -55,6 +69,9 @@ namespace BlsLang {
         BlsObject accept(Visitor& v) override;
         std::unique_ptr<AstNode> clone() const override;
         std::unique_ptr<AstNode::Initializer> cloneBase() const override;
+
+        auto getChildren() { return packChildren(option, args); }
+        constexpr auto getChildNames() { return packChildNames("option", "args"); }
 
         std::string option;
         std::vector<std::unique_ptr<AstNode::Expression>> args;
@@ -77,6 +94,9 @@ namespace BlsLang {
         BlsObject accept(Visitor& v) override;
         std::unique_ptr<AstNode> clone() const override;
         std::unique_ptr<AstNode::Specifier> cloneBase() const override;
+
+        auto getChildren() { return packChildren(name, typeArgs); }
+        constexpr auto getChildNames() { return packChildNames("name", "typeArgs"); }
 
         std::string name;
         std::vector<std::unique_ptr<AstNode::Specifier::Type>> typeArgs;
@@ -111,6 +131,9 @@ namespace BlsLang {
         std::unique_ptr<AstNode> clone() const override;
         std::unique_ptr<AstNode::Expression> cloneBase() const override;
 
+        auto getChildren() { return packChildren(literal); }
+        constexpr auto getChildNames() { return packChildNames("literal"); }
+
         std::variant<int64_t, double, bool, std::string> literal;
     };
 
@@ -124,6 +147,9 @@ namespace BlsLang {
         BlsObject accept(Visitor& v) override;
         std::unique_ptr<AstNode> clone() const override;
         std::unique_ptr<AstNode::Expression> cloneBase() const override;
+
+        auto getChildren() { return packChildren(elements, literal); }
+        constexpr auto getChildNames() const { return packChildNames("elements", "literal"); }
 
         std::vector<std::unique_ptr<AstNode::Expression>> elements;
         BlsType literal;
@@ -140,6 +166,9 @@ namespace BlsLang {
         std::unique_ptr<AstNode> clone() const override;
         std::unique_ptr<AstNode::Expression> cloneBase() const override;
 
+        auto getChildren() { return packChildren(elements); }
+        constexpr auto getChildNames() { return packChildNames("elements"); }
+
         std::vector<std::unique_ptr<AstNode::Expression>> elements;
     };
 
@@ -153,6 +182,9 @@ namespace BlsLang {
         BlsObject accept(Visitor& v) override;
         std::unique_ptr<AstNode> clone() const override;
         std::unique_ptr<AstNode::Expression> cloneBase() const override;
+
+        auto getChildren() { return packChildren(elements, literal); }
+        constexpr auto getChildNames() { return packChildNames("elements", "literal"); }
 
         std::vector<std::pair<std::unique_ptr<AstNode::Expression>, std::unique_ptr<AstNode::Expression>>> elements;
         BlsType literal;
@@ -171,6 +203,9 @@ namespace BlsLang {
         std::unique_ptr<AstNode> clone() const override;
         std::unique_ptr<AstNode::Expression> cloneBase() const override;
 
+        auto getChildren() { return packChildren(object, subscript, member, localIndex); }
+        constexpr auto getChildNames() { return packChildNames("object", "subscript", "member", "localIndex"); }
+
         std::string object;
         std::optional<std::unique_ptr<AstNode::Expression>> subscript;
         std::optional<std::string> member;
@@ -187,6 +222,9 @@ namespace BlsLang {
         BlsObject accept(Visitor& v) override;
         std::unique_ptr<AstNode> clone() const override;
         std::unique_ptr<AstNode::Expression> cloneBase() const override;
+
+        auto getChildren() { return packChildren(name, arguments); }
+        constexpr auto getChildNames() { return packChildNames("name", "arguments"); }
 
         std::string name;
         std::vector<std::unique_ptr<AstNode::Expression>> arguments;
@@ -211,6 +249,9 @@ namespace BlsLang {
         std::unique_ptr<AstNode> clone() const override;
         std::unique_ptr<AstNode::Expression> cloneBase() const override;
 
+        auto getChildren() { return packChildren(object, methodName, arguments, localIndex, objectType); }
+        constexpr auto getChildNames() { return packChildNames("object", "methodName", "arguments", "localIndex", "objectType"); }
+
         std::string object;
         std::string methodName;
         std::vector<std::unique_ptr<AstNode::Expression>> arguments;
@@ -228,6 +269,9 @@ namespace BlsLang {
         BlsObject accept(Visitor& v) override;
         std::unique_ptr<AstNode> clone() const override;
         std::unique_ptr<AstNode::Expression> cloneBase() const override;
+
+        auto getChildren() { return packChildren(expression); }
+        constexpr auto getChildNames() { return packChildNames("expression"); }
 
         std::unique_ptr<AstNode::Expression> expression;
     };
@@ -252,6 +296,9 @@ namespace BlsLang {
         std::unique_ptr<AstNode> clone() const override;
         std::unique_ptr<AstNode::Expression> cloneBase() const override;
 
+        auto getChildren() { return packChildren(op, expression, position); }
+        constexpr auto getChildNames() { return packChildNames("op", "expression", "position"); }
+
         std::string op;
         std::unique_ptr<AstNode::Expression> expression;
         OPERATOR_POSITION position;
@@ -272,28 +319,41 @@ namespace BlsLang {
         std::unique_ptr<AstNode> clone() const override;
         std::unique_ptr<AstNode::Expression> cloneBase() const override;
 
+        auto getChildren() { return packChildren(op, left, right); }
+        constexpr auto getChildNames() { return packChildNames("op", "left", "right"); }
+
         std::string op;
         std::unique_ptr<AstNode::Expression> left;
         std::unique_ptr<AstNode::Expression> right;
     };
 
     struct AstNode::Statement : public AstNode {
-        struct Expression;
-        struct Declaration;
-        struct Continue;
-        struct Break;
-        struct Return;
-        struct While;
-        struct For;
-        struct If;
-        
-        Statement() = default; 
-        Statement(std::unordered_set<std::string> controllerSplit) : controllerSplit(controllerSplit) {}
+        protected:
+            template<typename... Args>
+            auto packChildren(Args&... childMembers)
+            { return AstNode::packChildren(controllerSplit, childMembers...); }
 
-        virtual ~Statement() override = default;
-        virtual std::unique_ptr<AstNode::Statement> cloneBase() const = 0;
+            template<typename... Args>
+            constexpr auto packChildNames(Args&&... childNames) const
+            { return AstNode::packChildNames("controllerSplit", childNames...); }
 
-        std::unordered_set<std::string> controllerSplit; 
+        public:
+            struct Expression;
+            struct Declaration;
+            struct Continue;
+            struct Break;
+            struct Return;
+            struct While;
+            struct For;
+            struct If;
+            
+            Statement() = default; 
+            Statement(std::unordered_set<std::string> controllerSplit) : controllerSplit(controllerSplit) {}
+
+            virtual ~Statement() override = default;
+            virtual std::unique_ptr<AstNode::Statement> cloneBase() const = 0;
+
+            std::unordered_set<std::string> controllerSplit; 
     };
 
     struct AstNode::Statement::Expression : public AstNode::Statement {
@@ -308,6 +368,9 @@ namespace BlsLang {
         BlsObject accept(Visitor& v) override;
         std::unique_ptr<AstNode> clone() const override;
         std::unique_ptr<AstNode::Statement> cloneBase() const override;
+
+        auto getChildren() { return packChildren(expression); }
+        constexpr auto getChildNames() { return packChildNames("expression"); }
 
         std::unique_ptr<AstNode::Expression> expression;
     };
@@ -331,6 +394,9 @@ namespace BlsLang {
         std::unique_ptr<AstNode> clone() const override;
         std::unique_ptr<AstNode::Statement> cloneBase() const override;
 
+        auto getChildren() { return packChildren(name, modifiers, type, value, localIndex); }
+        constexpr auto getChildNames() { return packChildNames("name", "modifiers", "type", "value", "localIndex"); }
+
         std::string name;
         std::unordered_set<std::string> modifiers;
         std::unique_ptr<AstNode::Specifier::Type> type;
@@ -346,6 +412,9 @@ namespace BlsLang {
         BlsObject accept(Visitor& v) override;
         std::unique_ptr<AstNode> clone() const override;
         std::unique_ptr<AstNode::Statement> cloneBase() const override;
+        
+        auto getChildren() { return packChildren(); }
+        constexpr auto getChildNames() { return packChildNames(); }
     };
 
     struct AstNode::Statement::Break : public AstNode::Statement {
@@ -356,6 +425,9 @@ namespace BlsLang {
         BlsObject accept(Visitor& v) override;
         std::unique_ptr<AstNode> clone() const override;
         std::unique_ptr<AstNode::Statement> cloneBase() const override;
+        
+        auto getChildren() { return packChildren(); }
+        constexpr auto getChildNames() { return packChildNames(); }
     };
 
     struct AstNode::Statement::Return : public AstNode::Statement {
@@ -368,6 +440,9 @@ namespace BlsLang {
         BlsObject accept(Visitor& v) override;
         std::unique_ptr<AstNode> clone() const override;
         std::unique_ptr<AstNode::Statement> cloneBase() const override;
+
+        auto getChildren() { return packChildren(value); }
+        constexpr auto getChildNames() { return packChildNames("value"); }
 
         std::optional<std::unique_ptr<AstNode::Expression>> value;
     };
@@ -392,6 +467,9 @@ namespace BlsLang {
         std::unique_ptr<AstNode> clone() const override;
         std::unique_ptr<AstNode::Statement> cloneBase() const override;
 
+        auto getChildren() { return packChildren(condition, block, type); }
+        constexpr auto getChildNames() { return packChildNames("condition", "block", "type"); }
+
         std::unique_ptr<AstNode::Expression> condition;
         std::vector<std::unique_ptr<AstNode::Statement>> block;
         LOOP_TYPE type;
@@ -413,6 +491,9 @@ namespace BlsLang {
         BlsObject accept(Visitor& v) override;
         std::unique_ptr<AstNode> clone() const override;
         std::unique_ptr<AstNode::Statement> cloneBase() const override;
+
+        auto getChildren() { return packChildren(initStatement, condition, incrementExpression, block); }
+        constexpr auto getChildNames() { return packChildNames("initStatement", "condition", "incrementExpression", "block"); }
 
         std::optional<std::unique_ptr<AstNode::Statement>> initStatement;
         std::optional<std::unique_ptr<AstNode::Statement>> condition;
@@ -437,6 +518,9 @@ namespace BlsLang {
         std::unique_ptr<AstNode> clone() const override;
         std::unique_ptr<AstNode::Statement> cloneBase() const override;
 
+        auto getChildren() { return packChildren(condition, block, elseIfStatements, elseBlock); }
+        constexpr auto getChildNames() { return packChildNames("condition", "block", "elseIfStatements", "elseBlock"); }
+
         std::unique_ptr<AstNode::Expression> condition;
         std::vector<std::unique_ptr<AstNode::Statement>> block;
         std::vector<std::unique_ptr<AstNode::Statement::If>> elseIfStatements;
@@ -444,25 +528,35 @@ namespace BlsLang {
     };
 
     struct AstNode::Function : public AstNode {
-        struct Procedure;
-        struct Task;
+        protected:
+            template<typename... Args>
+            auto packChildren(Args&... childMembers)
+            { return AstNode::packChildren(name, parameterTypes, parameters, statements, childMembers...); }
+        
+            template<typename... Args>
+            constexpr auto packChildNames(Args&&... childNames) const
+            { return AstNode::packChildNames("name", "parameterTypes", "parameters", "statements", childNames...); }
 
-        Function() = default;
-        Function(std::string name
-               , std::vector<std::unique_ptr<AstNode::Specifier::Type>> parameterTypes
-               , std::vector<std::string> parameters
-               , std::vector<std::unique_ptr<AstNode::Statement>> statements);
-        Function(std::string name
-               , std::initializer_list<AstNode::Specifier::Type*> parameterTypes
-               , std::vector<std::string> parameters
-               , std::initializer_list<AstNode::Statement*> statements);
-        virtual ~Function() override = default;
-        virtual std::unique_ptr<AstNode::Function> cloneBase() const = 0;
+        public:
+            struct Procedure;
+            struct Task;
 
-        std::string name;
-        std::vector<std::unique_ptr<AstNode::Specifier::Type>> parameterTypes;
-        std::vector<std::string> parameters;
-        std::vector<std::unique_ptr<AstNode::Statement>> statements;
+            Function() = default;
+            Function(std::string name
+                   , std::vector<std::unique_ptr<AstNode::Specifier::Type>> parameterTypes
+                   , std::vector<std::string> parameters
+                   , std::vector<std::unique_ptr<AstNode::Statement>> statements);
+            Function(std::string name
+                   , std::initializer_list<AstNode::Specifier::Type*> parameterTypes
+                   , std::vector<std::string> parameters
+                   , std::initializer_list<AstNode::Statement*> statements);
+            virtual ~Function() override = default;
+            virtual std::unique_ptr<AstNode::Function> cloneBase() const = 0;
+
+            std::string name;
+            std::vector<std::unique_ptr<AstNode::Specifier::Type>> parameterTypes;
+            std::vector<std::string> parameters;
+            std::vector<std::unique_ptr<AstNode::Statement>> statements;
     };
 
     struct AstNode::Function::Procedure : public AstNode::Function {
@@ -483,6 +577,9 @@ namespace BlsLang {
         BlsObject accept(Visitor& v) override;
         std::unique_ptr<AstNode> clone() const override;
         std::unique_ptr<AstNode::Function> cloneBase() const override;
+
+        auto getChildren() { return packChildren(returnType); }
+        constexpr auto getChildNames() { return packChildNames("returnType"); }
         
         std::unique_ptr<AstNode::Specifier::Type> returnType;
     };
@@ -506,6 +603,9 @@ namespace BlsLang {
         std::unique_ptr<AstNode> clone() const override;
         std::unique_ptr<AstNode::Function> cloneBase() const override;
 
+        auto getChildren() { return packChildren(configOptions); }
+        constexpr auto getChildNames() { return packChildNames("configOptions"); }
+
         std::vector<std::unique_ptr<AstNode::Initializer::Task>> configOptions;
     };
 
@@ -518,7 +618,10 @@ namespace BlsLang {
 
         BlsObject accept(Visitor& v) override;
         std::unique_ptr<AstNode> clone() const override;
-        virtual std::unique_ptr<AstNode> cloneBase() const;
+        std::unique_ptr<AstNode> cloneBase() const;
+
+        auto getChildren() { return packChildren(statements); }
+        constexpr auto getChildNames() { return packChildNames("statements"); }
 
         std::vector<std::unique_ptr<AstNode::Statement>> statements;
     };
@@ -537,6 +640,9 @@ namespace BlsLang {
         BlsObject accept(Visitor& v) override;
         std::unique_ptr<AstNode> clone() const override;
         std::unique_ptr<AstNode> cloneBase() const;
+
+        auto getChildren() { return packChildren(procedures, tasks, setup); }
+        constexpr auto getChildNames() { return packChildNames("procedures", "tasks", "setup"); }
 
         std::vector<std::unique_ptr<AstNode::Function>> procedures;
         std::vector<std::unique_ptr<AstNode::Function>> tasks;
