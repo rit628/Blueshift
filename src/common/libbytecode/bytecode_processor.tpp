@@ -16,21 +16,28 @@
 #include <vector>
 
 template<typename Derived, bool SkipMetadata>
-inline void BytecodeProcessor<Derived, SkipMetadata>::readMetadata(std::istream& bytecode, boost::archive::binary_iarchive& ia) {
+inline boost::archive::binary_iarchive BytecodeProcessor<Derived, SkipMetadata>::createArchiver(std::istream& bytecode) {
+    return {bytecode, boost::archive::archive_flags::no_header};
+}
+
+template<typename Derived, bool SkipMetadata>
+inline void BytecodeProcessor<Derived, SkipMetadata>::readMetadata(std::istream& bytecode) {
     uint32_t metadataEnd;
     bytecode.read(reinterpret_cast<char*>(&metadataEnd), sizeof(metadataEnd));
     if constexpr (SkipMetadata) {
         bytecode.seekg(metadataEnd);
     }
     else {
+        auto ia = createArchiver(bytecode);
         ia >> functionMetadata;
     }
 }
 
 template<typename Derived, bool SkipMetadata>
-inline void BytecodeProcessor<Derived, SkipMetadata>::readHeader(std::istream& bytecode, boost::archive::binary_iarchive& ia) {
+inline void BytecodeProcessor<Derived, SkipMetadata>::readHeader(std::istream& bytecode) {
     uint16_t descriptorCount;
     bytecode.read(reinterpret_cast<char*>(&descriptorCount), sizeof(descriptorCount));
+    auto ia = createArchiver(bytecode);
     for (uint16_t i = 0; i < descriptorCount; i++) {
         TaskDescriptor temp;
         ia >> temp;
@@ -39,9 +46,10 @@ inline void BytecodeProcessor<Derived, SkipMetadata>::readHeader(std::istream& b
 }
 
 template<typename Derived, bool SkipMetadata>
-inline void BytecodeProcessor<Derived, SkipMetadata>::loadLiterals(std::istream& bytecode, boost::archive::binary_iarchive& ia) {
+inline void BytecodeProcessor<Derived, SkipMetadata>::loadLiterals(std::istream& bytecode) {
     uint16_t poolSize;
     bytecode.read(reinterpret_cast<char*>(&poolSize), sizeof(poolSize));
+    auto ia = createArchiver(bytecode);
     for (uint16_t i = 0; i < poolSize; i++) {
         BlsType literal;
         ia >> literal;
@@ -79,10 +87,10 @@ inline void BytecodeProcessor<Derived, SkipMetadata>::loadBytecode(std::istream&
     if (bytecode.bad()) {
         throw std::runtime_error("Bad bytecode stream provided.");
     }
-    boost::archive::binary_iarchive ia(bytecode, boost::archive::archive_flags::no_header);
-    readMetadata(bytecode, ia);
-    readHeader(bytecode, ia);
-    loadLiterals(bytecode, ia);
+
+    readMetadata(bytecode);
+    readHeader(bytecode);
+    loadLiterals(bytecode);
     loadInstructions(bytecode);
 }
 

@@ -29,9 +29,11 @@ class BytecodeProcessor {
         void dispatch(F&& preExecFunction = nop, F&& postExecFunction = nop);
 
     private:
-        void readMetadata(std::istream& bytecode, boost::archive::binary_iarchive& ia);
-        void readHeader(std::istream& bytecode, boost::archive::binary_iarchive& ia);
-        void loadLiterals(std::istream& bytecode, boost::archive::binary_iarchive& ia);
+        boost::archive::binary_iarchive createArchiver(std::istream& bytecode);
+
+        void readMetadata(std::istream& bytecode);
+        void readHeader(std::istream& bytecode);
+        void loadLiterals(std::istream& bytecode);
         void loadInstructions(std::istream& bytecode);
 
     protected:
