@@ -11,7 +11,7 @@ concept RangeOf = std::ranges::range<T> && std::is_same_v<std::ranges::range_val
 
 class BytecodeSerializer {
     public:
-        BytecodeSerializer(std::ostream& stream) : stream(stream), oa(stream, boost::archive::archive_flags::no_header) { }
+        BytecodeSerializer(std::ostream& stream) : stream(stream) { }
         void writeMetadata(std::unordered_map<std::string, std::pair<uint16_t, std::vector<std::string>>>& functionSymbols);
         void writeHeader(RangeOf<TaskDescriptor> auto&& taskDescriptors);
         void writeLiteralPool(RangeOf<BlsType> auto&& literals);
@@ -19,9 +19,14 @@ class BytecodeSerializer {
         void writeInstruction(INSTRUCTION& instruction);
 
     private:
+        boost::archive::binary_oarchive createArchiver();
+
         std::ostream& stream;
-        boost::archive::binary_oarchive oa;
 };
+
+inline boost::archive::binary_oarchive BytecodeSerializer::createArchiver() {
+    return {stream, boost::archive::archive_flags::no_header};
+}
 
 inline void BytecodeSerializer::writeMetadata(std::unordered_map<std::string, std::pair<uint16_t, std::vector<std::string>>>& functionSymbols) {
     uint32_t metadataEnd = 0;
@@ -30,6 +35,7 @@ inline void BytecodeSerializer::writeMetadata(std::unordered_map<std::string, st
     for (auto&& [name, metadata] : functionSymbols) {
         functionMetadata.emplace(metadata.first, std::make_pair(name, std::ref(metadata.second)));
     }
+    auto oa = createArchiver();
     oa << functionMetadata;
     metadataEnd = stream.tellp();
     stream.seekp(0);
@@ -40,6 +46,7 @@ inline void BytecodeSerializer::writeMetadata(std::unordered_map<std::string, st
 inline void BytecodeSerializer::writeHeader(RangeOf<TaskDescriptor> auto&& taskDescriptors) {
     uint16_t descriptorCount = taskDescriptors.size();
     stream.write(reinterpret_cast<const char *>(&descriptorCount), sizeof(descriptorCount));
+    auto oa = createArchiver();
     for (auto&& desc : taskDescriptors) {
         oa << desc;
     }
@@ -48,6 +55,7 @@ inline void BytecodeSerializer::writeHeader(RangeOf<TaskDescriptor> auto&& taskD
 inline void BytecodeSerializer::writeLiteralPool(RangeOf<BlsType> auto&& literals) {
     uint16_t poolSize = literals.size();
     stream.write(reinterpret_cast<const char *>(&poolSize), sizeof(poolSize));
+    auto oa = createArchiver();
     for (auto&& literal : literals) {
         oa << literal;
     }
