@@ -1,1 +1,1 @@
-bls_add_library(depgraph STATIC LINKS lang_common type)
+bls_add_library(depgraph STATIC LINKS visitor type)

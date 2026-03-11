@@ -94,7 +94,7 @@ namespace BlsLang{
         std::unordered_map<DeviceID, std::unordered_set<SymbolID>> deviceAssignmentSymbols; 
     }; 
 
-    class Symgraph : public Printer{
+    class Symgraph : public Visitor {
         private: 
             // End Product of the symbolic dep graph (other than AST statement annotation)
             DividerMetadata finalMetadata; 
@@ -105,7 +105,6 @@ namespace BlsLang{
             //std::unordered_map<TaskID, divContext> divContextMap; 
             //std::unordered_map<DeviceID, DeviceDescriptor> deviceDescriptors; 
             std::unordered_map<TaskID, TaskDescriptor> taskDescriptorMap; 
-            Printer p; 
 
             std::shared_ptr<StatementData> makeStData(AstNode::Statement* ptr, StatementType stype);
             std::pair<std::unordered_set<SymbolID>, std::unordered_set<DeviceID>> getDeps(AstNode& ast);
@@ -120,8 +119,6 @@ namespace BlsLang{
             void clearContext(); 
     
         public: 
-            Symgraph() : 
-            Printer(std::cout), p(std::cout){}
 
            ~Symgraph() override = default; 
             

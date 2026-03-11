@@ -1,1 +1,0 @@
-bls_add_library(lang_common STATIC LINKS type network)

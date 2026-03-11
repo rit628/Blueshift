@@ -1,7 +1,7 @@
 
 #pragma once
 #include "ast.hpp"
-#include "print_visitor.hpp"
+#include "visitor.hpp"
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -56,7 +56,7 @@ struct GlobalContext{
 
 namespace BlsLang{
 
-    class DepGraph : public Printer{
+    class DepGraph : public Visitor {
 
         private: 
             TaskContext taskCtx; 
@@ -72,8 +72,6 @@ namespace BlsLang{
 
         public: 
 
-        DepGraph() : Printer(std::cout){} 
-
             std::unordered_map<TaskID, TaskContext> getTaskMap(){
                 std::unordered_map<TaskID, TaskContext> sysCtx; 
                 for(auto& task : this->taskCtxList){
@@ -81,16 +79,6 @@ namespace BlsLang{
                 }
                 return sysCtx; 
             }
-
-        
-            /*
-            #define AST_NODE_ABSTRACT(...)
-                #define AST_NODE(Node) \
-                BlsObject visit(Node& ast) override; 
-                #include "include/NODE_TYPES.LIST"
-                #undef AST_NODE_ABSTRACT
-                #undef AST_NODE
-            */ 
 
             GlobalContext& getGlobalContext();
             TaskContext& getTaskContext(){return this->taskCtx;}

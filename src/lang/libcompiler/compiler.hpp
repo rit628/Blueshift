@@ -2,7 +2,6 @@
 #include "ast.hpp"
 #include "Serialization.hpp"
 #include "generator.hpp"
-#include "dependency_graph.hpp"
 #include "lexer.hpp"
 #include "parser.hpp"
 #include "interpreter.hpp"
@@ -28,6 +27,7 @@ namespace BlsLang {
 
             void compileFile(const std::string& source, ostream_t outputStream = std::cout);
             void compileSource(const std::string& source, ostream_t outputStream = std::cout);
+            auto& getAst() { return ast; }
             auto& getTasks() { return tasks; }
             auto& getTaskDescriptors() { return taskDescriptors; }
             auto& getTaskDescriptorMap() { return analyzer.getTaskDescriptors(); }

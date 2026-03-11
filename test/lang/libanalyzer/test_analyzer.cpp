@@ -3,7 +3,7 @@
 #include "error_types.hpp"
 #include "fixtures/analyzer_test.hpp"
 #include "Serialization.hpp"
-#include "include/reserved_tokens.hpp"
+#include "reserved_tokens.hpp"
 #include "bls_types.hpp"
 #include "typedefs.hpp"
 #include "test_macros.hpp"

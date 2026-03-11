@@ -65,10 +65,10 @@ VISITOR FUNCTIONS
 
 BlsObject DepGraph::visit(AstNode::Source& ast) {
     this->setupCtx.inSetup = true; 
-    ast.getSetup()->accept(*this); 
+    ast.setup->accept(*this); 
     this->setupCtx.inSetup = false; 
 
-    auto& taskList = ast.getTasks(); 
+    auto& taskList = ast.tasks; 
     for(auto& task : taskList){
         task->accept(*this); 
         this->taskCtxList.push_back(this->taskCtx); 
@@ -79,7 +79,7 @@ BlsObject DepGraph::visit(AstNode::Source& ast) {
 }
 
 BlsObject DepGraph::visit(AstNode::Setup& ast) {
-   for(auto& statements : ast.getStatements()){
+   for(auto& statements : ast.statements){
         statements->accept(*this); 
    }
 
@@ -87,9 +87,9 @@ BlsObject DepGraph::visit(AstNode::Setup& ast) {
 }
 
 BlsObject DepGraph::visit(AstNode::Function::Task& ast){
-    auto& name = ast.getName(); 
+    auto& name = ast.name; 
     this->taskCtx.operatingTask = name; 
-    auto& params = ast.getParameters(); 
+    auto& params = ast.parameters; 
 
     if(this->globalCtx.taskConnections.contains(name)){
 
@@ -99,7 +99,7 @@ BlsObject DepGraph::visit(AstNode::Function::Task& ast){
             this->taskCtx.devAliasMap[params[i]] = realDev[i]; 
         }
 
-        for(auto& statement : ast.getStatements()){ 
+        for(auto& statement : ast.statements){ 
             statement->accept(*this); 
         }
     }
@@ -111,9 +111,9 @@ BlsObject DepGraph::visit(AstNode::Statement::Declaration& ast) {
     if(this->setupCtx.inSetup){ 
         //  We assume declarartions in a setup context are device inits
         AstDeviceDesc devDesc; 
-        DeviceID dev = ast.getName(); 
+        DeviceID dev = ast.name; 
         devDesc.name = dev; 
-        auto& valStatement = ast.getValue(); 
+        auto& valStatement = ast.value; 
         if(valStatement.has_value()){
             auto container = resolve(valStatement.value()->accept(*this)); 
             if(std::holds_alternative<std::string>(container)){
@@ -126,9 +126,9 @@ BlsObject DepGraph::visit(AstNode::Statement::Declaration& ast) {
     }
     else{
         // Dependency graph production outside setup 
-        SymbolID name = ast.getName(); 
-        if(ast.getValue().has_value()){
-            ast.getValue().value()->accept(*this);  
+        SymbolID name = ast.name; 
+        if(ast.value.has_value()){
+            ast.value.value()->accept(*this);  
         }
     }
 
@@ -137,38 +137,38 @@ BlsObject DepGraph::visit(AstNode::Statement::Declaration& ast) {
 
 
 BlsObject DepGraph::visit(AstNode::Expression::Binary &ast){
-    if(ast.getOp() == "="){
+    if(ast.op == "="){
        this->taskCtx.isReading = false;  
-       ast.getLeft()->accept(*this); 
+       ast.left->accept(*this); 
        this->taskCtx.isReading = true; 
 
-       ast.getRight()->accept(*this); 
+       ast.right->accept(*this); 
     }
-    else if(ast.getOp() == "+="){
+    else if(ast.op == "+="){
         this->taskCtx.isRW = true; 
-        ast.getLeft()->accept(*this); 
+        ast.left->accept(*this); 
         this->taskCtx.isRW = false; 
-        ast.getRight()->accept(*this); 
+        ast.right->accept(*this); 
     }
     else{
-        ast.getLeft()->accept(*this); 
-        ast.getRight()->accept(*this); 
+        ast.left->accept(*this); 
+        ast.right->accept(*this); 
     }
     return true; 
 }
 
 
 BlsObject DepGraph::visit(AstNode::Statement::Expression &ast){
-    ast.getExpression()->accept(*this); 
+    ast.expression->accept(*this); 
     return true; 
 }
 
 BlsObject DepGraph::visit(AstNode::Expression::Function& ast) {
     if(this->setupCtx.inSetup){
         AstTaskDesc taskDesc; 
-        TaskID task = ast.getName(); 
+        TaskID task = ast.name; 
         taskDesc.name = task; 
-        auto& argList = ast.getArguments(); 
+        auto& argList = ast.arguments; 
         for(auto& dev : argList){
             auto devArg = resolve(dev->accept(*this)); 
             if(std::holds_alternative<std::string>(devArg)){
@@ -182,7 +182,7 @@ BlsObject DepGraph::visit(AstNode::Expression::Function& ast) {
         this->globalCtx.taskConnections[task] = taskDesc; 
     }
     else{
-        auto& argList = ast.getArguments(); 
+        auto& argList = ast.arguments; 
         for(auto& statement : argList){
             statement->accept(*this); 
         }
@@ -194,17 +194,17 @@ BlsObject DepGraph::visit(AstNode::Expression::Function& ast) {
 
 BlsObject DepGraph::visit(AstNode::Expression::Access& ast) {
     if(this->setupCtx.inSetup){
-        return ast.getObject(); 
+        return ast.object; 
     }
     else{
-        auto obj = ast.getObject(); 
+        auto obj = ast.object; 
         if(isDevice(obj)){
             auto& realDev = this->taskCtx.devAliasMap[obj]; 
             this->taskCtx.tempDevices.insert(realDev); 
         }
 
-        if(ast.getSubscript().has_value()){
-            ast.getSubscript().value()->accept(*this); 
+        if(ast.subscript.has_value()){
+            ast.subscript.value()->accept(*this); 
         }
 
         
@@ -236,8 +236,8 @@ BlsObject DepGraph::visit(AstNode::Expression::Access& ast) {
 
 BlsObject DepGraph::visit(AstNode::Expression::Literal& ast) {
     if(this->setupCtx.inSetup){
-        if (std::holds_alternative<std::string>(ast.getLiteral())) {
-            return std::get<std::string>(ast.getLiteral());
+        if (std::holds_alternative<std::string>(ast.literal)) {
+            return std::get<std::string>(ast.literal);
         }
     }
    
@@ -245,17 +245,17 @@ BlsObject DepGraph::visit(AstNode::Expression::Literal& ast) {
 }
 
 BlsObject DepGraph::visit(AstNode::Statement::If& ast) {
-    ast.getCondition()->accept(*this); 
+    ast.condition->accept(*this); 
 
-    for(auto& ifStatement : ast.getBlock()){
+    for(auto& ifStatement : ast.block){
         ifStatement->accept(*this); 
     }
 
-    for(auto& ifElseStatement : ast.getElseIfStatements()){
+    for(auto& ifElseStatement : ast.elseIfStatements){
         ifElseStatement->accept(*this); 
     }
 
-    for(auto& elseStatement :  ast.getElseBlock()){
+    for(auto& elseStatement :  ast.elseBlock){
         elseStatement->accept(*this); 
     }
     return true; 
@@ -263,19 +263,19 @@ BlsObject DepGraph::visit(AstNode::Statement::If& ast) {
 }
 
 BlsObject DepGraph::visit(AstNode::Statement::For& ast) {
-    if(ast.getCondition().has_value()){
-        ast.getCondition()->get()->accept(*this); 
+    if(ast.condition.has_value()){
+        ast.condition->get()->accept(*this); 
     }
 
-    if(ast.getInitStatement().has_value()){
-        ast.getInitStatement().value()->accept(*this); 
+    if(ast.initStatement.has_value()){
+        ast.initStatement.value()->accept(*this); 
     }
 
-    if(ast.getIncrementExpression().has_value()){
-        ast.getIncrementExpression().value()->accept(*this); 
+    if(ast.incrementExpression.has_value()){
+        ast.incrementExpression.value()->accept(*this); 
     }
 
-    for(auto& sm : ast.getBlock()){
+    for(auto& sm : ast.block){
         sm->accept(*this); 
     }
     return true; 
@@ -283,27 +283,27 @@ BlsObject DepGraph::visit(AstNode::Statement::For& ast) {
 }
 
 BlsObject DepGraph::visit(AstNode::Statement::While& ast) {
-    ast.getCondition()->accept(*this); 
-    for(auto &sm : ast.getBlock()){
+    ast.condition->accept(*this); 
+    for(auto &sm : ast.block){
         sm->accept(*this); 
     }
     return true; 
 }
 
 BlsObject DepGraph::visit(AstNode::Expression::Group& ast) {
-    ast.getExpression()->accept(*this); 
+    ast.expression->accept(*this); 
     return true; 
 }
 
 
 BlsObject DepGraph::visit(AstNode::Expression::Unary& ast){
-    if(ast.getOp() == "++" || ast.getOp() == "--"){
+    if(ast.op == "++" || ast.op == "--"){
         this->taskCtx.isRW = true; 
-        ast.getExpression()->accept(*this); 
+        ast.expression->accept(*this); 
         this->taskCtx.isRW = false; 
     }
     else{
-        ast.getExpression()->accept(*this); 
+        ast.expression->accept(*this); 
     }
     return true; 
 }

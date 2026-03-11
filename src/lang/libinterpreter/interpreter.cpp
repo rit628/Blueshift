@@ -20,11 +20,11 @@ template<class... Ts>
 struct overloads : Ts... { using Ts::operator()...; };
 
 BlsObject Interpreter::visit(AstNode::Source& ast) {
-    for (auto&& procedure : ast.getProcedures()) {
+    for (auto&& procedure : ast.procedures) {
         procedure->accept(*this);
     }
 
-    for (auto&& task : ast.getTasks()) {
+    for (auto&& task : ast.tasks) {
         task->accept(*this);
     }
 
@@ -32,11 +32,11 @@ BlsObject Interpreter::visit(AstNode::Source& ast) {
 }
 
 BlsObject Interpreter::visit(AstNode::Function::Procedure& ast) {
-    auto& procedureName = ast.getName();
+    auto& procedureName = ast.name;
 
     auto procedure = [&ast](Interpreter& exec, std::vector<BlsType> args) -> BlsType {
-        auto& params = ast.getParameters();
-        auto& statements = ast.getStatements();
+        auto& params = ast.parameters;
+        auto& statements = ast.statements;
         exec.cs.pushFrame(CallStack<std::string>::Frame::Context::FUNCTION);
         if (params.size() != args.size()) {
             throw RuntimeError("Invalid number of arguments provided to procedure call.");
@@ -63,11 +63,11 @@ BlsObject Interpreter::visit(AstNode::Function::Procedure& ast) {
 }
 
 BlsObject Interpreter::visit(AstNode::Function::Task& ast) {
-    auto& taskName = ast.getName();
+    auto& taskName = ast.name;
 
     auto task = [&ast](Interpreter& exec, std::vector<BlsType> args) -> std::vector<BlsType> {
-        auto& params = ast.getParameters();
-        auto& statements = ast.getStatements();
+        auto& params = ast.parameters;
+        auto& statements = ast.statements;
         exec.cs.pushFrame(CallStack<std::string>::Frame::Context::FUNCTION);
         if (params.size() != args.size()) {
             throw RuntimeError("Invalid number of arguments provided to task call.");
@@ -109,28 +109,28 @@ BlsObject Interpreter::visit(AstNode::Statement::If& ast) {
         cs.popFrame();
     };
 
-    if (checkCondition(*ast.getCondition())) {
-        execBlock(ast.getBlock());
+    if (checkCondition(*ast.condition)) {
+        execBlock(ast.block);
         return std::monostate();
     }
     else {
-        for (auto&& elif : ast.getElseIfStatements()) {
-            if (checkCondition(*elif->getCondition())) {
-                execBlock(elif->getBlock());
+        for (auto&& elif : ast.elseIfStatements) {
+            if (checkCondition(*elif->condition)) {
+                execBlock(elif->block);
                 return std::monostate(); // short circuit if elif condition is satisfied
             }
         }
         
-        execBlock(ast.getElseBlock());
+        execBlock(ast.elseBlock);
         return std::monostate();
     }
 }
 
 BlsObject Interpreter::visit(AstNode::Statement::For& ast) {
-    auto& initStatement = ast.getInitStatement();
-    auto& condition = ast.getCondition();
-    auto& incrementExpression = ast.getIncrementExpression();
-    auto& statements = ast.getBlock();
+    auto& initStatement = ast.initStatement;
+    auto& condition = ast.condition;
+    auto& incrementExpression = ast.incrementExpression;
+    auto& statements = ast.block;
 
     cs.pushFrame(CallStack<std::string>::Frame::Context::LOOP);
     std::function<void()> initExec = []() {};
@@ -169,9 +169,9 @@ BlsObject Interpreter::visit(AstNode::Statement::For& ast) {
 }
 
 BlsObject Interpreter::visit(AstNode::Statement::While& ast) {
-    auto& type = ast.getType();
-    auto& condition = ast.getCondition();
-    auto& statements = ast.getBlock();
+    auto& type = ast.type;
+    auto& condition = ast.condition;
+    auto& statements = ast.block;
 
     cs.pushFrame(CallStack<std::string>::Frame::Context::LOOP);
 
@@ -211,7 +211,7 @@ BlsObject Interpreter::visit(AstNode::Statement::While& ast) {
 }
 
 BlsObject Interpreter::visit(AstNode::Statement::Return& ast) {
-    auto& value = ast.getValue();
+    auto& value = ast.value;
     if (value.has_value()) {
         auto literal = value->get()->accept(*this);
         throw literal;
@@ -228,9 +228,9 @@ BlsObject Interpreter::visit(AstNode::Statement::Break& ast) {
 }
 
 BlsObject Interpreter::visit(AstNode::Statement::Declaration& ast) {
-    auto typedObj = resolve(ast.getType()->accept(*this));
-    auto& name = ast.getName();
-    auto& value = ast.getValue();
+    auto typedObj = resolve(ast.type->accept(*this));
+    auto& name = ast.name;
+    auto& value = ast.value;
     if (value.has_value()) {
         auto literal = resolve(value->get()->accept(*this));
         typedObj.assign(literal);
@@ -240,16 +240,16 @@ BlsObject Interpreter::visit(AstNode::Statement::Declaration& ast) {
 }
 
 BlsObject Interpreter::visit(AstNode::Statement::Expression& ast) {
-    return ast.getExpression()->accept(*this);
+    return ast.expression->accept(*this);
 }
 
 BlsObject Interpreter::visit(AstNode::Expression::Binary& ast) {
-    auto leftResult = ast.getLeft()->accept(*this);
+    auto leftResult = ast.left->accept(*this);
     auto& lhs = resolve(leftResult);
-    auto rightResult = ast.getRight()->accept(*this);
+    auto rightResult = ast.right->accept(*this);
     auto& rhs = resolve(rightResult);
 
-    auto op = getBinOpEnum(ast.getOp());
+    auto op = getBinOpEnum(ast.op);
     switch (op) {
         case BINARY_OPERATOR::OR:
             return lhs || rhs;
@@ -342,10 +342,10 @@ BlsObject Interpreter::visit(AstNode::Expression::Binary& ast) {
 }
 
 BlsObject Interpreter::visit(AstNode::Expression::Unary& ast) {
-    auto expression = ast.getExpression()->accept(*this);
+    auto expression = ast.expression->accept(*this);
     auto& object = resolve(expression);
-    auto op = getUnOpEnum(ast.getOp());
-    auto position = ast.getPosition();
+    auto op = getUnOpEnum(ast.op);
+    auto position = ast.position;
     
     switch (op) {
         case UNARY_OPERATOR::NOT:
@@ -387,15 +387,15 @@ BlsObject Interpreter::visit(AstNode::Expression::Unary& ast) {
 }
 
 BlsObject Interpreter::visit(AstNode::Expression::Group& ast) {
-    return ast.getExpression()->accept(*this);
+    return ast.expression->accept(*this);
 }
 
 BlsObject Interpreter::visit(AstNode::Expression::Method& ast) {
-    auto& objectName = ast.getObject();
+    auto& objectName = ast.object;
     auto& object = cs.getLocal(objectName);
     auto objType = getType(object);
-    auto& args = ast.getArguments();
-    auto& methodName = ast.getMethodName();
+    auto& args = ast.arguments;
+    auto& methodName = ast.methodName;
 
     if (false) { } // short circuit hack
     #define METHOD_BEGIN(name, objectType, ...) \
@@ -421,8 +421,8 @@ BlsObject Interpreter::visit(AstNode::Expression::Method& ast) {
 }
 
 BlsObject Interpreter::visit(AstNode::Expression::Function& ast) {
-    auto& name = ast.getName();
-    auto& args = ast.getArguments();
+    auto& name = ast.name;
+    auto& args = ast.arguments;
     std::vector<BlsType> argObjects;
     for (auto&& arg : args) {
         auto result = resolve(arg->accept(*this));
@@ -433,9 +433,9 @@ BlsObject Interpreter::visit(AstNode::Expression::Function& ast) {
 }
 
 BlsObject Interpreter::visit(AstNode::Expression::Access& ast) {
-    auto& object = ast.getObject();
-    auto& member = ast.getMember();
-    auto& subscript = ast.getSubscript();
+    auto& object = ast.object;
+    auto& member = ast.member;
+    auto& subscript = ast.subscript;
     if (member.has_value()) {
         auto& accessible = std::get<std::shared_ptr<HeapDescriptor>>(cs.getLocal(object));
         auto memberName = BlsType(member.value());
@@ -456,13 +456,13 @@ BlsObject Interpreter::visit(AstNode::Expression::Literal& ast) {
     const auto convert = overloads {
         [&literal](auto& value) { literal = value; }
     };
-    std::visit(convert, ast.getLiteral());
+    std::visit(convert, ast.literal);
     return literal;
 }
 
 BlsObject Interpreter::visit(AstNode::Expression::List& ast) {
     auto list = std::make_shared<VectorDescriptor>(TYPE::ANY);
-    auto& elements = ast.getElements();
+    auto& elements = ast.elements;
     for (auto&& element : elements) {
         auto literal = resolve(element->accept(*this));
         list->append(literal);
@@ -476,7 +476,7 @@ BlsObject Interpreter::visit(AstNode::Expression::Set&) {
 
 BlsObject Interpreter::visit(AstNode::Expression::Map& ast) {
     auto map = std::make_shared<MapDescriptor>(TYPE::ANY);
-    auto& elements = ast.getElements();
+    auto& elements = ast.elements;
     for (auto&& element : elements) {
         auto key = resolve(element.first->accept(*this));
         auto value = resolve(element.second->accept(*this));
@@ -487,7 +487,7 @@ BlsObject Interpreter::visit(AstNode::Expression::Map& ast) {
 
 BlsObject Interpreter::visit(AstNode::Specifier::Type& ast) {
     // type declarations visited for default construction
-    TYPE primaryType = getTypeFromName(ast.getName());
+    TYPE primaryType = getTypeFromName(ast.name);
     switch (primaryType) {
         case TYPE::void_t:
             return BlsType(std::monostate());

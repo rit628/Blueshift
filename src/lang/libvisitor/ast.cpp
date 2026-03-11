@@ -1,6 +1,6 @@
 #include "ast.hpp"
 #include "visitor.hpp"
-#include "print_visitor.hpp"
+#include "printer.hpp"
 #include <memory>
 #include <optional>
 #include <ostream>

@@ -4,7 +4,6 @@
 #include "bls_types.hpp"
 #include "traps.hpp"
 #include "call_stack.hpp"
-#include "include/reserved_tokens.hpp"
 #include "visitor.hpp"
 #include <cstdint>
 #include <iostream>

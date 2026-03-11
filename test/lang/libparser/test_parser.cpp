@@ -3,7 +3,7 @@
 #include "parser.hpp"
 #include "test_macros.hpp"
 #include "error_types.hpp"
-#include "include/reserved_tokens.hpp"
+#include "reserved_tokens.hpp"
 #include "token.hpp"
 #include <cstddef>
 #include <gtest/gtest.h>

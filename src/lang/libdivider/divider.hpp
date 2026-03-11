@@ -37,7 +37,7 @@ namespace BlsLang{
     }; 
 
 
-    class Divider : public Printer{
+    class Divider : public Visitor {
 
     private: 
         // What is to be returned by the divider
@@ -61,8 +61,6 @@ namespace BlsLang{
         
         
     public: 
-        Divider():Printer(std::cout) {}
-
         void setMetadata(DividerMetadata& newData){
             this->DivMeta = newData; 
         }

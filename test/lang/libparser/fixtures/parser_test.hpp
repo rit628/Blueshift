@@ -1,5 +1,5 @@
 #pragma once
-#include "test_visitor.hpp"
+#include "tester.hpp"
 #include "ast.hpp"
 #include "parser.hpp"
 #include <gtest/gtest.h>

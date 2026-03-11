@@ -1,5 +1,5 @@
 #include "lexer.hpp"
-#include "include/token_definitions.hpp"
+#include "token_definitions.hpp"
 #include "token.hpp"
 #include "error_types.hpp"
 #include <string>

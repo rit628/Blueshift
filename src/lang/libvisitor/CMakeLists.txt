@@ -1,0 +1,1 @@
+bls_add_library(visitor STATIC LINKS type syntax)

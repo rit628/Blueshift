@@ -1,1 +1,1 @@
-bls_add_library(interpreter STATIC LINKS lang_common type trap)
+bls_add_library(interpreter STATIC LINKS visitor type trap)
