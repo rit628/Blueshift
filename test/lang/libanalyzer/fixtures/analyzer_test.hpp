@@ -3,7 +3,7 @@
 #include "ast.hpp"
 #include "call_stack.hpp"
 #include "Serialization.hpp"
-#include "test_visitor.hpp"
+#include "tester.hpp"
 #include <gtest/gtest.h>
 #include <memory>
 #include <optional>
