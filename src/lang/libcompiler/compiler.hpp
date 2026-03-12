@@ -11,6 +11,7 @@
 #include "divider.hpp"
 #include "token.hpp"
 #include <memory>
+#include <unordered_map>
 #include <variant>
 #include <vector>
 
@@ -34,8 +35,12 @@ namespace BlsLang {
             auto& getTaskDescriptorMap() { return analyzer.getBoundTaskMap(); }
             auto getTaskContexts(){return depGraph.getTaskMap();}
             auto getGlobalContext() {return depGraph.getGlobalContext();}
+         
             
         private:
+            void modifyTaskDesc(std::unordered_map<std::string, TaskDescriptor>& taskDescs, GlobalContext& gtx); 
+
+
             std::vector<Token> tokens;
             std::unique_ptr<AstNode> ast;
             Lexer lexer;
