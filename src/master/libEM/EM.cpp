@@ -51,6 +51,10 @@ ExecutionUnit::ExecutionUnit(TaskDescriptor task, std::vector<std::string> devic
     this->transform_function = transform_function;
     this->info.task = task.name;
 
+    for(auto& device : task.binded_devices){
+        this->deviceMap.emplace(device.device_name, device); 
+    }
+
     // Device Position Map:
     int i = 0;  
     for(auto& device : devices){
@@ -165,9 +169,10 @@ void ExecutionUnit::running()
         // Release before retrieval
         this->globalScheduler.release(this->Task.name);
 
-        for(auto& devDesc : this->Task.outDevices)
+        for(auto& devName: this->Task.outDevices)
         {   
-            size_t pos = this->devicePositionMap[devDesc.device_name];
+            size_t pos = this->devicePositionMap.at(devName);
+            auto& devDesc = this->deviceMap.at(devName); 
             if (!modifiedStates.at(pos)) continue;
             auto transformedState = transformableStates.at(pos);
             HeapMasterMessage newHMM; 

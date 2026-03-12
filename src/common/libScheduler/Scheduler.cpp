@@ -1,6 +1,7 @@
 #include "Scheduler.hpp"
 #include "Serialization.hpp"
 #include <mutex>
+#include <unordered_map>
 
 
 /* 
@@ -27,7 +28,13 @@ DeviceScheduler::DeviceScheduler(std::vector<TaskDescriptor> &taskDescList, std:
 {
     for(auto& taskDesc : taskDescList){
         auto& taskName = taskDesc.name;
-        for(DeviceDescriptor& dev : taskDesc.outDevices){
+        std::unordered_map<std::string, DeviceDescriptor> devMap; 
+        for(auto& devDesc : taskDesc.binded_devices){
+            devMap.emplace(taskDesc.name, devDesc); 
+        }
+
+        for(std::string& devName : taskDesc.outDevices){
+            auto& dev = devMap[devName];  
             if(dev.deviceKind != DeviceKind::CURSOR){
                 if(this->scheduledProcessMap.contains(dev.device_name)){
                     this->scheduledProcessMap[dev.device_name]; 

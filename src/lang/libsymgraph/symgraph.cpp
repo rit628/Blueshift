@@ -476,7 +476,7 @@ std::vector<std::pair<DeviceID, ControllerID>> Symgraph::findDivisions(){
             std::cout<<"Device desc (SHOULD BE dev): "<<str<<std::endl; 
             
             if(!addedBinds.contains(readDevDesc.device_name)){
-                derTaskDesc.inDevices.push_back(readDevDesc);  
+                derTaskDesc.inDevices.push_back(readDevDesc.device_name);  
                 derTaskDesc.binded_devices.push_back(readDevDesc);  
                 paramList.push_back(invAliasMap[str]);   
                 addedBinds.insert(readDevDesc.device_name); 
@@ -484,7 +484,7 @@ std::vector<std::pair<DeviceID, ControllerID>> Symgraph::findDivisions(){
         }); 
 
         if(!addedBinds.contains(currDevDesc.device_name)){
-            derTaskDesc.outDevices.push_back(currDevDesc);
+            derTaskDesc.outDevices.push_back(currDevDesc.device_name);
             derTaskDesc.binded_devices.push_back(currDevDesc); 
             paramList.push_back(pair.first); 
             addedBinds.insert(currDevDesc.device_name); 

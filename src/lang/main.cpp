@@ -10,7 +10,13 @@ int main(int argc, char** argv) {
     if (argc < 2) {
         throw std::runtime_error("No input file provided");
     }
+
+
     auto out = std::ofstream("./samples/bsm/out.bsm", std::ios::out | std::ios::binary);
+    
     compiler.compileFile(argv[1], out);
+    auto srcName = std::ofstream("./samples/bsm/srcName.txt", std::ios::out);
+    srcName << argv[1]; 
+
     return 0;
 }

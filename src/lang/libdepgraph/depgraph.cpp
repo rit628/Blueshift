@@ -182,9 +182,11 @@ BlsObject DepGraph::visit(AstNode::Expression::Function& ast) {
         this->globalCtx.taskConnections[task] = taskDesc; 
     }
     else{
-        auto& argList = ast.getArguments(); 
-        for(auto& statement : argList){
-            statement->accept(*this); 
+        if(ast.getName() != "push"){
+            auto& argList = ast.getArguments(); 
+            for(auto& statement : argList){
+                statement->accept(*this); 
+            }
         }
     }
 

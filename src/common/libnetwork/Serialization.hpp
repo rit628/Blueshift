@@ -139,8 +139,8 @@ struct TaskDescriptor {
     std::string name = "";
     std::vector<DeviceDescriptor> binded_devices = {}; 
     int bytecode_offset = 0; 
-    std::vector<DeviceDescriptor> inDevices = {};
-    std::vector<DeviceDescriptor> outDevices = {}; 
+    std::vector<std::string> inDevices = {};
+    std::vector<std::string> outDevices = {}; 
     std::string hostController = "MASTER";
 
     std::vector<TriggerData> triggers = {};
@@ -350,8 +350,8 @@ inline TaskDescriptor tag_invoke(const boost::json::value_to_tag<TaskDescriptor>
     desc.name = value_to<std::string>(obj.at("name"));
     desc.binded_devices = value_to<std::vector<DeviceDescriptor>>(obj.at("binded_devices"));
     desc.bytecode_offset = value_to<int>(obj.at("bytecode_offset"));
-    desc.inDevices = value_to<std::vector<DeviceDescriptor>>(obj.at("inDevices"));
-    desc.outDevices = value_to<std::vector<DeviceDescriptor>>(obj.at("outDevices"));
+    desc.inDevices = value_to<std::vector<std::string>>(obj.at("inDevices"));
+    desc.outDevices = value_to<std::vector<std::string>>(obj.at("outDevices"));
     desc.hostController = value_to<std::string>(obj.at("hostController"));
     desc.triggers = value_to<std::vector<TriggerData>>(obj.at("triggers"));
     return desc;

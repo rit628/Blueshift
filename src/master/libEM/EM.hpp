@@ -23,6 +23,7 @@ class ExecutionUnit
     TaskDescriptor Task;
     Task_Info info;
     std::unordered_map<std::string, HeapMasterMessage> stateMap;
+    std::unordered_map<std::string, DeviceDescriptor> deviceMap; 
     std::vector<std::string> devices;
     std::vector<bool> isVtype;
     std::vector<std::string> controllers;
@@ -39,6 +40,7 @@ class ExecutionUnit
     BlsLang::VirtualMachine vm;
     TSQ<HeapMasterMessage> &sendMM; 
     asio::io_context &ctx; 
+    
 
 
     // Pulling stuff
