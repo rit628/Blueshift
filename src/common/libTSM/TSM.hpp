@@ -16,12 +16,17 @@ class TSM
         void insert(const Key& key, const Value& value) 
         {
             std::unique_lock<std::shared_mutex> lock(this->mut);
-            map[key] = value;
+            map.insert_or_assign(key, value);
         }
 
         void remove(const Key& key) {
             std::unique_lock<std::shared_mutex> lock(this->mut);
             map.erase(key);
+        }
+
+        const Value& at(const Key& key) const {
+            std::shared_lock<std::shared_mutex> lock(this->mut);
+            return map.at(key);
         }
 
         std::optional<Value> get(const Key& key) const 

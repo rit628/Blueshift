@@ -19,9 +19,6 @@
 #include <utility>
 #include <variant>
 #include <boost/range/adaptor/map.hpp>
-#ifdef __linux__
-#include <sys/inotify.h>
-#endif
 #ifdef __RPI64__
 #include <pigpio.h>
 #endif
@@ -430,11 +427,9 @@ void DeviceInterruptor::sendMessage() {
 void DeviceInterruptor::disableWatchers() {
     for (auto&& descriptor : watchDescriptors) {
         std::visit(overloads {
-            [](FileWatchDescriptor& desc) {
-                auto&& [fd, wd, filename] = desc;
-                #ifdef __linux__
-                inotify_rm_watch(fd, wd);
-                #endif
+            [this](FileWatchDescriptor& desc) {
+                auto&& [filename, _] = desc;
+                fileWatcher.removeWatch(filename);
             },
             [](GpioWatchDescriptor& desc [[ maybe_unused ]]) {
                 #ifdef __RPI64__
@@ -459,15 +454,9 @@ void DeviceInterruptor::disableWatchers() {
 void DeviceInterruptor::enableWatchers() {
     for (auto&& descriptor : watchDescriptors) {
         std::visit(overloads {
-            [](FileWatchDescriptor& desc) {
-                auto&& [fd, wd, filename] = desc;
-                #ifdef __linux__
-                wd = inotify_add_watch(fd, filename.c_str(), IN_CLOSE_WRITE);
-                #endif
-                if(wd < 0){
-                    std::cerr<<"Could not add watcher"<<std::endl; 
-                    close(fd);
-                }
+            [this](FileWatchDescriptor& desc) {
+                auto&& [filename, callback] = desc;
+                fileWatcher.addWatch(filename, callback);
             },
             [](GpioWatchDescriptor& desc [[ maybe_unused ]]) {
                 #ifdef __RPI64__
@@ -524,42 +513,35 @@ void DeviceInterruptor::manageWatchers(std::stop_token stoken) {
 }
 
 void DeviceInterruptor::IFileWatcher(std::stop_token stoken, std::string fname, std::function<bool()> handler){
-    // Check if the file exists relative to the deviceCore; 
-    #ifdef __linux__
-    int fd = inotify_init();
-
-    if(fd < 0){
-        std::cerr<<"Could not make Inotify object"<<std::endl; 
-        close(fd); 
-    }
-    // The IFileWatcher makes the call when the file is modified
-    int wd = inotify_add_watch(fd, fname.c_str(), IN_CLOSE_WRITE); 
-    if(wd < 0){
-        std::cerr<<"Could not perform an inotify event"<<std::endl; 
-        close(fd); 
-    }
-    watchDescriptors.push_back(FileWatchDescriptor{fd, wd, fname});
-
-    // For now we can bypass the metadata and store data for the filesize and stuff;
-    char event_buffer[sizeof(inotify_event) + 256]; 
-    while(!stoken.stop_requested()){
-        //std::cout<<"Waiting for event"<<std::endl;
-        int read_length [[ maybe_unused ]] = read(fd, event_buffer, sizeof(event_buffer)); 
-
-        auto* event = reinterpret_cast<struct inotify_event*>(event_buffer);
-        if (event->mask == IN_IGNORED) {
-            //std::cout << "drop removed watch event" << std::endl;
-            continue;
+    // Check if the file exists relative to the deviceCore;
+    std::condition_variable_any cv;  
+    std::mutex m; 
+    bool handlerSignal = false; 
+    auto callback = [&handlerSignal, &cv, &m, &handler](){
+        {
+            std::unique_lock lk(m);
+            cv.wait(lk, [&handlerSignal](){return !handlerSignal; }); 
+            handlerSignal = handler(); 
         }
-         
-        if(handler() && !inCooldown()){
-            std::cerr<<"Sending message"<<std::endl;
-            restartCooldown();
-            this->sendMessage();  
+        cv.notify_all(); 
+        return handlerSignal;
+    };
+
+    fileWatcher.addWatch(fname, callback);
+    watchDescriptors.push_back(FileWatchDescriptor{fname, callback});
+
+    while (!stoken.stop_requested()) {
+        std::unique_lock lk(m);
+        if (cv.wait(lk, stoken, [&handlerSignal] { return handlerSignal; })) {
+            if (!inCooldown()) {
+                restartCooldown();
+                this->sendMessage();
+            }
+            handlerSignal = false;
         }
+        cv.notify_one();
     }
     running.wait(true); // terminate thread once watcher manager has shutdown
-    #endif
 }
 
 void DeviceInterruptor::IGpioWatcher(std::stop_token stoken, int portNum, std::function<bool(int, int , uint32_t)> handler) {
@@ -640,16 +622,12 @@ void DeviceInterruptor::IHttpWatcher(std::stop_token stoken, std::shared_ptr<Htt
     std::condition_variable_any cv;  
     std::mutex m; 
     bool handlerSignal = false; 
-    int s_id = 0; 
-    auto callback = [&handlerSignal, &cv, &m, &handler, &s_id](int64_t sessionID, std::string ip, std::string json){
+    auto callback = [&handlerSignal, &cv, &m, &handler](int64_t sessionID, std::string ip, std::string json){
         {
             std::unique_lock lk(m);
             cv.wait(lk, [&handlerSignal](){return !handlerSignal; }); 
-            s_id = sessionID; 
             handlerSignal = handler(sessionID, ip, json); 
-
         }
-
         cv.notify_all(); 
         return handlerSignal;
     }; 

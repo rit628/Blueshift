@@ -2,6 +2,7 @@
 
 #include "DynamicMessage.hpp"
 #include "ADC.hpp"
+#include "FileWatcher.hpp"
 #include "TSM.hpp"
 #include "Protocol.hpp"
 #include "Devices.hpp"
@@ -149,9 +150,8 @@ class DevicePoller : public DeviceControlInterface<DevicePoller> {
 class DeviceInterruptor : public DeviceControlInterface<DeviceInterruptor> {
     private:
         struct FileWatchDescriptor {
-            int fd;
-            int wd;
             std::string filename;
+            std::function<void()> callback;
         };
 
         struct GpioWatchDescriptor {
@@ -185,6 +185,7 @@ class DeviceInterruptor : public DeviceControlInterface<DeviceInterruptor> {
         std::jthread watcherManagerThread;
         std::vector<std::jthread> globalWatcherThreads;
         std::vector<WatchDescriptor> watchDescriptors;
+        FileWatcher fileWatcher;
         boost::asio::steady_timer cooldownTimer;
         std::atomic_bool running = true;
 
