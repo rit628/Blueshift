@@ -92,8 +92,8 @@ services:
     develop:
       watch:
         - action: sync+restart
-          path: ${MASTER_PROGRAM_NAME}
-          target: ${MASTER_PROGRAM_NAME}
+          path: ${DEPLOY_SRC}
+          target: ${DEPLOY_SRC}
     expose:
       - ${MASTER_PORT}
     pid: ${DEPLOY_NAMESPACE}
@@ -124,8 +124,8 @@ services:
     develop:
       watch:
         - action: sync+restart
-          path: ${CLIENT_PROGRAM_NAME}
-          target: ${CLIENT_PROGRAM_NAME}
+          path: ${DEPLOY_SRC}
+          target: ${DEPLOY_SRC}
     expose:
       - ${BROADCAST_PORT}
     pid: ${DEPLOY_NAMESPACE}

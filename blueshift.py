@@ -13,8 +13,7 @@ from dotenv import load_dotenv
 from scapy.all import sniff, conf, sendp
 from pathlib import Path
 from threading import Thread
-from shutil import rmtree
-
+from shutil import rmtree, copy2
 
 load_dotenv()
 PROJECT_NAME = os.getenv("PROJECT_NAME")
@@ -24,7 +23,6 @@ NUM_CLIENTS = os.getenv("NUM_CLIENTS")
 CONTAINER_MOUNT_DIRECTORY = os.getenv("CONTAINER_MOUNT_DIRECTORY")
 BUILD_OUTPUT_DIRECTORY = os.getenv("BUILD_OUTPUT_DIRECTORY")
 RUNTIME_OUTPUT_DIRECTORY = os.getenv("RUNTIME_OUTPUT_DIRECTORY")
-TARGET_OUTPUT_DIRECTORY = os.getenv("TARGET_OUTPUT_DIRECTORY")
 DEPENDENCY_DIRECTORY = os.getenv("DEPENDENCY_DIRECTORY")
 PLATFORM_TAG = os.getenv("PLATFORM_TAG")
 DEBUG_SERVER_PORT_MIN = os.getenv("DEBUG_SERVER_PORT_MIN")
@@ -58,17 +56,26 @@ def get_output(cmd, **kwargs) -> str:
 def run_as_src_user(f):
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
+        if os.name == "nt":
+            return f(*args, **kwargs)
+        
         uid, gid = os.getuid(), os.getgid()
         src_perms = os.stat(Path("src"))
         if uid == 0 and gid == 0:
             os.setegid(src_perms.st_gid)
             os.seteuid(src_perms.st_uid)
-            f(*args, **kwargs)
+            result = f(*args, **kwargs)
             os.setegid(gid)
             os.seteuid(uid)
         else:
-            f(*args, **kwargs)
+            result = f(*args, **kwargs)
+        return result
+    
     return wrapper
+
+def copy(source : Path, *destinations : Path):
+    for destination in destinations:
+        copy2(source, destination)
 
 @run_as_src_user
 def initialize_host():
@@ -147,14 +154,6 @@ def attach_debugger(process_name, debug_binary, server_port):
             attach_to_process(pid, process_name, debug_binary, server_port)
             return
 
-def symlink(source : Path | str, target : Path | str, is_directory = False):
-    # add "." as part of target for links relative to source
-    source = Path(source)
-    if source.exists() or source.is_symlink():
-        os.unlink(source)
-    source.symlink_to(target, target_is_directory=is_directory)
-    return source
-
 def open_vnc_display():
     os.environ["DISPLAY_NAME"] = f"{VNC_CONTAINER_NAME}:0.0"
     wait_for_container_server(VNC_PORT)
@@ -178,19 +177,24 @@ def get_host_os():
         return "osx64"
     return system
 
-def get_target(PLATFORM_TAG=""):
+def read_build_info(info_path : Path):
+    if not info_path.exists():
+        print("Build target not found.")
+        sys.exit(1)
+    with info_path.open() as info:
+        return info.readline().split()
+
+def get_target_dir(PLATFORM_TAG=""):
     if not PLATFORM_TAG:
         PLATFORM_TAG = get_host_os()
-    return Path(BUILD_OUTPUT_DIRECTORY, PLATFORM_TAG, TARGET_OUTPUT_DIRECTORY)
 
-def get_remote_path(build_path):
-    with Path(build_path, ".info").open() as info:
-        remote_path, _ = info.readline().split()
-    return remote_path
+    target_info = Path(BUILD_OUTPUT_DIRECTORY, PLATFORM_TAG, ".info")
+    ARTIFACT_TYPE = read_build_info(target_info)[2]
+    return Path(BUILD_OUTPUT_DIRECTORY, PLATFORM_TAG, ARTIFACT_TYPE)
 
 def run(args):
     if args.local:
-        executable = Path(".", get_target(), RUNTIME_OUTPUT_DIRECTORY, args.binary)
+        executable = Path(".", get_target_dir(), RUNTIME_OUTPUT_DIRECTORY, args.binary)
         run_cmd([executable, *args.binary_args])
     else:
         if args.vnc: initialize_vnc_display()
@@ -213,6 +217,8 @@ def debug(args):
     stop_on_entry = "true" if args.stop_on_entry else "false"
     # use controller name as debug name for readability if debugging client
     debug_name = args.binary_args[0] if args.binary == "client" and len(args.binary_args) > 0 else args.binary
+
+    get_remote_path = lambda build_path : read_build_info(Path(build_path, ".info"))[0]
 
     if args.server:
         if args.debugger == "lldb":
@@ -308,6 +314,10 @@ def deploy(args):
     command = [*base_cmd, "up"]
     os.environ["DEPLOY_SRC"] = str(Path("samples", "src", args.filename))
 
+    default_target_path = get_target_dir("linux64")
+    master_binary = Path(default_target_path, "master")
+    client_binary = Path(default_target_path, "client")
+
     if args.num_clients:
         os.environ["NUM_CLIENTS"] = args.num_clients
     if args.build:
@@ -328,6 +338,9 @@ def deploy(args):
         for i in range(num_clients): 
             Thread(target=attach_debugger, args=(f"blueshift-client-{i + 1}", client_binary, DEBUG_SERVER_PORT), daemon=True).start()
     
+    os.environ["MASTER_PROGRAM_NAME"] = str(master_binary)
+    os.environ["CLIENT_PROGRAM_NAME"] = str(client_binary)
+
     run_cmd(command)
 
 def build(args):
@@ -356,18 +369,18 @@ def build(args):
             cmake_args.append(f"-DCMAKE_TOOLCHAIN_FILE={Path(os.getcwd(), ".cmake", f"{PLATFORM_TAG}.cmake")}")
 
         run_cmd(["cmake", *cmake_args, "-S", ".", "-B", ARTIFACT_DIR])
-        symlink(COMPILE_DB_PATH, Path(".", PLATFORM_TAG, ARTIFACT_TYPE, "compile_commands.json"))
         # used for clangd and debugger source maps
+        copy(Path(ARTIFACT_DIR, "compile_commands.json"), COMPILE_DB_PATH)
         with Path(ARTIFACT_DIR, ".info").open("w") as build_info:
-            build_info.write(f"{os.getcwd()} {PLATFORM_TAG}")
-        symlink(Path(BUILD_OUTPUT_DIRECTORY, ".info"), Path(".", PLATFORM_TAG, ARTIFACT_TYPE, ".info"))
+            build_info.write(f"{os.getcwd()} {PLATFORM_TAG} {ARTIFACT_TYPE}")
+        # copy info to target arch artifact dir root as substitute for symlinking previous artifact dir
+        copy(Path(ARTIFACT_DIR, ".info"), ARTIFACT_DIR.parent, Path(BUILD_OUTPUT_DIRECTORY, ".info"))
 
         # 1 <= j <= n-1 (keep 1 core free for background tasks)
         core_count = str(max(1, min(args.parallel, NUM_CORES - 1)))
         build_args = [args.verbose, "-j", core_count]
         run_cmd(["cmake", "--build", ".", *build_args, "-t", *args.make],
                        cwd=f"./{ARTIFACT_DIR}")
-        symlink(get_target(PLATFORM_TAG), Path(".", ARTIFACT_TYPE), True)
     else: # build binaries in remote container
         initialize_host()
         if args.image_build: # ensure builder base image is up to date
@@ -382,11 +395,7 @@ def test(args):
     ctest_args = [args.verbose, "-R", args.tests_regex]
     if args.local: # TODO: fix local test execution in non container environments (map container src dir to host src dir in ctest?)
         fail_output = ["--output-on-failure"] if not args.no_output_on_failure else []
-        TARGET_DIR = get_target()
-        if not TARGET_DIR.exists():
-            print("No tests to run.")
-            sys.exit(0)
-        run_cmd(["ctest", *fail_output, *ctest_args], cwd=f"./{TARGET_DIR}")
+        run_cmd(["ctest", *fail_output, *ctest_args], cwd=f"./{get_target_dir()}")
     else: # test in remote container
         initialize_host()
         run_cmd(["docker", "compose", "run", "--rm", "builder", "test", "-l", *ctest_args])

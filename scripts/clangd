@@ -8,7 +8,7 @@ while not build_info.exists():
     sleep(1)
 
 with build_info.open() as info:
-    container_path, platform = info.readline().split()
+    container_path, platform, _ = info.readline().split()
 cwd = os.getcwd()
 os.environ["PLATFORM_TAG"] = platform
 
