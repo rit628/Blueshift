@@ -3,8 +3,9 @@ logs
 *.log
 
 # Build artifacts
-.cdeps/
-build/
+/.cdeps/
+/build/
+/.cache/
 CMakeCache.txt
 CMakeFiles/
 Makefile
@@ -18,10 +19,10 @@ Makefile
 *.pdb
 
 # Editor directories and files
-.vscode/**/*
-!.vscode/settings.json
-!.vscode/extensions.json
-.venv
+/.vscode/**/*
+!/.vscode/settings.json
+!/.vscode/extensions.json
+/.venv
 __pycache__
 *.code-workspace
 .idea
@@ -36,8 +37,7 @@ __pycache__
 Thumbs.db
 
 # Local Files
-.cache/
 *.local
 
 # Core Dumps
-core
+/core
