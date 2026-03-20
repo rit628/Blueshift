@@ -74,4 +74,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    os.execv(PYTHON_PATH, [PYTHON_PATH, "blueshift.py", *sys.argv[1:]])
+    os.execv(PYTHON_PATH, [PYTHON_PATH, "scripts/build/cli.py", *sys.argv[1:]])
