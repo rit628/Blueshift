@@ -13,10 +13,10 @@ def reset(args):
     print("Shutting down all containers...")
     run_cmd(["docker", "compose", "down", "--rmi", "all", "-v", "--remove-orphans"])
 
-    network_id = get_output(f"docker network ls -f 'name={env.NETWORK_NAME}' --format '{{{{.ID}}}}'", shell=True)
-    container_ids = get_output(f"docker container ls -af 'name={env.PROJECT_PREFIX}-*' --format '{{{{.ID}}}}'", shell=True)
-    image_ids = get_output(f"docker image ls -af 'reference={env.PROJECT_PREFIX}-*' --format '{{{{.ID}}}}'", shell=True)
-    volumes = get_output(f"docker volume ls -f 'name={env.PROJECT_PREFIX}_*' --format '{{{{.Name}}}}'", shell=True)
+    network_id = get_output(["docker", "network", "ls", "-f", f"name={env.NETWORK_NAME}", "--format", "{{.ID}}"])
+    container_ids = get_output(["docker", "container", "ls", "-af", f"name={env.PROJECT_PREFIX}-*", "--format", "{{.ID}}"])
+    image_ids = get_output(["docker", "image", "ls", "-af", f"reference={env.PROJECT_PREFIX}-*", "--format", "{{.ID}}"])
+    volumes = get_output(["docker", "volume", "ls", "-f", f"name={env.PROJECT_PREFIX}_*", "--format", "{{.Nam}}}"])
     
     if network_id:
         print("Removing dangling networks...")

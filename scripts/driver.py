@@ -3,7 +3,7 @@ import venv
 import os
 import sys
 import functools
-from subprocess import check_call, check_output
+from subprocess import call, check_call, check_output
 from pathlib import Path
 
 SCRIPT_PATH = Path(__file__).parent
@@ -76,4 +76,4 @@ def prepare_venv():
 if __name__ == "__main__":
     prepare_venv()
     script = str(Path(SCRIPT_PATH, sys.argv[1]))
-    os.execv(PYTHON_PATH, [PYTHON_PATH, script, *sys.argv[2:]])
+    sys.exit(call([PYTHON_PATH, script, *sys.argv[2:]]))
