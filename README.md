@@ -99,13 +99,13 @@ bls_add_test(libmessage LINKS message)
 - If you are on Windows and are having issues with building and/or running Blueshift, try cloning the repo to a directory within WSL instead of a directory on the host's filesystem.
 
 ## Recommendations
-This project uses `clangd 21` as the language server for development. However, `clangd` does not have to be installed on the host machine, as a wrapper script using the containerized build environment is provided under `./scripts/clangd` for use with the project. Hooking into this script for use in your development environment will differ depending on your IDE of choice; the instructions for VSCode are given below:
+This project uses `clangd 21` as the language server for development. However, `clangd` does not have to be installed on the host machine, as a wrapper script using the containerized build environment is provided under `./scripts/clangd.py` for use with the project. Hooking into this script for use in your development environment will differ depending on your IDE of choice; the instructions for VSCode are given below:
 - Install the official `clangd` extension.
 - If the Microsoft C/C++ is installed, disable Intellisense (there will be a pop up upon opening the project).
 - If using a multi-root workspace (ie. through a `.code-workspace` file), copy the contents of `./.vscode/settings.json` to the `settings` key within your workspace file and then re-open the workspace.
 - Run `./bls build` to do an initial build and generate `compile_commands.json`.
 - Run the `clangd: Restart language server` command within VSCode to update the server with the new compile commands.
-- If no change is apparent within your current file after about a minute, run the `clangd: Restart language server` command again, as the container running `clangd` may have failed to start.
+- If no change is apparent within your current file after a few seconds, run the `clangd: Restart language server` command again, as the container running `clangd` may have failed to start.
 
 Both `lldb` and `gdb` will integrate with the build script, however, use of the VSCode visual debugger will require the `CodeLLDB` extension, which ships with its own version of `lldb`. The instructions for setup with the VSCode visual debugger are given below:
 - Install the `CodeLLDB` extension.

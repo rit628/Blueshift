@@ -4,7 +4,7 @@
     "lldb.verboseLogging": true,
     "C_Cpp.intelliSenseEngine": "disabled",
     "clangd.enable": true,
-    "clangd.path": "./scripts/clangd",
+    "clangd.path": "./scripts/clangd.py",
     "python.analysis.include": ["scripts/**"],
     "python.analysis.autoSearchPaths": false
 }
