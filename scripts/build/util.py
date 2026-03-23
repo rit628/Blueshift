@@ -47,21 +47,19 @@ def get_output(cmd, **kwargs) -> str:
     return run_cmd(cmd, False, **kwargs).stdout.strip()
 
 def run_as_src_user(f):
-    @wraps(f)
+    wraps(f)
     def wrapper(*args, **kwargs):
-        if os.name == "nt":
+        if os.name == "nt": # unix perms dont apply to windows
             return f(*args, **kwargs)
         
         uid, gid = os.getuid(), os.getgid()
         src_perms = os.stat(Path("src"))
-        if uid == 0 and gid == 0:
-            os.setegid(src_perms.st_gid)
-            os.seteuid(src_perms.st_uid)
-            result = f(*args, **kwargs)
-            os.setegid(gid)
-            os.seteuid(uid)
-        else:
-            result = f(*args, **kwargs)
+        os.setegid(src_perms.st_gid)
+        os.seteuid(src_perms.st_uid)
+        result = f(*args, **kwargs)
+        os.setegid(gid)
+        os.seteuid(uid)
+
         return result
     
     return wrapper
