@@ -22,7 +22,7 @@ Makefile
 /.vscode/**/*
 !/.vscode/settings.json
 !/.vscode/extensions.json
-/.venv
+.venv
 __pycache__
 *.code-workspace
 .idea

@@ -6,7 +6,7 @@ def reset(args):
     print("Removing build directory, dependency directory, and venv...")
     rmtree(env.BUILD_OUTPUT_DIRECTORY, ignore_errors=True)
     rmtree(env.DEPENDENCY_DIRECTORY, ignore_errors=True)
-    rmtree(".venv", ignore_errors=True)
+    rmtree(env.VENV_DIRECTORY, ignore_errors=True)
     
     if args.preserve_images: return
     

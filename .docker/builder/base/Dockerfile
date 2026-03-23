@@ -3,6 +3,7 @@ FROM debian:13-slim
 ARG WORKDIR
 ARG LLVM_VERSION
 ARG CMAKE_VERSION
+ARG VENV_DIRECTORY
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -27,6 +28,6 @@ update-alternatives --install /usr/bin/llvm-ar llvm-ar /usr/bin/llvm-ar-${LLVM_V
 update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${LLVM_VERSION} 100 && \
 update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${LLVM_VERSION} 100 && \
 update-alternatives --install /usr/bin/clangd clangd /usr/bin/clangd-${LLVM_VERSION} 100 && \
-mkdir .venv && chmod 777 .venv && \
+mkdir -p ${VENV_DIRECTORY} && chmod 777 ${VENV_DIRECTORY} && \
 mkdir /ccache && chmod 777 /ccache && \
 groupadd gpio

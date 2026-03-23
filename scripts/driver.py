@@ -6,20 +6,21 @@ import functools
 from subprocess import call, check_call, check_output
 from pathlib import Path
 
-SCRIPT_PATH = Path(__file__).parent
-VENV_DIR = Path(".venv")
-REQUIREMENTS_FILE = Path(SCRIPT_PATH, "requirements.txt")
+SCRIPT_DIRECTORY = Path(__file__).parent
+PROJECT_ROOT = SCRIPT_DIRECTORY.parent
+VENV_DIRECTORY = Path(SCRIPT_DIRECTORY, ".venv")
+REQUIREMENTS_FILE = Path(SCRIPT_DIRECTORY, "requirements.txt")
 if os.name == "nt":
-    PYTHON_PATH = Path(VENV_DIR, "Scripts", "python.exe")
-    PIP_PATH = Path(VENV_DIR, "Scripts", "pip.exe")
+    PYTHON_PATH = Path(VENV_DIRECTORY, "Scripts", "python.exe")
+    PIP_PATH = Path(VENV_DIRECTORY, "Scripts", "pip.exe")
 else:
-    PYTHON_PATH = Path(VENV_DIR, "bin", "python")
-    PIP_PATH = Path(VENV_DIR, "bin", "pip")
+    PYTHON_PATH = Path(VENV_DIRECTORY, "bin", "python")
+    PIP_PATH = Path(VENV_DIRECTORY, "bin", "pip")
 
 def create_venv():
     if not PYTHON_PATH.exists():
         builder = venv.EnvBuilder(with_pip=True)
-        builder.create(VENV_DIR)
+        builder.create(VENV_DIRECTORY)
 
 def install_packages():
     if REQUIREMENTS_FILE.exists():
@@ -75,5 +76,5 @@ def prepare_venv():
 
 if __name__ == "__main__":
     prepare_venv()
-    script = str(Path(SCRIPT_PATH, sys.argv[1]))
-    sys.exit(call([PYTHON_PATH, script, *sys.argv[2:]]))
+    script = str(Path(SCRIPT_DIRECTORY, sys.argv[1]))
+    sys.exit(call([PYTHON_PATH, script, *sys.argv[2:]], cwd=PROJECT_ROOT))
