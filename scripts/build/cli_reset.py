@@ -14,16 +14,16 @@ def reset(args):
     run_cmd(["docker", "compose", "down", "--rmi", "all", "-v", "--remove-orphans"])
 
     network_id = get_output(["docker", "network", "ls", "-f", f"name={env.NETWORK_NAME}", "--format", "{{.ID}}"])
-    container_ids = get_output(["docker", "container", "ls", "-af", f"name={env.PROJECT_PREFIX}-*", "--format", "{{.ID}}"])
-    image_ids = get_output(["docker", "image", "ls", "-af", f"reference={env.PROJECT_PREFIX}-*", "--format", "{{.ID}}"])
-    volumes = get_output(["docker", "volume", "ls", "-f", f"name={env.PROJECT_PREFIX}_*", "--format", "{{.Nam}}}"])
+    container_ids = get_output(["docker", "container", "ls", "-af", f"name=*/{env.PROJECT_PREFIX}-*", "--format", "{{.ID}}"])
+    image_ids = get_output(["docker", "image", "ls", "-af", f"reference=*/{env.PROJECT_PREFIX}-*", "--format", "{{.ID}}"])
+    volumes = get_output(["docker", "volume", "ls", "-f", f"name=*/{env.PROJECT_PREFIX}_*", "--format", "{{.Nam}}}"])
     
     if network_id:
         print("Removing dangling networks...")
         run_cmd(["docker", "network", "rm", network_id])
     if container_ids:
         print("Removing dangling containers...")
-        run_cmd(["docker", "container", "stop"] + container_ids.split('\n'), exit_on_failure=False)
+        run_cmd(["docker", "container", "stop", "-t", "5"] + container_ids.split('\n'), exit_on_failure=False)
         run_cmd(["docker", "container", "rm", "-f"] + container_ids.split('\n'))
     if image_ids:
         print("Removing dangling images...")
