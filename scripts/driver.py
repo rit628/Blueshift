@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+import venv
+import os
+import sys
+from functools import wraps
+from subprocess import call, check_call, check_output
+from pathlib import Path
+
+SCRIPT_DIRECTORY = Path(__file__).parent
+PROJECT_ROOT = SCRIPT_DIRECTORY.parent
+VENV_DIRECTORY = Path(SCRIPT_DIRECTORY, ".venv")
+REQUIREMENTS_FILE = Path(SCRIPT_DIRECTORY, "requirements.txt")
+if os.name == "nt":
+    PYTHON_PATH = Path(VENV_DIRECTORY, "Scripts", "python.exe")
+    PIP_PATH = Path(VENV_DIRECTORY, "Scripts", "pip.exe")
+else:
+    PYTHON_PATH = Path(VENV_DIRECTORY, "bin", "python")
+    PIP_PATH = Path(VENV_DIRECTORY, "bin", "pip")
+
+def create_venv():
+    if not PYTHON_PATH.exists():
+        builder = venv.EnvBuilder(with_pip=True)
+        builder.create(VENV_DIRECTORY)
+
+def install_packages():
+    if REQUIREMENTS_FILE.exists():
+        check_call([PIP_PATH, "--no-cache-dir", "install", "-r", REQUIREMENTS_FILE])
+
+def get_installed_packages():
+    output = check_output([PIP_PATH, "--no-cache-dir", "freeze"], text=True)
+    return output.splitlines(keepends=True)
+
+def get_required_packages():
+    if not REQUIREMENTS_FILE.exists():
+        return list()    
+    with REQUIREMENTS_FILE.open() as reqs:
+        return reqs.read().splitlines(keepends=True)
+
+def write_packages(packages):
+    with REQUIREMENTS_FILE.open("w") as reqs:
+        reqs.writelines(packages)
+
+def run_as_src_user(f):
+    wraps(f)
+    def wrapper(*args, **kwargs):
+        if os.name == "nt": # unix perms dont apply to windows
+            return f(*args, **kwargs)
+        
+        uid, gid = os.getuid(), os.getgid()
+        src_perms = os.stat(Path("src"))
+        os.setegid(src_perms.st_gid)
+        os.seteuid(src_perms.st_uid)
+        result = f(*args, **kwargs)
+        os.setegid(gid)
+        os.seteuid(uid)
+
+        return result
+    
+    return wrapper
+
+@run_as_src_user
+def prepare_venv():
+    create_venv()
+    installed = get_installed_packages()
+    required = get_required_packages()
+
+    if installed != required:
+        installed_set = set(installed)
+        required_set = set(required)
+        if required_set - installed_set:
+            install_packages()
+        else:
+            write_packages(installed)
+
+if __name__ == "__main__":
+    prepare_venv()
+    script = str(Path(SCRIPT_DIRECTORY, sys.argv[1]))
+    sys.exit(call([PYTHON_PATH, script, *sys.argv[2:]], cwd=PROJECT_ROOT))

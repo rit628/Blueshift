@@ -8,13 +8,13 @@ while not build_info.exists():
     sleep(1)
 
 with build_info.open() as info:
-    container_path, platform = info.readline().split()
+    container_path, platform, _ = info.readline().split()
 cwd = os.getcwd()
 os.environ["PLATFORM_TAG"] = platform
 
-if cwd != container_path:
+if cwd != container_path: # indexing build from container
     os.execvp("docker", ["docker", "compose", "run",
                         "--name", "bls-clangd", "--rm", "--entrypoint", "clangd", "builder",
                         f"--path-mappings={cwd}={container_path}"])
-else:
+else: # indexing build from host
     os.execvp("clangd")

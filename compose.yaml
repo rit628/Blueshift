@@ -38,6 +38,7 @@ services:
         - BUILD_IMAGE_NAME=${BUILD_IMAGE_NAME}
         - LLVM_VERSION=${LLVM_VERSION}
         - CMAKE_VERSION=${CMAKE_VERSION}
+        - VENV_DIRECTORY=${VENV_DIRECTORY}
       cache_from:
         - ${BUILD_IMAGE_NAME}:${PLATFORM_TAG}
       cache_to:
@@ -47,7 +48,7 @@ services:
       - org.opencontainers.image.source=${BUILD_IMAGE_LABEL}
     volumes:
       - .:${CONTAINER_MOUNT_DIRECTORY}
-      - venv:${CONTAINER_MOUNT_DIRECTORY}/.venv
+      - venv:${CONTAINER_MOUNT_DIRECTORY}/${VENV_DIRECTORY}
       - ${CCACHE_VOLUME}:/ccache
       - ${DISPLAY_MOUNT}:/tmp/.X11-unix
     environment:
@@ -92,8 +93,8 @@ services:
     develop:
       watch:
         - action: sync+restart
-          path: ${MASTER_PROGRAM_NAME}
-          target: ${MASTER_PROGRAM_NAME}
+          path: ${DEPLOY_SRC}
+          target: ${DEPLOY_SRC}
     expose:
       - ${MASTER_PORT}
     pid: ${DEPLOY_NAMESPACE}
@@ -124,8 +125,8 @@ services:
     develop:
       watch:
         - action: sync+restart
-          path: ${CLIENT_PROGRAM_NAME}
-          target: ${CLIENT_PROGRAM_NAME}
+          path: ${DEPLOY_SRC}
+          target: ${DEPLOY_SRC}
     expose:
       - ${BROADCAST_PORT}
     pid: ${DEPLOY_NAMESPACE}
