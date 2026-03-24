@@ -15,8 +15,8 @@ def reset(args):
 
     network_id = get_output(["docker", "network", "ls", "-f", f"name={env.NETWORK_NAME}", "--format", "{{.ID}}"])
     container_ids = get_output(["docker", "container", "ls", "-af", f"name=({env.PROJECT_PREFIX}|{env.PROJECT_NAME})-*", "--format", "{{.ID}}"])
-    image_ids = get_output(["docker", "image", "ls", "-af", f"reference=*/{env.PROJECT_PREFIX}-*", "--format", "{{.ID}}"])
-    volumes = get_output(["docker", "volume", "ls", "-f", f"name={env.PROJECT_PREFIX}_*", "--format", "{{.Nam}}}"])
+    image_ids = get_output(["docker", "image", "ls", "-af", f"reference=*/*/{env.PROJECT_NAME}/{env.PROJECT_PREFIX}-*", "-f", f"reference={env.PROJECT_PREFIX}-*", "--format", "{{.ID}}"])
+    volumes = get_output(["docker", "volume", "ls", "-f", f"name=({env.PROJECT_PREFIX}|{env.PROJECT_NAME})_*", "--format", "{{.Nam}}}"])
     
     if network_id:
         print("Removing dangling networks...")
