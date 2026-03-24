@@ -11,17 +11,33 @@ jobs:
         permissions:
             contents: read
             actions: read
+        strategy:
+            matrix:
+                platform: [linux64, rpi64, win64, osx64]
+        env:
+            PROJECT_PREFIX: bls
+            FILE_GLOB: |
+                src/**
+                test/**
+                config/**
+                .cmake/**
+                CMakeLists.txt
+                .env
         runs-on: ubuntu-latest
         steps:
-            - 
-                name: Access Cache
-                uses: actions/github-script@v8
+            -
+                name: Access Build Cache
+                uses: actions/cache/restore@v5
                 with:
-                    script: |
-                        const caches = await github.rest.actions.getActionsCacheList({
-                            owner: context.repo.owner,
-                            repo: context.repo.repo,
-                        })
-                        for (const cache of caches.data.actions_caches) {
-                            console.log(cache)
-                        }
+                    key: ${{ env.PROJECT_PREFIX }}-build-${{ matrix.platform }}-${{ github.ref_name }}-${{ hashFiles(env.FILE_GLOB) }}
+                    path: |
+                        ./.cdeps
+                        ./build
+
+            -
+                name: Access CCache Volume
+                uses: rit628/docker-volume-cache-action/restore@main
+                with:
+                    key: ${{ env.PROJECT_PREFIX }}-ccache-${{ matrix.platform }}-${{ github.ref_name }}-${{ hashFiles(env.FILE_GLOB) }}
+                    volumes: |
+                        ${{ env.PROJECT_PREFIX }}_ccache
