@@ -1,0 +1,25 @@
+on:
+    schedule:
+        - cron: 0 0 * * 0
+          timezone: America/New_York
+    workflow_dispatch:
+
+jobs:
+    access-cache:
+        permissions:
+            contents: read
+            actions: read
+        runs-on: ubuntu-latest
+        steps:
+            - 
+                name: Access Cache
+                uses: actions/github-script@v8
+                with:
+                    script: |
+                        const caches = await github.rest.actions.getActionsCacheList({
+                            owner: context.repo.owner,
+                            repo: context.repo.repo,
+                        })
+                        for (const cache of caches.data.actions_caches) {
+                            console.log(cache)
+                        }
