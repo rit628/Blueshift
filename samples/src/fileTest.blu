@@ -1,0 +1,13 @@
+task log(LINE_WRITER input, LINE_WRITER output) :
+triggerOn(input)
+{
+    if (getTrigger() == "initial") { return; }
+    println(input.msg);
+    output.msg = input.msg;
+}
+
+setup() {
+    LINE_WRITER in = "localhost::file-file1.txt";
+    LINE_WRITER out = "localhost::file-temp/file2.txt";
+    log(in, out);
+}

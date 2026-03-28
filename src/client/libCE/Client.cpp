@@ -1,11 +1,12 @@
 #include "Client.hpp"
 #include "Serialization.hpp"
-#include "DeviceUtil.hpp"
 #include "ADC.hpp"
 #include "Connection.hpp"
 #include "Protocol.hpp"
+#ifdef SDL_ENABLED
 #include <SDL3/SDL_error.h>
 #include <SDL3/SDL_log.h>
+#endif
 #include <cstdint>
 #include <functional>
 #include <exception>

@@ -2,7 +2,6 @@
 
 #include <mutex>
 #include <shared_mutex>
-#include <map>
 #include <optional>
 #include <unordered_map>
 
@@ -24,7 +23,7 @@ class TSM
             map.erase(key);
         }
 
-        const Value& at(const Key& key) const {
+        Value at(const Key& key) const {
             std::shared_lock<std::shared_mutex> lock(this->mut);
             return map.at(key);
         }

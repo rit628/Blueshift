@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Serialization.hpp"
-#include "DeviceUtil.hpp"
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -12,6 +11,9 @@
 #include "ADC.hpp"
 #include "Protocol.hpp"
 #include "Connection.hpp"
+#include "device_control/device_cursor.hpp"
+#include "device_control/device_interruptor.hpp"
+#include "device_control/device_poller.hpp"
 #include <set> 
 #include <vector>
 
