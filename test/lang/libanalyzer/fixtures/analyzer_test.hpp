@@ -54,10 +54,10 @@ namespace BlsLang {
                     }
                     EXPECT_EQ(desc.bytecode_offset, expectedDesc.bytecode_offset);
                     for (auto&& [devDesc, expectedDevDesc] : boost::combine(desc.inDevices, expectedDesc.inDevices)) {
-                        compareDeviceDescriptors(devDesc, expectedDevDesc);
+                        EXPECT_EQ(devDesc, expectedDevDesc);
                     }
                     for (auto&& [devDesc, expectedDevDesc] : boost::combine(desc.outDevices, expectedDesc.outDevices)) {
-                        compareDeviceDescriptors(devDesc, expectedDevDesc);
+                        EXPECT_EQ(devDesc, expectedDevDesc);
                     }
                     EXPECT_EQ(desc.hostController, expectedDesc.hostController);
                     EXPECT_EQ(desc.triggers, expectedDesc.triggers);

@@ -20,7 +20,7 @@ ClientEM::ClientEM(std::vector<TaskDescriptor> &descList, TSQ<SentMessage> &read
     for(auto& taskDesc : descList){
         // Populate the in list: 
         for(auto& dev : taskDesc.inDevices){
-            this->devToTaskMap[dev.device_name].push_back(taskDesc.name); 
+            this->devToTaskMap[dev].push_back(taskDesc.name); 
         }
 
         this->ident_data.taskMap[taskDesc.name] = i; 
@@ -100,6 +100,7 @@ idMaps(data)
     int i = 0; 
     for(auto& devPos : taskDesc.binded_devices){
         this->devPosMap[devPos.device_name] = i; 
+        this->devNameToDesc.emplace(devPos.device_name, devPos); 
         i++; 
     }
 }
@@ -173,7 +174,7 @@ void ClientEU::run(){
         // Transformed the object: 
         for(auto& dev : this->taskInfo.outDevices){
             this->clientMainLine.write(
-                createSentMessage(transformStates.at(this->devPosMap[dev.device_name]), dev, Protocol::SEND_STATE)  
+                createSentMessage(transformStates.at(this->devPosMap[dev]), this->devNameToDesc[dev], Protocol::SEND_STATE)  
             ); 
         }  
 

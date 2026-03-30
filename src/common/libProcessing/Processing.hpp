@@ -51,7 +51,14 @@ class TriggerManager{
         // Device Constructor (created rules)
         TriggerManager(TaskDescriptor& TaskDesc){
             int i = 0; 
-            for(DeviceDescriptor& devDesc : TaskDesc.inDevices){
+            std::unordered_map<std::string, DeviceDescriptor> devNameDesc; 
+            for(auto &devDesc : TaskDesc.binded_devices){
+                devNameDesc.emplace(devDesc.device_name, devDesc); 
+            }
+
+
+            for(std::string& devName : TaskDesc.inDevices){
+                auto& devDesc = devNameDesc.at(devName); 
                 if(!devDesc.isVtype){
                     stringMap[devDesc.device_name] = i; 
                     i++; 

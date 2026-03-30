@@ -31,7 +31,8 @@ class ClientEU{
         int ctlCode; 
         std::unordered_map<DeviceID, int> devPosMap; 
         IdentData &idMaps; 
-        
+        std::unordered_map<std::string, DeviceDescriptor> devNameToDesc; 
+    
         void replaceCache(std::unordered_map<DeviceID, HeapMasterMessage> &currentLoad); 
         
     public: 
@@ -47,7 +48,7 @@ class ClientEM{
     private: 
         // Device to task list (using the in devices)
         std::unordered_map<DeviceID, std::vector<TaskID>> devToTaskMap; 
-
+      
         // Add a loopback queue that is a heap descriptor by default
         DeviceScheduler clientScheduler; 
         TSQ<SentMessage> &clientReadLine; 
