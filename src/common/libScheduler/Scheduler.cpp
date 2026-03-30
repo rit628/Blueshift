@@ -30,11 +30,11 @@ DeviceScheduler::DeviceScheduler(std::vector<TaskDescriptor> &taskDescList, std:
         auto& taskName = taskDesc.name;
         std::unordered_map<std::string, DeviceDescriptor> devMap; 
         for(auto& devDesc : taskDesc.binded_devices){
-            devMap.emplace(taskDesc.name, devDesc); 
+            devMap.emplace(devDesc.device_name, devDesc); 
         }
 
         for(std::string& devName : taskDesc.outDevices){
-            auto& dev = devMap[devName];  
+            auto& dev = devMap.at(devName);  
             if(dev.deviceKind != DeviceKind::CURSOR){
                 if(this->scheduledProcessMap.contains(dev.device_name)){
                     this->scheduledProcessMap[dev.device_name]; 
