@@ -15,6 +15,7 @@ os.environ["PLATFORM_TAG"] = platform
 if cwd != container_path: # indexing build from container
     os.execvp("docker", ["docker", "compose", "run",
                         "--name", "bls-clangd", "--rm", "--entrypoint", "clangd", "builder",
-                        f"--path-mappings={cwd}={container_path}"])
+                        f"--path-mappings={cwd}={container_path}",
+                        "--query-driver=/wasm32/em++,clang++"])
 else: # indexing build from host
     os.execvp("clangd")
