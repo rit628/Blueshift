@@ -24,7 +24,7 @@ VNC_CONTAINER_NAME = getenv("VNC_CONTAINER_NAME")
 VNC_PORT = getenv("VNC_PORT")
 
 # build container cfg
-PLATFORM_TAG = getenv("PLATFORM_TAG")
+CONTAINER_PLATFORM = getenv("PLATFORM_TAG")
 
 # debug container cfg
 DEBUG_SERVER_PORT_MIN = getenv("DEBUG_SERVER_PORT_MIN")

@@ -104,13 +104,13 @@ def read_build_info(info_path : Path):
     with info_path.open() as info:
         return info.readline().split()
 
-def get_target_dir(PLATFORM_TAG=""):
-    if not PLATFORM_TAG:
-        PLATFORM_TAG = get_host_os()
+def get_target_dir(PLATFORM=""):
+    if not PLATFORM:
+        PLATFORM = get_host_os()
 
-    target_info = Path(env.BUILD_OUTPUT_DIRECTORY, PLATFORM_TAG, ".info")
+    target_info = Path(env.BUILD_OUTPUT_DIRECTORY, PLATFORM, ".info")
     ARTIFACT_TYPE = read_build_info(target_info)[2]
-    return Path(env.BUILD_OUTPUT_DIRECTORY, PLATFORM_TAG, ARTIFACT_TYPE)
+    return Path(env.BUILD_OUTPUT_DIRECTORY, PLATFORM, ARTIFACT_TYPE)
 
 def wait_for_container_server(port, wait_for_exit=False):
     while(True):

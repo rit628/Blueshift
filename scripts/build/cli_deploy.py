@@ -71,7 +71,7 @@ def deploy(args):
         os.environ["DEBUG_PORT"] = str(DEBUG_SERVER_PORT)
         os.environ["DEBUG_SERVER_PORT_MAX"] = str(int(env.DEBUG_SERVER_PORT_MIN) + num_clients + 1) # +1 for master
 
-        debug_target_path = Path(env.BUILD_OUTPUT_DIRECTORY, env.PLATFORM_TAG, os.getenv("BUILD_TYPE").lower(), env.RUNTIME_OUTPUT_DIRECTORY)
+        debug_target_path = Path(env.BUILD_OUTPUT_DIRECTORY, env.CONTAINER_PLATFORM, os.getenv("BUILD_TYPE").lower(), env.RUNTIME_OUTPUT_DIRECTORY)
         master_binary = Path(debug_target_path, "master")
         client_binary = Path(debug_target_path, "client")
         # start watchers to attach to each target process when spawned in container

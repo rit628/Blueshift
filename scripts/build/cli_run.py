@@ -24,8 +24,9 @@ def broadcast_sniffer():
 
 def run(args):
     if args.local:
-        executable = Path(".", get_target_dir(), env.RUNTIME_OUTPUT_DIRECTORY, args.binary)
-        run_cmd([executable, *args.binary_args])
+        driver, target = args.driver.split(":") if args.driver else (None, None)
+        executable = Path(".", get_target_dir(target), env.RUNTIME_OUTPUT_DIRECTORY, args.binary)
+        run_cmd([driver, executable, *args.binary_args])
     else:
         if args.vnc: initialize_vnc_display()
         if args.packet_forward:
