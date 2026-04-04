@@ -32,14 +32,19 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
 # Boost
-set(REQUIRED_BOOST_LIBS asio thread regex lockfree type_index math json serialization beast url)
-list(TRANSFORM REQUIRED_BOOST_LIBS PREPEND Boost:: OUTPUT_VARIABLE BOOST_LINK_LIBRARIES)
+set(REQUIRED_BOOST_HEADER_LIBRARIES asio lockfree type_index beast)
+set(REQUIRED_BOOST_LINK_LIBRARIES regex math json serialization url)
 FetchContent_Declare(
     Boost
     SYSTEM # Disable warnings in headers
     URL https://github.com/boostorg/boost/releases/download/boost-1.86.0/boost-1.86.0-cmake.zip
 )
-set(BOOST_INCLUDE_LIBRARIES ${REQUIRED_BOOST_LIBS})
+set(BOOST_INCLUDE_LIBRARIES ${REQUIRED_BOOST_LINK_LIBRARIES})
+list(TRANSFORM REQUIRED_BOOST_LINK_LIBRARIES PREPEND Boost:: OUTPUT_VARIABLE BOOST_LINK_LIBRARIES)
+if(NOT USE_SYSTEM_BOOST_HEADERS)
+    set(BOOST_INCLUDE_LIBRARIES ${REQUIRED_BOOST_HEADER_LIBRARIES} ${BOOST_INCLUDE_LIBRARIES})
+    list(TRANSFORM REQUIRED_BOOST_HEADER_LIBRARIES PREPEND Boost:: OUTPUT_VARIABLE BOOST_HEADER_LIBRARIES)
+endif()
 
 FetchContent_Declare(
     curl
@@ -54,6 +59,10 @@ FetchContent_Declare(
     URL https://github.com/libsdl-org/SDL/archive/refs/tags/release-3.2.16.zip
 )
 
+if(NOT CMAKE_CROSSCOMPILING)
+    set(FETCHCONTENT_OPTIONAL ${FETCHCONTENT_OPTIONAL} googletest)
+endif()
+
 if(NOT DISABLE_SDL)
     add_compile_definitions(SDL_ENABLED)
     set(FETCHCONTENT_OPTIONAL ${FETCHCONTENT_OPTIONAL} SDL3)
@@ -63,11 +72,12 @@ endif()
 if(NOT DISABLE_CURL)
     set(FETCHCONTENT_OPTIONAL ${FETCHCONTENT_OPTIONAL} curl)
     set(SYSTEM_LINK_LIBRARIES ${SYSTEM_LINK_LIBRARIES} ssl crypto)
+    include_directories(${curl_SOURCE_DIR}/include)
 endif()
 
 get_directory_property(current_compile_options COMPILE_OPTIONS)
 add_compile_options(-w) # Disable warnings for fetched content
-FetchContent_MakeAvailable(googletest Boost ${FETCHCONTENT_OPTIONAL})
+FetchContent_MakeAvailable(Boost ${FETCHCONTENT_OPTIONAL})
 set_directory_properties(PROPERTIES COMPILE_OPTIONS "${current_compile_options}") # restore old compile options
 
 set(ESSENTIAL_FLAGS -Wall -Wextra -Wnon-virtual-dtor)
@@ -87,8 +97,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$ENV{ARCHIVE_OUTPUT_DIREC
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$ENV{LIBRARY_OUTPUT_DIRECTORY})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$ENV{RUNTIME_OUTPUT_DIRECTORY})
 
-include_directories(${curl_SOURCE_DIR}/include)
-link_libraries(${BOOST_LINK_LIBRARIES} ${SYSTEM_LINK_LIBRARIES})
+link_libraries(Boost::headers ${BOOST_HEADER_LIBRARIES} ${BOOST_LINK_LIBRARIES} ${SYSTEM_LINK_LIBRARIES})
 
 # Preprocessor Macro Definitions
 if(NOT CMAKE_CROSSCOMPILING)

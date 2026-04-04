@@ -4,10 +4,16 @@ set(CMAKE_EXECUTABLE_SUFFIX_CXX ".html")
 
 # COMPILER CONFIG
 add_link_options(
-                    -lidbfs.js # LDBFS for persistent storage in the browser
+                    -sPTHREAD_POOL_SIZE=navigator.hardwareConcurrency # set thread count to core count
+                    -sPTHREAD_POOL_SIZE_STRICT=0 # allow thread pool exhaustion
+                    -sPROXY_TO_PTHREAD=1 # ensure main thread does not get blocked
+
                     -sEXPORT_ES6=1 # Create ES6 modules
+
                     -sEXIT_RUNTIME=1 # Runtimes will exit on end of main()
+                    
                     -sFORCE_FILESYSTEM # Filesystem support
+                    -lidbfs.js # LDBFS for persistent storage in the browser
                     -sEXPORTED_RUNTIME_METHODS=['FS','IDBFS'] # Filesystem objects
                 )
 
