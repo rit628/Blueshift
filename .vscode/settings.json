@@ -11,6 +11,10 @@
         "sourceMapPathOverrides": {
             "file:///build_mnt": "${workspaceFolder}",
         }
+    },
+    "livePreview.httpHeaders": {
+        "Cross-Origin-Embedder-Policy": "require-corp",
+        "Cross-Origin-Opener-Policy": "same-origin",
+        "Accept-Ranges": "bytes"
     }
-
 }
