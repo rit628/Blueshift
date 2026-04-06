@@ -12,7 +12,7 @@ def get_remote_path(build_path):
 
 def debug(args):
     debug_target_path = "relwithdebinfo" if args.release else "debug"
-    build_path = Path(env.BUILD_OUTPUT_DIRECTORY, env.PLATFORM_TAG, debug_target_path)
+    build_path = Path(env.BUILD_OUTPUT_DIRECTORY, env.CONTAINER_PLATFORM, debug_target_path)
     executable = Path(build_path, env.RUNTIME_OUTPUT_DIRECTORY, args.binary)
     allow_visual = not args.terminal and args.debugger == "lldb"
     stop_on_entry = "true" if args.stop_on_entry else "false"

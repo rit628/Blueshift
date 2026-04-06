@@ -13,7 +13,7 @@ jobs:
             actions: read
         strategy:
             matrix:
-                platform: [linux64, rpi64, win64, osx64]
+                platform: [linux64, rpi64, win64, osx64, wasm32-web, wasm32-node]
         env:
             PROJECT_PREFIX: bls
             FILE_GLOB: |

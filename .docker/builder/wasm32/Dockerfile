@@ -14,7 +14,9 @@ cd emsdk && \
 ./emsdk install ${EMSCRIPTEN_VERSION} && \
 ./emsdk activate ${EMSCRIPTEN_VERSION} && \
 echo 'source "/emsdk/emsdk_env.sh"' >> $HOME/.bash_profile && \
-ln -s /emsdk/upstream/emscripten /wasm32
+ln -s /emsdk/upstream/emscripten /wasm32 && \
+/wasm32/embuilder build boost_headers && \
+chmod -R 777 /emsdk
 
 ARG WORKDIR
 

@@ -34,6 +34,11 @@ run_parser.add_argument("-u", "--udp-broadcast-forward",
                         help="""start a listener that received udp broadcasts on 127.0.0.1 and forwards them to host LAN
                                 (necessary if running with -p on OSX)""",
                         action="store_true")
+run_parser.add_argument("--driver",
+                        help="""specify a program to drive execution for a particular target platform
+                                when running locally""",
+                        metavar="PROGRAM:TARGET_PLATFORM",
+                        default=None)
 run_parser.add_argument("--vnc",
                         help="start a novnc display server to forward container GUI applications",
                         action="store_true")
@@ -125,7 +130,7 @@ build_parser.add_argument("-b", "--build-type",
                           default="Debug")
 build_parser.add_argument("-t", "--target",
                           help="set target platform",
-                          choices=["linux64", "rpi64", "win64", "osx64", "wasm32"],
+                          choices=["linux64", "rpi64", "win64", "osx64", "wasm32-web", "wasm32-node"],
                           default="linux64")
 build_parser.add_argument("-v", "--verbose",
                           help="get verbose output from cmake",

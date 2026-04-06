@@ -6,5 +6,15 @@
     "clangd.enable": true,
     "clangd.path": "./scripts/clangd.py",
     "python.analysis.include": ["scripts/**"],
-    "python.analysis.autoSearchPaths": false
+    "python.analysis.autoSearchPaths": false,
+    "debug.javascript.terminalOptions": {
+        "sourceMapPathOverrides": {
+            "file:///build_mnt": "${workspaceFolder}",
+        }
+    },
+    "livePreview.httpHeaders": {
+        "Cross-Origin-Embedder-Policy": "require-corp",
+        "Cross-Origin-Opener-Policy": "same-origin",
+        "Accept-Ranges": "bytes"
+    }
 }
