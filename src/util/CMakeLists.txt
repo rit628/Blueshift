@@ -1,3 +1,5 @@
+add_subdirectory(libbytecode_printer)
 add_subdirectory(echo)
 add_subdirectory(bsmp)
 add_subdirectory(bsmw)
+add_subdirectory(bsinfo)

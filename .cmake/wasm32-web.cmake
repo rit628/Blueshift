@@ -4,7 +4,6 @@ include(${CMAKE_CURRENT_LIST_DIR}/wasm32.cmake) # use wasm32 toolchain as base
 set(CMAKE_EXECUTABLE_SUFFIX_C ".html")
 set(CMAKE_EXECUTABLE_SUFFIX_CXX ".html")
 add_link_options(
-                    -sPTHREAD_POOL_SIZE=navigator.hardwareConcurrency # set thread count to core count
                     -sPTHREAD_POOL_SIZE_STRICT=0 # allow thread pool exhaustion
 
                     -lwebsocket.js # access to emscripten websocket api for networking

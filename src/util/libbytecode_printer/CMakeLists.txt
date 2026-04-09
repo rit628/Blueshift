@@ -1,0 +1,1 @@
+bls_add_library(bytecode_printer STATIC LINKS bytecode type trap)
