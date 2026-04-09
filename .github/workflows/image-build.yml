@@ -3,7 +3,9 @@ name: Image Build
 on:
     push:
       branches: [main]
-    
+    schedule:
+        - cron: 0 0 * * 0
+          timezone: America/New_York
     workflow_dispatch:
 
 jobs:
@@ -29,7 +31,7 @@ jobs:
 
     build_and_publish_base:
       needs: check_dockerfiles
-      if: (needs.check_dockerfiles.outputs.changed == 'true') || (github.event_name == 'workflow_dispatch')
+      if: (needs.check_dockerfiles.outputs.changed == 'true') || (github.event_name != 'push')
       permissions:
         contents: read
         packages: write
