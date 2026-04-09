@@ -1,0 +1,1 @@
+bls_add_executable(bsinfo LINKS compiler bytecode_printer)

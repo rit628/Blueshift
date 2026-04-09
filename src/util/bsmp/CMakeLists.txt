@@ -1,1 +1,1 @@
-bls_add_executable(bsmp LINKS bytecode type trap)
+bls_add_executable(bsmp LINKS bytecode_printer)
