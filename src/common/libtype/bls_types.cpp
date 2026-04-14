@@ -77,7 +77,7 @@ BlsType& BlsType::assign(const BlsType& rhs) {
                 a = b;
             }
             else {
-                throw std::runtime_error("Lhs and Rhs are not assignable.");
+                throw BlsLang::RuntimeError("Lhs and Rhs are not assignable.");
             }
         }, *this, rhs);
     }
@@ -90,7 +90,7 @@ BlsType::operator bool() const {
             return bool(a);
         }
         else {
-            throw std::runtime_error("Operand does not have boolean type.");
+            throw BlsLang::RuntimeError("Operand does not have boolean type.");
         }
     }, *this);
 }
@@ -101,7 +101,7 @@ BlsType::operator double() const {
             return double(a);
         }
         else {
-            throw std::runtime_error("Operand does not have numeric type.");
+            throw BlsLang::RuntimeError("Operand does not have numeric type.");
         }
     }, *this);
 }
@@ -112,7 +112,7 @@ BlsType::operator int64_t() const {
             return int64_t(a);
         }
         else {
-            throw std::runtime_error("Operand does not have numeric type.");
+            throw BlsLang::RuntimeError("Operand does not have numeric type.");
         }
     }, *this);
 }
@@ -123,7 +123,7 @@ BlsType::operator std::string() const {
             return std::string(a);
         }
         else {
-            throw std::runtime_error("Operand does not have string type.");
+            throw BlsLang::RuntimeError("Operand does not have string type.");
         }
     }, *this);
 }
@@ -134,7 +134,7 @@ BlsType operator-(const BlsType& operand) {
             return -a;
         }
         else {
-            throw std::runtime_error("Operand of '-' must have integer or float type.");
+            throw BlsLang::RuntimeError("Operand of '-' must have integer or float type.");
         }
     }, operand);
 }
@@ -145,7 +145,7 @@ bool operator<(const BlsType& lhs, const BlsType& rhs) {
             return a < b;
         }
         else {
-            throw std::runtime_error("Lhs and Rhs are not orderable.");
+            throw BlsLang::RuntimeError("Lhs and Rhs are not orderable.");
         }
     }, lhs, rhs);
 }
@@ -156,7 +156,7 @@ bool operator<=(const BlsType& lhs, const BlsType& rhs) {
             return a <= b;
         }
         else {
-            throw std::runtime_error("Lhs and Rhs are not orderable.");
+            throw BlsLang::RuntimeError("Lhs and Rhs are not orderable.");
         }
     }, lhs, rhs);
 }
@@ -167,7 +167,7 @@ bool operator>(const BlsType& lhs, const BlsType& rhs) {
             return a > b;
         }
         else {
-            throw std::runtime_error("Lhs and Rhs are not orderable.");
+            throw BlsLang::RuntimeError("Lhs and Rhs are not orderable.");
         }
     }, lhs, rhs);
 }
@@ -178,7 +178,7 @@ bool operator>=(const BlsType& lhs, const BlsType& rhs) {
             return a >= b;
         }
         else {
-            throw std::runtime_error("Lhs and Rhs are not orderable.");
+            throw BlsLang::RuntimeError("Lhs and Rhs are not orderable.");
         }
     }, lhs, rhs);
 }
@@ -217,7 +217,7 @@ BlsType operator+(const BlsType& lhs, const BlsType& rhs) {
             return a + b;
         }
         else {
-            throw std::runtime_error("Lhs and Rhs are not addable.");
+            throw BlsLang::RuntimeError("Lhs and Rhs are not addable.");
         }
     }, lhs, rhs);
 }
@@ -228,7 +228,7 @@ BlsType operator-(const BlsType& lhs, const BlsType& rhs) {
             return a - b;
         }
         else {
-            throw std::runtime_error("Lhs and Rhs are not subtractable.");
+            throw BlsLang::RuntimeError("Lhs and Rhs are not subtractable.");
         }
     }, lhs, rhs);
 }
@@ -239,7 +239,7 @@ BlsType operator*(const BlsType& lhs, const BlsType& rhs) {
             return a * b;
         }
         else {
-            throw std::runtime_error("Lhs and Rhs are not multiplicable.");
+            throw BlsLang::RuntimeError("Lhs and Rhs are not multiplicable.");
         }
     }, lhs, rhs);
 }
@@ -249,13 +249,13 @@ BlsType operator/(const BlsType& lhs, const BlsType& rhs) {
         if constexpr (Divisible<decltype(a), decltype(b)>) {
             if constexpr (Numeric<decltype(b)>) {
                 if (b == 0) {
-                    throw std::runtime_error("Error: dividing by zero.");
+                    throw BlsLang::RuntimeError("Error: dividing by zero.");
                 }
             }
             return double(a) / double(b);
         }
         else {
-            throw std::runtime_error("Lhs and Rhs are not divisible.");
+            throw BlsLang::RuntimeError("Lhs and Rhs are not divisible.");
         }
     }, lhs, rhs);
 }
@@ -264,18 +264,18 @@ BlsType operator%(const BlsType& lhs, const BlsType& rhs) {
     return std::visit([](const auto& a, const auto& b) -> BlsType {
         if constexpr (TypeDef::Integer<decltype(a)> && TypeDef::Integer<decltype(b)>) {
             if (b == 0) {
-                throw std::runtime_error("Error: dividing by zero.");
+                throw BlsLang::RuntimeError("Error: dividing by zero.");
             }
             return a % b;
         }
         else if constexpr (Numeric<decltype(a)> && Numeric<decltype(b)>) {
             if (b == 0) {
-                throw std::runtime_error("Error: dividing by zero.");
+                throw BlsLang::RuntimeError("Error: dividing by zero.");
             }
             return std::fmod(a, b);
         }
         else {
-            throw std::runtime_error("Lhs and Rhs must be integer or float types.");
+            throw BlsLang::RuntimeError("Lhs and Rhs must be integer or float types.");
         }
     }, lhs, rhs);
 }
@@ -286,7 +286,7 @@ BlsType operator^(const BlsType& lhs, const BlsType& rhs) {
             return std::pow(a, b);
         }
         else {
-            throw std::runtime_error("Lhs and Rhs must be integer or float types.");
+            throw BlsLang::RuntimeError("Lhs and Rhs must be integer or float types.");
         }
     }, lhs, rhs);
 }
@@ -555,7 +555,7 @@ BlsType& VectorDescriptor::access(BlsType &int_acc) {
       return this->vector->at(index); 
     }
     else{
-      throw std::runtime_error("Cannot index a list with a non-integer"); 
+      throw BlsLang::RuntimeError("Cannot index a list with a non-integer"); 
     }
 }
 

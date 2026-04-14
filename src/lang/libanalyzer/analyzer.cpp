@@ -24,18 +24,26 @@ using namespace BlsLang;
 template<class... Ts>
 struct overloads : Ts... { using Ts::operator()...; };
 
+void Analyzer::preVisit(AstNode& ast) {
+    currentNode = &ast;
+}
+
 BlsObject Analyzer::visit(AstNode::Source& ast) {
-    for (auto&& procedure : ast.procedures) {
-        procedure->accept(*this);
+    try {
+        for (auto&& procedure : ast.procedures) {
+            procedure->accept(*this);
+        }
+    
+        for (auto&& task : ast.tasks) {
+            task->accept(*this);
+        }
+    
+        ast.setup->accept(*this);
+        return std::monostate();
     }
-
-    for (auto&& task : ast.tasks) {
-        task->accept(*this);
+    catch (RuntimeError e) { // convert generic runtime errors from callstack or binary operators to semantic errors
+        throw SemanticError(e.what(), *currentNode);
     }
-
-    ast.setup->accept(*this);
-
-    return std::monostate();
 }
 
 BlsObject Analyzer::visit(AstNode::Function::Procedure& ast) {
@@ -413,7 +421,9 @@ BlsObject Analyzer::visit(AstNode::Expression::Binary& ast) {
     if ((op >= BINARY_OPERATOR::ASSIGN) && std::holds_alternative<BlsType>(leftResult)) {
         throw SemanticError("Assignments to temporary not permitted", ast);
     }
+    
     // operator type checking done by overload specialization
+    currentNode = &ast; // use binary expr node for error reporting rather than rhs
     switch (op) {
         case BINARY_OPERATOR::OR:
             return lhs || rhs;
@@ -523,6 +533,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Unary& ast) {
     }
     
     // operator type checking done by overload specialization
+    currentNode = &ast; // use unary expr node for error reporting rather than rhs
     switch (op) {
         case UNARY_OPERATOR::NOT:
             return !object;

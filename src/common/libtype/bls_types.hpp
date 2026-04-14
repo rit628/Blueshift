@@ -11,6 +11,7 @@
 #include <mutex>
 #include <stdexcept>
 #include <string>
+#include <sstream>
 #include <unordered_map>
 #include <utility>
 #include <variant>
@@ -44,6 +45,20 @@ namespace BlsLang {
   #undef DEVTYPE_END
 
   constexpr auto SPECIAL_ANY                          ("any");
+
+  class RuntimeError : public std::exception {
+    public:
+      explicit RuntimeError(const std::string& message) {
+        std::ostringstream os;
+        os << message;
+        this->message = os.str();
+      }
+    
+      const char* what() const noexcept override { return message.c_str(); }
+
+    private:
+      std::string message;
+  };
 
 }
 

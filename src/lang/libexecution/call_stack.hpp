@@ -152,10 +152,10 @@ namespace BlsLang {
                     return *locals[index].second;
                 }
                 else if (it->context == Frame::Context::FUNCTION) { // exhausted current function frame scope
-                    throw SemanticError("local variable: " + index + " does not exist");
+                    throw RuntimeError("local variable: " + index + " does not exist");
                 }
             }
-            throw SemanticError("local variable: " + index + " does not exist");
+            throw RuntimeError("local variable: " + index + " does not exist");
         }
         else {
             return cs.top().locals[index];
@@ -200,10 +200,10 @@ namespace BlsLang {
                 return locals[index].first;
             }
             else if (it->context == Frame::Context::FUNCTION) { // exhausted current function frame scope
-                throw SemanticError("local variable: " + index + " does not exist");
+                throw RuntimeError("local variable: " + index + " does not exist");
             }
         }
-        throw SemanticError("local variable: " + index + " does not exist");
+        throw RuntimeError("local variable: " + index + " does not exist");
     }
 
 }

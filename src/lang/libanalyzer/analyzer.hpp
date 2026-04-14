@@ -23,6 +23,8 @@ namespace BlsLang {
             BlsObject visit(Node& ast) override;
             #include "include/NODE_TYPES.LIST"
             #undef AST_NODE
+
+            void preVisit(AstNode& ast) override;
             
             auto& getTaskDescriptors() { return taskDescriptors; }
             auto& getLiteralPool() { return literalPool; }
@@ -62,6 +64,7 @@ namespace BlsLang {
             std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
             std::unordered_map<BlsType, uint8_t> literalPool;
             std::unordered_map<std::string, std::pair<uint16_t, std::vector<std::string>>> functionSymbols;
+            AstNode* currentNode = nullptr;
     };
 
 }
