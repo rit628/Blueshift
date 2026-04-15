@@ -163,12 +163,12 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
 
             if (type > TYPE::CONTAINERS_END) {  // use binding parser for devtypes
                 if (!value.has_value()) {
-                    throw SemanticError("DEVTYPE binding cannot be empty", ast);
+                    throw SemanticError("DEVTYPE binding cannot be empty", *statement);
                 }
     
                 auto binding = resolve(value->get()->accept(*this));
                 if (!std::holds_alternative<std::string>(binding)) {
-                    throw SemanticError("DEVTYPE binding must be a string literal", ast);
+                    throw SemanticError("DEVTYPE binding must be a string literal", *statement);
                 }
                 auto& bindStr = std::get<std::string>(binding);
                 devDesc = parseDeviceBinding(bindStr);
@@ -176,7 +176,7 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
             }
             else {
                 if (!deviceBinding->modifiers.contains(RESERVED_VIRTUAL)) {
-                    throw SemanticError("Non DEVTYPE devices must be declared as virtual.", ast);
+                    throw SemanticError("Non DEVTYPE devices must be declared as virtual.", *statement);
                 }
                 if (value.has_value()) {
                     devtypeObj = resolve(value->get()->accept(*this));
@@ -207,16 +207,16 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
         else if (auto* statementExpression = dynamic_cast<AstNode::Statement::Expression*>(statement.get())) {
             auto* taskBinding = dynamic_cast<AstNode::Expression::Function*>(statementExpression->expression.get());
             if (!taskBinding) {
-                throw SemanticError("Statement within setup() must be an task binding expression or device binding declaration", ast);
+                throw SemanticError("Statement within setup() must be an task binding expression or device binding declaration", *statement);
             }
             auto& name = taskBinding->name;
             auto& args = taskBinding->arguments;
             if (!tasks.contains(name)) {
-                throw SemanticError(name + " does not refer to an task", ast);
+                throw SemanticError(name + " does not refer to an task", *statement);
             }
             auto argc = tasks.at(name).parameterTypes.size();
             if (argc != args.size()) {
-                throw SemanticError("Invalid number of arguments supplied to " + name + " (received " + std::to_string(args.size()) + " expected " + std::to_string(argc) + " )", ast);
+                throw SemanticError("Invalid number of arguments supplied to " + name + " (received " + std::to_string(args.size()) + " expected " + std::to_string(argc) + " )", *statement);
             }
             auto task = taskDescriptors.at(name);
             bool decentralizable = true;
@@ -224,7 +224,7 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
             for (size_t i = 0; i < args.size(); i++) {
                 auto* expr = dynamic_cast<AstNode::Expression::Access*>(args.at(i).get());
                 if (expr == nullptr || expr->member.has_value() || expr->subscript.has_value()) {
-                    throw SemanticError("Invalid task binding in setup()", ast);
+                    throw SemanticError("Invalid task binding in setup()", *statement);
                 }
                 try {
                     auto& declaredDev = deviceDescriptors.at(expr->object);
@@ -247,7 +247,7 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
                     }
                 }
                 catch (std::out_of_range) {
-                    throw SemanticError(expr->object + " does not refer to a device binding", ast);
+                    throw SemanticError(expr->object + " does not refer to a device binding", *statement);
                 }
             }
             // update trigger rules to point to device names rather than alias indices
@@ -257,13 +257,13 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
                 }
             }
             if (taskSet.contains(task)) {
-                throw SemanticError("Duplicate binding for " + task.name + ".", ast);
+                throw SemanticError("Duplicate binding for " + task.name + ".", *statement);
             }
             taskSet.emplace(task);
             boundTasks.push_back(task);
         }
         else {
-            throw SemanticError("Statement within setup() must be an task binding expression or device binding declaration", ast);
+            throw SemanticError("Statement within setup() must be an task binding expression or device binding declaration", *statement);
         }
     }
 
