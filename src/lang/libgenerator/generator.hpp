@@ -15,10 +15,12 @@ namespace BlsLang {
     class Generator : public Visitor {
         public:
             friend class GeneratorTest;
-            Generator(std::unordered_map<std::string, TaskDescriptor>& taskDescriptors
+            Generator(std::vector<TaskDescriptor>& boundTasks
+                    , std::unordered_map<std::string, std::vector<std::reference_wrapper<TaskDescriptor>>>& boundTaskMap
                     , std::unordered_map<BlsType, uint8_t>& literalPool
                     , std::unordered_map<std::string, std::pair<uint16_t, std::vector<std::string>>>& functionSymbols)
-                    : taskDescriptors(taskDescriptors)
+                    : boundTasks(boundTasks)
+                    , boundTaskMap(boundTaskMap)
                     , literalPool(literalPool)
                     , functionSymbols(functionSymbols) { }
 
@@ -44,7 +46,8 @@ namespace BlsLang {
                 , TASK
             };
 
-            std::unordered_map<std::string, TaskDescriptor>& taskDescriptors;
+            std::vector<TaskDescriptor>& boundTasks;
+            std::unordered_map<std::string, std::vector<std::reference_wrapper<TaskDescriptor>>>& boundTaskMap;
             std::unordered_map<BlsType, uint8_t>& literalPool;
             std::unordered_map<std::string, std::pair<uint16_t, std::vector<std::string>>>& functionSymbols;
             std::unordered_map<std::string, uint16_t> procedureAddresses;

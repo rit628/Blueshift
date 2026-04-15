@@ -86,16 +86,14 @@ void Compiler::compileSource(const std::string& source, ostream_t outputStream) 
 
     ast->accept(masterInterpreter);
         
-    auto& descriptors = analyzer.getTaskDescriptors();
+    auto& descriptors = analyzer.getBoundTasks();
 
     auto& masterTasks = masterInterpreter.getTasks();
     euInterpreters.assign(descriptors.size(), masterInterpreter);
-    for (auto&& [descPair, interpreter] : boost::combine(descriptors, euInterpreters)) {
-        auto& [taskName, descriptor] = descPair;
-        if (!masterTasks.contains(taskName)) { continue; }
-        auto& task = masterTasks.at(taskName);
-        tasks.emplace(taskName, [&task, &interpreter](std::vector<BlsType> v) { return task(interpreter, v); });
-        taskDescriptors.push_back(descriptor);
+    for (auto&& [taskDescriptor, interpreter] : boost::combine(descriptors, euInterpreters)) {
+        if (!masterTasks.contains(taskDescriptor.name)) { continue; }
+        auto& task = masterTasks.at(taskDescriptor.name);
+        tasks.emplace(taskDescriptor.name, [&task, &interpreter](std::vector<BlsType> v) { return task(interpreter, v); });
     }
 
 }

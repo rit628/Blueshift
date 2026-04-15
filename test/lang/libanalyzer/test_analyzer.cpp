@@ -1317,8 +1317,8 @@ namespace BlsLang {
             }}
         };
 
-        expectedMetadata.taskDescriptors = {
-            {"foo", TaskDescriptor{
+        expectedMetadata.boundTasks = {
+            TaskDescriptor{
                 .name = "foo",
                 .binded_devices = {
                     DeviceDescriptor{
@@ -1351,7 +1351,7 @@ namespace BlsLang {
                         .isVtype = true
                     }
                 }
-            }}
+            }
         };
 
         TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
@@ -1607,8 +1607,8 @@ namespace BlsLang {
             }}
         };
 
-        expectedMetadata.taskDescriptors = {
-            {"foo", TaskDescriptor{
+        expectedMetadata.boundTasks = {
+            TaskDescriptor{
                 .name = "foo",
                 .binded_devices = {
                     DeviceDescriptor{
@@ -1654,7 +1654,7 @@ namespace BlsLang {
                     TriggerData{{"writer_1", "writer_2"}},
                     TriggerData{{"writer_3"}, "my trigger", 12}
                 }
-            }}
+            }
         };
 
         TEST_ANALYZE(ast, decoratedAst, expectedMetadata);

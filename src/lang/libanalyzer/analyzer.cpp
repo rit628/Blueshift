@@ -149,7 +149,9 @@ BlsObject Analyzer::visit(AstNode::Function::Task& ast) {
 
 BlsObject Analyzer::visit(AstNode::Setup& ast) {
     auto completedLiteralPool = std::move(literalPool); // save initial literal pool as setup values arent necessary at runtime
-    std::unordered_set<std::string> boundTasks;
+    // detect duplicate task bindings
+    auto hashEqual = [](const TaskDescriptor& t1, const TaskDescriptor& t2) { return t1.hash_equal(t2); };
+    std::unordered_set<TaskDescriptor, std::hash<TaskDescriptor>, decltype(hashEqual)> taskSet;
 
     for (auto&& statement : ast.statements) {
         if (auto* deviceBinding = dynamic_cast<AstNode::Statement::Declaration*>(statement.get())) {
@@ -216,10 +218,9 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
             if (argc != args.size()) {
                 throw SemanticError("Invalid number of arguments supplied to " + name + " (received " + std::to_string(args.size()) + " expected " + std::to_string(argc) + " )", ast);
             }
-            auto& desc = taskDescriptors.at(name);
-            desc.name = name;
+            auto task = taskDescriptors.at(name);
             bool decentralizable = true;
-            auto& devices = desc.binded_devices;
+            auto& devices = task.binded_devices;
             for (size_t i = 0; i < args.size(); i++) {
                 auto* expr = dynamic_cast<AstNode::Expression::Access*>(args.at(i).get());
                 if (expr == nullptr || expr->member.has_value() || expr->subscript.has_value()) {
@@ -236,12 +237,12 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
                     dev.isVtype = declaredDev.isVtype;
                     dev.deviceKind = declaredDev.deviceKind;
                     if (decentralizable) {
-                        if (desc.hostController == RESERVED_MASTER) {
-                            desc.hostController = dev.controller;
+                        if (task.hostController == RESERVED_MASTER) {
+                            task.hostController = dev.controller;
                         }
-                        else if (desc.hostController != dev.controller) {
+                        else if (task.hostController != dev.controller) {
                             decentralizable = false;
-                            desc.hostController = RESERVED_MASTER;
+                            task.hostController = RESERVED_MASTER;
                         }
                     }
                 }
@@ -250,21 +251,26 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
                 }
             }
             // update trigger rules to point to device names rather than alias indices
-            for (auto&& trigger : desc.triggers) {
+            for (auto&& trigger : task.triggers) {
                 for (auto&& parameter : trigger.rule) {
-                    parameter = desc.binded_devices.at(std::stoi(parameter)).device_name;
+                    parameter = task.binded_devices.at(std::stoi(parameter)).device_name;
                 }
             }
-            boundTasks.emplace(name);
+            if (taskSet.contains(task)) {
+                throw SemanticError("Duplicate binding for " + task.name + ".", ast);
+            }
+            taskSet.emplace(task);
+            boundTasks.push_back(task);
         }
         else {
             throw SemanticError("Statement within setup() must be an task binding expression or device binding declaration", ast);
         }
     }
 
-    std::erase_if(taskDescriptors, [&boundTasks](const auto& element) {
-        return !boundTasks.contains(element.first);
-    }); // get rid of unbound tasks
+    // add all tasks to map once references are stable (boundTasks is fixed)
+    for (auto&& task : boundTasks) {
+        boundTaskMap[task.name].push_back(task);
+    }
     literalPool = std::move(completedLiteralPool);
     return std::monostate();
 }

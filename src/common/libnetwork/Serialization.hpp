@@ -2,6 +2,7 @@
 #include "DynamicMessage.hpp"
 #include "bls_types.hpp"
 #include <boost/functional/hash.hpp>
+#include <boost/range/combine.hpp>
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/unordered_map.hpp>
 #include <cstdint>
@@ -118,8 +119,23 @@ struct DeviceDescriptor {
     }
 
     bool operator==(const DeviceDescriptor&) const = default;
+    bool hash_equal(const DeviceDescriptor& deviceDescriptor) const noexcept;
     friend size_t hash_value(const DeviceDescriptor& deviceDescriptor) noexcept;
-}; 
+};
+
+inline bool DeviceDescriptor::hash_equal(const DeviceDescriptor& deviceDescriptor) const noexcept {
+    if (!deviceDescriptor.isVtype) {
+        // physical devices are uniquely determined by type, controller, config options
+        return this->type == deviceDescriptor.type &&
+               this->controller == deviceDescriptor.controller &&
+               this->port_maps == deviceDescriptor.port_maps;
+    }
+    else {
+        // virtual devices are uniquely determined by device name and type
+        return this->device_name == deviceDescriptor.device_name &&
+               this->type == deviceDescriptor.type;
+    }
+}
 
 inline size_t hash_value(const DeviceDescriptor& deviceDescriptor) noexcept {
     size_t seed = 0;
@@ -182,8 +198,18 @@ struct TaskDescriptor {
     }
 
     bool operator==(const TaskDescriptor&) const = default;
+    bool hash_equal(const TaskDescriptor& taskDescriptor) const noexcept;
     friend size_t hash_value(const TaskDescriptor& taskDescriptor) noexcept;
 };
+
+inline bool TaskDescriptor::hash_equal(const TaskDescriptor& taskDescriptor) const noexcept {
+    return this->name == taskDescriptor.name &&
+           std::ranges::all_of(boost::combine(this->binded_devices, taskDescriptor.binded_devices),
+           [](const auto& pair) {
+                auto& [d1, d2] = pair;
+                return d1.hash_equal(d2);
+           });
+}
 
 inline size_t hash_value(const TaskDescriptor& taskDescriptor) noexcept {
     size_t seed = 0;
