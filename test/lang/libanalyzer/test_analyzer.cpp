@@ -1772,4 +1772,276 @@ namespace BlsLang {
         EXPECT_THROW(TEST_ANALYZE(ast, decoratedAst, expectedMetadata), SemanticError);
     }
 
+    GROUP_TEST_F(AnalyzerTest, ConfigTests, DuplicateBinding) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Source(
+            {},
+            {
+                new AstNode::Function::Task(
+                    "foo",
+                    {
+                        new AstNode::Specifier::Type(
+                            DEVTYPE_LINE_WRITER,
+                            {}
+                        ),
+                        new AstNode::Specifier::Type(
+                            PRIMITIVE_INT,
+                            {}
+                        )
+                    },
+                    {
+                        "L1",
+                        "L2",
+                    },
+                    {},
+                    {}
+                )
+            },
+            new AstNode::Setup(
+                {
+                    new AstNode::Statement::Declaration(
+                        "writer_1",
+                        {},
+                        new AstNode::Specifier::Type(
+                            DEVTYPE_LINE_WRITER,
+                            {}
+                        ),
+                        new AstNode::Expression::Literal(
+                            std::string("host-1::file-f1.txt")
+                        )
+                    ),
+                    new AstNode::Statement::Declaration(
+                        "writer_2",
+                        {},
+                        new AstNode::Specifier::Type(
+                            DEVTYPE_LINE_WRITER,
+                            {}
+                        ),
+                        new AstNode::Expression::Literal(
+                            std::string("host-1::file-f1.txt")
+                        )
+                    ),
+                    new AstNode::Statement::Declaration(
+                        "signaler",
+                        {RESERVED_VIRTUAL},
+                        new AstNode::Specifier::Type(
+                            PRIMITIVE_INT,
+                            {}
+                        ),
+                        new AstNode::Expression::Literal(
+                            int64_t(12)
+                        )
+                    ),
+                    new AstNode::Statement::Expression(
+                        new AstNode::Expression::Function(
+                            "foo",
+                            {
+                                new AstNode::Expression::Access(
+                                    "writer_1"
+                                ),
+                                new AstNode::Expression::Access(
+                                    "signaler"
+                                )
+                            }
+                        )
+                    ),
+                    new AstNode::Statement::Expression(
+                        new AstNode::Expression::Function(
+                            "foo",
+                            {
+                                new AstNode::Expression::Access(
+                                    "writer_2"
+                                ),
+                                new AstNode::Expression::Access(
+                                    "signaler"
+                                )
+                            }
+                        )
+                    )
+                }
+            )
+        ));
+    
+        std::unique_ptr<AstNode> decoratedAst = nullptr;
+
+        Metadata expectedMetadata;
+
+        EXPECT_THROW(TEST_ANALYZE(ast, decoratedAst, expectedMetadata), SemanticError);
+    }
+
+    GROUP_TEST_F(AnalyzerTest, ConfigTests, MultipleBinding) {
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Source(
+            {},
+            {
+                new AstNode::Function::Task(
+                    "foo",
+                    {
+                        new AstNode::Specifier::Type(
+                            DEVTYPE_LINE_WRITER,
+                            {}
+                        ),
+                        new AstNode::Specifier::Type(
+                            PRIMITIVE_INT,
+                            {}
+                        )
+                    },
+                    {
+                        "L1",
+                        "L2",
+                    },
+                    {},
+                    {}
+                )
+            },
+            new AstNode::Setup(
+                {
+                    new AstNode::Statement::Declaration(
+                        "writer_1",
+                        {},
+                        new AstNode::Specifier::Type(
+                            DEVTYPE_LINE_WRITER,
+                            {}
+                        ),
+                        new AstNode::Expression::Literal(
+                            std::string("host-1::file-f1.txt")
+                        )
+                    ),
+                    new AstNode::Statement::Declaration(
+                        "writer_2",
+                        {},
+                        new AstNode::Specifier::Type(
+                            DEVTYPE_LINE_WRITER,
+                            {}
+                        ),
+                        new AstNode::Expression::Literal(
+                            std::string("host-1::file-f2.txt")
+                        )
+                    ),
+                    new AstNode::Statement::Declaration(
+                        "signaler",
+                        {RESERVED_VIRTUAL},
+                        new AstNode::Specifier::Type(
+                            PRIMITIVE_INT,
+                            {}
+                        ),
+                        new AstNode::Expression::Literal(
+                            int64_t(12)
+                        )
+                    ),
+                    new AstNode::Statement::Expression(
+                        new AstNode::Expression::Function(
+                            "foo",
+                            {
+                                new AstNode::Expression::Access(
+                                    "writer_1"
+                                ),
+                                new AstNode::Expression::Access(
+                                    "signaler"
+                                )
+                            }
+                        )
+                    ),
+                    new AstNode::Statement::Expression(
+                        new AstNode::Expression::Function(
+                            "foo",
+                            {
+                                new AstNode::Expression::Access(
+                                    "writer_2"
+                                ),
+                                new AstNode::Expression::Access(
+                                    "signaler"
+                                )
+                            }
+                        )
+                    )
+                }
+            )
+        ));
+    
+        auto decoratedAst = ast->clone();
+
+        Metadata expectedMetadata;
+
+        expectedMetadata.deviceDescriptors = {
+            {"writer_1", DeviceDescriptor{
+                .device_name = "writer_1",
+                .type = TYPE::LINE_WRITER,
+                .controller = "host-1",
+                .port_maps = {
+                    {"file", "f1.txt"}
+                },
+                .initialValue = createBlsType(TypeDef::LINE_WRITER()),
+                .deviceKind = DeviceKind::INTERRUPT
+            }},
+            {"writer_2", DeviceDescriptor{
+                .device_name = "writer_2",
+                .type = TYPE::LINE_WRITER,
+                .controller = "host-1",
+                .port_maps = {
+                    {"file", "f2.txt"}
+                },
+                .initialValue = createBlsType(TypeDef::LINE_WRITER()),
+                .deviceKind = DeviceKind::INTERRUPT
+            }},
+            {"signaler", DeviceDescriptor{
+                .device_name = "signaler",
+                .type = TYPE::int_t,
+                .controller = "MASTER",
+                .port_maps = {},
+                .initialValue = int64_t(12),
+                .isVtype = true
+            }}
+        };
+
+        expectedMetadata.boundTasks = {
+            TaskDescriptor{
+                .name = "foo",
+                .binded_devices = {
+                    DeviceDescriptor{
+                        .device_name = "writer_1",
+                        .type = TYPE::LINE_WRITER,
+                        .controller = "host-1",
+                        .port_maps = {
+                            {"file", "f1.txt"}
+                        },
+                        .initialValue = createBlsType(TypeDef::LINE_WRITER()),
+                        .deviceKind = DeviceKind::INTERRUPT
+                    },
+                    DeviceDescriptor{
+                        .device_name = "signaler",
+                        .type = TYPE::int_t,
+                        .controller = "MASTER",
+                        .port_maps = {},
+                        .initialValue = int64_t(12),
+                        .isVtype = true
+                    }
+                }
+            },
+            TaskDescriptor{
+                .name = "foo",
+                .binded_devices = {
+                    DeviceDescriptor{
+                        .device_name = "writer_2",
+                        .type = TYPE::LINE_WRITER,
+                        .controller = "host-1",
+                        .port_maps = {
+                            {"file", "f2.txt"}
+                        },
+                        .initialValue = createBlsType(TypeDef::LINE_WRITER()),
+                        .deviceKind = DeviceKind::INTERRUPT
+                    },
+                    DeviceDescriptor{
+                        .device_name = "signaler",
+                        .type = TYPE::int_t,
+                        .controller = "MASTER",
+                        .port_maps = {},
+                        .initialValue = int64_t(12),
+                        .isVtype = true
+                    }
+                }
+            }
+        };
+
+        TEST_ANALYZE(ast, decoratedAst, expectedMetadata);
+    }
+
 }
