@@ -391,7 +391,7 @@ std::ostream& operator<<(std::ostream& os, const BlsType& obj) {
     return os;
 }
 
-size_t std::hash<BlsType>::operator()(const BlsType& obj) const {
+size_t hash_value(const BlsType& obj) noexcept {
     return std::visit(overloads {
         [](const std::shared_ptr<HeapDescriptor>& x) -> size_t {
             size_t seed;
@@ -421,6 +421,10 @@ size_t std::hash<BlsType>::operator()(const BlsType& obj) const {
             return std::hash<decltype(x)>{}(x);
         }
     }, obj);
+}
+
+size_t std::hash<BlsType>::operator()(const BlsType& obj) const noexcept {
+    return hash_value(obj);
 }
 
 MapDescriptor::MapDescriptor(TYPE contType) {
