@@ -1,6 +1,7 @@
 #pragma once
 #include "DynamicMessage.hpp"
 #include "bls_types.hpp"
+#include <boost/functional/hash.hpp>
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/unordered_map.hpp>
 #include <cstdint>
@@ -117,7 +118,31 @@ struct DeviceDescriptor {
     }
 
     bool operator==(const DeviceDescriptor&) const = default;
+    friend size_t hash_value(const DeviceDescriptor& deviceDescriptor) noexcept;
 }; 
+
+inline size_t hash_value(const DeviceDescriptor& deviceDescriptor) noexcept {
+    size_t seed;
+    if (!deviceDescriptor.isVtype) {
+        // physical devices are uniquely determined by type, controller, config options
+        boost::hash_combine(seed, deviceDescriptor.type);
+        boost::hash_combine(seed, deviceDescriptor.controller);
+        boost::hash_combine(seed, deviceDescriptor.port_maps);
+    }
+    else {
+        // virtual devices are uniquely determined by device name and type
+        boost::hash_combine(seed, deviceDescriptor.device_name);
+        boost::hash_combine(seed, deviceDescriptor.type);
+    }
+    return seed;
+}
+
+template<>
+struct std::hash<DeviceDescriptor> {
+    size_t operator()(const DeviceDescriptor& deviceDescriptor) const noexcept {
+        return hash_value(deviceDescriptor);
+    }
+};
 
 struct TriggerData {
     std::vector<std::string> rule;
@@ -157,6 +182,21 @@ struct TaskDescriptor {
     }
 
     bool operator==(const TaskDescriptor&) const = default;
+    friend size_t hash_value(const TaskDescriptor& taskDescriptor) noexcept;
+};
+
+inline size_t hash_value(const TaskDescriptor& taskDescriptor) noexcept {
+    size_t seed;
+    boost::hash_combine(seed, taskDescriptor.name);
+    boost::hash_combine(seed, taskDescriptor.binded_devices);
+    return seed;
+}
+
+template<>
+struct std::hash<TaskDescriptor> {
+    size_t operator()(const TaskDescriptor& taskDescriptor) const noexcept {
+        return hash_value(taskDescriptor);
+    }
 };
 
 struct Task_Info
