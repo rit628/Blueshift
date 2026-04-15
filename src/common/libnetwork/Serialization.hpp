@@ -122,7 +122,7 @@ struct DeviceDescriptor {
 }; 
 
 inline size_t hash_value(const DeviceDescriptor& deviceDescriptor) noexcept {
-    size_t seed;
+    size_t seed = 0;
     if (!deviceDescriptor.isVtype) {
         // physical devices are uniquely determined by type, controller, config options
         boost::hash_combine(seed, deviceDescriptor.type);
@@ -186,7 +186,7 @@ struct TaskDescriptor {
 };
 
 inline size_t hash_value(const TaskDescriptor& taskDescriptor) noexcept {
-    size_t seed;
+    size_t seed = 0;
     boost::hash_combine(seed, taskDescriptor.name);
     boost::hash_combine(seed, taskDescriptor.binded_devices);
     return seed;

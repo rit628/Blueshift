@@ -394,7 +394,7 @@ std::ostream& operator<<(std::ostream& os, const BlsType& obj) {
 size_t hash_value(const BlsType& obj) noexcept {
     return std::visit(overloads {
         [](const std::shared_ptr<HeapDescriptor>& x) -> size_t {
-            size_t seed;
+            size_t seed = 0;
             switch (x->getType()) {
                 case TYPE::list_t:
                     boost::hash_combine(seed, std::dynamic_pointer_cast<VectorDescriptor>(x)->getVector());
