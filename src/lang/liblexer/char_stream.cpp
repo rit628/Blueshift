@@ -20,7 +20,7 @@ void CharStream::resetToken() {
 
 Token CharStream::emit(Token::Type type) {
     size_t startIdx = static_cast<size_t>(ss.tellg()) - currToken.size();
-    Token t(type, currToken, startIdx, tokenLine, tokenCol);
+    Token t(type, currToken, startIdx, tokenLine, tokenCol, line, col);
     resetToken();
     return t;
 }

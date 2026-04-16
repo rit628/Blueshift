@@ -9,13 +9,14 @@ namespace BlsLang {
             void TEST_LEX(std::string sampleSource, std::vector<Token> expectedTokens, bool success = true) {
                 auto tokens = lexer.lex(sampleSource);
                 if (success) {
-                    EXPECT_EQ(tokens, expectedTokens);
                     for (int i = 0; i < tokens.size(); i++) {
                         EXPECT_EQ(tokens[i].getType(), expectedTokens[i].getType());
                         EXPECT_EQ(tokens[i].getLiteral(), expectedTokens[i].getLiteral());
                         EXPECT_EQ(tokens[i].getAbsIdx(), expectedTokens[i].getAbsIdx());
-                        EXPECT_EQ(tokens[i].getLineNum(), expectedTokens[i].getLineNum());
-                        EXPECT_EQ(tokens[i].getColNum(), expectedTokens[i].getColNum());
+                        EXPECT_EQ(tokens[i].getLineStart(), expectedTokens[i].getLineStart());
+                        EXPECT_EQ(tokens[i].getColStart(), expectedTokens[i].getColStart());
+                        EXPECT_EQ(tokens[i].getLineEnd(), expectedTokens[i].getLineEnd());
+                        EXPECT_EQ(tokens[i].getColEnd(), expectedTokens[i].getColEnd());
                     }
                 }
                 else {

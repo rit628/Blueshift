@@ -25,9 +25,9 @@ namespace BlsLang {
             bool match(Args... patterns);
             const Token& at(int offset) const;
             void setStream(std::vector<Token>& newStream);
-            size_t getLine() const;
-            size_t getColumn() const;
-            std::pair<size_t, size_t> getLocation() const;
+            size_t getLine(bool fromLastToken = false) const;
+            size_t getColumn(bool fromLastToken = false) const;
+            std::pair<size_t, size_t> getLocation(bool fromLastToken = false) const;
             bool outOfRange(int offset) const { return (ts.size() <= (index + offset)) || (index + offset) < 0; }
             bool empty() const { return outOfRange(0); }
 
