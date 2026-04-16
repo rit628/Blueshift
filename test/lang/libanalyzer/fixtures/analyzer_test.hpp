@@ -1,8 +1,10 @@
 #pragma once
 #include "analyzer.hpp"
 #include "ast.hpp"
+#include "bls_types.hpp"
 #include "call_stack.hpp"
 #include "Serialization.hpp"
+#include "error_types.hpp"
 #include "tester.hpp"
 #include <gtest/gtest.h>
 #include <memory>
@@ -16,14 +18,20 @@ namespace BlsLang {
             struct Metadata {
                 Metadata() { }
                 std::unordered_map<std::string, DeviceDescriptor> deviceDescriptors;
-                std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+                std::vector<TaskDescriptor> boundTasks;
                 std::unordered_map<BlsType, uint8_t> literalPool;
             };
 
             void TEST_ANALYZE(std::unique_ptr<AstNode>& ast, std::unique_ptr<AstNode>& decoratedAst = defaultAst, Metadata metadata = Metadata(), CallStack<std::string> cs = CallStack<std::string>(CallStack<std::string>::Frame::Context::FUNCTION)) {
                 analyzer.cs = cs;
                 analyzer.functionSymbols[cs.getFrameName()];
-                ast->accept(analyzer);
+                // simulate calling analyzer from source node
+                try {
+                    ast->accept(analyzer);
+                }
+                catch (RuntimeError e) {
+                    throw SemanticError(e.what(), *analyzer.currentNode);
+                }
                 static auto compareDeviceDescriptors = [](const DeviceDescriptor& desc, const DeviceDescriptor& expectedDesc) {
                     EXPECT_EQ(desc.device_name, expectedDesc.device_name);
                     EXPECT_EQ(desc.type, expectedDesc.type);
@@ -62,11 +70,10 @@ namespace BlsLang {
                     compareDeviceDescriptors(deviceDescriptors.at(expectedName), expectedDesc);
                 }
 
-                auto& taskDescriptors = analyzer.taskDescriptors;
-                auto& expectedTaskDescriptors = metadata.taskDescriptors;
-                for (auto&& [expectedName, expectedDesc] : expectedTaskDescriptors) {
-                    ASSERT_TRUE(taskDescriptors.contains(expectedName));
-                    compareTaskDescriptors(taskDescriptors.at(expectedName), expectedDesc);
+                auto& boundTasks = analyzer.boundTasks;
+                auto& expectedBoundTasks = metadata.boundTasks;
+                for (auto&& [task, expectedTask] : boost::combine(boundTasks, expectedBoundTasks)) {
+                    compareTaskDescriptors(task, expectedTask);
                 }
 
                 ASSERT_EQ(analyzer.literalPool.size(), metadata.literalPool.size());

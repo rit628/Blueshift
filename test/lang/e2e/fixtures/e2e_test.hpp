@@ -24,7 +24,8 @@ namespace BlsLang {
             }
 
             void TEST_E2E_TASK(const std::string& taskName, std::vector<BlsType>&& input, const std::vector<BlsType>&& expectedOutput, const std::string& expectedStdout) {
-                vm.setTaskOffset(compiler.getTaskDescriptorMap().at(taskName).bytecode_offset);
+                // bound tasks with the same signature share the same bytecode offset
+                vm.setTaskOffset(compiler.getTaskDescriptorMap().at(taskName).at(0).get().bytecode_offset);
                 
                 auto interpreterTransform = compiler.getTasks().at(taskName);
                 auto vmTransform = std::bind(&VirtualMachine::transform, std::ref(vm), std::placeholders::_1);

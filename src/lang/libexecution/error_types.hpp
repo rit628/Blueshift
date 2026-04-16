@@ -1,7 +1,7 @@
 #pragma once
 #include "ast.hpp"
 #include <cstddef>
-#include<sstream>
+#include <sstream>
 #include <exception>
 #include <string>
 #include <utility>
@@ -27,12 +27,6 @@ namespace BlsLang {
 
     class SemanticError : public std::exception {
         public:
-            explicit SemanticError(const std::string& message) {
-                std::ostringstream os;
-                os << message;
-                this->message = os.str();
-            }
-
             explicit SemanticError(const std::string& message, const AstNode& ast) {
                 std::ostringstream os;
                 auto makeIndexRange = [](size_t start, size_t end) {
@@ -41,20 +35,6 @@ namespace BlsLang {
                 std::string lineRange = makeIndexRange(ast.lineStart, ast.lineEnd);
                 std::string columnRange = makeIndexRange(ast.columnStart, ast.columnEnd);
                 os << "Ln " << lineRange << ", Col " << columnRange << ": " << message;
-                this->message = os.str();
-            }
-        
-            const char* what() const noexcept override { return message.c_str(); }
-
-        private:
-            std::string message;
-    };
-
-    class RuntimeError : public std::exception {
-        public:
-            explicit RuntimeError(const std::string& message) {
-                std::ostringstream os;
-                os << message;
                 this->message = os.str();
             }
         

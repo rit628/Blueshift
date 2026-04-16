@@ -34,7 +34,7 @@ void Generator::writeBytecode(std::ostream& outputStream) {
     BytecodeSerializer bs(outputStream);
 
     bs.writeMetadata(functionSymbols);
-    bs.writeHeader(std::views::values(taskDescriptors));
+    bs.writeHeader(boundTasks);
     bs.writeLiteralPool(literalPool);
 
     for (auto&& instruction : instructions) {
@@ -124,10 +124,12 @@ BlsObject Generator::visit(AstNode::Function::Procedure& ast) {
 BlsObject Generator::visit(AstNode::Function::Task& ast) {
     functionContext = FUNCTION_CONTEXT::TASK;
     auto& name = ast.name;
-    if (!taskDescriptors.contains(name)) return 0; // skip generating code for unbound tasks
+    if (!boundTaskMap.contains(name)) return 0; // skip generating code for unbound tasks
     uint16_t address = instructions.size();
     functionSymbols[name].first = address; // use operator[] to account for testing environment
-    taskDescriptors.at(name).bytecode_offset = address;
+    for (auto&& task : boundTaskMap.at(name)) {
+        task.get().bytecode_offset = address; // update offset for all bound tasks
+    }
     for (auto&& statement : ast.statements) {
         statement->accept(*this);
     }

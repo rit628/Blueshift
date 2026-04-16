@@ -25,7 +25,7 @@ namespace BlsLang {
             uint8_t(0)
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool;
         
         INIT(taskDescriptors, literalPool);
@@ -47,7 +47,7 @@ namespace BlsLang {
             uint8_t(0)
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool;
         
         INIT(taskDescriptors, literalPool);
@@ -68,7 +68,7 @@ namespace BlsLang {
             uint8_t(0)
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {"member", 0}
         };
@@ -95,7 +95,7 @@ namespace BlsLang {
             )
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {20, 0},
             {30, 1}
@@ -123,7 +123,7 @@ namespace BlsLang {
             )
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {true, 0},
             {false, 1}
@@ -164,7 +164,7 @@ namespace BlsLang {
             )
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {true, 0},
             {1, 1},
@@ -207,7 +207,7 @@ namespace BlsLang {
             )
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {20, 0},
             {30, 1},
@@ -239,7 +239,7 @@ namespace BlsLang {
             )
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {30, 0}
         };
@@ -267,7 +267,7 @@ namespace BlsLang {
             )
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {30, 0}
         };
@@ -304,7 +304,7 @@ namespace BlsLang {
             )
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {30, 0}
         };
@@ -341,7 +341,7 @@ namespace BlsLang {
             )
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {30, 0}
         };
@@ -388,7 +388,7 @@ namespace BlsLang {
             )
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {0, 0},
             {30, 1},
@@ -438,7 +438,7 @@ namespace BlsLang {
             )
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {false, 0}
         };
@@ -464,7 +464,7 @@ namespace BlsLang {
             )
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {false, 0}
         };
@@ -489,7 +489,7 @@ namespace BlsLang {
             )
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {1, 0}
         };
@@ -517,7 +517,7 @@ namespace BlsLang {
             AstNode::Expression::Unary::OPERATOR_POSITION::POSTFIX
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {1, 0}
         };
@@ -540,7 +540,7 @@ namespace BlsLang {
             std::string("string")
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {"string", 0}
         };
@@ -572,7 +572,7 @@ namespace BlsLang {
            listLiteral
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {2, 0},
             {50, 1},
@@ -608,7 +608,7 @@ namespace BlsLang {
            listLiteral
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {0, 0},
             {50, 1},
@@ -657,7 +657,7 @@ namespace BlsLang {
             mapLiteral
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {"k1", 0},
             {12, 1},
@@ -704,7 +704,7 @@ namespace BlsLang {
             mapLiteral
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {"k1", 0},
             {12, 1},
@@ -753,7 +753,7 @@ namespace BlsLang {
             mapLiteral
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {"k1", 0},
             {12, 1},
@@ -803,7 +803,7 @@ namespace BlsLang {
             mapLiteral
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {"k1", 0},
             {12, 1},
@@ -835,7 +835,7 @@ namespace BlsLang {
             0
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool;
         
         INIT(taskDescriptors, literalPool);
@@ -861,7 +861,7 @@ namespace BlsLang {
             0
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {int64_t(2), 0}
         };
@@ -898,7 +898,7 @@ namespace BlsLang {
             {}
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {true, 0}
         };
@@ -956,7 +956,7 @@ namespace BlsLang {
             {}
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {true, 0},
             {false, 1}
@@ -1030,7 +1030,7 @@ namespace BlsLang {
             }
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {true, 0},
             {false, 1}
@@ -1072,7 +1072,7 @@ namespace BlsLang {
             }
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {true, 0}
         };
@@ -1109,7 +1109,7 @@ namespace BlsLang {
             }
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {true, 0}
         };
@@ -1147,7 +1147,7 @@ namespace BlsLang {
             }
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {true, 0}
         };
@@ -1184,7 +1184,7 @@ namespace BlsLang {
             }
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool;
         
         INIT(taskDescriptors, literalPool);
@@ -1242,7 +1242,7 @@ namespace BlsLang {
             }
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {0, 0},
             {7, 1},
@@ -1291,7 +1291,7 @@ namespace BlsLang {
             }
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {std::monostate(), 0}
         };
@@ -1345,7 +1345,7 @@ namespace BlsLang {
             }
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {1, 0},
             {"arg2", 1},
@@ -1412,7 +1412,7 @@ namespace BlsLang {
             )
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {std::monostate(), 0}
         };
@@ -1484,9 +1484,7 @@ namespace BlsLang {
             )
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors = {
-            {"h", TaskDescriptor("h")}
-        };
+        std::vector<TaskDescriptor> taskDescriptors = {TaskDescriptor("h")};
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {std::monostate(), 0}
         };
@@ -1522,7 +1520,7 @@ namespace BlsLang {
             }
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {"arg1", 0},
             {100, 1}
@@ -1557,7 +1555,7 @@ namespace BlsLang {
             TYPE::map_t
         ));
 
-        std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+        std::vector<TaskDescriptor> taskDescriptors;
         std::unordered_map<BlsType, uint8_t> literalPool = {
             {"key", 0}
         };

@@ -23,8 +23,11 @@ namespace BlsLang {
             BlsObject visit(Node& ast) override;
             #include "include/NODE_TYPES.LIST"
             #undef AST_NODE
+
+            void preVisit(AstNode& ast) override;
             
-            auto& getTaskDescriptors() { return taskDescriptors; }
+            auto& getBoundTasks() { return boundTasks; }
+            auto& getBoundTaskMap() { return boundTaskMap; }
             auto& getLiteralPool() { return literalPool; }
             auto& getFunctionSymbols() { return functionSymbols; }
 
@@ -60,8 +63,11 @@ namespace BlsLang {
             std::unordered_map<std::string, FunctionSignature> tasks;
             std::unordered_map<std::string, DeviceDescriptor> deviceDescriptors;
             std::unordered_map<std::string, TaskDescriptor> taskDescriptors;
+            std::vector<TaskDescriptor> boundTasks;
+            std::unordered_map<std::string, std::vector<std::reference_wrapper<TaskDescriptor>>> boundTaskMap;
             std::unordered_map<BlsType, uint8_t> literalPool;
             std::unordered_map<std::string, std::pair<uint16_t, std::vector<std::string>>> functionSymbols;
+            AstNode* currentNode = nullptr;
     };
 
 }

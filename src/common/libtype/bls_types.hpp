@@ -11,6 +11,7 @@
 #include <mutex>
 #include <stdexcept>
 #include <string>
+#include <sstream>
 #include <unordered_map>
 #include <utility>
 #include <variant>
@@ -44,6 +45,20 @@ namespace BlsLang {
   #undef DEVTYPE_END
 
   constexpr auto SPECIAL_ANY                          ("any");
+
+  class RuntimeError : public std::exception {
+    public:
+      explicit RuntimeError(const std::string& message) {
+        std::ostringstream os;
+        os << message;
+        this->message = os.str();
+      }
+    
+      const char* what() const noexcept override { return message.c_str(); }
+
+    private:
+      std::string message;
+  };
 
 }
 
@@ -108,6 +123,12 @@ struct BlsType : std::variant<std::monostate, bool, int64_t, double, std::string
   friend std::ostream& operator<<(std::ostream& os, const BlsType& obj);
   template<typename Archive>
   void serialize(Archive& ar, const unsigned int);
+  friend size_t hash_value(const BlsType& obj) noexcept;
+};
+
+template<>
+struct std::hash<BlsType> {
+  size_t operator()(const BlsType& obj) const noexcept;
 };
 
 namespace TypeDef {
@@ -143,11 +164,6 @@ namespace TypeDef {
   using resolved_t = Resolve<T>::type;
 
 }
-
-template<>
-struct std::hash<BlsType> {
-    size_t operator()(const BlsType& obj) const;
-};
 
 class HeapDescriptor {
   protected: 

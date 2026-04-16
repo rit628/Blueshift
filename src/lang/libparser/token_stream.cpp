@@ -20,18 +20,20 @@ void TokenStream::setStream(std::vector<Token>& newStream) {
     }), ts.end());
 }
 
-size_t TokenStream::getLine() const {
+size_t TokenStream::getLine(bool fromLastToken) const {
     if (ts.empty()) return 0;
-    auto idx = std::min(index, ts.size() - 1);
-    return ts.at(idx).getLineNum();
+    auto idx = std::min(index - static_cast<int>(fromLastToken), ts.size() - 1);
+    auto& token = ts.at(idx);
+    return (fromLastToken) ? token.getLineEnd() : token.getLineStart();
 }
 
-size_t TokenStream::getColumn() const {
+size_t TokenStream::getColumn(bool fromLastToken) const {
     if (ts.empty()) return 0;
-    auto idx = std::min(index, ts.size() - 1);
-    return ts.at(idx).getColNum();
+    auto idx = std::min(index - static_cast<int>(fromLastToken), ts.size() - 1);
+    auto& token = ts.at(idx);
+    return (fromLastToken) ? token.getColEnd() : token.getColStart();
 }
 
-std::pair<size_t, size_t> TokenStream::getLocation() const {
-    return {getLine(), getColumn()};
+std::pair<size_t, size_t> TokenStream::getLocation(bool fromLastToken) const {
+    return {getLine(fromLastToken), getColumn(fromLastToken)};
 }

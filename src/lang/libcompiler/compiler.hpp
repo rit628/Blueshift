@@ -19,9 +19,10 @@ namespace BlsLang {
     class Compiler {
         public:
             Compiler()
-            : generator(analyzer.getTaskDescriptors()
-                       , analyzer.getLiteralPool()
-                       , analyzer.getFunctionSymbols()) {}
+            : generator(analyzer.getBoundTasks()
+                      , analyzer.getBoundTaskMap()
+                      , analyzer.getLiteralPool()
+                      , analyzer.getFunctionSymbols()) {}
             
             using ostream_t = std::variant<std::reference_wrapper<std::vector<char>>, std::reference_wrapper<std::ostream>>;
 
@@ -29,8 +30,8 @@ namespace BlsLang {
             void compileSource(const std::string& source, ostream_t outputStream = std::cout);
             auto& getAst() { return ast; }
             auto& getTasks() { return tasks; }
-            auto& getTaskDescriptors() { return taskDescriptors; }
-            auto& getTaskDescriptorMap() { return analyzer.getTaskDescriptors(); }
+            auto& getTaskDescriptors() { return analyzer.getBoundTasks(); }
+            auto& getTaskDescriptorMap() { return analyzer.getBoundTaskMap(); }
             auto getTaskContexts(){return depGraph.getTaskMap();}
             auto getGlobalContext() {return depGraph.getGlobalContext();}
             
@@ -47,7 +48,6 @@ namespace BlsLang {
             Divider divider; 
             std::vector<Interpreter> euInterpreters;
             std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> tasks;
-            std::vector<TaskDescriptor> taskDescriptors;
     };
 
 }

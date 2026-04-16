@@ -18,8 +18,11 @@
 namespace BlsLang {
     class GeneratorTest : public testing::Test {
         public:
-            void INIT(std::unordered_map<std::string, TaskDescriptor>& taskDescriptors, std::unordered_map<BlsType, uint8_t>& literalPool) {
-                generator = std::make_unique<Generator>(Generator(taskDescriptors, literalPool, functionSymbols));
+            void INIT(std::vector<TaskDescriptor>& boundTasks, std::unordered_map<BlsType, uint8_t>& literalPool) {
+                for (auto&& task : boundTasks) {
+                    boundTaskMap[task.name].push_back(task);
+                }
+                generator = std::make_unique<Generator>(Generator(boundTasks, boundTaskMap, literalPool, functionSymbols));
                 INIT_FLAG = true;
             }
 
@@ -59,6 +62,7 @@ namespace BlsLang {
 
         private:
             bool INIT_FLAG = false;
+            std::remove_reference_t<decltype(Generator::boundTaskMap)> boundTaskMap; // build directly from boundTasks
             std::remove_reference_t<decltype(Generator::functionSymbols)> functionSymbols; // just to satisfy constructor
             std::unique_ptr<Generator> generator = nullptr;
     };
