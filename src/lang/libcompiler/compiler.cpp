@@ -15,9 +15,9 @@
 
 using namespace BlsLang;
 
-void Compiler::modifyTaskDesc(std::unordered_map<std::string, TaskDescriptor> &oDescs,  GlobalContext &gcx){
+void Compiler::modifyTaskDesc(std::vector<TaskDescriptor> &taskDescs,  GlobalContext &gcx){
     std::unordered_map<DeviceID, DeviceDescriptor&> devDesc; 
-    for(auto& [name, task] : oDescs){
+    for(auto&& task : taskDescs){
     
         std::unordered_map<DeviceID, DeviceDescriptor> devMap; 
         for(auto& str : task.binded_devices){
@@ -53,7 +53,7 @@ void Compiler::compileSource(const std::string& source, ostream_t outputStream) 
     ast = parser.parse(tokens);
     ast->accept(analyzer);
     ast->accept(depGraph);
-    modifyTaskDesc(analyzer.getTaskDescriptors(), depGraph.getGlobalContext()); 
+    modifyTaskDesc(analyzer.getBoundTasks(), depGraph.getGlobalContext()); 
     ast->accept(generator);
     if (auto* stream = std::get_if<std::reference_wrapper<std::vector<char>>>(&outputStream)) {
         generator.writeBytecode(*stream);

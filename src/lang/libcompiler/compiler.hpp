@@ -38,7 +38,7 @@ namespace BlsLang {
          
             
         private:
-            void modifyTaskDesc(std::unordered_map<std::string, TaskDescriptor>& taskDescs, GlobalContext& gtx); 
+            void modifyTaskDesc(std::vector<TaskDescriptor> &taskDescs, GlobalContext& gtx); 
 
 
             std::vector<Token> tokens;
