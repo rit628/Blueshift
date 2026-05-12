@@ -5,6 +5,7 @@ logs
 # Build artifacts
 /.cdeps/
 /build/
+/gen/
 /.cache/
 CMakeCache.txt
 CMakeFiles/

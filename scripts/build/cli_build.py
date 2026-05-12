@@ -16,7 +16,9 @@ def build(args):
     if args.clean: remote_args.append("--clean")
 
     if args.local:
-        if args.clean: rmtree(ARTIFACT_DIR, ignore_errors=True)
+        if args.clean:
+            rmtree(ARTIFACT_DIR, ignore_errors=True)
+            rmtree(env.GENERATED_OUTPUT_DIRECTORY, ignore_errors=True)
 
         cmake_args = [f"-DCMAKE_BUILD_TYPE={args.build_type}", "-Wno-dev"]
         if PLATFORM != get_host_os(): # specify toolchain file for cross compilation
