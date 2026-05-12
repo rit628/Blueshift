@@ -19,5 +19,4 @@ set(CMAKE_LINKER_TYPE DEFAULT) # use wasm-ld
 add_compile_definitions(__WASM32__)
 
 # DISABLED LIBS
-set(DISABLE_CURL true)
 set(USE_SYSTEM_BOOST_HEADERS true)
