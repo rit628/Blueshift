@@ -46,12 +46,6 @@ if(NOT USE_SYSTEM_BOOST_HEADERS)
     list(TRANSFORM REQUIRED_BOOST_HEADER_LIBRARIES PREPEND Boost:: OUTPUT_VARIABLE BOOST_HEADER_LIBRARIES)
 endif()
 
-FetchContent_Declare(
-    curl
-    SYSTEM # Disable warnings in headers
-    URL https://github.com/curl/curl/releases/download/curl-8_15_0/curl-8.15.0.zip
-)
-
 # SDL3
 FetchContent_Declare(
     SDL3
@@ -67,12 +61,6 @@ if(NOT DISABLE_SDL)
     add_compile_definitions(SDL_ENABLED)
     set(FETCHCONTENT_OPTIONAL ${FETCHCONTENT_OPTIONAL} SDL3)
     set(SYSTEM_LINK_LIBRARIES ${SYSTEM_LINK_LIBRARIES} SDL3::SDL3)
-endif()
-
-if(NOT DISABLE_CURL)
-    set(FETCHCONTENT_OPTIONAL ${FETCHCONTENT_OPTIONAL} curl)
-    set(SYSTEM_LINK_LIBRARIES ${SYSTEM_LINK_LIBRARIES} ssl crypto)
-    include_directories(${curl_SOURCE_DIR}/include)
 endif()
 
 get_directory_property(current_compile_options COMPILE_OPTIONS)
