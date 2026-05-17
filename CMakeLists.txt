@@ -14,6 +14,10 @@ set(CMAKE_SCAN_FOR_MODULES)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 SET(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
 
+# Helper definitions
+set(SCRIPT_DIR ${CMAKE_SOURCE_DIR}/scripts)
+set(GEN_DIR ${CMAKE_SOURCE_DIR}/$ENV{GENERATED_OUTPUT_DIRECTORY})
+
 # Helper functions
 include(.cmake/macros.cmake)
 
@@ -46,11 +50,15 @@ if(NOT USE_SYSTEM_BOOST_HEADERS)
     list(TRANSFORM REQUIRED_BOOST_HEADER_LIBRARIES PREPEND Boost:: OUTPUT_VARIABLE BOOST_HEADER_LIBRARIES)
 endif()
 
+# Flatbuffers
 FetchContent_Declare(
-    curl
+    flatbuffers
     SYSTEM # Disable warnings in headers
-    URL https://github.com/curl/curl/releases/download/curl-8_15_0/curl-8.15.0.zip
+    URL https://github.com/google/flatbuffers/archive/refs/tags/v$ENV{FLATBUFFERS_VERSION}.zip
 )
+set(FLATBUFFERS_BUILD_FLATC OFF)
+set(FLATBUFFERS_BUILD_TESTS OFF)
+set(FLATBUFFERS_FLATC_EXECUTABLE flatc)
 
 # SDL3
 FetchContent_Declare(
@@ -69,15 +77,9 @@ if(NOT DISABLE_SDL)
     set(SYSTEM_LINK_LIBRARIES ${SYSTEM_LINK_LIBRARIES} SDL3::SDL3)
 endif()
 
-if(NOT DISABLE_CURL)
-    set(FETCHCONTENT_OPTIONAL ${FETCHCONTENT_OPTIONAL} curl)
-    set(SYSTEM_LINK_LIBRARIES ${SYSTEM_LINK_LIBRARIES} ssl crypto)
-    include_directories(${curl_SOURCE_DIR}/include)
-endif()
-
 get_directory_property(current_compile_options COMPILE_OPTIONS)
 add_compile_options(-w) # Disable warnings for fetched content
-FetchContent_MakeAvailable(Boost ${FETCHCONTENT_OPTIONAL})
+FetchContent_MakeAvailable(Boost flatbuffers ${FETCHCONTENT_OPTIONAL})
 set_directory_properties(PROPERTIES COMPILE_OPTIONS "${current_compile_options}") # restore old compile options
 
 set(ESSENTIAL_FLAGS -Wall -Wextra -Wnon-virtual-dtor)
@@ -97,7 +99,26 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$ENV{ARCHIVE_OUTPUT_DIREC
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$ENV{LIBRARY_OUTPUT_DIRECTORY})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$ENV{RUNTIME_OUTPUT_DIRECTORY})
 
-link_libraries(Boost::headers ${BOOST_HEADER_LIBRARIES} ${BOOST_LINK_LIBRARIES} ${SYSTEM_LINK_LIBRARIES})
+link_libraries(
+    Boost::headers ${BOOST_HEADER_LIBRARIES} ${BOOST_LINK_LIBRARIES}
+    flatbuffers
+    ${SYSTEM_LINK_LIBRARIES}
+)
+
+# Generate flatbuffer structs
+execute_process(COMMAND python3 ${SCRIPT_DIR}/driver.py ${SCRIPT_DIR}/gen/fbs_gen.py)
+file(GLOB_RECURSE FB_SCHEMAS ${GEN_DIR}/schemas/*.fbs)
+build_flatbuffers(
+    "${FB_SCHEMAS}"
+    ""
+    fb_schemas
+    ""
+    ${GEN_DIR}
+    ""
+    ""
+)
+# Ensure all flatbuffer schemas are built
+add_custom_target(fb_headers ALL DEPENDS fb_schemas)
 
 # Preprocessor Macro Definitions
 if(NOT CMAKE_CROSSCOMPILING)

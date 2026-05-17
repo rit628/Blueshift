@@ -3,6 +3,7 @@ FROM debian:13-slim
 ARG WORKDIR
 ARG LLVM_VERSION
 ARG CMAKE_VERSION
+ARG FLATBUFFERS_VERSION
 ARG VENV_DIRECTORY
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -12,8 +13,10 @@ WORKDIR ${WORKDIR}
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 --mount=type=cache,target=/var/lib/apt,sharing=locked \
 apt-get update && apt-get install --no-install-recommends -y \
-build-essential make ccache python3 python3-venv git procps gdbserver wget \
+build-essential make ccache python3 python3-venv git procps gdbserver wget unzip \
 libssl-dev libpsl-dev pkg-config && \
+wget -O flatc.zip https://github.com/google/flatbuffers/releases/download/v${FLATBUFFERS_VERSION}/Linux.flatc.binary.clang++-18.zip && \
+unzip flatc.zip -d /usr/bin && rm flatc.zip && \
 wget -qO- https://cmake.org/files/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.0-rc2-linux-$(uname -m).tar.gz | tar --strip-components=1 -xz -C /usr/local && \
 echo "deb http://apt.llvm.org/trixie/ llvm-toolchain-trixie-${LLVM_VERSION} main" | tee /etc/apt/sources.list.d/llvm.list && \
 echo "deb-src http://apt.llvm.org/trixie/ llvm-toolchain-trixie-${LLVM_VERSION} main" | tee -a /etc/apt/sources.list.d/llvm.list && \
