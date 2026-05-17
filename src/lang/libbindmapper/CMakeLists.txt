@@ -1,0 +1,1 @@
+bls_add_library(bindmapper STATIC LINKS visitor type trap)

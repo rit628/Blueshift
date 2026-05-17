@@ -28,6 +28,16 @@ void Compiler::compileSource(const std::string& source, ostream_t outputStream) 
     ast = parser.parse(tokens);
     ast->accept(analyzer);
     ast->accept(generator);
+    ast->accept(bindmap);
+
+    // Get and load the bind map to the generator
+    auto item = bindmap.get_map();  
+    dag.load_bind_data(item);
+    dag.DEBUG_show_map(); 
+
+    ast->accept(dag); 
+
+
     if (auto* stream = std::get_if<std::reference_wrapper<std::vector<char>>>(&outputStream)) {
         generator.writeBytecode(*stream);
     }
@@ -35,55 +45,6 @@ void Compiler::compileSource(const std::string& source, ostream_t outputStream) 
         generator.writeBytecode(std::get<std::reference_wrapper<std::ostream>>(outputStream));
     }
     ast->accept(this->depGraph);
-    // auto tempTask = this->depGraph.getTaskMap();  
-
-
-    /*
-    this->symGraph.setMetadata(this->depGraph.getTaskMap(), analyzer.getTaskDescriptors()); 
-    ast->accept(this->symGraph); 
-    this->symGraph.annotateControllerDivide(); 
-
-    auto divider = this->symGraph.getDivisionData(); 
-
-    // Verify that the deviders work!
-    for(auto& obj : divider.ctlMetaData){
-        std::cout<<"Printing data for controller ID: "<<obj.first<<std::endl; 
-        for(auto data : obj.second.taskData){
-            std::cout<<"Original task: "<<data.first<<std::endl; 
-            std::cout<<"Params: "<<std::endl;
-            for(auto param : data.second.parameterList){
-                std::cout<<param<<" "; 
-            }
-            std::cout<<"\n"; 
-            std::cout<<"Jamar device"<<std::endl; 
-            for(auto jamar : data.second.taskDesc.binded_devices){
-                std::cout<<jamar.device_name<<" "; 
-            }
-            std::cout<<"\n"; 
-        }
-    }
-    
-    // Setting up the divider
-    this->divider.setMetadata(divider); 
-    ast->accept(this->divider);
-
-    auto& king = this->divider.getControllerSplit(); 
-    std::cout<<"Split ctl\n"<<std::endl; 
-    for(auto& hom : king){
-        std::cout<<"Controller: "<<hom.first<<std::endl; 
-        auto& cntSrc = hom.second; 
-        for(auto& desc : cntSrc.taskDesc){
-            std::cout<<"\ntaskname: "<<desc.first<<std::endl; 
-            std::cout<<"Internal name:"<<desc.second.name<<std::endl; 
-            for(auto& dev : desc.second.binded_devices){
-                std::cout<<"Binded: "<<dev.device_name<<std::endl; 
-            }
-        }   
-    }
-
-    std::cout<<"\nend Split ctl"<<std::endl;
-    */ 
-
     ast->accept(masterInterpreter);
         
     auto& descriptors = analyzer.getBoundTasks();

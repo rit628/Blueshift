@@ -11,5 +11,7 @@ add_subdirectory(libsymgraph)
 add_subdirectory(libdivider)
 add_subdirectory(libvirtual_machine)
 add_subdirectory(libcompiler)
+add_subdirectory(libbindmapper)
+add_subdirectory(libdaggen)
 
 bls_add_executable(lang main.cpp LINKS symgraph compiler virtual_machine)

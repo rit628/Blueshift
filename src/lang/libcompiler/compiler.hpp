@@ -9,6 +9,8 @@
 #include "depgraph.hpp"
 #include "symgraph.hpp"
 #include "divider.hpp"
+#include "bindmapper.hpp"
+#include "daggen.hpp" 
 #include "token.hpp"
 #include <memory>
 #include <variant>
@@ -46,6 +48,8 @@ namespace BlsLang {
             Interpreter masterInterpreter;
             Symgraph symGraph; 
             Divider divider; 
+            BindMapper bindmap; 
+            DagGen dag; 
             std::vector<Interpreter> euInterpreters;
             std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> tasks;
     };

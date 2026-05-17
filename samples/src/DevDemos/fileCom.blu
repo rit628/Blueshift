@@ -1,0 +1,27 @@
+task file_com(LINE_WRITER question, LINE_WRITER response, map<string, string> response_map)
+: triggerOn(question)
+{
+    if(getTrigger() != "initial"){
+        string q = question.msg; 
+        response.msg = response_map[q]; 
+    }
+ 
+}
+
+
+setup(){
+    LINE_WRITER qa = "ctl::file-f1q.txt";  
+    LINE_WRITER ra = "ctl::file-f1a.txt"; 
+
+    LINE_WRITER qb = "ctl::file-f2q.txt";
+    LINE_WRITER rb = "ctl::file-f2a.txt"; 
+
+    virtual map<string, string> omar = {"Hello" : "dead" , "What" : "None", "Candace" : "Newmaker"}; 
+
+
+    file_com(qa, ra, omar);
+    file_com(qb, rb, omar);
+
+
+
+}
