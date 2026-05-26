@@ -1,12 +1,14 @@
 #pragma once
 #include "ast.hpp"
 #include "visitor.hpp"
-#include <gtest/gtest.h>
 #include <stack>
 
 namespace BlsLang {
     class Tester : public Visitor {
         private:
+            template<std::derived_from<AstNode> Node>
+            void checkedAccept(const char *& name, std::unique_ptr<Node>& node);
+        
             BlsObject testChild(const char *& name, auto& value, auto& expectedValue);
             template<std::derived_from<AstNode> Node>
             BlsObject testChild(const char *& name
@@ -32,19 +34,14 @@ namespace BlsLang {
 
         public:
             Tester() = default;
-            Tester(std::unique_ptr<AstNode> expectedAst) : expectedAst(std::move(expectedAst)) {}
-            void addExpectedAst(std::unique_ptr<AstNode> expectedAst) { this->expectedAst = std::move(expectedAst); }
+            void compare(std::unique_ptr<AstNode>& ast, std::unique_ptr<AstNode>& expectedAst);
             #define AST_NODE(Node, ...) \
-            inline BlsObject visit(Node& ast) override { \
-                auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top(); \
-                auto& expected = dynamic_cast<Node&>(*toCast); \
-                return testChildren(ast, expected); \
-            }
+            BlsObject visit(Node& ast) override;
             #include "include/NODE_TYPES.LIST"
             #undef AST_NODE
     
-            std::unique_ptr<AstNode> expectedAst;
-            std::stack<std::unique_ptr<AstNode>> expectedVisits;
+            AstNode* expectedAst = nullptr;
+            std::stack<AstNode*> expectedVisits;
     };
 }
 

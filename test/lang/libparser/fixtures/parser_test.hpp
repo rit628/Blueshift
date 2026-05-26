@@ -42,11 +42,11 @@ namespace BlsLang {
             void checkAst(std::unique_ptr<AstNode> ast, std::unique_ptr<AstNode> expectedAst) {
                 ASSERT_NE(ast, nullptr);
                 ASSERT_NE(expectedAst, nullptr);
-                Tester tester(std::move(expectedAst));
-                ast->accept(tester);
+                tester.compare(ast, expectedAst);
             }
 
         private:
             Parser parser;
+            Tester tester;
     };         
 }
