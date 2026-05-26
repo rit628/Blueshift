@@ -36,6 +36,7 @@ namespace BlsLang {
             std::unique_ptr<AstNode::Expression> parseMultiplicativeExpression();
             std::unique_ptr<AstNode::Expression> parseExponentialExpression();
             std::unique_ptr<AstNode::Expression> parseUnaryExpression();
+            std::unique_ptr<AstNode::Expression> parseChainExpression();
             std::unique_ptr<AstNode::Expression> parsePrimaryExpression();
             std::unique_ptr<AstNode::Specifier> parseSpecifier();
             std::unique_ptr<AstNode::Specifier::Type> parseTypeSpecifier();
@@ -45,7 +46,8 @@ namespace BlsLang {
             void cleanLiteral(std::string& literal);
             bool peekModifier();
             bool peekTypeSpecifier();
-            void matchExpectedSymbol(std::string&& symbol, std::string&& message);
+            template<typename T> requires std::same_as<T, Token::Type> || std::convertible_to<T, std::string>
+            void matchExpectedToken(T&& token, std::string&& message);
     };
 
 }

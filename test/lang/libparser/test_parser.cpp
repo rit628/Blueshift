@@ -321,7 +321,7 @@ namespace BlsLang {
             Token(Token::Type::OPERATOR, PARENTHESES_CLOSE)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Function(
-            "foo",
+            new AstNode::Expression::Access("foo"),
             {
                 new AstNode::Expression::Literal(static_cast<int64_t>(42)),
                 new AstNode::Expression::Literal(3.14)
@@ -349,10 +349,10 @@ namespace BlsLang {
             Token(Token::Type::OPERATOR, PARENTHESES_CLOSE)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Function(
-            "foo",
+            new AstNode::Expression::Access("foo"),
             {
-                new AstNode::Expression::Function("bar", { new AstNode::Expression::Literal(static_cast<int64_t>(1)) }),
-                new AstNode::Expression::Function("baz", { new AstNode::Expression::Literal(static_cast<int64_t>(2)) })
+                new AstNode::Expression::Function(new AstNode::Expression::Access("bar"), { new AstNode::Expression::Literal(static_cast<int64_t>(1)) }),
+                new AstNode::Expression::Function(new AstNode::Expression::Access("baz"), { new AstNode::Expression::Literal(static_cast<int64_t>(2)) })
             }
         ));
         TEST_PARSE_EXPRESSION(sampleTokens, std::move(expectedAst));
@@ -367,9 +367,11 @@ namespace BlsLang {
             Token(Token::Type::IDENTIFIER, LITERAL_TRUE),
             Token(Token::Type::OPERATOR, PARENTHESES_CLOSE)
         };
-        auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Method(
-            "obj",
-            "method",
+        auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Function(
+            new AstNode::Expression::Member(
+                new AstNode::Expression::Access("obj"),
+                "method"
+            ),
             {
                 new AstNode::Expression::Literal(true)
             }
@@ -389,8 +391,11 @@ namespace BlsLang {
             Token(Token::Type::INTEGER, "20"),
             Token(Token::Type::OPERATOR, PARENTHESES_CLOSE)
         };
-        auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Method(
-            "obj", "method",
+        auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Function(
+            new AstNode::Expression::Member(
+                new AstNode::Expression::Access("obj"),
+                "method"
+            ),
             {
                 new AstNode::Expression::Literal(static_cast<int64_t>(10)),
                 new AstNode::Expression::Literal(static_cast<int64_t>(20))
@@ -406,8 +411,9 @@ namespace BlsLang {
             Token(Token::Type::OPERATOR, MEMBER_ACCESS),
             Token(Token::Type::IDENTIFIER, "field")
         };
-        auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Access(
-            "obj", "field"
+        auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Member(
+            new AstNode::Expression::Access("obj"),
+            "field"
         ));
         TEST_PARSE_EXPRESSION(sampleTokens, std::move(expectedAst));
     }
@@ -419,8 +425,80 @@ namespace BlsLang {
             Token(Token::Type::INTEGER, "0"),
             Token(Token::Type::OPERATOR, BRACKET_CLOSE)
         };
-        auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Access(
-            "arr",
+        auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Subscript(
+            new AstNode::Expression::Access("arr"),
+            new AstNode::Expression::Literal(static_cast<int64_t>(0))
+        ));
+        TEST_PARSE_EXPRESSION(sampleTokens, std::move(expectedAst));
+    }
+
+    GROUP_TEST_F(ParserTest, ExpressionTests, MemberAccessSubscript) {
+        std::vector<Token> sampleTokens {
+            Token(Token::Type::IDENTIFIER, "obj"),
+            Token(Token::Type::OPERATOR, MEMBER_ACCESS),
+            Token(Token::Type::IDENTIFIER, "arr"),
+            Token(Token::Type::OPERATOR, BRACKET_OPEN),
+            Token(Token::Type::INTEGER, "0"),
+            Token(Token::Type::OPERATOR, BRACKET_CLOSE)
+        };
+        auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Subscript(
+            new AstNode::Expression::Member(
+                new AstNode::Expression::Access("obj"),
+                "arr"
+            ),
+            new AstNode::Expression::Literal(static_cast<int64_t>(0))
+        ));
+        TEST_PARSE_EXPRESSION(sampleTokens, std::move(expectedAst));
+    }
+
+    GROUP_TEST_F(ParserTest, ExpressionTests, MemberAccessSubscriptInvocation) {
+        std::vector<Token> sampleTokens {
+            Token(Token::Type::IDENTIFIER, "obj"),
+            Token(Token::Type::OPERATOR, MEMBER_ACCESS),
+            Token(Token::Type::IDENTIFIER, "arr"),
+            Token(Token::Type::OPERATOR, BRACKET_OPEN),
+            Token(Token::Type::INTEGER, "0"),
+            Token(Token::Type::OPERATOR, BRACKET_CLOSE),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE)
+        };
+        auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Expression::Function(
+            new AstNode::Expression::Subscript(
+                new AstNode::Expression::Member(
+                    new AstNode::Expression::Access("obj"),
+                    "arr"
+                ),
+                new AstNode::Expression::Literal(static_cast<int64_t>(0))
+            ),
+            {}
+        ));
+        TEST_PARSE_EXPRESSION(sampleTokens, std::move(expectedAst));
+    }
+
+    GROUP_TEST_F(ParserTest, ExpressionTests, MixedChaining) {
+        std::vector<Token> sampleTokens {
+            Token(Token::Type::IDENTIFIER, "f"),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
+            Token(Token::Type::OPERATOR, MEMBER_ACCESS),
+            Token(Token::Type::IDENTIFIER, "g"),
+            Token(Token::Type::OPERATOR, PARENTHESES_OPEN),
+            Token(Token::Type::OPERATOR, PARENTHESES_CLOSE),
+            Token(Token::Type::OPERATOR, BRACKET_OPEN),
+            Token(Token::Type::INTEGER, "0"),
+            Token(Token::Type::OPERATOR, BRACKET_CLOSE),
+        };
+        auto expectedAst = std::unique_ptr<AstNode>( new AstNode::Expression::Subscript(
+            new AstNode::Expression::Function(
+                new AstNode::Expression::Member(
+                    new AstNode::Expression::Function(
+                        new AstNode::Expression::Access("f"),
+                        {}
+                    ),
+                    "g"
+                ),
+                {}
+            ),
             new AstNode::Expression::Literal(static_cast<int64_t>(0))
         ));
         TEST_PARSE_EXPRESSION(sampleTokens, std::move(expectedAst));
@@ -443,7 +521,7 @@ namespace BlsLang {
             Token(Token::Type::OPERATOR, SEMICOLON)
         };
         auto expectedAst = std::unique_ptr<AstNode>(new AstNode::Statement::Expression(
-            new AstNode::Expression::Function("foo", { new AstNode::Expression::Literal(static_cast<int64_t>(42)) })
+            new AstNode::Expression::Function(new AstNode::Expression::Access("foo"), { new AstNode::Expression::Literal(static_cast<int64_t>(42)) })
         ));
         TEST_PARSE_STATEMENT(sampleTokens, std::move(expectedAst));
     }
@@ -740,7 +818,7 @@ namespace BlsLang {
             std::nullopt,
             {
                 new AstNode::Statement::Expression(
-                    new AstNode::Expression::Function("foo", {})
+                    new AstNode::Expression::Function(new AstNode::Expression::Access("foo"), {})
                 )
             }
         ));
