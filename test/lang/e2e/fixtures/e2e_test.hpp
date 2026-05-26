@@ -27,7 +27,6 @@ namespace BlsLang {
                 // bound tasks with the same signature share the same bytecode offset
                 vm.setTaskOffset(compiler.getTaskDescriptorMap().at(taskName).at(0).get().bytecode_offset);
                 
-                auto interpreterTransform = compiler.getTasks().at(taskName);
                 auto vmTransform = std::bind(&VirtualMachine::transform, std::ref(vm), std::placeholders::_1);
                 
                 auto checkTaskOutput = [&expectedOutput, &expectedStdout](std::function<std::vector<BlsType>(std::vector<BlsType>)> transformFunction, std::vector<BlsType> input) {
@@ -52,7 +51,6 @@ namespace BlsLang {
                     std::cout.rdbuf(oldBuffer);
                 };
 
-                // checkTaskOutput(interpreterTransform, input);
                 checkTaskOutput(vmTransform, input);
             }
         

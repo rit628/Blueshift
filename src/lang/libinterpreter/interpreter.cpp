@@ -1,3 +1,4 @@
+#ifdef BLUESHIFT_INTERPRETER_BUILD
 #include "interpreter.hpp"
 #include "binding_parser.hpp"
 #include "bls_types.hpp"
@@ -544,3 +545,4 @@ BlsObject Interpreter::visit(AstNode::Specifier::Type& ast) {
 BlsObject Interpreter::visit(AstNode::Initializer::Task&) {
     return std::monostate(); // Task initializers do not need to be visited in interpreter
 }
+#endif
