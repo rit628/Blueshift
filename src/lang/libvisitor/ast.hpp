@@ -108,8 +108,9 @@ namespace BlsLang {
         struct Set;
         struct Map;
         struct Access;
+        struct Member;
+        struct Subscript;
         struct Function;
-        struct Method;
         struct Group;
         struct Unary;
         struct Binary;
@@ -192,10 +193,7 @@ namespace BlsLang {
 
     struct AstNode::Expression::Access : public AstNode::Expression {
         Access() = default;
-        Access(std::string object, uint8_t localIndex = 0);
-        Access(std::string object, std::unique_ptr<AstNode::Expression> subscript, uint8_t localIndex = 0);
-        Access(std::string object, AstNode::Expression* subscript, uint8_t localIndex = 0);
-        Access(std::string object, std::string member, uint8_t localIndex = 0);
+        Access(std::string identifier, uint8_t localIndex = 0);
         Access(const Access& other);
         Access& operator=(const Access& rhs);
         
@@ -203,19 +201,53 @@ namespace BlsLang {
         std::unique_ptr<AstNode> clone() const override;
         std::unique_ptr<AstNode::Expression> cloneBase() const override;
 
-        auto getChildren() { return packChildren(object, subscript, member, localIndex); }
-        constexpr auto getChildNames() { return packChildNames("object", "subscript", "member", "localIndex"); }
+        auto getChildren() { return packChildren(identifier, localIndex); }
+        constexpr auto getChildNames() { return packChildNames("identifier", "localIndex"); }
 
-        std::string object;
-        std::optional<std::unique_ptr<AstNode::Expression>> subscript;
-        std::optional<std::string> member;
+        std::string identifier;
         uint8_t localIndex;
+    };
+
+    struct AstNode::Expression::Member : public AstNode::Expression {
+        Member() = default;
+        Member(std::unique_ptr<AstNode::Expression> object, std::string member);
+        Member(AstNode::Expression* object, std::string member);
+        Member(const Member& other);
+        Member& operator=(const Member& rhs);
+
+        BlsObject accept(Visitor& v) override;
+        std::unique_ptr<AstNode> clone() const override;
+        std::unique_ptr<AstNode::Expression> cloneBase() const override;
+
+        auto getChildren() { return packChildren(object, member); }
+        constexpr auto getChildNames() { return packChildNames("object", "member"); }
+
+        std::unique_ptr<AstNode::Expression> object;
+        std::string member;
+    };
+
+    struct AstNode::Expression::Subscript : public AstNode::Expression {
+        Subscript() = default;
+        Subscript(std::unique_ptr<AstNode::Expression> object, std::unique_ptr<AstNode::Expression> subscript);
+        Subscript(AstNode::Expression* object, AstNode::Expression* subscript);
+        Subscript(const Subscript& other);
+        Subscript& operator=(const Subscript& rhs);
+
+        BlsObject accept(Visitor& v) override;
+        std::unique_ptr<AstNode> clone() const override;
+        std::unique_ptr<AstNode::Expression> cloneBase() const override;
+
+        auto getChildren() { return packChildren(object, subscript); }
+        constexpr auto getChildNames() { return packChildNames("object", "subscript"); }
+        
+        std::unique_ptr<AstNode::Expression> object;
+        std::unique_ptr<AstNode::Expression> subscript;
     };
 
     struct AstNode::Expression::Function : public AstNode::Expression {
         Function() = default;
-        Function(std::string name, std::vector<std::unique_ptr<AstNode::Expression>> arguments);
-        Function(std::string name, std::initializer_list<AstNode::Expression*> arguments);
+        Function(std::unique_ptr<AstNode::Expression> invocable, std::vector<std::unique_ptr<AstNode::Expression>> arguments);
+        Function(AstNode::Expression* invocable, std::initializer_list<AstNode::Expression*> arguments);
         Function(const Function& other);
         Function& operator=(const Function& rhs);
 
@@ -223,40 +255,11 @@ namespace BlsLang {
         std::unique_ptr<AstNode> clone() const override;
         std::unique_ptr<AstNode::Expression> cloneBase() const override;
 
-        auto getChildren() { return packChildren(name, arguments); }
-        constexpr auto getChildNames() { return packChildNames("name", "arguments"); }
+        auto getChildren() { return packChildren(invocable, arguments); }
+        constexpr auto getChildNames() { return packChildNames("invocable", "arguments"); }
 
-        std::string name;
+        std::unique_ptr<AstNode::Expression> invocable;
         std::vector<std::unique_ptr<AstNode::Expression>> arguments;
-    };
-
-    struct AstNode::Expression::Method : public AstNode::Expression {
-        Method() = default;
-        Method(std::string object
-             , std::string methodName
-             , std::vector<std::unique_ptr<AstNode::Expression>> arguments
-             , uint8_t localIndex = 0
-             , TYPE objectType = TYPE::NONE);
-        Method(std::string object
-             , std::string methodName
-             , std::initializer_list<AstNode::Expression*> arguments
-             , uint8_t localIndex = 0
-             , TYPE objectType = TYPE::NONE);
-        Method(const Method& other);
-        Method& operator=(const Method& rhs);
-
-        BlsObject accept(Visitor& v) override;
-        std::unique_ptr<AstNode> clone() const override;
-        std::unique_ptr<AstNode::Expression> cloneBase() const override;
-
-        auto getChildren() { return packChildren(object, methodName, arguments, localIndex, objectType); }
-        constexpr auto getChildNames() { return packChildNames("object", "methodName", "arguments", "localIndex", "objectType"); }
-
-        std::string object;
-        std::string methodName;
-        std::vector<std::unique_ptr<AstNode::Expression>> arguments;
-        uint8_t localIndex;
-        TYPE objectType;
     };
 
     struct AstNode::Expression::Group : public AstNode::Expression {

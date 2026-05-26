@@ -148,52 +148,56 @@ AstNode::Expression::Map::Map(const AstNode::Expression::Map& other) {
 }
 
 /* AstNode::Expression::Access */
-AstNode::Expression::Access::Access(std::string object, uint8_t localIndex)
-                                  : object(std::move(object))
-                                  , subscript(std::move(std::nullopt))
-                                  , member(std::move(std::nullopt))
-                                  , localIndex(localIndex)
-                                  {}
-
-AstNode::Expression::Access::Access(std::string object, std::unique_ptr<AstNode::Expression> subscript, uint8_t localIndex)
-                                  : object(std::move(object))
-                                  , subscript(std::move(subscript))
-                                  , member(std::move(std::nullopt))
-                                  , localIndex(localIndex)
-                                  {}
-
-AstNode::Expression::Access::Access(std::string object, AstNode::Expression* subscript, uint8_t localIndex)
-                                  : object(std::move(object))
-                                  , subscript(std::move(subscript))
-                                  , member(std::move(std::nullopt))
-                                  , localIndex(localIndex)
-                                  {}
-
-AstNode::Expression::Access::Access(std::string object, std::string member, uint8_t localIndex)
-                                  : object(std::move(object))
-                                  , subscript(std::move(std::nullopt))
-                                  , member(std::move(member))
+AstNode::Expression::Access::Access(std::string identifier, uint8_t localIndex)
+                                  : identifier(std::move(identifier))
                                   , localIndex(localIndex)
                                   {}
 
 AstNode::Expression::Access::Access(const Access& other) {
-    this->object = other.object;
-    this->subscript = std::nullopt;
-    if (other.subscript.has_value()) {
-        this->subscript = (*other.subscript)->cloneBase();
-    }
-    this->member = other.member;
+    this->identifier = other.identifier;
     this->localIndex = other.localIndex;
 }
 
+/* AstNode::Expression::Member */
+AstNode::Expression::Member::Member(std::unique_ptr<AstNode::Expression> object, std::string member)
+                                  : object(std::move(object))
+                                  , member(std::move(member))
+                                  {}
+
+AstNode::Expression::Member::Member(AstNode::Expression* object, std::string member)
+                                  : object(std::move(object))
+                                  , member(std::move(member))
+                                  {}
+
+AstNode::Expression::Member::Member(const Member& other) {
+    this->object = other.object->cloneBase();
+    this->member = other.member;
+}
+
+/* AstNode::Expression::Subscript */
+AstNode::Expression::Subscript::Subscript(std::unique_ptr<AstNode::Expression> object, std::unique_ptr<AstNode::Expression> subscript)
+                                        : object(std::move(object))
+                                        , subscript(std::move(subscript))
+                                        {}
+
+AstNode::Expression::Subscript::Subscript(AstNode::Expression* object, AstNode::Expression* subscript)
+                                        : object(std::move(object))
+                                        , subscript(std::move(subscript))
+                                        {}
+
+AstNode::Expression::Subscript::Subscript(const Subscript& other) {
+    this->object = other.object->cloneBase();
+    this->subscript = other.subscript->cloneBase();
+}
+
 /* AstNode::Expression::Function */
-AstNode::Expression::Function::Function(std::string name, std::vector<std::unique_ptr<AstNode::Expression>> arguments)
-                                      : name(std::move(name))
+AstNode::Expression::Function::Function(std::unique_ptr<AstNode::Expression> invocable, std::vector<std::unique_ptr<AstNode::Expression>> arguments)
+                                      : invocable(std::move(invocable))
                                       , arguments(std::move(arguments))
                                       {}
 
-AstNode::Expression::Function::Function(std::string name, std::initializer_list<AstNode::Expression*> arguments)
-                                      : name(std::move(name))
+AstNode::Expression::Function::Function(AstNode::Expression* invocable, std::initializer_list<AstNode::Expression*> arguments)
+                                      : invocable(std::move(invocable))
 {
     for (auto&& arg : arguments) {
         this->arguments.push_back(std::unique_ptr<AstNode::Expression>(arg));
@@ -201,48 +205,10 @@ AstNode::Expression::Function::Function(std::string name, std::initializer_list<
 }
 
 AstNode::Expression::Function::Function(const Function& other) {
-    this->name = other.name;
+    this->invocable = other.invocable->cloneBase();
     for (auto&& arg : other.arguments) {
         this->arguments.push_back(arg->cloneBase());
     }
-}
-
-/* AstNode::Expression::Method */
-AstNode::Expression::Method::Method(std::string object
-                                  , std::string methodName
-                                  , std::vector<std::unique_ptr<AstNode::Expression>> arguments
-                                  , uint8_t localIndex
-                                  , TYPE objectType)
-                                  : object(std::move(object))
-                                  , methodName(std::move(methodName))
-                                  , arguments(std::move(arguments))
-                                  , localIndex(localIndex)
-                                  , objectType(objectType)
-                                  {}
-
-AstNode::Expression::Method::Method(std::string object
-                                  , std::string methodName
-                                  , std::initializer_list<AstNode::Expression*> arguments
-                                  , uint8_t localIndex
-                                  , TYPE objectType)
-                                  : object(std::move(object))
-                                  , methodName(std::move(methodName))
-                                  , localIndex(localIndex)
-                                  , objectType(objectType)
-{
-    for (auto&& arg : arguments) {
-        this->arguments.push_back(std::unique_ptr<AstNode::Expression>(arg));
-    }
-}
-
-AstNode::Expression::Method::Method(const Method& other) {
-    this->object = other.object;
-    this->methodName = other.methodName;
-    for (auto&& arg : other.arguments) {
-        this->arguments.push_back(arg->cloneBase());
-    }
-    this->localIndex = other.localIndex;
-    this->objectType = other.objectType;
 }
 
 /* AstNode::Expression::Group */
