@@ -33,7 +33,6 @@ class ExecutionUnit
     DeviceScheduler& globalScheduler; 
     // Contains the states to be replaced whikle the device is waiting for write access
     TSM<DeviceID, HeapMasterMessage> replacementCache;
-    std::function<std::vector<BlsType>(std::vector<BlsType>)>  transform_function;
     // Get the trigger name
     std::string TriggerName = "";
     BlsLang::VirtualMachine vm;

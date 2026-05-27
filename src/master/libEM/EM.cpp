@@ -46,7 +46,6 @@ ExecutionUnit::ExecutionUnit(TaskDescriptor task, std::vector<std::string> devic
     this->vm.setParentExecutionUnit(this);
     this->vm.setTaskOffset(bytecodeOffset);
     this->vm.loadBytecode(bytecode);
-    this->transform_function = transform_function;
     this->info.task = task.name;
 
     // Device Position Map:
