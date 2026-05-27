@@ -361,12 +361,27 @@ BlsObject Symgraph::visit(AstNode::Expression::Binary &ast){
 // Used on the lhs side that gets the pure (unordered symbol)
 BlsObject Symgraph::visit(AstNode::Expression::Access &ast){
     if(this->ctx.leftHandAs){
-        std::string symbol = ast.object; 
-        if(ast.member.has_value()){
-            symbol += "." + ast.member.value(); 
-        }
+        std::string symbol = ast.identifier;
 
         return symbol + "%" + std::to_string(static_cast<int>(ast.localIndex)); 
+    }
+    return std::monostate(); 
+}
+
+BlsObject Symgraph::visit(AstNode::Expression::Member &ast){
+    if(this->ctx.leftHandAs){
+        auto object = resolve(ast.object->accept(*this));
+        std::string symbol;
+        if(std::holds_alternative<std::string>(object)){
+            symbol = std::get<std::string>(object);
+        }
+        else{
+            throw std::invalid_argument("Symgraph: Symbol Resolution Failed!");
+        }
+        auto symbolName = symbol.substr(0, symbol.find("."));
+        auto index = symbol.substr(symbol.find(".") + 1);
+
+        return symbolName + "." + ast.member + "%" + index;
     }
     return std::monostate(); 
 }

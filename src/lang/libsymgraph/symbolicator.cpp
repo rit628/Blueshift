@@ -5,7 +5,7 @@
 using namespace BlsLang;
 
 BlsObject Symbolicator::visit(AstNode::Expression::Access& ast) {
-    symbols.emplace(ast.object+ "%" + std::to_string(static_cast<int>(ast.localIndex)));
+    symbols.emplace(ast.identifier + "%" + std::to_string(static_cast<int>(ast.localIndex)));
     return std::monostate();
 }
 
