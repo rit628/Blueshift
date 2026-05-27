@@ -246,8 +246,12 @@ namespace BlsLang {
 
     struct AstNode::Expression::Function : public AstNode::Expression {
         Function() = default;
-        Function(std::unique_ptr<AstNode::Expression> invocable, std::vector<std::unique_ptr<AstNode::Expression>> arguments);
-        Function(AstNode::Expression* invocable, std::initializer_list<AstNode::Expression*> arguments);
+        Function(std::unique_ptr<AstNode::Expression> invocable
+               , std::vector<std::unique_ptr<AstNode::Expression>> arguments
+               , TYPE objectType = TYPE::NONE);
+        Function(AstNode::Expression* invocable
+               , std::initializer_list<AstNode::Expression*> arguments
+               , TYPE objectType = TYPE::NONE);
         Function(const Function& other);
         Function& operator=(const Function& rhs);
 
@@ -255,11 +259,12 @@ namespace BlsLang {
         std::unique_ptr<AstNode> clone() const override;
         std::unique_ptr<AstNode::Expression> cloneBase() const override;
 
-        auto getChildren() { return packChildren(invocable, arguments); }
-        constexpr auto getChildNames() { return packChildNames("invocable", "arguments"); }
+        auto getChildren() { return packChildren(invocable, arguments, objectType); }
+        constexpr auto getChildNames() { return packChildNames("invocable", "arguments", "objectType"); }
 
         std::unique_ptr<AstNode::Expression> invocable;
         std::vector<std::unique_ptr<AstNode::Expression>> arguments;
+        TYPE objectType; // temporary workaround for generator
     };
 
     struct AstNode::Expression::Group : public AstNode::Expression {

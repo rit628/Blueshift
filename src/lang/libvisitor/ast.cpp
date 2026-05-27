@@ -191,13 +191,15 @@ AstNode::Expression::Subscript::Subscript(const Subscript& other) {
 }
 
 /* AstNode::Expression::Function */
-AstNode::Expression::Function::Function(std::unique_ptr<AstNode::Expression> invocable, std::vector<std::unique_ptr<AstNode::Expression>> arguments)
+AstNode::Expression::Function::Function(std::unique_ptr<AstNode::Expression> invocable, std::vector<std::unique_ptr<AstNode::Expression>> arguments, TYPE objectType)
                                       : invocable(std::move(invocable))
                                       , arguments(std::move(arguments))
+                                      , objectType(std::move(objectType))
                                       {}
 
-AstNode::Expression::Function::Function(AstNode::Expression* invocable, std::initializer_list<AstNode::Expression*> arguments)
+AstNode::Expression::Function::Function(AstNode::Expression* invocable, std::initializer_list<AstNode::Expression*> arguments, TYPE objectType)
                                       : invocable(std::move(invocable))
+                                      , objectType(std::move(objectType))
 {
     for (auto&& arg : arguments) {
         this->arguments.push_back(std::unique_ptr<AstNode::Expression>(arg));
@@ -209,6 +211,7 @@ AstNode::Expression::Function::Function(const Function& other) {
     for (auto&& arg : other.arguments) {
         this->arguments.push_back(arg->cloneBase());
     }
+    this->objectType = other.objectType;
 }
 
 /* AstNode::Expression::Group */

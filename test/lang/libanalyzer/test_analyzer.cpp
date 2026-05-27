@@ -1011,7 +1011,8 @@ namespace BlsLang {
                             new AstNode::Expression::Literal(
                                 int64_t(6)
                             )
-                        }
+                        },
+                        TYPE::map_t
                     )
                 )
             }

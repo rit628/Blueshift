@@ -658,6 +658,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Function& ast) {
                 throw SemanticError("Invalid type for argument " #argName ".", ast); \
             }
             #define METHOD_END \
+            ast.objectType = objType; \
             return result; \
         }
         #include "include/LIST_METHODS.LIST"
@@ -665,6 +666,7 @@ BlsObject Analyzer::visit(AstNode::Expression::Function& ast) {
         #undef METHOD_BEGIN
         #undef ARGUMENT
         #undef METHOD_END
+        
         else {
             throw SemanticError("Invalid method " + methodName + " for " + getTypeName(objType), ast);
         }
