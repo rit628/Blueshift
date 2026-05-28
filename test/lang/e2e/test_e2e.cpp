@@ -67,6 +67,7 @@ namespace BlsLang {
             #embed "container_access.blu"
         };
         TEST_E2E_SOURCE(source);
+
         std::string expectedStdout = "";
         auto input = std::shared_ptr<VectorDescriptor>(new VectorDescriptor{0, 1, 2, 3});
         auto output = std::shared_ptr<VectorDescriptor>(new VectorDescriptor{{0, 1, 9, 3}});
@@ -99,6 +100,14 @@ namespace BlsLang {
             std::shared_ptr<VectorDescriptor>(new VectorDescriptor{4, 5, 6, 7})
         });
         TEST_E2E_TASK("accessRow", {input}, {output}, expectedStdout);
+
+        input = std::shared_ptr<VectorDescriptor>(new VectorDescriptor{});
+        output = std::shared_ptr<VectorDescriptor>(new VectorDescriptor{
+            createBlsType(TypeDef::TIMER_TEST{4}),
+            createBlsType(TypeDef::TIMER_TEST{8})
+        });
+        expectedStdout = "4\n";
+        TEST_E2E_TASK("accessDevice", {input}, {output}, expectedStdout);
     }
 
     GROUP_TEST_F(E2ETest, ExecutionTests, ShortCircuit) {

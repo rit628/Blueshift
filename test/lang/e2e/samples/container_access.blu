@@ -37,15 +37,28 @@ task accessRow(list<list<int>> y) {
     print(row);
 }
 
+task accessDevice(list<TIMER_TEST> z) {
+    virtual TIMER_TEST t1;
+    virtual TIMER_TEST t2;
+    t1.test_val = 4;
+    t2.test_val = 8;
+    z = [t1, t2];
+    print(z[0].test_val);
+}
+
 setup() {
     virtual list<int> X = [0, 1, 2, 3];
-    virtual list<list<int>> Y = [[0, 1, 2, 3], [4, 5, 6, 7]];
     modifyElement(X);
     printElement(X);
     checkElementEquality(X);
     checkContainerEquality(X);
     appendElement(X);
+
+    virtual list<list<int>> Y = [[0, 1, 2, 3], [4, 5, 6, 7]];
     printRow(Y);
     printEntry(Y);
     accessRow(Y);
+
+    virtual list<TIMER_TEST> Z;
+    accessDevice(Z);
 }

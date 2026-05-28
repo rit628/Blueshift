@@ -43,7 +43,7 @@ namespace BlsLang {
                     auto oldBuffer = std::cout.rdbuf();
                     std::cout.rdbuf(stdoutCapture.rdbuf());
                     auto output = transformFunction(clonedInput);
-                    EXPECT_EQ(output.size(), expectedOutput.size());
+                    ASSERT_EQ(output.size(), expectedOutput.size());
                     for (int i = 0; i < output.size(); i++) {
                         EXPECT_EQ(output.at(i), expectedOutput.at(i));
                     }
