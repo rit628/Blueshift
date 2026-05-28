@@ -85,6 +85,17 @@ void VirtualMachine::MKTYPE(uint8_t index, uint8_t type, int) {
         case TYPE::map_t:
             value = std::make_shared<MapDescriptor>(TYPE::ANY);
         break;
+        #define DEVTYPE_BEGIN(name, ...) \
+        case TYPE::name: \
+            value = createBlsType(TypeDef::name()); \
+        break;
+        #define ATTRIBUTE(...)
+        #define DEVTYPE_END
+        break;
+        #include "DEVTYPES.LIST"
+        #undef DEVTYPE_BEGIN
+        #undef ATTRIBUTE
+        #undef DEVTYPE_END
         case TYPE::ANY:
             value = BlsType(std::make_shared<MapDescriptor>(TYPE::ANY, TYPE::ANY, TYPE::ANY));
         break;
@@ -97,7 +108,7 @@ void VirtualMachine::MKTYPE(uint8_t index, uint8_t type, int) {
 
 void VirtualMachine::STORE(uint8_t index, int) {
     auto value = cs.popOperand();
-    cs.getLocal(index).assign(value);
+    cs.getLocal(index).uncheckedAssign(value);
     if (index < modifiedStates.size()) {
         modifiedStates.at(index) = true;
     }
@@ -113,7 +124,7 @@ void VirtualMachine::ASTORE(int) {
     auto index = cs.popOperand();
     auto object = cs.popOperand();
     auto& target = std::get<std::shared_ptr<HeapDescriptor>>(object);
-    target->access(index).assign(value);
+    target->access(index).uncheckedAssign(value);
     target->modified = true;
 }
 

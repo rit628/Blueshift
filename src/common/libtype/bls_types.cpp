@@ -84,6 +84,19 @@ BlsType& BlsType::assign(const BlsType& rhs) {
     return *this;
 }
 
+BlsType& BlsType::uncheckedAssign(const BlsType& rhs) noexcept {
+    std::visit([&,this](auto& a, const auto& b) -> void {
+        if constexpr (WeaklyComparable<decltype(a), decltype(b)>) {
+            a = b; // retain lhs type for comparable types
+        }
+        else {
+            *this = rhs; // overwrite lhs type
+        }
+    }, *this, rhs);
+    
+    return *this;
+}
+
 BlsType::operator bool() const {
     return std::visit([](const auto& a) -> bool {
         if constexpr (TypeDef::Boolean<decltype(a)>) {
@@ -182,7 +195,7 @@ bool operator>=(const BlsType& lhs, const BlsType& rhs) {
         }
     }, lhs, rhs);
 }
-static_assert(HeapType<const std::shared_ptr<HeapDescriptor>&>, "");
+
 bool operator!=(const BlsType& lhs, const BlsType& rhs) {
     return std::visit([](const auto& a, const auto& b) -> bool {
         if constexpr (HeapType<decltype(a)> && HeapType<decltype(b)>) {
@@ -376,6 +389,21 @@ std::ostream& operator<<(std::ostream& os, const BlsType& obj) {
                     os << "}";
                 }
                 break;
+
+                #define DEVTYPE_BEGIN(name, ...) \
+                case TYPE::name: { \
+                    auto& members = std::dynamic_pointer_cast<MapDescriptor>(x)->getMap(); \
+                    os << #name << "{";
+                #define ATTRIBUTE(name, ...) \
+                    os << " " << #name << " = " << members.at(#name);
+                #define DEVTYPE_END \
+                os << " }"; \
+                } \
+                break;
+                #include "DEVTYPES.LIST"
+                #undef DEVTYPE_BEGIN
+                #undef ATTRIBUTE
+                #undef DEVTYPE_END
                 
                 default:
                 break;
@@ -491,7 +519,7 @@ BlsType& MapDescriptor::access(BlsType &obj) {
 
 std::monostate MapDescriptor::add(BlsType key, BlsType value, int) {
     std::scoped_lock bob(mux); 
-    this->map->emplace(stringify(key), value);
+    this->map->insert_or_assign(stringify(key), value);
     return std::monostate();
 }
 
