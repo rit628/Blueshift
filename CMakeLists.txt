@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.29) # for some reason setting 3.30 causes redundant rebuilds
+cmake_minimum_required(VERSION $ENV{CMAKE_VERSION})
 
 set(CMAKE_C_COMPILER clang)
 set(CMAKE_CXX_COMPILER clang++)
@@ -28,14 +28,11 @@ include(.cmake/macros.cmake)
 
 # Packages
 include(FetchContent)
-set(FETCHCONTENT_QUIET OFF)
-file(RELATIVE_PATH RELATIVE_PROJECT_ROOT ${CMAKE_BINARY_DIR} ${CMAKE_SOURCE_DIR})
-set(FETCHCONTENT_BASE_DIR ${RELATIVE_PROJECT_ROOT}/$ENV{DEPENDENCY_DIRECTORY})
+set(FETCHCONTENT_BASE_DIR ${CMAKE_SOURCE_DIR}/$ENV{DEPENDENCY_DIRECTORY})
 
 # GoogleTest
-FetchContent_Declare(
+bls_add_dependency(
     googletest
-    SYSTEM # Disable warnings in headers
     URL https://github.com/google/googletest/archive/b514bdc898e2951020cbdca1304b75f5950d1f59.zip
 )
 # For Windows: Prevent overriding the parent project's compiler/linker settings
@@ -44,9 +41,8 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 # Boost
 set(REQUIRED_BOOST_HEADER_LIBRARIES asio lockfree type_index beast)
 set(REQUIRED_BOOST_LINK_LIBRARIES regex math json serialization url)
-FetchContent_Declare(
+bls_add_dependency(
     Boost
-    SYSTEM # Disable warnings in headers
     URL https://github.com/boostorg/boost/releases/download/boost-1.86.0/boost-1.86.0-cmake.zip
 )
 set(BOOST_INCLUDE_LIBRARIES ${REQUIRED_BOOST_LINK_LIBRARIES})
@@ -57,9 +53,8 @@ if(NOT USE_SYSTEM_BOOST_HEADERS)
 endif()
 
 # Flatbuffers
-FetchContent_Declare(
+bls_add_dependency(
     flatbuffers
-    SYSTEM # Disable warnings in headers
     URL https://github.com/google/flatbuffers/archive/refs/tags/v$ENV{FLATBUFFERS_VERSION}.zip
 )
 set(FLATBUFFERS_BUILD_FLATC OFF)
@@ -67,26 +62,22 @@ set(FLATBUFFERS_BUILD_TESTS OFF)
 set(FLATBUFFERS_FLATC_EXECUTABLE flatc)
 
 # SDL3
-FetchContent_Declare(
+bls_add_dependency(
     SDL3
-    SYSTEM # Disable warnings in headers
     URL https://github.com/libsdl-org/SDL/archive/refs/tags/release-3.2.16.zip
 )
 
 if(NOT CMAKE_CROSSCOMPILING)
-    set(FETCHCONTENT_OPTIONAL ${FETCHCONTENT_OPTIONAL} googletest)
+    set(OPTIONAL_DEPENDENCIES ${OPTIONAL_DEPENDENCIES} googletest)
 endif()
 
 if(NOT DISABLE_SDL)
     add_compile_definitions(SDL_ENABLED)
-    set(FETCHCONTENT_OPTIONAL ${FETCHCONTENT_OPTIONAL} SDL3)
+    set(OPTIONAL_DEPENDENCIES ${OPTIONAL_DEPENDENCIES} SDL3)
     set(SYSTEM_LINK_LIBRARIES ${SYSTEM_LINK_LIBRARIES} SDL3::SDL3)
 endif()
 
-get_directory_property(current_compile_options COMPILE_OPTIONS)
-add_compile_options(-w) # Disable warnings for fetched content
-FetchContent_MakeAvailable(Boost flatbuffers ${FETCHCONTENT_OPTIONAL})
-set_directory_properties(PROPERTIES COMPILE_OPTIONS "${current_compile_options}") # restore old compile options
+bls_enable_dependencies(Boost flatbuffers ${OPTIONAL_DEPENDENCIES})
 
 set(ESSENTIAL_FLAGS -Wall -Wextra -Wnon-virtual-dtor)
 set(STYLE_FLAGS -Wmissing-prototypes -Wextra-semi -Wextra-semi-stmt -Wredundant-parens -Wsuggest-destructor-override -Wold-style-cast)
