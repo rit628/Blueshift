@@ -9,6 +9,7 @@ logs
 /.cache/
 CMakeCache.txt
 CMakeFiles/
+cmake_test_discovery*.json
 Makefile
 *.o
 *.a
