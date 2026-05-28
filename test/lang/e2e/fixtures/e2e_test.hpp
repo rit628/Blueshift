@@ -18,8 +18,8 @@ namespace BlsLang {
 
     class E2ETest : public testing::Test {
         public:
-            void TEST_E2E_SOURCE(const std::string& fileName) {
-                compiler.compileFile(std::filesystem::path(E2E_LANG_SAMPLE_DIR) / fileName, bytecode);
+            void TEST_E2E_SOURCE(const std::string& source) {
+                compiler.compileSource(source, bytecode);
                 vm.loadBytecode(bytecode);
             }
 

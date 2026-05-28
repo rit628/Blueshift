@@ -485,7 +485,7 @@ BlsType& MapDescriptor::access(BlsType &obj) {
       return this->map->at(accessor); 
     }
     else{
-      throw std::invalid_argument("Could not find the object of name: " + accessor); 
+      throw BlsLang::RuntimeError("No such key \"" + accessor + "\" found in map"); 
     } 
 }
 
@@ -555,8 +555,11 @@ BlsType& VectorDescriptor::access(BlsType &int_acc) {
     std::scoped_lock bob(mux); 
 
     if(std::holds_alternative<int64_t>(int_acc)){
-      int index = std::get<int64_t>(int_acc); 
-      return this->vector->at(index); 
+      auto index = std::get<int64_t>(int_acc); 
+      if (index < this->vector->size()) {
+          return this->vector->at(index);
+      }
+      throw BlsLang::RuntimeError("Index " + std::to_string(index) + " out of range for list");
     }
     else{
       throw BlsLang::RuntimeError("Cannot index a list with a non-integer"); 
