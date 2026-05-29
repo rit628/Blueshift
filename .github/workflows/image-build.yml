@@ -28,6 +28,7 @@ jobs:
                 - compose.yaml
                 - .docker/builder/**
                 - .github/workflows/image-build.yml
+                - .env
 
     build_and_publish_base:
       needs: check_dockerfiles

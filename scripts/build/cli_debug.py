@@ -11,9 +11,10 @@ def get_remote_path(build_path):
     return read_build_info(Path(build_path, ".info"))[0]
 
 def debug(args):
+    cwd = os.getcwd()
     debug_target_path = "relwithdebinfo" if args.release else "debug"
     build_path = Path(env.BUILD_OUTPUT_DIRECTORY, env.CONTAINER_PLATFORM, debug_target_path)
-    executable = Path(build_path, env.RUNTIME_OUTPUT_DIRECTORY, args.binary)
+    executable = Path(cwd, build_path, env.RUNTIME_OUTPUT_DIRECTORY, args.binary)
     allow_visual = not args.terminal and args.debugger == "lldb"
     stop_on_entry = "true" if args.stop_on_entry else "false"
     # use controller name as debug name for readability if debugging client
@@ -30,7 +31,7 @@ def debug(args):
     elif args.local:
         # update executable to use platform specific binary
         build_path = Path(env.BUILD_OUTPUT_DIRECTORY, get_host_os(), debug_target_path)
-        executable = Path(build_path, env.RUNTIME_OUTPUT_DIRECTORY, args.binary)
+        executable = Path(cwd, build_path, env.RUNTIME_OUTPUT_DIRECTORY, args.binary)
         remote_path = get_remote_path(build_path)
 
         if allow_visual: # debug locally with codelldb
@@ -42,7 +43,7 @@ def debug(args):
                     token: blueshift,
                     terminal: console,
                     stopOnEntry: {stop_on_entry},
-                    sourceMap: {{ {remote_path} : {os.getcwd()} }},
+                    sourceMap: {{ {remote_path} : {cwd} }},
                     program: {executable},
                     args: {args.binary_args}
                 }}
@@ -57,7 +58,6 @@ def debug(args):
         if args.vnc: initialize_vnc_display()
         initialize_host()
         DEBUG_SERVER_PORT = get_free_port()
-        cwd = os.getcwd()
         remote_path = get_remote_path(build_path)
 
         # Initialize debug server

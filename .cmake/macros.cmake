@@ -1,3 +1,18 @@
+macro(bls_enable_dependencies) # must be a macro to access and modify caller directory properties
+    get_directory_property(current_compile_options COMPILE_OPTIONS)
+    add_compile_options(-w) # Disable warnings for fetched content
+    FetchContent_MakeAvailable(${ARGN})
+    set_directory_properties(PROPERTIES COMPILE_OPTIONS "${current_compile_options}") # restore old compile options
+endmacro()
+
+function(bls_add_dependency name)
+    FetchContent_Declare(
+        ${name}
+        SYSTEM # Disable warnings in headers
+        ${ARGN}
+    )
+endfunction()
+
 function(bls_add_library library_name library_type)
     set(multiValueArgs LINKS INCLUDES)
     cmake_parse_arguments(PARSE_ARGV 2 arg_bls_add_library
