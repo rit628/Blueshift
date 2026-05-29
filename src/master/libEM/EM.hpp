@@ -33,7 +33,6 @@ class ExecutionUnit
     DeviceScheduler& globalScheduler; 
     // Contains the states to be replaced whikle the device is waiting for write access
     TSM<DeviceID, HeapMasterMessage> replacementCache;
-    std::function<std::vector<BlsType>(std::vector<BlsType>)>  transform_function;
     // Get the trigger name
     std::string TriggerName = "";
     BlsLang::VirtualMachine vm;
@@ -55,7 +54,6 @@ class ExecutionUnit
                 , TSQ<HeapMasterMessage> &sendMM
                 , size_t bytecodeOffset
                 , std::vector<char>& bytecode
-                , std::function<std::vector<BlsType>(std::vector<BlsType>)> transform_function
                 , DeviceScheduler &devSchedule, 
                 asio::io_context &ctx);
     
@@ -83,8 +81,7 @@ class ExecutionManager
     ExecutionManager(std::vector<TaskDescriptor> TaskList
                    , TSQ<EMStateMessage> &readMM
                    , TSQ<HeapMasterMessage> &sendMM
-                   , std::vector<char>& bytecode
-                   , std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> tasks);
+                   , std::vector<char>& bytecode);
 
     ExecutionUnit &assign(HeapMasterMessage DMM);
 

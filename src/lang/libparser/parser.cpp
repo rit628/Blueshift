@@ -2,7 +2,9 @@
 #include "ast.hpp"
 #include "reserved_tokens.hpp"
 #include "error_types.hpp"
+#include "token.hpp"
 #include <algorithm>
+#include <boost/algorithm/string/case_conv.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -81,25 +83,19 @@ std::unique_ptr<AstNode::Function> Parser::parseFunction() {
     if (!ts.match(RESERVED_TASK)) {
         returnType = parseTypeSpecifier();
     }
-    if (!ts.match(Token::Type::IDENTIFIER)) {
-        throw SyntaxError("Expected valid identifier for function name.", ts.getLocation());
-    }
+    matchExpectedToken(Token::Type::IDENTIFIER, "for function name.");
     auto& name = ts.at(-1).getLiteral();
     std::vector<std::unique_ptr<AstNode::Specifier::Type>> parameterTypes;
     std::vector<std::string> parameters;
-    matchExpectedSymbol(PARENTHESES_OPEN, "at start of function parameter list.");
+    matchExpectedToken(PARENTHESES_OPEN, "at start of function parameter list.");
     if (!ts.peek(PARENTHESES_CLOSE)) {
         do {
             parameterTypes.push_back(parseTypeSpecifier());
-            if (ts.match(Token::Type::IDENTIFIER)) {
-                parameters.push_back(std::move(ts.at(-1).getLiteral()));
-            }
-            else {
-                throw SyntaxError("Invalid function parameter.", ts.getLocation());
-            }
+            matchExpectedToken(Token::Type::IDENTIFIER, "for function parameter.");
+            parameters.push_back(std::move(ts.at(-1).getLiteral()));
         } while (ts.match(COMMA));
     }
-    matchExpectedSymbol(PARENTHESES_CLOSE, "at end of function parameter list.");
+    matchExpectedToken(PARENTHESES_CLOSE, "at end of function parameter list.");
     if (returnType) { // parsed procedure
         auto statements = parseBlock();
         return createNode<AstNode::Function::Procedure>(startLocation, ts.getLocation(true)
@@ -127,12 +123,12 @@ std::unique_ptr<AstNode::Function> Parser::parseFunction() {
 }
 
 std::vector<std::unique_ptr<AstNode::Statement>> Parser::parseBlock() {
-    matchExpectedSymbol(BRACE_OPEN, "at start of block body.");
+    matchExpectedToken(BRACE_OPEN, "at start of block body.");
     std::vector<std::unique_ptr<AstNode::Statement>> body;
     while (!ts.peek(BRACE_CLOSE) && !ts.empty()) {
         body.push_back(parseStatement());
     }
-    matchExpectedSymbol(BRACE_CLOSE, "at end of block body.");
+    matchExpectedToken(BRACE_CLOSE, "at end of block body.");
     return body;
 }
 
@@ -154,11 +150,11 @@ std::unique_ptr<AstNode::Statement> Parser::parseStatement() {
         return parseReturnStatement();
     }
     else if (ts.match(RESERVED_BREAK)) {
-        matchExpectedSymbol(SEMICOLON, "after break statement.");
+        matchExpectedToken(SEMICOLON, "after break statement.");
         return createNode<AstNode::Statement::Break>(startLocation, ts.getLocation(true));
     }
     else if (ts.match(RESERVED_CONTINUE)) {
-        matchExpectedSymbol(SEMICOLON, "after continue statement.");
+        matchExpectedToken(SEMICOLON, "after continue statement.");
         return createNode<AstNode::Statement::Continue>(startLocation, ts.getLocation(true));
     }
     else if (peekTypeSpecifier() || peekModifier()) {
@@ -172,7 +168,7 @@ std::unique_ptr<AstNode::Statement> Parser::parseStatement() {
 std::unique_ptr<AstNode::Statement::Expression> Parser::parseExpressionStatement() {
     auto startLocation = ts.getLocation();
     auto expression = parseExpression();
-    matchExpectedSymbol(SEMICOLON, "at end of expression.");
+    matchExpectedToken(SEMICOLON, "at end of expression.");
     return createNode<AstNode::Statement::Expression>(startLocation, ts.getLocation(true), expression);
 }
 
@@ -188,12 +184,10 @@ std::unique_ptr<AstNode::Statement::Declaration> Parser::parseDeclarationStateme
         modifiers.emplace(modifier);
     }
     auto type = parseTypeSpecifier();
-    if (!ts.match(Token::Type::IDENTIFIER)) {
-        throw SyntaxError("Expected valid identifier for variable name.", ts.getLocation());
-    }
+    matchExpectedToken(Token::Type::IDENTIFIER, "for variable name.");
     auto& name = ts.at(-1).getLiteral();
     auto rhs = (ts.match(ASSIGNMENT)) ? std::make_optional(parseExpression()) : std::nullopt;
-    matchExpectedSymbol(SEMICOLON, "at end of declaration.");
+    matchExpectedToken(SEMICOLON, "at end of declaration.");
     return createNode<AstNode::Statement::Declaration>(startLocation, ts.getLocation(true)
                                                       , name
                                                       , modifiers
@@ -205,16 +199,16 @@ std::unique_ptr<AstNode::Statement::Return> Parser::parseReturnStatement() {
     auto startLocation = ts.getLocation();
     ts.match(RESERVED_RETURN);
     auto value = (ts.peek(SEMICOLON)) ? std::nullopt : std::make_optional(parseExpression());
-    matchExpectedSymbol(SEMICOLON, "at end of return.");
+    matchExpectedToken(SEMICOLON, "at end of return.");
     return createNode<AstNode::Statement::Return>(startLocation, ts.getLocation(true), value);
 }
 
 std::unique_ptr<AstNode::Statement::While> Parser::parseWhileStatement() {
     auto startLocation = ts.getLocation();
     ts.match(RESERVED_WHILE);
-    matchExpectedSymbol(PARENTHESES_OPEN, "after 'while'.");
+    matchExpectedToken(PARENTHESES_OPEN, "after 'while'.");
     auto condition = parseExpression();
-    matchExpectedSymbol(PARENTHESES_CLOSE, "after while statement condition.");
+    matchExpectedToken(PARENTHESES_CLOSE, "after while statement condition.");
     auto block = parseBlock();
     return createNode<AstNode::Statement::While>(startLocation, ts.getLocation(true), condition, block);
 }
@@ -223,11 +217,11 @@ std::unique_ptr<AstNode::Statement::While> Parser::parseDoWhileStatement() {
     auto startLocation = ts.getLocation();
     ts.match(RESERVED_DO);
     auto block = parseBlock();
-    matchExpectedSymbol(RESERVED_WHILE, "after 'do' block.");
-    matchExpectedSymbol(PARENTHESES_OPEN, "after 'while'.");
+    matchExpectedToken(RESERVED_WHILE, "after 'do' block.");
+    matchExpectedToken(PARENTHESES_OPEN, "after 'while'.");
     auto condition = parseExpression();
-    matchExpectedSymbol(PARENTHESES_CLOSE, "after while statement condition.");
-    matchExpectedSymbol(SEMICOLON, "after while statement condition.");
+    matchExpectedToken(PARENTHESES_CLOSE, "after while statement condition.");
+    matchExpectedToken(SEMICOLON, "after while statement condition.");
     return createNode<AstNode::Statement::While>(startLocation, ts.getLocation(true)
                                                 , condition
                                                 , block
@@ -237,7 +231,7 @@ std::unique_ptr<AstNode::Statement::While> Parser::parseDoWhileStatement() {
 std::unique_ptr<AstNode::Statement::For> Parser::parseForStatement() {
     auto startLocation = ts.getLocation();
     ts.match(RESERVED_FOR);
-    matchExpectedSymbol(PARENTHESES_OPEN, "after 'for'.");
+    matchExpectedToken(PARENTHESES_OPEN, "after 'for'.");
     auto parseInnerStatement = [this]() -> std::optional<std::unique_ptr<AstNode::Statement>> {
         if (peekTypeSpecifier() || peekModifier()) {
             return parseDeclarationStatement();
@@ -252,7 +246,7 @@ std::unique_ptr<AstNode::Statement::For> Parser::parseForStatement() {
     auto initStatement = parseInnerStatement();
     auto condition = parseInnerStatement();
     auto incrementExpression = (ts.peek(PARENTHESES_CLOSE)) ? std::nullopt : std::make_optional(parseExpression());
-    matchExpectedSymbol(PARENTHESES_CLOSE, "after for statement condition statements.");
+    matchExpectedToken(PARENTHESES_CLOSE, "after for statement condition statements.");
     std::vector<std::unique_ptr<AstNode::Statement>> block = parseBlock();
     return createNode<AstNode::Statement::For>(startLocation, ts.getLocation(true)
                                               , initStatement
@@ -264,9 +258,9 @@ std::unique_ptr<AstNode::Statement::For> Parser::parseForStatement() {
 std::unique_ptr<AstNode::Statement::If> Parser::parseIfStatement() {
     auto startLocation = ts.getLocation();
     ts.match(RESERVED_IF);
-    matchExpectedSymbol(PARENTHESES_OPEN, "after 'if'.");
+    matchExpectedToken(PARENTHESES_OPEN, "after 'if'.");
     auto condition = parseExpression();
-    matchExpectedSymbol(PARENTHESES_CLOSE, "after if statement condition.");
+    matchExpectedToken(PARENTHESES_CLOSE, "after if statement condition.");
     auto block = parseBlock();
     std::vector<std::unique_ptr<AstNode::Statement::If>> elseIfStatements;
     while (ts.peek(RESERVED_ELSE, RESERVED_IF)) {
@@ -286,9 +280,9 @@ std::unique_ptr<AstNode::Statement::If> Parser::parseIfStatement() {
 std::unique_ptr<AstNode::Statement::If> Parser::parseElseIfStatement() {
     auto startLocation = ts.getLocation();
     ts.match(RESERVED_ELSE, RESERVED_IF);
-    matchExpectedSymbol(PARENTHESES_OPEN, "after 'else if'.");
+    matchExpectedToken(PARENTHESES_OPEN, "after 'else if'.");
     auto condition = parseExpression();
-    matchExpectedSymbol(PARENTHESES_CLOSE, "after else if statement condition.");
+    matchExpectedToken(PARENTHESES_CLOSE, "after else if statement condition.");
     auto block = parseBlock();
     return createNode<AstNode::Statement::If>(startLocation, ts.getLocation(true)
                                              , condition
@@ -310,11 +304,10 @@ std::unique_ptr<AstNode::Expression> Parser::parseAssignmentExpression() {
      || ts.match(ASSIGNMENT_MULTIPLICATION)
      || ts.match(ASSIGNMENT_DIVISION)
      || ts.match(ASSIGNMENT_REMAINDER)
-     || ts.match(ASSIGNMENT_EXPONENTIATION)) {
-            
+     || ts.match(ASSIGNMENT_EXPONENTIATION))
+    {
         auto& op = ts.at(-1).getLiteral();
         auto rhs = parseExpression(); // right associative, build rhs completely first, then combine with lhs
-
         auto compoundExpression = createNode<AstNode::Expression::Binary>(startLocation, ts.getLocation(true), op, lhs, rhs);
         lhs = std::move(compoundExpression);
     }
@@ -331,7 +324,6 @@ std::unique_ptr<AstNode::Expression> Parser::parseLogicalExpression() {
     while (ts.match(LOGICAL_AND) || ts.match(LOGICAL_OR)) {
         auto& op = ts.at(-1).getLiteral();
         auto rhs = parseComparisonExpression();
-
         auto compoundExpression = createNode<AstNode::Expression::Binary>(startLocation, ts.getLocation(true), op, lhs, rhs);
         lhs = std::move(compoundExpression);
     }
@@ -350,11 +342,10 @@ std::unique_ptr<AstNode::Expression> Parser::parseComparisonExpression() {
         || ts.match(COMPARISON_GT)
         || ts.match(COMPARISON_GE)
         || ts.match(COMPARISON_EQ)
-        || ts.match(COMPARISON_NE)) {
-            
+        || ts.match(COMPARISON_NE))
+    {
         auto& op = ts.at(-1).getLiteral();
         auto rhs = parseAdditiveExpression();
-
         auto compoundExpression = createNode<AstNode::Expression::Binary>(startLocation, ts.getLocation(true), op, lhs, rhs);
         lhs = std::move(compoundExpression);
     }
@@ -369,10 +360,8 @@ std::unique_ptr<AstNode::Expression> Parser::parseAdditiveExpression() {
     auto startLocation = ts.getLocation();
     auto lhs = parseMultiplicativeExpression();
     while (ts.match(ARITHMETIC_ADDITION) || ts.match(ARITHMETIC_SUBTRACTION)) {
-            
         auto& op = ts.at(-1).getLiteral();
         auto rhs = parseMultiplicativeExpression();
-
         auto compoundExpression = createNode<AstNode::Expression::Binary>(startLocation, ts.getLocation(true), op, lhs, rhs);
         lhs = std::move(compoundExpression);
     }
@@ -388,11 +377,10 @@ std::unique_ptr<AstNode::Expression> Parser::parseMultiplicativeExpression() {
     auto lhs = parseExponentialExpression();
     while (ts.match(ARITHMETIC_MULTIPLICATION)
         || ts.match(ARITHMETIC_DIVISION)
-        || ts.match(ARITHMETIC_REMAINDER)) {
-            
+        || ts.match(ARITHMETIC_REMAINDER))
+    {
         auto& op = ts.at(-1).getLiteral();
         auto rhs = parseExponentialExpression();
-
         auto compoundExpression = createNode<AstNode::Expression::Binary>(startLocation, ts.getLocation(true), op, lhs, rhs);
         lhs = std::move(compoundExpression);
     }
@@ -407,10 +395,8 @@ std::unique_ptr<AstNode::Expression> Parser::parseExponentialExpression() {
     auto startLocation = ts.getLocation();
     auto lhs = parseUnaryExpression();
     while (ts.match(ARITHMETIC_EXPONENTIATION)) {
-            
         auto& op = ts.at(-1).getLiteral();
         auto rhs = parseUnaryExpression();
-
         auto compoundExpression = createNode<AstNode::Expression::Binary>(startLocation, ts.getLocation(true), op, lhs, rhs);
         lhs = std::move(compoundExpression);
     }
@@ -427,10 +413,10 @@ std::unique_ptr<AstNode::Expression> Parser::parseUnaryExpression() {
     }
     else if (ts.match(UNARY_INCREMENT) || ts.match(UNARY_DECREMENT)) { // match pre-(in/de)crement ++a/--a
         auto& op = ts.at(-1).getLiteral();
-        expr = parsePrimaryExpression();
+        expr = parseChainExpression();
         return createNode<AstNode::Expression::Unary>(startLocation, ts.getLocation(true), op, expr);
     }
-    expr = parsePrimaryExpression();
+    expr = parseChainExpression();
     if (ts.match(UNARY_INCREMENT) || ts.match(UNARY_DECREMENT)) { // match post-(in/de)crement a++/a--
         auto& op = ts.at(-1).getLiteral();
         return createNode<AstNode::Expression::Unary>(startLocation, ts.getLocation(true)
@@ -439,6 +425,38 @@ std::unique_ptr<AstNode::Expression> Parser::parseUnaryExpression() {
                                                      , AstNode::Expression::Unary::OPERATOR_POSITION::POSTFIX);
     }
     return expr;
+}
+
+std::unique_ptr<AstNode::Expression> Parser::parseChainExpression() {
+    auto startLocation = ts.getLocation();
+    auto chainable = parsePrimaryExpression();
+    while (true) {
+        if (ts.match(PARENTHESES_OPEN)) { // invocation
+            std::vector<std::unique_ptr<AstNode::Expression>> arguments;
+            if (!ts.peek(PARENTHESES_CLOSE)) {
+                do {
+                    arguments.push_back(parseExpression());
+                } while (ts.match(COMMA));
+            }
+            matchExpectedToken(PARENTHESES_CLOSE, "at end of function argument list.");
+            chainable = createNode<AstNode::Expression::Function>(startLocation, ts.getLocation(true), chainable, arguments);
+        }
+        else if (ts.match(BRACKET_OPEN)) { // subscription
+            auto subscript = parseExpression();
+            matchExpectedToken(BRACKET_CLOSE, "to match previous '[' in expression.");
+            chainable = createNode<AstNode::Expression::Subscript>(startLocation, ts.getLocation(true), chainable, subscript);
+        }
+        else if (ts.match(MEMBER_ACCESS)) { // membership
+            matchExpectedToken(Token::Type::IDENTIFIER, "after '.' operator.");
+            auto& member = ts.at(-1).getLiteral();
+            chainable = createNode<AstNode::Expression::Member>(startLocation, ts.getLocation(true), chainable, member);
+        }
+        else {
+            break;
+        }
+        startLocation = ts.getLocation();
+    }
+    return chainable;
 }
 
 std::unique_ptr<AstNode::Expression> Parser::parsePrimaryExpression() {
@@ -483,7 +501,7 @@ std::unique_ptr<AstNode::Expression> Parser::parsePrimaryExpression() {
                 elements.push_back(parseExpression());
             } while (ts.match(COMMA));
         }
-        matchExpectedSymbol(BRACKET_CLOSE, "at end of list expression.");
+        matchExpectedToken(BRACKET_CLOSE, "at end of list expression.");
         return createNode<AstNode::Expression::List>(startLocation, ts.getLocation(true), elements);
     }
     else if (ts.match(BRACE_OPEN)) {
@@ -497,11 +515,11 @@ std::unique_ptr<AstNode::Expression> Parser::parsePrimaryExpression() {
             elements.push_back(std::make_pair(std::move(key), std::move(value)));
             while (ts.match(COMMA)) {
                 key = parseExpression();
-                matchExpectedSymbol(COLON, "after key in map expression.");
+                matchExpectedToken(COLON, "after key in map expression.");
                 value = parseExpression();
                 elements.push_back(std::make_pair(std::move(key), std::move(value)));
             }
-            matchExpectedSymbol(BRACE_CLOSE, "at end of map expression.");
+            matchExpectedToken(BRACE_CLOSE, "at end of map expression.");
             return createNode<AstNode::Expression::Map>(startLocation, ts.getLocation(true), elements);
         }
         else { // set expression
@@ -510,55 +528,18 @@ std::unique_ptr<AstNode::Expression> Parser::parsePrimaryExpression() {
             while (ts.match(COMMA)) {
                 elements.push_back(parseExpression());
             }
-            matchExpectedSymbol(BRACE_CLOSE, "at end of set expression.");
+            matchExpectedToken(BRACE_CLOSE, "at end of set expression.");
             return createNode<AstNode::Expression::Set>(startLocation, ts.getLocation(true), elements);
         }
     }
     else if (ts.match(PARENTHESES_OPEN)) {
         auto innerExp = parseExpression();
-        matchExpectedSymbol(PARENTHESES_CLOSE, "after grouped expression.");
+        matchExpectedToken(PARENTHESES_CLOSE, "after grouped expression.");
         return createNode<AstNode::Expression::Group>(startLocation, ts.getLocation(true), innerExp);
     }
-    else if (ts.match(Token::Type::IDENTIFIER, PARENTHESES_OPEN)) { // function call
-        auto& name = ts.at(-2).getLiteral();
-        std::vector<std::unique_ptr<AstNode::Expression>> arguments;
-        if (!ts.peek(PARENTHESES_CLOSE)) {
-            do {
-                arguments.push_back(parseExpression());
-            } while (ts.match(COMMA));
-        }
-        matchExpectedSymbol(PARENTHESES_CLOSE, "at end of function argument list.");
-        return createNode<AstNode::Expression::Function>(startLocation, ts.getLocation(true), name, arguments);
-    }
-    else if (ts.match(Token::Type::IDENTIFIER, MEMBER_ACCESS, Token::Type::IDENTIFIER, PARENTHESES_OPEN)) { // method call
-        auto& object = ts.at(-4).getLiteral();
-        auto& methodName = ts.at(-2).getLiteral();
-        std::vector<std::unique_ptr<AstNode::Expression>> arguments;
-        if (!ts.peek(PARENTHESES_CLOSE)) {
-            do {
-                arguments.push_back(parseExpression());
-            } while (ts.match(COMMA));
-        }
-        matchExpectedSymbol(PARENTHESES_CLOSE, "at end of method argument list.");
-        return createNode<AstNode::Expression::Method>(startLocation, ts.getLocation(true), object
-                                                           , methodName
-                                                           , arguments);
-    }
     else if (ts.match(Token::Type::IDENTIFIER)) {
-        auto& object = ts.at(-1).getLiteral();
-        if (ts.match(MEMBER_ACCESS)) { // member access
-            if (!ts.match(Token::Type::IDENTIFIER)) {
-                throw SyntaxError("Expected data member or method call after '.' operator.", ts.getLocation());
-            }
-            auto& member = ts.at(-1).getLiteral();
-            return createNode<AstNode::Expression::Access>(startLocation, ts.getLocation(true), object, member);
-        }
-        else if (ts.match(BRACKET_OPEN)) { // subscript access
-            auto subscript = parseExpression();
-            matchExpectedSymbol(BRACKET_CLOSE, "to match previous '[' in expression.");
-            return createNode<AstNode::Expression::Access>(startLocation, ts.getLocation(true), object, subscript);
-        }
-        return createNode<AstNode::Expression::Access>(startLocation, ts.getLocation(true), object);
+        auto& identifier = ts.at(-1).getLiteral();
+        return createNode<AstNode::Expression::Access>(startLocation, ts.getLocation(true), identifier);
     }
     throw SyntaxError("Invalid Expression.", ts.getLocation());
 }
@@ -569,32 +550,28 @@ std::unique_ptr<AstNode::Specifier> Parser::parseSpecifier() {
 
 std::unique_ptr<AstNode::Specifier::Type> Parser::parseTypeSpecifier() {
     auto startLocation = ts.getLocation();
-    if (!ts.match(Token::Type::IDENTIFIER)) {
-        throw SyntaxError("Invalid type specifier.", ts.getLocation());
-    }
+    matchExpectedToken(Token::Type::IDENTIFIER, "for type specifier.");
     auto& name = ts.at(-1).getLiteral();
     std::vector<std::unique_ptr<AstNode::Specifier::Type>> typeArgs;
     if (ts.match(TYPE_DELIMITER_OPEN)) {
         do {
             typeArgs.push_back(parseTypeSpecifier());
         } while (ts.match(COMMA));
-        matchExpectedSymbol(TYPE_DELIMITER_CLOSE, "to match previous '<' in type specifier.");
+        matchExpectedToken(TYPE_DELIMITER_CLOSE, "to match previous '<' in type specifier.");
     }
     return createNode<AstNode::Specifier::Type>(startLocation, ts.getLocation(true), name, typeArgs);
 }
 
 std::unique_ptr<AstNode::Initializer::Task> Parser::parseTaskInitializer() {
     auto startLocation = ts.getLocation();
-    if (!ts.match(Token::Type::IDENTIFIER)) {
-        throw SyntaxError("Invalid task initialization option", ts.getLocation());
-    }
+    matchExpectedToken(Token::Type::IDENTIFIER, "for task initialization option.");
     auto& option = ts.at(-1).getLiteral();
     std::vector<std::unique_ptr<AstNode::Expression>> args;
     if (ts.match(PARENTHESES_OPEN)) {
         do {
             args.push_back(parseExpression());
         } while (ts.match(COMMA));
-        matchExpectedSymbol(PARENTHESES_CLOSE, "to match previous ')' in task initialization option.");
+        matchExpectedToken(PARENTHESES_CLOSE, "to match previous ')' in task initialization option.");
     }
     return createNode<AstNode::Initializer::Task>(startLocation, ts.getLocation(true), option, args);
 }
@@ -624,8 +601,17 @@ bool Parser::peekTypeSpecifier() {
     return TYPES.contains(ts.at(0).getLiteral());
 }
 
-void Parser::matchExpectedSymbol(std::string&& symbol, std::string&& message) {
-    if (!ts.match(symbol)) {
-        throw SyntaxError("Expected '" + symbol + "' " + message, ts.getLocation());
+template<typename T> requires std::same_as<T, Token::Type> || std::convertible_to<T, std::string>
+void Parser::matchExpectedToken(T&& token, std::string&& message) {
+    if (!ts.match(token)) {
+        std::string tokenString;
+        if constexpr (std::same_as<T, Token::Type>) {
+            tokenString = Token::typeStrings.at(static_cast<int>(token));
+            boost::algorithm::to_lower(tokenString);
+        }
+        else {
+            tokenString = "'" + std::string(token) + "'";
+        }
+        throw SyntaxError("Expected " + tokenString + " " + message, ts.getLocation());
     }
 }

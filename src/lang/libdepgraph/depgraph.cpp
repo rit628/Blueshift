@@ -165,8 +165,9 @@ BlsObject DepGraph::visit(AstNode::Statement::Expression &ast){
 
 BlsObject DepGraph::visit(AstNode::Expression::Function& ast) {
     if(this->setupCtx.inSetup){
-        AstTaskDesc taskDesc; 
-        TaskID task = ast.name; 
+        AstTaskDesc taskDesc;
+        auto* invocable = dynamic_cast<AstNode::Expression::Access*>(ast.invocable.get());
+        TaskID task = (invocable) ? invocable->identifier : "";
         taskDesc.name = task; 
         auto& argList = ast.arguments; 
         for(auto& dev : argList){
@@ -194,18 +195,18 @@ BlsObject DepGraph::visit(AstNode::Expression::Function& ast) {
 
 BlsObject DepGraph::visit(AstNode::Expression::Access& ast) {
     if(this->setupCtx.inSetup){
-        return ast.object; 
+        return ast.identifier; 
     }
     else{
-        auto obj = ast.object; 
+        auto obj = ast.identifier; 
         if(isDevice(obj)){
             auto& realDev = this->taskCtx.devAliasMap[obj]; 
             this->taskCtx.tempDevices.insert(realDev); 
         }
 
-        if(ast.subscript.has_value()){
-            ast.subscript.value()->accept(*this); 
-        }
+        // if(ast.subscript.has_value()){
+        //     ast.subscript.value()->accept(*this); 
+        // }
 
         
         if(this->taskCtx.isRW){

@@ -209,7 +209,11 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
             if (!taskBinding) {
                 throw SemanticError("Statement within setup() must be an task binding expression or device binding declaration", *statement);
             }
-            auto& name = taskBinding->name;
+            auto* invocable = dynamic_cast<AstNode::Expression::Access*>(taskBinding->invocable.get());
+            if (!invocable) {
+                throw SemanticError("Function invocation within setup must be a task binding", ast);    
+            }
+            auto name = invocable->identifier;
             auto& args = taskBinding->arguments;
             if (!tasks.contains(name)) {
                 throw SemanticError(name + " does not refer to an task", *statement);
@@ -223,11 +227,11 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
             auto& devices = task.binded_devices;
             for (size_t i = 0; i < args.size(); i++) {
                 auto* expr = dynamic_cast<AstNode::Expression::Access*>(args.at(i).get());
-                if (expr == nullptr || expr->member.has_value() || expr->subscript.has_value()) {
+                if (expr == nullptr) {
                     throw SemanticError("Invalid task binding in setup()", *statement);
                 }
                 try {
-                    auto& declaredDev = deviceDescriptors.at(expr->object);
+                    auto& declaredDev = deviceDescriptors.at(expr->identifier);
                     auto& dev = devices.at(i);
                     dev.device_name = declaredDev.device_name;
                     dev.initialValue = declaredDev.initialValue;
@@ -247,7 +251,7 @@ BlsObject Analyzer::visit(AstNode::Setup& ast) {
                     }
                 }
                 catch (std::out_of_range) {
-                    throw SemanticError(expr->object + " does not refer to a device binding", *statement);
+                    throw SemanticError(expr->identifier + " does not refer to a device binding", *statement);
                 }
             }
             // update trigger rules to point to device names rather than alias indices
@@ -583,147 +587,159 @@ BlsObject Analyzer::visit(AstNode::Expression::Group& ast) {
     return ast.expression->accept(*this);
 }
 
-BlsObject Analyzer::visit(AstNode::Expression::Method& ast) {
-    auto& objectName = ast.object;
-    auto& object = cs.getLocal(objectName);
-    auto& methodName = ast.methodName;
-    auto& methodArgs = ast.arguments;
-    auto objType = getType(object);
-    ast.localIndex = cs.getLocalIndex(objectName);
-
-    if (objType == TYPE::ANY) { // skip every check for now (may cause issues)
-        for (auto&& arg : methodArgs) {
-            arg->accept(*this);
-        }
-        return object;
-    }
-
-    if (objType < TYPE::PRIMITIVES_END || objType > TYPE::CONTAINERS_END) {
-        throw SemanticError("Methods may only be applied on container type objects.", ast);
-    }
-    auto& operable = std::get<std::shared_ptr<HeapDescriptor>>(object);
-
-    static auto deduceType = []<int typeArgIdx, typename T>(std::shared_ptr<HeapDescriptor>& operable) -> BlsType {
-        using namespace TypeDef;
-        if constexpr (TypeDef::BlueshiftType<T>) {
-            return createBlsType(converted_t<T>());
-        }
-        else {
-            return operable->getSampleElement().at(typeArgIdx);
-        }
-    };
-
-    if (false) { } // short circuit hack
-    #define METHOD_BEGIN(name, objectType, typeArgIdx, returnType...) \
-    else if (objType == TYPE::objectType##_t && methodName == #name) { \
-        using namespace TypeDef; \
-        using argnum [[ maybe_unused ]] = BlsTrap::Detail::objectType##__##name::ARGNUM; \
-        BlsType result = deduceType.operator()<typeArgIdx, returnType>(operable);
-        #define ARGUMENT(argName, typeArgIdx, type...) \
-        if (methodArgs.size() != argnum::COUNT) { \
-            throw SemanticError("Invalid number of arguments provided to " + methodName + ".", ast); \
-        } \
-        auto argName = resolve(methodArgs.at(argnum::argName)->accept(*this)); \
-        BlsType expected_##argName = deduceType.operator()<typeArgIdx, type>(operable); \
-        if (!typeCompatible(argName, expected_##argName)) { \
-            throw SemanticError("Invalid type for argument " #argName ".", ast); \
-        }
-        #define METHOD_END \
-        ast.objectType = objType; \
-        return result; \
-    }
-    #include "include/LIST_METHODS.LIST"
-    #include "include/MAP_METHODS.LIST"
-    #undef METHOD_BEGIN
-    #undef ARGUMENT
-    #undef METHOD_END
-    else {
-        throw SemanticError("Invalid method " + methodName + " for " + getTypeName(objType), ast);
-    }
-}
-
 BlsObject Analyzer::visit(AstNode::Expression::Function& ast) {
-    auto& name = ast.name;
     auto& args = ast.arguments;
-    if (!procedures.contains(name)) {
-        throw SemanticError("Procedure " + name + " is not defined.", ast);
-    }
-    auto& signature = procedures.at(name);
 
-    if (signature.variadic) {
-        for (auto&& arg : args) {
-            arg->accept(*this);
+    if (auto* invocable = dynamic_cast<AstNode::Expression::Access*>(ast.invocable.get())) { // direct procedure/task call
+        auto& functionName = invocable->identifier;
+        if (!procedures.contains(functionName)) {
+            throw SemanticError("Procedure " + functionName + " is not defined.", ast);
         }
-    }
-    else {
-        if (signature.parameterTypes.size() != args.size()) {
-            throw SemanticError("Invalid number of arguments passed into " + name, ast);
-        }
-        for (auto&& [argType, arg] : boost::combine(signature.parameterTypes, args)) {
-            auto result = resolve(arg->accept(*this));
-            if (!typeCompatible(argType, result)) {
-                throw SemanticError("Invalid argument provided to " + name, ast);
+        auto& signature = procedures.at(functionName);
+    
+        if (signature.variadic) {
+            for (auto&& arg : args) {
+                arg->accept(*this);
             }
         }
+        else {
+            if (signature.parameterTypes.size() != args.size()) {
+                throw SemanticError("Invalid number of arguments passed into " + functionName, ast);
+            }
+            for (auto&& [argType, arg] : boost::combine(signature.parameterTypes, args)) {
+                auto result = resolve(arg->accept(*this));
+                if (!typeCompatible(argType, result)) {
+                    throw SemanticError("Invalid argument provided to " + functionName, ast);
+                }
+            }
+        }
+        return signature.returnType;
     }
-    return signature.returnType;
+    else if (auto* invocable = dynamic_cast<AstNode::Expression::Member*>(ast.invocable.get())) {
+        auto& methodName = invocable->member;
+        auto object = resolve(invocable->object->accept(*this));
+        auto objType = getType(object);
+
+        if (objType == TYPE::ANY) { // skip every check for now (may cause issues)
+            for (auto&& arg : args) {
+                arg->accept(*this);
+            }
+            return object;
+        }
+
+        if (objType < TYPE::PRIMITIVES_END || objType > TYPE::CONTAINERS_END) {
+            throw SemanticError("Methods may only be applied on container type objects.", ast);
+        }
+        auto& operable = std::get<std::shared_ptr<HeapDescriptor>>(object);
+
+        static auto deduceType = []<int typeArgIdx, typename T>(std::shared_ptr<HeapDescriptor>& operable) -> BlsType {
+            using namespace TypeDef;
+            if constexpr (TypeDef::BlueshiftType<T>) {
+                return createBlsType(converted_t<T>());
+            }
+            else {
+                return operable->getSampleElement().at(typeArgIdx);
+            }
+        };
+
+        if (false) { } // short circuit hack
+        #define METHOD_BEGIN(name, objectType, typeArgIdx, returnType...) \
+        else if (objType == TYPE::objectType##_t && methodName == #name) { \
+            using namespace TypeDef; \
+            using argnum [[ maybe_unused ]] = BlsTrap::Detail::objectType##__##name::ARGNUM; \
+            BlsType result = deduceType.operator()<typeArgIdx, returnType>(operable);
+            #define ARGUMENT(argName, typeArgIdx, type...) \
+            if (args.size() != argnum::COUNT) { \
+                throw SemanticError("Invalid number of arguments provided to " + methodName + ".", ast); \
+            } \
+            auto argName = resolve(args.at(argnum::argName)->accept(*this)); \
+            BlsType expected_##argName = deduceType.operator()<typeArgIdx, type>(operable); \
+            if (!typeCompatible(argName, expected_##argName)) { \
+                throw SemanticError("Invalid type for argument " #argName ".", ast); \
+            }
+            #define METHOD_END \
+            ast.objectType = objType; \
+            return result; \
+        }
+        #include "include/LIST_METHODS.LIST"
+        #include "include/MAP_METHODS.LIST"
+        #undef METHOD_BEGIN
+        #undef ARGUMENT
+        #undef METHOD_END
+        
+        else {
+            throw SemanticError("Invalid method " + methodName + " for " + getTypeName(objType), ast);
+        }
+    }
+    else {
+        throw new SemanticError("Function expressions not implemented", ast);
+    }
 }
 
 BlsObject Analyzer::visit(AstNode::Expression::Access& ast) {
-    auto& objectName = ast.object;
-    auto& object = cs.getLocal(objectName);
+    auto& variableName = ast.identifier;
+    auto& variable = cs.getLocal(variableName);
+    ast.localIndex = cs.getLocalIndex(variableName);
+
+    return std::ref(variable);
+}
+
+BlsObject Analyzer::visit(AstNode::Expression::Member& ast) {
+    auto object = resolve(ast.object->accept(*this));
+    if (!std::holds_alternative<std::shared_ptr<HeapDescriptor>>(object)) {
+        throw SemanticError("Member access not permitted for expression", ast);
+    }
+
     auto objType = getType(object);
     auto& member = ast.member;
-    auto& subscript = ast.subscript;
-    ast.localIndex = cs.getLocalIndex(objectName);
+    auto memberName = BlsType(member);
 
     if (objType == TYPE::ANY) { // skip every check for now (may cause issues)
-        if (member.has_value()) {
-            addToPool(BlsType(member.value()));
-        }
-        else if (subscript.has_value()) {
-            subscript->get()->accept(*this);
-        }
+        addToPool(memberName);
         return std::ref(object);
     }
 
-    if (member.has_value()) {
-        switch (objType) {
-            #define DEVTYPE_BEGIN(name, ...) \
-            case TYPE::name: \
-                if (false) { } // trick for short circuiting
-            #define ATTRIBUTE(name, ...) \
-                else if (member.value() == #name) { }
-            #define DEVTYPE_END \
-            else { \
-                throw SemanticError("Invalid attribute for devtype", ast); \
-            } \
-            break;
-            #include "DEVTYPES.LIST"
-            #undef DEVTYPE_BEGIN
-            #undef ATTRIBUTE
-            #undef DEVTYPE_END
-            default:
-                throw SemanticError("Attribute access only possible on devtypes", ast);
-            break;
-        }
-        auto& accessible = std::get<std::shared_ptr<HeapDescriptor>>(object);
-        auto memberName = BlsType(member.value());
-        addToPool(memberName); // member accesses need string literal representation of member at runtime
-        return std::ref(accessible->access(memberName));
+    switch (objType) {
+        #define DEVTYPE_BEGIN(name, ...) \
+        case TYPE::name: \
+            if (false) { } // trick for short circuiting
+        #define ATTRIBUTE(name, ...) \
+            else if (member == #name) { }
+        #define DEVTYPE_END \
+        else { \
+            throw SemanticError("Invalid attribute for devtype", ast); \
+        } \
+        break;
+        #include "DEVTYPES.LIST"
+        #undef DEVTYPE_BEGIN
+        #undef ATTRIBUTE
+        #undef DEVTYPE_END
+        default:
+            throw SemanticError("Attribute access only possible on devtypes", ast);
+        break;
     }
-    else if (subscript.has_value()) {
-        if (objType < TYPE::PRIMITIVES_END || objType > TYPE::CONTAINERS_END) {
-            throw SemanticError("Subscript access only possible on container type objects", ast);
-        }
-        auto& subscriptable = std::get<std::shared_ptr<HeapDescriptor>>(object);
-        auto index = resolve(subscript->get()->accept(*this));
-        size_t elementIdx = (dynamic_cast<VectorDescriptor*>(subscriptable.get())) ? 0 : 1;
-        return std::ref(subscriptable->getSampleElement().at(elementIdx));
-    }
-    else {
+    auto& accessible = std::get<std::shared_ptr<HeapDescriptor>>(object);
+    addToPool(memberName); // member accesses need string literal representation of member at runtime
+    return std::ref(accessible->access(memberName));
+}
+
+BlsObject Analyzer::visit(AstNode::Expression::Subscript& ast) {
+    auto object = resolve(ast.object->accept(*this));
+    auto objType = getType(object);
+    auto& subscript = ast.subscript;
+
+    if (objType == TYPE::ANY) { // skip every check for now (may cause issues)
+        subscript->accept(*this);
         return std::ref(object);
     }
+
+    if (objType < TYPE::PRIMITIVES_END || objType > TYPE::CONTAINERS_END) {
+        throw SemanticError("Subscript access only possible on container type objects", ast);
+    }
+    auto& subscriptable = std::get<std::shared_ptr<HeapDescriptor>>(object);
+    auto index = resolve(subscript->accept(*this));
+    size_t elementIdx = (dynamic_cast<VectorDescriptor*>(subscriptable.get())) ? 0 : 1; // 0 for value type in list, 1 for value type in map
+    return std::ref(subscriptable->getSampleElement().at(elementIdx));
 }
 
 BlsObject Analyzer::visit(AstNode::Expression::Literal& ast) {
@@ -922,7 +938,7 @@ BlsObject Analyzer::visit(AstNode::Initializer::Task& ast) {
 
         auto updateRule = [this, &parameterIndices, &ast](std::unique_ptr<AstNode::Expression>& arg, std::vector<std::string>& rule) {
             if (auto* resolvedArg = dynamic_cast<AstNode::Expression::Access*>(arg.get())) {
-                auto& param = resolvedArg->object;
+                auto& param = resolvedArg->identifier;
                 cs.getLocal(param); // check that param exists
                 // push back index of param to convert to device name in setup() visitor
                 rule.push_back(std::to_string(parameterIndices.at(param)));
@@ -1006,7 +1022,7 @@ BlsObject Analyzer::visit(AstNode::Initializer::Task& ast) {
              || std::holds_alternative<bool>(rateExpr->literal)) {
                 throw SemanticError("Polling rate values must be integers or floats.", ast);
             }
-            auto& param = paramExpr->object;
+            auto& param = paramExpr->identifier;
             cs.getLocal(param); // check that param exists
             auto rate = resolve(rateExpr->accept(*this));
             literalPool.erase(rate);
@@ -1034,7 +1050,7 @@ BlsObject Analyzer::visit(AstNode::Initializer::Task& ast) {
                 throw SemanticError("Mapping values must be policy option mappings", ast);
             }
 
-            auto& param = paramExpr->object;
+            auto& param = paramExpr->identifier;
             cs.getLocal(param); // check that param exists
             auto& dev = boundDevices.at(parameterIndices.at(param));
 
@@ -1097,7 +1113,7 @@ BlsObject Analyzer::visit(AstNode::Initializer::Task& ast) {
                 throw SemanticError("Mapping values must be string literals", ast);
             }
             
-            auto& param = paramExpr->object;
+            auto& param = paramExpr->identifier;
             cs.getLocal(param); // check that param exists
             auto& dev = boundDevices.at(parameterIndices.at(param));
 

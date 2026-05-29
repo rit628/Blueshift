@@ -29,7 +29,6 @@ namespace BlsLang {
             void compileFile(const std::string& source, ostream_t outputStream = std::cout);
             void compileSource(const std::string& source, ostream_t outputStream = std::cout);
             auto& getAst() { return ast; }
-            auto& getTasks() { return tasks; }
             auto& getTaskDescriptors() { return analyzer.getBoundTasks(); }
             auto& getTaskDescriptorMap() { return analyzer.getBoundTaskMap(); }
             auto getTaskContexts(){return depGraph.getTaskMap();}
@@ -43,11 +42,8 @@ namespace BlsLang {
             Analyzer analyzer;
             DepGraph depGraph;
             Generator generator;
-            Interpreter masterInterpreter;
             Symgraph symGraph; 
             Divider divider; 
-            std::vector<Interpreter> euInterpreters;
-            std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> tasks;
     };
 
 }

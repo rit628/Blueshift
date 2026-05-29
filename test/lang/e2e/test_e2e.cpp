@@ -11,8 +11,10 @@
 namespace BlsLang {
 
     GROUP_TEST_F(E2ETest, TrapTests, print) {
-        std::string fileName = "print.blu";
-        TEST_E2E_SOURCE(fileName);
+        const std::string source = {
+            #embed "print.blu"
+        };
+        TEST_E2E_SOURCE(source);
         auto T1 = createBlsType(TypeDef::TIMER_TEST());
         std::string expectedStdout = "A string.\n";
         TEST_E2E_TASK("printString", {T1}, {T1}, expectedStdout);
@@ -23,8 +25,10 @@ namespace BlsLang {
     }
 
     GROUP_TEST_F(E2ETest, ExecutionTests, BinaryOperations) {
-        std::string fileName = "binary_operations.blu";
-        TEST_E2E_SOURCE(fileName);
+        const std::string source = {
+            #embed "binary_operations.blu"
+        };
+        TEST_E2E_SOURCE(source);
         std::string expectedStdout = "";
         TEST_E2E_TASK("add", {0, 0.0}, {21, 21.1}, expectedStdout);
         TEST_E2E_TASK("subtract", {0, 0.0}, {-1, -6.28}, expectedStdout);
@@ -34,16 +38,20 @@ namespace BlsLang {
     }
 
     GROUP_TEST_F(E2ETest, ExecutionTests, ProcedureCalls) {
-        std::string fileName = "procedure_calls.blu";
-        TEST_E2E_SOURCE(fileName);
+        const std::string source = {
+            #embed "procedure_calls.blu"
+        };
+        TEST_E2E_SOURCE(source);
         std::string expectedStdout = "";
         TEST_E2E_TASK("simpleCall", {0}, {8}, expectedStdout);
         TEST_E2E_TASK("compoundCall", {0}, {64}, expectedStdout);
     }
 
     GROUP_TEST_F(E2ETest, ExecutionTests, BranchesAndLoops) {
-        std::string fileName = "branches_and_loops.blu";
-        TEST_E2E_SOURCE(fileName);
+        const std::string source = {
+            #embed "branches_and_loops.blu"
+        };
+        TEST_E2E_SOURCE(source);
         std::string expectedStdout = "0\n1\n2\n3\n4\n";
         TEST_E2E_TASK("forLoop", {5}, {5}, expectedStdout);
         expectedStdout = "0\n1\n2\n3\n4\n";
@@ -55,8 +63,11 @@ namespace BlsLang {
     }
 
     GROUP_TEST_F(E2ETest, HeapTests, ContainerAccess) {
-        std::string fileName = "container_access.blu";
-        TEST_E2E_SOURCE(fileName);
+        const std::string source = {
+            #embed "container_access.blu"
+        };
+        TEST_E2E_SOURCE(source);
+
         std::string expectedStdout = "";
         auto input = std::shared_ptr<VectorDescriptor>(new VectorDescriptor{0, 1, 2, 3});
         auto output = std::shared_ptr<VectorDescriptor>(new VectorDescriptor{{0, 1, 9, 3}});
@@ -70,11 +81,40 @@ namespace BlsLang {
         expectedStdout = "[0, 1, 2, 3, 4]\n";
         output = std::shared_ptr<VectorDescriptor>(new VectorDescriptor{{0, 1, 2, 3, 4}});
         TEST_E2E_TASK("appendElement", {input}, {output}, expectedStdout);
+
+        input = std::shared_ptr<VectorDescriptor>(new VectorDescriptor{
+            std::shared_ptr<VectorDescriptor>(new VectorDescriptor{0, 1, 2, 3}),
+            std::shared_ptr<VectorDescriptor>(new VectorDescriptor{4, 5, 6, 7})
+        });
+        output = std::shared_ptr<VectorDescriptor>(new VectorDescriptor{
+            std::shared_ptr<VectorDescriptor>(new VectorDescriptor{0, 1, 2, 3}),
+            std::shared_ptr<VectorDescriptor>(new VectorDescriptor{4, 5, 6, 7})
+        });
+        expectedStdout = "[4, 5, 6, 7]\n";
+        TEST_E2E_TASK("printRow", {input}, {output}, expectedStdout);
+        expectedStdout = "7\n";
+        TEST_E2E_TASK("printEntry", {input}, {output}, expectedStdout);
+        expectedStdout = "[0, 8, 2, 3]\n";
+        output = std::shared_ptr<VectorDescriptor>(new VectorDescriptor{
+            std::shared_ptr<VectorDescriptor>(new VectorDescriptor{0, 8, 2, 3}),
+            std::shared_ptr<VectorDescriptor>(new VectorDescriptor{4, 5, 6, 7})
+        });
+        TEST_E2E_TASK("accessRow", {input}, {output}, expectedStdout);
+
+        input = std::shared_ptr<VectorDescriptor>(new VectorDescriptor{});
+        output = std::shared_ptr<VectorDescriptor>(new VectorDescriptor{
+            createBlsType(TypeDef::TIMER_TEST{4}),
+            createBlsType(TypeDef::TIMER_TEST{8})
+        });
+        expectedStdout = "4\n";
+        TEST_E2E_TASK("accessDevice", {input}, {output}, expectedStdout);
     }
 
     GROUP_TEST_F(E2ETest, ExecutionTests, ShortCircuit) {
-        std::string fileName = "short_circuit.blu";
-        TEST_E2E_SOURCE(fileName);
+        const std::string source = {
+            #embed "short_circuit.blu"
+        };
+        TEST_E2E_SOURCE(source);
         auto T1 = createBlsType(TypeDef::TIMER_TEST());
         std::string expectedStdout = "short circuit or: printTest not executed\nshort circuit and: printTest not executed\ntest\ntest\nprintTest executed twice\n";
         TEST_E2E_TASK("testShortCircuit", {T1}, {T1}, expectedStdout);

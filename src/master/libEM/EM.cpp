@@ -13,8 +13,7 @@
 
 ExecutionManager::ExecutionManager(std::vector<TaskDescriptor> TaskList, TSQ<EMStateMessage> &readMM, 
     TSQ<HeapMasterMessage> &sendMM,
-    std::vector<char>& bytecode,
-    std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> tasks)
+    std::vector<char>& bytecode)
     : readMM(readMM), sendMM(sendMM), scheduler(TaskList, [this](HeapMasterMessage dmm){this->sendMM.write(dmm);})
 {
     this->TaskList = TaskList;
@@ -31,14 +30,13 @@ ExecutionManager::ExecutionManager(std::vector<TaskDescriptor> TaskList, TSQ<EMS
             controllers.push_back(task.binded_devices.at(j).controller);
         }
 
-        auto function = tasks[TaskName];
         auto bytecodeOffset = task.bytecode_offset;
-        EU_map[TaskName] = std::make_unique<ExecutionUnit>(task, devices, isVtype, controllers, this->sendMM, bytecodeOffset, bytecode, function, this->scheduler, eu_ctx);
+        EU_map[TaskName] = std::make_unique<ExecutionUnit>(task, devices, isVtype, controllers, this->sendMM, bytecodeOffset, bytecode, this->scheduler, eu_ctx);
     }
 }
 
 ExecutionUnit::ExecutionUnit(TaskDescriptor task, std::vector<std::string> devices, std::vector<bool> isVtype, std::vector<std::string> controllers,
-    TSQ<HeapMasterMessage> &sendMM, size_t bytecodeOffset, std::vector<char>& bytecode, std::function<std::vector<BlsType>(std::vector<BlsType>)>  transform_function, DeviceScheduler &devScheduler, asio::io_context &ctx)
+    TSQ<HeapMasterMessage> &sendMM, size_t bytecodeOffset, std::vector<char>& bytecode, DeviceScheduler &devScheduler, asio::io_context &ctx)
     : globalScheduler(devScheduler), sendMM(sendMM), ctx(ctx)
 {
     this->Task = task;
@@ -48,7 +46,6 @@ ExecutionUnit::ExecutionUnit(TaskDescriptor task, std::vector<std::string> devic
     this->vm.setParentExecutionUnit(this);
     this->vm.setTaskOffset(bytecodeOffset);
     this->vm.loadBytecode(bytecode);
-    this->transform_function = transform_function;
     this->info.task = task.name;
 
     // Device Position Map:
