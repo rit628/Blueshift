@@ -1,11 +1,13 @@
 #pragma once
 #include "tester.hpp"
 #include <gtest/gtest.h>
+#include <memory>
 #include <tuple>
 #include <optional>
 #include <utility>
 #include <variant>
 #include <boost/range/combine.hpp>
+#include <boost/type_index.hpp>
 
 namespace BlsLang {
 
@@ -45,6 +47,12 @@ namespace BlsLang {
         }
     }
 
+    template<std::derived_from<AstNode> Node>
+    inline void Tester::checkedAccept(const char *& name, std::unique_ptr<Node>& node) {
+        ASSERT_NE(node, nullptr) << "For member: " << name;
+        node->accept(*this);
+    }
+
     inline BlsObject Tester::testChild(const char *& name, auto& value, auto& expectedValue) {
         using T = std::remove_reference_t<decltype(value)>;
 
@@ -67,12 +75,12 @@ namespace BlsLang {
     }
     
     template<std::derived_from<AstNode> Node>
-    inline BlsObject Tester::testChild(const char *& name [[ maybe_unused ]]
+    inline BlsObject Tester::testChild(const char *& name
                                      , std::unique_ptr<Node>& node
                                      , std::unique_ptr<Node>& expectedNode)
     {
-        expectedVisits.push(std::move(expectedNode));
-        node->accept(*this);
+        expectedVisits.push(expectedNode.get());
+        checkedAccept(name, node);
         expectedVisits.pop();
         return std::monostate();
     }
@@ -84,8 +92,8 @@ namespace BlsLang {
     {
         EXPECT_EQ(expectedNode.has_value(), node.has_value()) << "For member: " << name;
         if (expectedNode.has_value()) {
-            expectedVisits.push(std::move(*expectedNode));
-            node->get()->accept(*this);
+            expectedVisits.push(expectedNode->get());
+            checkedAccept(name, node.value());
             expectedVisits.pop();
         }
         return std::monostate();
@@ -98,8 +106,8 @@ namespace BlsLang {
     {
         EXPECT_EQ(nodes.size(), expectedNodes.size()) << "For member: " << name;
         for (auto&& [element, expectedElement] : boost::combine(nodes, expectedNodes)) {
-            expectedVisits.push(std::move(expectedElement));
-            element->accept(*this);
+            expectedVisits.push(expectedElement.get());
+            checkedAccept(name, element);
             expectedVisits.pop();
         }
         return std::monostate();
@@ -112,12 +120,12 @@ namespace BlsLang {
     {
         EXPECT_EQ(nodes.size(), expectedNodes.size()) << "For member: " << name;
         for (auto&& [pair, expectedPair] : boost::combine(nodes, expectedNodes)) {
-            expectedVisits.push(std::move(expectedPair.first));
-            pair.first->accept(*this);
+            expectedVisits.push(expectedPair.first.get());
+            checkedAccept(name, pair.first);
             expectedVisits.pop();
 
-            expectedVisits.push(std::move(expectedPair.second));
-            pair.second->accept(*this);
+            expectedVisits.push(expectedPair.second.get());
+            checkedAccept(name, pair.second);
             expectedVisits.pop();
         }
         return std::monostate();
@@ -138,5 +146,35 @@ namespace BlsLang {
             zipped
         );
     }
+
+    void Tester::compare(std::unique_ptr<AstNode>& ast, std::unique_ptr<AstNode>& expectedAst) {
+        if (!(ast && expectedAst)) FAIL() << "At least one of the provided asts are null";
+        this->expectedAst = expectedAst.get();
+        ast->accept(*this);
+        this->expectedAst = nullptr;
+        if (testing::Test::HasFailure()) {
+            FAIL() << "Expected Tree: \n" << *expectedAst << "\nReceived Tree: \n" << *ast;
+        }
+    }
+
+    #define AST_NODE(Node, ...) \
+    inline BlsObject Tester::visit(Node& ast) { \
+        auto& toCast = (expectedVisits.empty()) ? expectedAst : expectedVisits.top(); \
+        BlsObject result = std::monostate(); \
+        [&](){ \
+            try { \
+                if (!toCast) FAIL() << "Expected ast is null"; \
+                auto& expected = dynamic_cast<Node&>(*toCast); \
+                result = testChildren(ast, expected); \
+            } catch (const std::bad_cast& e) { \
+                std::string expectedType = boost::typeindex::type_id_runtime(*toCast).pretty_name(); \
+                expectedType = expectedType.substr(expectedType.find(':') + 2); \
+                FAIL() << "Expected " << expectedType << " received " << #Node; \
+            } \
+        }(); \
+        return result; \
+    }
+    #include "include/NODE_TYPES.LIST"
+    #undef AST_NODE
 
 }

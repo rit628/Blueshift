@@ -40,16 +40,53 @@ void Compiler::compileSource(const std::string& source, ostream_t outputStream) 
         generator.writeBytecode(std::get<std::reference_wrapper<std::ostream>>(outputStream));
     }
     ast->accept(this->depGraph);
-    ast->accept(masterInterpreter);
-        
-    auto& descriptors = analyzer.getBoundTasks();
+    // auto tempTask = this->depGraph.getTaskMap();  
 
-    auto& masterTasks = masterInterpreter.getTasks();
-    euInterpreters.assign(descriptors.size(), masterInterpreter);
-    for (auto&& [taskDescriptor, interpreter] : boost::combine(descriptors, euInterpreters)) {
-        if (!masterTasks.contains(taskDescriptor.name)) { continue; }
-        auto& task = masterTasks.at(taskDescriptor.name);
-        tasks.emplace(taskDescriptor.name, [&task, &interpreter](std::vector<BlsType> v) { return task(interpreter, v); });
+
+    /*
+    this->symGraph.setMetadata(this->depGraph.getTaskMap(), analyzer.getTaskDescriptors()); 
+    ast->accept(this->symGraph); 
+    this->symGraph.annotateControllerDivide(); 
+
+    auto divider = this->symGraph.getDivisionData(); 
+
+    // Verify that the deviders work!
+    for(auto& obj : divider.ctlMetaData){
+        std::cout<<"Printing data for controller ID: "<<obj.first<<std::endl; 
+        for(auto data : obj.second.taskData){
+            std::cout<<"Original task: "<<data.first<<std::endl; 
+            std::cout<<"Params: "<<std::endl;
+            for(auto param : data.second.parameterList){
+                std::cout<<param<<" "; 
+            }
+            std::cout<<"\n"; 
+            std::cout<<"Jamar device"<<std::endl; 
+            for(auto jamar : data.second.taskDesc.binded_devices){
+                std::cout<<jamar.device_name<<" "; 
+            }
+            std::cout<<"\n"; 
+        }
     }
+    
+    // Setting up the divider
+    this->divider.setMetadata(divider); 
+    ast->accept(this->divider);
+
+    auto& king = this->divider.getControllerSplit(); 
+    std::cout<<"Split ctl\n"<<std::endl; 
+    for(auto& hom : king){
+        std::cout<<"Controller: "<<hom.first<<std::endl; 
+        auto& cntSrc = hom.second; 
+        for(auto& desc : cntSrc.taskDesc){
+            std::cout<<"\ntaskname: "<<desc.first<<std::endl; 
+            std::cout<<"Internal name:"<<desc.second.name<<std::endl; 
+            for(auto& dev : desc.second.binded_devices){
+                std::cout<<"Binded: "<<dev.device_name<<std::endl; 
+            }
+        }   
+    }
+
+    std::cout<<"\nend Split ctl"<<std::endl;
+    */ 
 
 }

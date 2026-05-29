@@ -18,8 +18,8 @@ namespace BlsLang {
 
     class E2ETest : public testing::Test {
         public:
-            void TEST_E2E_SOURCE(const std::string& fileName) {
-                compiler.compileFile(std::filesystem::path(E2E_LANG_SAMPLE_DIR) / fileName, bytecode);
+            void TEST_E2E_SOURCE(const std::string& source) {
+                compiler.compileSource(source, bytecode);
                 vm.loadBytecode(bytecode);
             }
 
@@ -27,7 +27,6 @@ namespace BlsLang {
                 // bound tasks with the same signature share the same bytecode offset
                 vm.setTaskOffset(compiler.getTaskDescriptorMap().at(taskName).at(0).get().bytecode_offset);
                 
-                auto interpreterTransform = compiler.getTasks().at(taskName);
                 auto vmTransform = std::bind(&VirtualMachine::transform, std::ref(vm), std::placeholders::_1);
                 
                 auto checkTaskOutput = [&expectedOutput, &expectedStdout](std::function<std::vector<BlsType>(std::vector<BlsType>)> transformFunction, std::vector<BlsType> input) {
@@ -44,7 +43,7 @@ namespace BlsLang {
                     auto oldBuffer = std::cout.rdbuf();
                     std::cout.rdbuf(stdoutCapture.rdbuf());
                     auto output = transformFunction(clonedInput);
-                    EXPECT_EQ(output.size(), expectedOutput.size());
+                    ASSERT_EQ(output.size(), expectedOutput.size());
                     for (int i = 0; i < output.size(); i++) {
                         EXPECT_EQ(output.at(i), expectedOutput.at(i));
                     }
@@ -52,7 +51,6 @@ namespace BlsLang {
                     std::cout.rdbuf(oldBuffer);
                 };
 
-                // checkTaskOutput(interpreterTransform, input);
                 checkTaskOutput(vmTransform, input);
             }
         

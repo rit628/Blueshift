@@ -85,7 +85,6 @@ int main(int argc, char *argv[]){
     printf("past compilation\n");
 
     std::vector<TaskDescriptor> taskDescriptors = compiler.getTaskDescriptors(); 
-    auto tasks = compiler.getTasks();  
 
     // Only temporary until symgraph is complete
     modifyTaskDesc(taskDescriptors, compiler.getGlobalContext()); 
@@ -104,7 +103,7 @@ int main(int argc, char *argv[]){
     NM.start(); 
 
 
-    ExecutionManager EM(taskDescriptors, MM_EM_queue, EM_MM_queue, bytecode, tasks); 
+    ExecutionManager EM(taskDescriptors, MM_EM_queue, EM_MM_queue, bytecode); 
     std::thread t3([&](){EM.running();});
     
     // Make Mailbox (runs with EM and NM)

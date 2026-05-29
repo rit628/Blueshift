@@ -272,7 +272,7 @@ namespace BlsLang {
             {
                 new AstNode::Statement::Return(
                     new AstNode::Expression::Function(
-                        "print",
+                        new AstNode::Expression::Access("print"),
                         {
                             new AstNode::Expression::Literal(
                                 int64_t(12)
@@ -428,7 +428,7 @@ namespace BlsLang {
 
     GROUP_TEST_F(AnalyzerTest, TypeTests, ValidTrapCall) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Expression::Function(
-            "print",
+            new AstNode::Expression::Access("print"),
             {
                 new AstNode::Expression::Literal(
                     std::string("arg1")
@@ -486,7 +486,7 @@ namespace BlsLang {
                     {
                         new AstNode::Statement::Expression(
                             new AstNode::Expression::Function(
-                                "g",
+                                new AstNode::Expression::Access("g"),
                                 {
                                     new AstNode::Expression::Literal(
                                         std::string("not an int")
@@ -663,9 +663,11 @@ namespace BlsLang {
 
     GROUP_TEST_F(AnalyzerTest, LogicTests, MethodOnUndeclaredVariable) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Statement::Expression(
-            new AstNode::Expression::Method(
-                "x",
-                "size",
+            new AstNode::Expression::Function(
+                new AstNode::Expression::Member(
+                    new AstNode::Expression::Access("x"),
+                    "size"
+                ),
                 {}
             )
         ));
@@ -692,9 +694,11 @@ namespace BlsLang {
                     std::nullopt
                 ),
                 new AstNode::Statement::Expression(
-                    new AstNode::Expression::Method(
-                        "x",
-                        "size",
+                    new AstNode::Expression::Function(
+                        new AstNode::Expression::Member(
+                            new AstNode::Expression::Access("x"),
+                            "size"
+                        ),
                         {}
                     )
                 )
@@ -728,9 +732,11 @@ namespace BlsLang {
                     std::nullopt
                 ),
                 new AstNode::Statement::Expression(
-                    new AstNode::Expression::Method(
-                        "x",
-                        "add",
+                    new AstNode::Expression::Function(
+                        new AstNode::Expression::Member(
+                            new AstNode::Expression::Access("x"),
+                            "add"
+                        ),
                         {}
                     )
                 )
@@ -768,9 +774,11 @@ namespace BlsLang {
                     std::nullopt
                 ),
                 new AstNode::Statement::Expression(
-                    new AstNode::Expression::Method(
-                        "x",
-                        "append",
+                    new AstNode::Expression::Function(
+                        new AstNode::Expression::Member(
+                            new AstNode::Expression::Access("x"),
+                            "append"
+                        ),
                         {}
                     )
                 )
@@ -808,9 +816,11 @@ namespace BlsLang {
                     std::nullopt
                 ),
                 new AstNode::Statement::Expression(
-                    new AstNode::Expression::Method(
-                        "x",
-                        "INVALID_METHOD",
+                    new AstNode::Expression::Function(
+                        new AstNode::Expression::Member(
+                            new AstNode::Expression::Access("x"),
+                            "INVALID_METHOD"
+                        ),
                         {}
                     )
                 )
@@ -848,9 +858,11 @@ namespace BlsLang {
                     std::nullopt
                 ),
                 new AstNode::Statement::Expression(
-                    new AstNode::Expression::Method(
-                        "x",
-                        "add",
+                    new AstNode::Expression::Function(
+                        new AstNode::Expression::Member(
+                            new AstNode::Expression::Access("x"),
+                            "add"
+                        ),
                         {
                             new AstNode::Expression::Literal(
                                 int64_t(1)
@@ -892,9 +904,11 @@ namespace BlsLang {
                     std::nullopt
                 ),
                 new AstNode::Statement::Expression(
-                    new AstNode::Expression::Method(
-                        "x",
-                        "add",
+                    new AstNode::Expression::Function(
+                        new AstNode::Expression::Member(
+                            new AstNode::Expression::Access("x"),
+                            "add"
+                        ),
                         {
                             new AstNode::Expression::Literal(
                                 int64_t(1)
@@ -939,9 +953,11 @@ namespace BlsLang {
                     std::nullopt
                 ),
                 new AstNode::Statement::Expression(
-                    new AstNode::Expression::Method(
-                        "x",
-                        "add",
+                    new AstNode::Expression::Function(
+                        new AstNode::Expression::Member(
+                            new AstNode::Expression::Access("x"),
+                            "add"
+                        ),
                         {
                             new AstNode::Expression::Literal(
                                 int64_t(1)
@@ -983,9 +999,11 @@ namespace BlsLang {
                     std::nullopt
                 ),
                 new AstNode::Statement::Expression(
-                    new AstNode::Expression::Method(
-                        "x",
-                        "add",
+                    new AstNode::Expression::Function(
+                        new AstNode::Expression::Member(
+                            new AstNode::Expression::Access("x"),
+                            "add"
+                        ),
                         {
                             new AstNode::Expression::Literal(
                                 int64_t(1)
@@ -994,7 +1012,6 @@ namespace BlsLang {
                                 int64_t(6)
                             )
                         },
-                        0,
                         TYPE::map_t
                     )
                 )
@@ -1023,7 +1040,7 @@ namespace BlsLang {
             {
                 new AstNode::Statement::Expression(
                     new AstNode::Expression::Function(
-                        "g",
+                        new AstNode::Expression::Access("g"),
                         {}
                     )
                 )
@@ -1068,7 +1085,7 @@ namespace BlsLang {
                     {
                         new AstNode::Statement::Expression(
                             new AstNode::Expression::Function(
-                                "g",
+                                new AstNode::Expression::Access("g"),
                                 {
                                     new AstNode::Expression::Literal(
                                         int64_t(2)
@@ -1263,7 +1280,7 @@ namespace BlsLang {
                     ),
                     new AstNode::Statement::Expression(
                         new AstNode::Expression::Function(
-                            "foo",
+                            new AstNode::Expression::Access("foo"),
                             {
                                 new AstNode::Expression::Access(
                                     "writer_1"
@@ -1552,7 +1569,7 @@ namespace BlsLang {
                     ),
                     new AstNode::Statement::Expression(
                         new AstNode::Expression::Function(
-                            "foo",
+                            new AstNode::Expression::Access("foo"),
                             {
                                 new AstNode::Expression::Access(
                                     "writer_1"
@@ -1833,7 +1850,7 @@ namespace BlsLang {
                     ),
                     new AstNode::Statement::Expression(
                         new AstNode::Expression::Function(
-                            "foo",
+                            new AstNode::Expression::Access("foo"),
                             {
                                 new AstNode::Expression::Access(
                                     "writer_1"
@@ -1846,7 +1863,7 @@ namespace BlsLang {
                     ),
                     new AstNode::Statement::Expression(
                         new AstNode::Expression::Function(
-                            "foo",
+                            new AstNode::Expression::Access("foo"),
                             {
                                 new AstNode::Expression::Access(
                                     "writer_2"
@@ -1929,7 +1946,7 @@ namespace BlsLang {
                     ),
                     new AstNode::Statement::Expression(
                         new AstNode::Expression::Function(
-                            "foo",
+                            new AstNode::Expression::Access("foo"),
                             {
                                 new AstNode::Expression::Access(
                                     "writer_1"
@@ -1942,7 +1959,7 @@ namespace BlsLang {
                     ),
                     new AstNode::Statement::Expression(
                         new AstNode::Expression::Function(
-                            "foo",
+                            new AstNode::Expression::Access("foo"),
                             {
                                 new AstNode::Expression::Access(
                                     "writer_2"

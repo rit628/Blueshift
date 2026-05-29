@@ -1,3 +1,4 @@
+#ifdef BLUESHIFT_INTERPRETER_BUILD
 #pragma once
 #include "ast.hpp"
 #include "traps.hpp"
@@ -61,3 +62,4 @@ namespace BlsLang {
     };
 
 }
+#endif

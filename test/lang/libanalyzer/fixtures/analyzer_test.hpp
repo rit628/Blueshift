@@ -81,13 +81,13 @@ namespace BlsLang {
                 if (decoratedAst != defaultAst) {
                     ASSERT_NE(ast, nullptr);
                     ASSERT_NE(decoratedAst, nullptr);
-                    Tester tester(std::move(decoratedAst));
-                    ast->accept(tester);
+                    tester.compare(ast, decoratedAst);
                 }
             }
 
         private:
             Analyzer analyzer;
+            Tester tester;
             static std::unique_ptr<AstNode> defaultAst;
     };
 

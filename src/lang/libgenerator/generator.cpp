@@ -519,90 +519,92 @@ BlsObject Generator::visit(AstNode::Expression::Group& ast) {
     return ast.expression->accept(*this);
 }
 
-BlsObject Generator::visit(AstNode::Expression::Method& ast) {
-    instructions.push_back(createLOAD(ast.localIndex));
-    auto& objectType = ast.objectType;
-    auto& methodName = ast.methodName;
-    for (auto&& arg : ast.arguments) {
-        arg->accept(*this);
-    }
-    if (false) { } // short circuit hack
-    #define METHOD_BEGIN(name, objType, ...) \
-    else if (objectType == TYPE::objType##_t && methodName == #name) { \
-        instructions.push_back(createMTRAP(static_cast<uint16_t>(BlsTrap::MCALLNUM::objType##__##name))); \
-    }
-    #define ARGUMENT(...)
-    #define METHOD_END
-    #include "include/LIST_METHODS.LIST"
-    #include "include/MAP_METHODS.LIST"
-    #undef METHOD_BEGIN
-    #undef ARGUMENT
-    #undef METHOD_END
-
-    return 0;
-}
-
 BlsObject Generator::visit(AstNode::Expression::Function& ast) {
     auto& args = ast.arguments;
-    for (auto&& arg : args) {
-        arg->accept(*this);
+    if (auto* invocable = dynamic_cast<AstNode::Expression::Access*>(ast.invocable.get())) {
+        auto& name = invocable->identifier;
+        for (auto&& arg : args) {
+            arg->accept(*this);
+        }
+        if (false) { } // hack to force short circuiting
+        #define TRAP_BEGIN(trapName, ...) \
+        else if (name == #trapName) { \
+            instructions.push_back(createTRAP(static_cast<uint16_t>(BlsTrap::CALLNUM::trapName), args.size()));
+            #define VARIADIC(...)
+            #define ARGUMENT(argName, argType...)
+            #define TRAP_END \
+        }
+        #include "include/TRAPS.LIST"
+        #undef TRAP_BEGIN
+        #undef VARIADIC
+        #undef ARGUMENT
+        #undef TRAP_END
+        else {
+            auto address = procedureAddresses.at(name);
+            instructions.push_back(createCALL(address, args.size()));
+        }
     }
-    auto& name = ast.name;
-    if (false) { } // hack to force short circuiting
-    #define TRAP_BEGIN(trapName, ...) \
-    else if (name == #trapName) { \
-        instructions.push_back(createTRAP(static_cast<uint16_t>(BlsTrap::CALLNUM::trapName), args.size()));
-        #define VARIADIC(...)
-        #define ARGUMENT(argName, argType...)
-        #define TRAP_END \
-    }
-    #include "include/TRAPS.LIST"
-    #undef TRAP_BEGIN
-    #undef VARIADIC
-    #undef ARGUMENT
-    #undef TRAP_END
-    else {
-        auto address = procedureAddresses.at(name);
-        instructions.push_back(createCALL(address, args.size()));
+    else if (auto* invocable = dynamic_cast<AstNode::Expression::Member*>(ast.invocable.get())) {
+        invocable->object->accept(*this);
+        auto& objectType = ast.objectType;
+        auto& methodName = invocable->member;
+        for (auto&& arg : ast.arguments) {
+            arg->accept(*this);
+        }
+        if (false) { } // short circuit hack
+        #define METHOD_BEGIN(name, objType, ...) \
+        else if (objectType == TYPE::objType##_t && methodName == #name) { \
+            instructions.push_back(createMTRAP(static_cast<uint16_t>(BlsTrap::MCALLNUM::objType##__##name))); \
+        }
+        #define ARGUMENT(...)
+        #define METHOD_END
+        #include "include/LIST_METHODS.LIST"
+        #include "include/MAP_METHODS.LIST"
+        #undef METHOD_BEGIN
+        #undef ARGUMENT
+        #undef METHOD_END
     }
     return 0;
 }
 
 BlsObject Generator::visit(AstNode::Expression::Access& ast) {
     auto localIndex = ast.localIndex;
-    auto& member = ast.member;
-    auto& subscript = ast.subscript;
-    if (member.has_value()) {
+    if (accessContext == ACCESS_CONTEXT::READ) {
         instructions.push_back(createLOAD(localIndex));
-        instructions.push_back(createPUSH(literalPool.at(member.value())));
-        if (accessContext == ACCESS_CONTEXT::READ) {
-            instructions.push_back(createALOAD());
-        }
-        else {
-            instructions.push_back(createASTORE());
-        }
-    }
-    else if (subscript.has_value()) {
-        instructions.push_back(createLOAD(localIndex));
-        if (accessContext == ACCESS_CONTEXT::READ) {
-            subscript->get()->accept(*this);
-            instructions.push_back(createALOAD());
-        }
-        else {
-            accessContext = ACCESS_CONTEXT::READ; // set accessContext to read for sub expression
-            subscript->get()->accept(*this);
-            instructions.push_back(createASTORE());
-        }
     }
     else {
-        if (accessContext == ACCESS_CONTEXT::READ) {
-            instructions.push_back(createLOAD(localIndex));
-        }
-        else {
-            instructions.push_back(createSTORE(localIndex));
-        }
+        instructions.push_back(createSTORE(localIndex));
     }
     accessContext = ACCESS_CONTEXT::READ; // reset accessContext
+    return 0;
+}
+
+BlsObject Generator::visit(AstNode::Expression::Member& ast) {
+    auto accessContext = this->accessContext;
+    this->accessContext = ACCESS_CONTEXT::READ; // read for lhs expression
+    ast.object->accept(*this);
+    instructions.push_back(createPUSH(literalPool.at(ast.member)));
+    if (accessContext == ACCESS_CONTEXT::READ) {
+        instructions.push_back(createALOAD());
+    }
+    else {
+        instructions.push_back(createASTORE());
+    }
+    return 0;
+}
+
+BlsObject Generator::visit(AstNode::Expression::Subscript& ast) {
+    auto accessContext = this->accessContext;
+    this->accessContext = ACCESS_CONTEXT::READ; // read for lhs expression
+    ast.object->accept(*this);
+    if (accessContext == ACCESS_CONTEXT::READ) {
+        ast.subscript->accept(*this);
+        instructions.push_back(createALOAD());
+    }
+    else {
+        ast.subscript->accept(*this);
+        instructions.push_back(createASTORE());
+    }
     return 0;
 }
 

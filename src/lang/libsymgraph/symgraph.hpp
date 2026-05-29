@@ -129,6 +129,7 @@ namespace BlsLang{
             BlsObject visit(AstNode::Statement::If &ast) override; 
             
             BlsObject visit(AstNode::Expression::Access& ast) override; 
+            BlsObject visit(AstNode::Expression::Member& ast) override; 
             BlsObject visit(AstNode::Expression::Binary &ast) override; 
        
             /*

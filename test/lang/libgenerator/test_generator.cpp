@@ -38,13 +38,9 @@ namespace BlsLang {
     }
 
     GROUP_TEST_F(GeneratorTest, ExpressionTests, ListAccess) {
-        auto ast = std::unique_ptr<AstNode>(new AstNode::Expression::Access(
-            "x",
-            new AstNode::Expression::Access(
-                "y",
-                uint8_t(1)
-            ),
-            uint8_t(0)
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Expression::Subscript(
+            new AstNode::Expression::Access("x", uint8_t(0)),
+            new AstNode::Expression::Access("y",uint8_t(1))
         ));
 
         std::vector<TaskDescriptor> taskDescriptors;
@@ -62,10 +58,9 @@ namespace BlsLang {
     }
 
     GROUP_TEST_F(GeneratorTest, ExpressionTests, MapAccess) {
-        auto ast = std::unique_ptr<AstNode>(new AstNode::Expression::Access(
-            "x",
-            "member",
-            uint8_t(0)
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Expression::Member(
+            new AstNode::Expression::Access("x", uint8_t(0)),
+            "member"
         ));
 
         std::vector<TaskDescriptor> taskDescriptors;
@@ -366,21 +361,19 @@ namespace BlsLang {
     GROUP_TEST_F(GeneratorTest, ExpressionTests, BinaryDoubleCompoundArrayAssignment) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Expression::Binary(
             "+=",
-            new AstNode::Expression::Access(
-                "x",
+            new AstNode::Expression::Subscript(
+                new AstNode::Expression::Access("x", uint8_t(0)),
                 new AstNode::Expression::Literal(
                     int64_t(0)
-                ),
-                uint8_t(0)
+                )
             ),
             new AstNode::Expression::Binary(
                 "+=",
-                new AstNode::Expression::Access(
-                    "y",
+                new AstNode::Expression::Subscript(
+                    new AstNode::Expression::Access("y", uint8_t(1)),
                     new AstNode::Expression::Literal(
                         int64_t(0)
-                    ),
-                    uint8_t(1)
+                    )
                 ),
                 new AstNode::Expression::Literal(
                     int64_t(30)
@@ -1231,7 +1224,7 @@ namespace BlsLang {
             {
                 new AstNode::Statement::Expression(
                     new AstNode::Expression::Function(
-                        "print",
+                        new AstNode::Expression::Access("print"),
                         {
                             new AstNode::Expression::Access(
                                 "i"
@@ -1284,7 +1277,7 @@ namespace BlsLang {
             {
                 new AstNode::Statement::Expression(
                     new AstNode::Expression::Function(
-                        "f",
+                        new AstNode::Expression::Access("f"),
                         {}
                     )
                 )
@@ -1331,7 +1324,7 @@ namespace BlsLang {
             {
                 new AstNode::Statement::Expression(
                     new AstNode::Expression::Function(
-                        "f",
+                        new AstNode::Expression::Access("f"),
                         {
                             new AstNode::Expression::Literal(
                                 int64_t(1)
@@ -1399,7 +1392,7 @@ namespace BlsLang {
                     {
                         new AstNode::Statement::Expression(
                             new AstNode::Expression::Function(
-                                "g",
+                                new AstNode::Expression::Access("g"),
                                 {}
                             )
                         )
@@ -1472,7 +1465,7 @@ namespace BlsLang {
                     {
                         new AstNode::Statement::Expression(
                             new AstNode::Expression::Function(
-                                "g",
+                                new AstNode::Expression::Access("g"),
                                 {}
                             )
                         )
@@ -1505,7 +1498,7 @@ namespace BlsLang {
 
     GROUP_TEST_F(GeneratorTest, FunctionTests, VariadicTrapCall) {
         auto ast = std::unique_ptr<AstNode>(new AstNode::Expression::Function(
-            "print",
+            new AstNode::Expression::Access("print"),
             {
                 new AstNode::Expression::Literal(
                     std::string("arg1")
@@ -1539,9 +1532,11 @@ namespace BlsLang {
     }
 
     GROUP_TEST_F(GeneratorTest, FunctionTests, MethodCall) {
-        auto ast = std::unique_ptr<AstNode>(new AstNode::Expression::Method(
-            "a",
-            "add",
+        auto ast = std::unique_ptr<AstNode>(new AstNode::Expression::Function(
+            new AstNode::Expression::Member(
+                new AstNode::Expression::Access("a", uint8_t(0)),
+                "add"
+            ),
             {
                 new AstNode::Expression::Literal(
                     std::string("key")
@@ -1551,7 +1546,6 @@ namespace BlsLang {
                     uint8_t(1)
                 )
             },
-            uint8_t(0),
             TYPE::map_t
         ));
 
