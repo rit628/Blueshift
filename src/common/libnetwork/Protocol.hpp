@@ -84,9 +84,7 @@ struct DeviceConfigMsg{
 
     // Determines if the client should send and initial state
     std::vector<uint16_t> triggers;  
-
 }; 
-
 
 /*
     GENERAL MESSAGE PROTOCOL

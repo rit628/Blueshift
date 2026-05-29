@@ -161,3 +161,10 @@ DEVTYPE_BEGIN(AUDIO_PLAYER, POLLING)
     ATTRIBUTE(paused, bool)
     ATTRIBUTE(volume, int)
 DEVTYPE_END
+
+DEVTYPE_BEGIN(LIST_TEST, POLLING)
+    ATTRIBUTE(list_one, list<int>)
+    ATTRIBUTE(list_two, list<list<float>>)
+    ATTRIBUTE(list_three, map<string, list<int>>)
+DEVTYPE_END
+

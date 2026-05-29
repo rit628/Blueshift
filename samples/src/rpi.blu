@@ -1,56 +1,42 @@
-task light(LIGHT target, LINE_WRITER remote) {
-    println(target.on);
-    if (remote.msg == "ON") {
-        target.on = true;
-    }
-    else if (remote.msg == "OFF") {
-        target.on = false;
-    }
-    else {
-        println("INVALID COMMAND");
-    }
-}
+// look at if-else 
 
-task button(BUTTON button, LIGHT rpi_light) : 
+task button(BUTTON button, RGB_LED rpi_light, RGB_LED l2, LIST_TEST li) :
 triggerOn(button)
 {
-    if (button.pressed) {
-        println("button pressed!");
-        rpi_light.on = true; 
+    int omar2 = 15; 
+    int omar = 10; 
+    list<int> val;
+    // Imagine some heavy expression instead of a literal
+    int lamar = max(li.list_one); 
+ 
+    if(rpi_light.red_light > 91){
+        int item = val[omar2]; 
+        omar = item; 
+        lamar = omar; 
     }
-    else {
-        println("button depressed!");
-        rpi_light.on = false; 
+    else if(l2.blue_light > rpi_light.blue_light){
+        omar = 69; 
+        l2.blue_val = omar;
     }
+    else{
+        lamar = omar; 
+        omar = 51; 
+    }
+
+    l2.red_val = omar;
+    if(lamar > 40){
+        l2.blue_val = lamar; 
+    }    
 }
 
-task flash(LIGHT rpi_light) : 
-triggerOn(rpi_light),
-constPollOn({rpi_light : 10000})
-{
-    print("GOT SOME MONEY");
-    rpi_light.on = !rpi_light.on;
-    sleep(1);
-    print("FUCK YOU");
-}
-
-task keyboardLight(KEYBOARD kbd, LIGHT rpi_light) :
-triggerOn(kbd)
-{
-    rpi_light.on = !rpi_light.on;
-    //sleep(1);
-}
 
 setup() {
-    LIGHT rpi_light = "rpi::PIN-16";
-    //KEYBOARD KBD = "ctl::mode-all";
-    //LINE_WRITER rpi_light_controller = "remote::file-file1.txt"; 
-    //light(rpi_light, rpi_light_controller);
-    
+    RGB_LED rpi_light_1 = "rpi::PIN-16";
+    RGB_LED rpi_light_2 = "rpi2::PIN-16";
+    LIGHT led = "rpi3::PIN-14"; 
+
+
+    LIST_TEST li  = "rpi::omar-12";    
     BUTTON rpi_button = "rpi::PIN-21";
-    button(rpi_button, rpi_light);
-
-    //flash(rpi_light);
-
-    //keyboardLight(KBD, rpi_light);
+    button(rpi_button, rpi_light_1, rpi_light_2, li);
 }

@@ -29,12 +29,7 @@ void Compiler::compileSource(const std::string& source, ostream_t outputStream) 
     ast->accept(analyzer);
     ast->accept(generator);
     ast->accept(bindmap);
-
-    // Get and load the bind map to the generator
-    auto item = bindmap.get_map();  
-    dag.load_bind_data(item);
-    dag.DEBUG_show_map(); 
-
+    dag.load_device_params(); 
     ast->accept(dag); 
 
 

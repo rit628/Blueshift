@@ -1,1 +1,1 @@
-bls_add_library(daggen STATIC LINKS visitor type trap bindmapper)
+bls_add_library(daggen STATIC LINKS visitor type trap bindmapper graph)

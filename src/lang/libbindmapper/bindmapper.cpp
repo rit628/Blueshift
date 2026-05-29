@@ -75,19 +75,14 @@ BlsObject BindMapper::visit(AstNode::Statement::Declaration& ast) {
     if(in_setup){
         std::string dev_name = ast.name; 
         std::string ctl_name; 
+
         if(ast.value.has_value()){
             auto val = ast.value->get()->accept(*this); 
             auto binding_string = std::get<BlsType>(val); 
             if(std::holds_alternative<std::string>(binding_string)){
                 ctl_name = this->extract_ctl_name(std::get<std::string>(binding_string)); 
             }
-            else{
-                throw RuntimeError("Setup: Cannot parse the declaration"); 
-            }
             this->device_coord_map.emplace(dev_name, DeviceCoords(dev_name, ctl_name)); 
-        }
-        else{
-            throw RuntimeError("Setup: Cannot parse the declaration"); 
         }
         return true; 
     }

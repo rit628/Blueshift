@@ -430,20 +430,20 @@ size_t std::hash<BlsType>::operator()(const BlsType& obj) const noexcept {
 MapDescriptor::MapDescriptor(TYPE contType) {
     this->objType = TYPE::map_t;
     this->contType = contType;
-    this->map = std::make_shared<std::unordered_map<std::string, BlsType>>(); 
+    this->in_map = std::make_shared<std::unordered_map<std::string, BlsType>>(); 
 }
 
 MapDescriptor::MapDescriptor(TYPE objType, TYPE keyType [[ maybe_unused ]] /* until we track key type */, TYPE contType) {
     this->objType = objType;
     this->contType = contType;
-    this->map = std::make_shared<std::unordered_map<std::string, BlsType>>(); 
+    this->in_map = std::make_shared<std::unordered_map<std::string, BlsType>>(); 
 
     using namespace TypeDef;
     switch(this->objType){
         #define DEVTYPE_BEGIN(name, ...) \
             case(TYPE::name) : { 
-            #define ATTRIBUTE(varName, type) \
-                this->map->emplace(#varName, createBlsType(type())); 
+            #define ATTRIBUTE(varName, type...) \
+                this->in_map->emplace(#varName, createBlsType(type())); 
             #define DEVTYPE_END \
                 break; \
             }
@@ -460,20 +460,20 @@ MapDescriptor::MapDescriptor(TYPE objType, TYPE keyType [[ maybe_unused ]] /* un
 MapDescriptor::MapDescriptor(std::initializer_list<std::pair<std::string, BlsType>> elements) {
     this->objType = TYPE::map_t;
     this->contType = TYPE::ANY;
-    this->map = std::make_shared<std::unordered_map<std::string, BlsType>>();
-    this->map->insert(elements.begin(), elements.end());
+    this->in_map = std::make_shared<std::unordered_map<std::string, BlsType>>();
+    this->in_map->insert(elements.begin(), elements.end());
 }
 
 
 MapDescriptor::MapDescriptor(const MapDescriptor& other) {
-    if(other.map){
-        this->map = std::make_shared<std::unordered_map<std::string, BlsType>>();
-        *this->map = *other.map;
+    if(other.in_map){
+        this->in_map = std::make_shared<std::unordered_map<std::string, BlsType>>();
+        *this->in_map = *other.in_map;
     }
 }
 
 MapDescriptor& MapDescriptor::operator=(const MapDescriptor& rhs) {
-    this->map = rhs.map; 
+    this->in_map = rhs.in_map; 
     return *this;
 }
 
@@ -481,8 +481,8 @@ BlsType& MapDescriptor::access(BlsType &obj) {
     std::scoped_lock bob(mux); 
 
     std::string accessor = stringify(obj); 
-    if(this->map->find(accessor) != this->map->end()) {
-      return this->map->at(accessor); 
+    if(this->in_map->find(accessor) != this->in_map->end()) {
+      return this->in_map->at(accessor); 
     }
     else{
       throw std::invalid_argument("Could not find the object of name: " + accessor); 
@@ -491,19 +491,19 @@ BlsType& MapDescriptor::access(BlsType &obj) {
 
 std::monostate MapDescriptor::add(BlsType key, BlsType value, int) {
     std::scoped_lock bob(mux); 
-    this->map->emplace(stringify(key), value);
+    this->in_map->emplace(stringify(key), value);
     return std::monostate();
 }
 
 int64_t MapDescriptor::size(int) {
-    return this->map->size();
+    return this->in_map->size();
 }
 
 bool MapDescriptor::operator==(const HeapDescriptor& rhs) const {
     if (auto* resolved = dynamic_cast<const MapDescriptor*>(&rhs)) {
         return objType == resolved->objType && \
                contType == resolved->contType && \
-               *map == *resolved->map;
+               *in_map == *resolved->in_map;
     }
     return false;
 }
@@ -512,7 +512,7 @@ bool MapDescriptor::operator!=(const HeapDescriptor& rhs) const {
     if (auto* resolved = dynamic_cast<const MapDescriptor*>(&rhs)) {
         return objType != resolved->objType || \
                contType != resolved->contType || \
-               *map != *resolved->map;
+               *in_map != *resolved->in_map;
     }
     return true;
 }
@@ -521,12 +521,12 @@ std::shared_ptr<HeapDescriptor> MapDescriptor::clone() const {
     auto newMap = std::make_shared<MapDescriptor>(TYPE::ANY);
     newMap->objType = objType;
     newMap->contType = contType;
-    for (auto&& [key, value] : *map) {
+    for (auto&& [key, value] : *in_map) {
         if (std::holds_alternative<std::shared_ptr<HeapDescriptor>>(value)) {
-            newMap->map->emplace(key, std::get<std::shared_ptr<HeapDescriptor>>(value)->clone());
+            newMap->in_map->emplace(key, std::get<std::shared_ptr<HeapDescriptor>>(value)->clone());
         }
         else {
-            newMap->map->emplace(key, value);
+            newMap->in_map->emplace(key, value);
         }
     }
     return newMap;

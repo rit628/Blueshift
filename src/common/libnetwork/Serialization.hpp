@@ -9,13 +9,21 @@
 #include <memory>
 #include <queue> 
 #include <string>
+#include <unordered_map>
 #include <variant>
 #include <vector>
 #include <boost/json.hpp>
+#include <stack>
 
 using ControllerID = std::string; 
 using DeviceID = std::string; 
-using TaskID = std::string; 
+using TaskID = std::string;
+
+using SymbolID_t = uint32_t;
+using TaskID_t = uint32_t; 
+using DeviceID_t = uint32_t;
+using CtlID_t = uint32_t; 
+
 
 
 enum class PROTOCOLS
@@ -225,6 +233,17 @@ struct std::hash<TaskDescriptor> {
     }
 };
 
+
+enum class TYPE_INFO{
+    INT, 
+    FLOAT,
+    STRING, 
+    BOOL, 
+    LIST, 
+    MAP 
+}; 
+
+
 struct Task_Info
 {
     std::string task;
@@ -233,6 +252,13 @@ struct Task_Info
     bool isVtype = false;
     int priority; 
 };
+
+ struct TypeContainer{
+    std::string root_type; 
+    std::unordered_map<std::string, TypeContainer> child_types; 
+    int send_cost; 
+}; 
+
 
 struct DynamicMasterMessage
 {

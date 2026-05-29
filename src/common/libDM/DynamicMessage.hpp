@@ -519,7 +519,7 @@ class DynamicMessage{
                 }
             }
 
-            global_map->map->emplace(obj.first, heapObj); 
+            global_map->in_map->emplace(obj.first, heapObj); 
  
         } 
 
@@ -565,7 +565,7 @@ class DynamicMessage{
 
             }
 
-            map_object->map->operator[](key) = object; 
+            map_object->in_map->operator[](key) = object; 
             sub_offset += new_trav; 
         }
 
@@ -698,11 +698,11 @@ class DynamicMessage{
                 desc.descType = TYPE::map_t;
                 desc.eleSize  = 0;
                 desc.lumpOffset = this->data.size();
-                desc.numElements = mapDesc->map->size();
+                desc.numElements = mapDesc->in_map->size();
     
                 this->Descriptors.push_back(desc); 
         
-                for(auto kvPair : *mapDesc->map){
+                for(auto kvPair : *mapDesc->in_map){
                     // Make the string object
                     this->createField(CONTAINER_ELEMENT, kvPair.first); 
                     // Write the heap object
@@ -784,7 +784,7 @@ class DynamicMessage{
     // Takes a HeapTree Map object and converts it into a mapDesc object 
    void makeFromRoot(std::shared_ptr<HeapDescriptor> heapDesc){
         if(auto mapDesc = std::dynamic_pointer_cast<MapDescriptor>(heapDesc)){
-            for(auto pair : *mapDesc->map){
+            for(auto pair : *mapDesc->in_map){
                 makeFromHeap(pair.first, pair.second); 
             }
          }

@@ -195,7 +195,7 @@ class HeapDescriptor {
 
 class MapDescriptor : public HeapDescriptor{
   protected: 
-    std::shared_ptr<std::unordered_map<std::string, BlsType>> map;    
+    std::shared_ptr<std::unordered_map<std::string, BlsType>> in_map;    
     std::mutex mux;
 
   public:
@@ -224,7 +224,7 @@ class MapDescriptor : public HeapDescriptor{
     bool operator!=(const HeapDescriptor& rhs) const override;
     virtual std::shared_ptr<HeapDescriptor> clone() const override;
     // Also only used for debugging
-    std::unordered_map<std::string, BlsType>& getMap() { return *this->map; }
+    std::unordered_map<std::string, BlsType>& getMap() { return *this->in_map; }
 
     friend class boost::serialization::access;
     template<typename Archive>
@@ -299,14 +299,14 @@ BlsType createBlsType(const T& value) {
     return list;
   }
   else if constexpr (Map<T>) {
-    auto map = std::make_shared<MapDescriptor>(TYPE::ANY);
+    auto in_map = std::make_shared<MapDescriptor>(TYPE::ANY);
     typename T::key_type sampleKey;
-    typename T::value_type sampleElement;
-    map->getSampleElement().assign({createBlsType(sampleKey), createBlsType(sampleElement)});
+    typename T::mapped_type sampleElement;
+    in_map->getSampleElement().assign({createBlsType(sampleKey), createBlsType(sampleElement)});
     for (auto&& [key, element] : value) {
-      map->add(createBlsType(key), createBlsType(element));
+      in_map->add(createBlsType(key), createBlsType(element));
     }
-    return map;
+    return in_map;
   }
   #define DEVTYPE_BEGIN(name, ...) \
   else if constexpr (std::same_as<T, name>) {  \
@@ -559,7 +559,7 @@ void HeapDescriptor::serialize(Archive& ar, const unsigned int) {
 template<typename Archive>
 void MapDescriptor::serialize(Archive & ar, const unsigned int) {
   ar & boost::serialization::base_object<HeapDescriptor>(*this);
-  ar & *map.get();
+  ar & *in_map.get();
 }
 
 template<typename Archive>
