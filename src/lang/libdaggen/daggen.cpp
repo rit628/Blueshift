@@ -441,63 +441,73 @@ BlsObject DagGen::visit(AstNode::Expression::Binary &ast){
 BlsObject DagGen::visit(AstNode::Expression::Function& ast) {
    std::cout<<"Expression Function Node"<<std::endl; 
    
-
     return true; 
 }
+
+
+
 
 
 BlsObject DagGen::visit(AstNode::Expression::Access& ast) {
     std::cout<<"Expression Access Node"<<std::endl; 
     auto& task = this->curr_task_ctx; 
-    auto obj_name = ast.object; 
+    auto obj_name = ast.identifier; 
+
+    SymbolGraph::EXPR_TYPE type; 
+   
+    SymbolDescriptor sd{
+        this->counter++, 
+        ast.bytecodeStart, 
+        ast.bytecodeEnd, 
+        SymbolGraph::EXPR_TYPE::ACCESS
+    }; 
+
+    sd.set_name(obj_name); 
+    task.dag.add_symbol(sd); 
     
-    if(task.param_names.contains(obj_name)){
-
-        SymbolDescriptor sd(
-            counter++,
-            ast.bytecodeStart, 
-            ast.bytecodeEnd, 
-            SymbolGraph::EXPR_TYPE::DEVICE_ACCESS
-        );
-
-        std::string name = ast.object; 
-        if(ast.member.has_value()){
-            name += "." + ast.member.value(); 
-        }   
-        
-        sd.set_name(name); 
-        task.dag.add_symbol(sd); 
-    }
-    else{
-
-        if(ast.subscript.has_value()){
-            ast.subscript->get()->accept(*this); 
-            SymbolDescriptor sd{
-                counter++, 
-                ast.bytecodeStart,
-                ast.bytecodeEnd,
-                SymbolGraph::EXPR_TYPE::SUBSCRIPT
-            };
-            auto var = obj_name + "%index"; 
-            sd.set_name(var); 
-            task.dag.add_symbol(sd); 
-        }
-
-        SymbolDescriptor sd(
-            counter++, 
-            ast.bytecodeStart, 
-            ast.bytecodeEnd, 
-            SymbolGraph::EXPR_TYPE::ACCESS
-        );
-
-        sd.set_name(obj_name); 
-        task.dag.add_symbol(sd); 
-    }
-
-    task.dag.complete_access_statement(); 
-
     return true; 
 }
+
+
+
+BlsObject DagGen::visit(AstNode::Expression::Subscript &ast){
+    std::cout<<"Expression Subscript Node"<<std::endl; 
+    auto& task = this->curr_task_ctx; 
+    ast.object->accept(*this); 
+    ast.subscript->accept(*this); 
+    SymbolDescriptor sd{
+       counter++,
+       ast.bytecodeStart, 
+       ast.bytecodeEnd, 
+       SymbolGraph::EXPR_TYPE::SUBSCRIPT 
+    }; 
+    std::string default_name = "ERR_UNALTERED_SUBSCRIPT"; 
+    
+    sd.set_name(default_name);
+    task.dag.add_symbol(sd); 
+   
+    task.dag.complete_subscript_statement(); 
+    return true; 
+}
+
+BlsObject DagGen::visit(AstNode::Expression::Member &ast){
+    std::cout<<"Expression Member Node"<<std::endl; 
+    auto& task = this->curr_task_ctx; 
+    ast.object->accept(*this); 
+    SymbolDescriptor sd{
+        counter++,
+        ast.bytecodeStart,
+        ast.bytecodeEnd, 
+        SymbolGraph::EXPR_TYPE::MEMBER
+    }; 
+    sd.set_name(ast.member);    
+    task.dag.add_symbol(sd); 
+  
+    task.dag.complete_member_statement(); 
+    return true; 
+
+}
+
 
 BlsObject DagGen::visit(AstNode::Expression::Literal& ast) {
     std::cout<<"Expresion Literal Node"<<std::endl; 
@@ -658,13 +668,6 @@ std::cout<<"Statement Break Node"<<std::endl;
 }
 
 
-BlsObject DagGen::visit(AstNode::Expression::Method& ast) {
-    std::cout<<"Expression Method Node"<<std::endl; 
-
-
-    return true; 
-}
-
 
 BlsObject DagGen::visit(AstNode::Expression::List& ast) {
     std::cout<<"Expression List Literal Node"<<std::endl; 
@@ -685,7 +688,6 @@ BlsObject DagGen::visit(AstNode::Expression::Map& ast) {
 
     return true; 
 }
-
 
 // Recursively construct the curr symbol types
 BlsObject DagGen::visit(AstNode::Specifier::Type& ast) {

@@ -48,7 +48,6 @@ namespace BlsLang {
             Divider divider; 
             BindMapper bindmap; 
             DagGen dag; 
-            std::vector<Interpreter> euInterpreters;
             std::unordered_map<std::string, std::function<std::vector<BlsType>(std::vector<BlsType>)>> tasks;
     };
 

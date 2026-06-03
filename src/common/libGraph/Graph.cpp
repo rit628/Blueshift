@@ -9,11 +9,19 @@
 using namespace SymbolGraph; 
 
 
+
 std::pair<std::string, int> DAG::get_last_ident(std::string &pure_name){
     auto& stk = this->variable_stk;
+
     if(stk.empty()){
         throw std::runtime_error("Cannot get variable: Stack is empty");
     }
+
+    if(this->declared_devices.contains(pure_name)){
+        int val = this->declared_devices.at(pure_name);
+        return {pure_name, val}; 
+    }
+
     std::string mod_name = ""; 
     int sym_desc_id; 
 
@@ -80,19 +88,8 @@ void DAG::add_symbol(SymbolDescriptor &new_item){
             add_variable(sd.symbol_name, sd.id, EXPR_TYPE::DECLARATION); 
             break;
         }
-
         case EXPR_TYPE::DEVICE_DECLARATION: {
-            this->declared_devices.emplace(sd.symbol_name, sd); 
-            break; 
-        }
-        case EXPR_TYPE::DEVICE_ACCESS: {
-            auto ind = sd.symbol_name.find('.'); 
-            
-            auto dev_alias = sd.symbol_name.substr(0, ind); 
-            auto first_member = sd.symbol_name.substr(ind + 1, sd.symbol_name.length());
-
-            auto device_tc = this->declared_devices.at(dev_alias).types;
-            sd.types = device_tc.child_types.at(first_member); 
+            this->declared_devices.emplace(sd.symbol_name, sd.id); 
             break; 
         }
         case EXPR_TYPE::ACCESS: {
@@ -118,7 +115,7 @@ void DAG::add_symbol(SymbolDescriptor &new_item){
             link_edge(bin_calc, sd.id);
             break; 
         }
-        case SymbolGraph::EXPR_TYPE::COND_JUNC_ELSE:{
+        case EXPR_TYPE::COND_JUNC_ELSE:{
             this->push_conditional_dep(sd.id); 
             break; 
         }
@@ -252,48 +249,69 @@ void DAG::complete_declare_statement(){
     }
 }
 
-void DAG::complete_access_statement(){
-    auto acs_root = this->symbol_desc.top(); 
+
+void DAG::complete_member_statement(){
+    auto member_item = this->symbol_desc.top(); 
     this->symbol_desc.pop(); 
-    if(!this->symbol_desc.empty()){
-        auto subscript_root = this->symbol_desc.top(); 
+    auto root_access = this->symbol_desc.top(); 
+    this->symbol_desc.pop(); 
 
-        auto& subscript_sym = this->descriptor_map.at(subscript_root); 
-        if(subscript_sym.expr_type == EXPR_TYPE::SUBSCRIPT){
-            // Add Code to derive the sub_type
-        
-            this->symbol_desc.pop(); 
-            auto subscript_content = this->symbol_desc.top(); 
-            this->symbol_desc.pop(); 
-            link_edge(subscript_content, subscript_root);
-            link_edge(subscript_root, acs_root); 
-            inherit_bcrange(subscript_content, subscript_root); 
-            
-            auto& root_type = this->descriptor_map.at(subscript_root);
-            auto content_type = this->descriptor_map.at(subscript_content);
-            root_type.types = content_type.types;  
-
-            // Capture the ACS root
-            auto& acc_sym = this->descriptor_map.at(acs_root); 
-            auto type = acc_sym.types; 
-            auto mod_name = acc_sym.symbol_name + "%access"; 
-            acc_sym.set_name(mod_name);
-
-            if(type.root_type == "map"){
-                acc_sym.types = type.child_types.at("value");
-            }
-            else if(type.root_type == "list"){
-                acc_sym.types = type.child_types.at("%access");
-            }
-            else{
-                std::cout<<"WHAT IS THE TYPE TO BE SUBSCRIPTED: "<<acc_sym.types.root_type<<std::endl; 
-            }
-
-        }
+    auto& root_symbol = this->descriptor_map.at(root_access);
+    auto& member_symbol = this->descriptor_map.at(member_item); 
+    if(member_symbol.expr_type != EXPR_TYPE::MEMBER){
+        throw std::runtime_error("Unexpected expression type for member statement"); 
     }
-    this->symbol_desc.push(acs_root); 
+
+    auto sub_types = root_symbol.types.child_types.at(member_symbol.symbol_name); 
+
+    
+    EXPR_TYPE type = EXPR_TYPE::ACCESS; 
+    if(this->declared_devices.contains(root_symbol.symbol_name)){
+        type = EXPR_TYPE::DEVICE_ACCESS; 
+    }
+
+    SymbolDescriptor sd{
+        member_item, 
+        member_symbol.bytecode_start,
+        member_symbol.bytecode_end, 
+        type, 
+    }; 
+
+    auto combined_name = root_symbol.symbol_name + "." + member_symbol.symbol_name; 
+    sd.set_name(combined_name); 
+    sd.set_type(sub_types); 
+ 
+    this->descriptor_map.erase(member_item); 
+    this->descriptor_map.erase(root_access);
+    
+    this->descriptor_map.emplace(sd.id, sd); 
+    this->symbol_desc.push(sd.id); 
 }
 
+void DAG::complete_subscript_statement(){
+    auto& subscript_item = this->descriptor_map.at(this->symbol_desc.top()); 
+    this->symbol_desc.pop();
+    auto& binary_item = this->descriptor_map.at(this->symbol_desc.top()); 
+    this->symbol_desc.pop(); 
+    auto& root_access = this->descriptor_map.at(this->symbol_desc.top());
+    this->symbol_desc.pop(); 
+
+    link_edge(binary_item.id, subscript_item.id); 
+    link_edge(root_access.id, subscript_item.id); 
+    auto new_name = root_access.symbol_name + "%index"; 
+    subscript_item.set_name(new_name);     
+
+    // Check if the root type is subscriptable ()
+    TypeContainer sub_type; 
+    if(root_access.types.root_type == "map"){
+        sub_type = root_access.types.child_types.at("value"); 
+    }
+    else if(root_access.types.root_type == "list"){
+        sub_type = root_access.types.child_types.at("%access"); 
+    }
+   
+    subscript_item.set_type(sub_type);
+}
 
 
 void DAG::push_conditional_dep(SymbolID_t cond_type){
@@ -333,6 +351,8 @@ TypeContainer DAG::get_binary_type(SymbolDescriptor &lhs, SymbolDescriptor &rhs,
         return lhs.types; 
     }
     else{
+        std::cout<<"Left Type: "<<lhs.symbol_name<<std::endl; 
+        std::cout<<"Right Type: "<<rhs.symbol_name<<std::endl; 
         throw std::runtime_error("Data of different types to be implemented: " + lhs.types.root_type + " " + rhs.types.root_type); 
     }
 }
@@ -387,6 +407,8 @@ std::string DAG::DEBUG_print_sym_type(EXPR_TYPE type){
             return "ACCESS"; 
         case EXPR_TYPE::DEVICE_ACCESS: 
             return "DEVICE_ACCESS";
+        case EXPR_TYPE::DEVICE_DECLARATION:
+            return "DEVICE_DECLARATION"; 
         case EXPR_TYPE::DECLARATION:
             return "DECLARATION"; 
         case EXPR_TYPE::BINARY_COM:
@@ -466,6 +488,7 @@ void DAG::DEBUG_print_type(const TypeContainer& tc){
 
 void DAG::DEBUG_print_declared_map(){
     
+    /*
     std::cout<<"DECLARED DEVICES:\n"<<std::endl; 
 
     for(auto& [device_name, sd] : this->declared_devices){

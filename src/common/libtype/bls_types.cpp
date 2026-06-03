@@ -519,7 +519,7 @@ BlsType& MapDescriptor::access(BlsType &obj) {
 
 std::monostate MapDescriptor::add(BlsType key, BlsType value, int) {
     std::scoped_lock bob(mux); 
-    this->map->insert_or_assign(stringify(key), value);
+    this->in_map->emplace(stringify(key), value);
     return std::monostate();
 }
 

@@ -28,6 +28,7 @@ namespace SymbolGraph{
         PULL, 
         DEVICE_WRITE, 
         SUBSCRIPT,  
+        MEMBER, 
         LITERAL
     }; 
 
@@ -63,7 +64,7 @@ namespace SymbolGraph{
                 this->symbol_name = string; 
             }
 
-            SymbolDescriptor(int sym_cnt, size_t bc_start, size_t bc_end, EXPR_TYPE type){
+            SymbolDescriptor(SymbolID_t sym_cnt, size_t bc_start, size_t bc_end, EXPR_TYPE type){
                 this->expr_type = type; 
                 this->bytecode_start = bc_start; 
                 this->bytecode_end = bc_end; 
@@ -93,7 +94,7 @@ namespace SymbolGraph{
 
         private: 
 
-            std::unordered_map<std::string, SymbolDescriptor> declared_devices; 
+            std::unordered_map<std::string, SymbolID_t> declared_devices; 
             std::vector<VariableContainer> variable_stk; 
           
             std::map<SymbolID_t, SymbolDescriptor> descriptor_map;
@@ -132,6 +133,8 @@ namespace SymbolGraph{
             void complete_binary_statement(); 
             void complete_declare_statement(); 
             void complete_access_statement();  
+            void complete_member_statement(); 
+            void complete_subscript_statement(); 
             void complete_if_statement(); 
         
             void print_type_helper(const TypeContainer &tc, const std::string &name, int tab_cnt);

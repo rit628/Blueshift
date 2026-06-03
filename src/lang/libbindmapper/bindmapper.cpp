@@ -100,7 +100,8 @@ BlsObject BindMapper::visit(AstNode::Statement::Expression &ast){
 
 BlsObject BindMapper::visit(AstNode::Expression::Function& ast) {
     if(in_setup){
-        std::string task_name = ast.name; 
+        auto* invocable = dynamic_cast<AstNode::Expression::Access*>(ast.invocable.get());
+        std::string task_name = (invocable) ? invocable->identifier : "";
         auto& param_names = this->task_params.at(task_name);
         auto& param_real_map = this->sym_map.at(task_name); 
         
@@ -124,7 +125,7 @@ BlsObject BindMapper::visit(AstNode::Expression::Function& ast) {
 
 BlsObject BindMapper::visit(AstNode::Expression::Access& ast) {     
     if(in_setup){
-        return ast.object;
+        return ast.identifier;
     }
     return true; 
 }
