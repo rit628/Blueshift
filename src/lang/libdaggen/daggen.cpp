@@ -3,6 +3,7 @@
 #include "ast.hpp"
 #include "bls_types.hpp"
 #include "visitor.hpp"
+#include <array>
 #include <exception>
 #include <fstream>
 #include <new>
@@ -374,8 +375,6 @@ BlsObject DagGen::visit(AstNode::Function::Task& ast){
 
 BlsObject DagGen::visit(AstNode::Statement::Declaration& ast) {
     std::cout<<"Statement Declaration Node"<<std::endl; 
-   
-
     auto& task_ctx = this->curr_task_ctx;
 
     if(ast.value.has_value()){
@@ -390,7 +389,7 @@ BlsObject DagGen::visit(AstNode::Statement::Declaration& ast) {
         assign_score(top_type); 
 
         auto new_symbol = SymbolDescriptor(
-            counter++, 
+            counter, 
             ast.bytecodeStart, 
             ast.bytecodeEnd,
             SymbolGraph::EXPR_TYPE::DECLARATION
@@ -407,7 +406,7 @@ BlsObject DagGen::visit(AstNode::Statement::Declaration& ast) {
         throw std::runtime_error("Declaration Stack is not of size one: size: " + std::to_string(stk_sz)); 
     }
    
-    return true; 
+    return counter++; 
 }
 
 BlsObject DagGen::visit(AstNode::Statement::Expression &ast){
@@ -425,7 +424,7 @@ BlsObject DagGen::visit(AstNode::Expression::Binary &ast){
     SymbolGraph::EXPR_TYPE type = this->get_bin_expr_type(ast.op); 
 
     SymbolDescriptor sd(
-        counter++,
+        counter,
         ast.bytecodeStart, 
         ast.bytecodeEnd, 
         type
@@ -435,7 +434,7 @@ BlsObject DagGen::visit(AstNode::Expression::Binary &ast){
     this->curr_task_ctx.dag.add_symbol(sd); 
     this->curr_task_ctx.dag.complete_binary_statement(); 
     
-    return true; 
+    return counter++; 
 }
 
 BlsObject DagGen::visit(AstNode::Expression::Function& ast) {
@@ -443,9 +442,6 @@ BlsObject DagGen::visit(AstNode::Expression::Function& ast) {
    
     return true; 
 }
-
-
-
 
 
 BlsObject DagGen::visit(AstNode::Expression::Access& ast) {
@@ -456,7 +452,7 @@ BlsObject DagGen::visit(AstNode::Expression::Access& ast) {
     SymbolGraph::EXPR_TYPE type; 
    
     SymbolDescriptor sd{
-        this->counter++, 
+        this->counter, 
         ast.bytecodeStart, 
         ast.bytecodeEnd, 
         SymbolGraph::EXPR_TYPE::ACCESS
@@ -465,7 +461,7 @@ BlsObject DagGen::visit(AstNode::Expression::Access& ast) {
     sd.set_name(obj_name); 
     task.dag.add_symbol(sd); 
     
-    return true; 
+    return counter++; 
 }
 
 
@@ -476,7 +472,7 @@ BlsObject DagGen::visit(AstNode::Expression::Subscript &ast){
     ast.object->accept(*this); 
     ast.subscript->accept(*this); 
     SymbolDescriptor sd{
-       counter++,
+       counter,
        ast.bytecodeStart, 
        ast.bytecodeEnd, 
        SymbolGraph::EXPR_TYPE::SUBSCRIPT 
@@ -487,7 +483,7 @@ BlsObject DagGen::visit(AstNode::Expression::Subscript &ast){
     task.dag.add_symbol(sd); 
    
     task.dag.complete_subscript_statement(); 
-    return true; 
+    return counter++; 
 }
 
 BlsObject DagGen::visit(AstNode::Expression::Member &ast){
@@ -495,16 +491,17 @@ BlsObject DagGen::visit(AstNode::Expression::Member &ast){
     auto& task = this->curr_task_ctx; 
     ast.object->accept(*this); 
     SymbolDescriptor sd{
-        counter++,
+        counter,
         ast.bytecodeStart,
         ast.bytecodeEnd, 
         SymbolGraph::EXPR_TYPE::MEMBER
     }; 
     sd.set_name(ast.member);    
+    sd.set_root_symbol_name(ast.member); 
     task.dag.add_symbol(sd); 
   
     task.dag.complete_member_statement(); 
-    return true; 
+    return counter++; 
 
 }
 
@@ -513,7 +510,7 @@ BlsObject DagGen::visit(AstNode::Expression::Literal& ast) {
     std::cout<<"Expresion Literal Node"<<std::endl; 
     auto& task = this->curr_task_ctx; 
     SymbolDescriptor sd(
-        counter++, 
+        counter,  
         ast.bytecodeStart,
         ast.bytecodeEnd,
         SymbolGraph::EXPR_TYPE::LITERAL
@@ -540,14 +537,16 @@ BlsObject DagGen::visit(AstNode::Expression::Literal& ast) {
     sd.types.root_type = lit; 
     task.dag.add_symbol(sd);
     
-    return true; 
+    return counter++; 
 }
 
 BlsObject DagGen::visit(AstNode::Statement::If& ast) {
     std::cout<<"Statement If Node"<<std::endl; 
     auto& task_dag = this->curr_task_ctx.dag; 
+    task_dag.start_if_statement(); 
     ast.condition->accept(*this); 
     const std::string cond_name = "cond%" + std::to_string(this->counter); 
+
     SymbolDescriptor sd(
         counter++, 
         ast.bytecodeStart, 
@@ -557,11 +556,15 @@ BlsObject DagGen::visit(AstNode::Statement::If& ast) {
     
     sd.set_name(cond_name); 
     task_dag.add_symbol(sd); 
+
+    task_dag.push_symbol_frame(); 
     for(auto& visit : ast.block){
         visit->accept(*this); 
     }
+    task_dag.pop_symbol_frame(); 
 
     for(auto& else_if : ast.elseIfStatements){
+        
         const std::string cond_name = "cond%" + std::to_string(this->counter); 
         else_if->condition->accept(*this); 
         SymbolDescriptor sd(
@@ -573,11 +576,11 @@ BlsObject DagGen::visit(AstNode::Statement::If& ast) {
         sd.set_name(cond_name); 
         task_dag.add_symbol(sd); 
 
+        task_dag.push_symbol_frame(); 
         for(auto& stmt : else_if->block){
             stmt->accept(*this); 
         }
-
-        task_dag.complete_if_statement(); 
+        task_dag.pop_symbol_frame(); 
     }
     
     if(!ast.elseBlock.empty()){
@@ -592,22 +595,58 @@ BlsObject DagGen::visit(AstNode::Statement::If& ast) {
         sd.types.send_cost = 1;
         sd.types.root_type = "bool";
         task_dag.add_symbol(sd); 
+
+
+        task_dag.push_symbol_frame(); 
         for(auto& stmt : ast.elseBlock){
             stmt->accept(*this); 
         }
-
-        task_dag.complete_if_statement(); 
+        task_dag.pop_symbol_frame(); 
     }
 
-    task_dag.complete_if_statement();   
+    task_dag.complete_if_statement(counter);   
 
     return true; 
 }
 
 BlsObject DagGen::visit(AstNode::Statement::For& ast) {
     std::cout<<"Statement For Node"<<std::endl; 
+    auto& task_dag = this->curr_task_ctx.dag; 
+    std::array<bool, 3> set_value {false, false , false}; 
 
-  
+    if(ast.initStatement.has_value()){
+        set_value[0] = true; 
+        ast.initStatement->get()->accept(*this); 
+    }
+
+    if(ast.condition.has_value()){
+        set_value[1] = true; 
+        ast.condition->get()->accept(*this); 
+    }
+
+    if(ast.incrementExpression.has_value()){
+        set_value[2] = true; 
+        ast.incrementExpression->get()->accept(*this); 
+    }
+
+    SymbolDescriptor sd{
+        counter++, 
+        ast.bytecodeStart,
+        ast.bytecodeEnd, 
+        SymbolGraph::EXPR_TYPE::FOR 
+    };
+    
+    task_dag.push_symbol_frame(); 
+
+    task_dag.add_symbol(sd); 
+    task_dag.start_for_statement(set_value); 
+
+    for(auto& stmt : ast.block){
+        stmt->accept(*this); 
+    }
+
+    task_dag.complete_for_statement(counter); 
+
     return true; 
     
 }
@@ -621,6 +660,7 @@ BlsObject DagGen::visit(AstNode::Statement::While& ast) {
 
 BlsObject DagGen::visit(AstNode::Expression::Group& ast) {
     std::cout<<"Expression Group Node"<<std::endl; 
+
 
 
     return true; 
@@ -661,8 +701,7 @@ BlsObject DagGen::visit(AstNode::Statement::Continue& ast) {
 }
 
 BlsObject DagGen::visit(AstNode::Statement::Break& ast) {
-std::cout<<"Statement Break Node"<<std::endl; 
-
+    std::cout<<"Statement Break Node"<<std::endl; 
 
     return true; 
 }

@@ -39,7 +39,7 @@ namespace BlsLang{
             TaskContext curr_task_ctx; 
             std::unordered_map<task_name_t, TaskContext> task_to_ctx; 
             std::unordered_map<std::string, DeviceType> device_map; 
-            SymbolID_t counter = 0; 
+            SymbolID_t counter = 1; 
     
 
         private: 

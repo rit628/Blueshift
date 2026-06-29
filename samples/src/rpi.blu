@@ -1,32 +1,76 @@
 // look at if-else 
 
-task button(BUTTON button, RGB_LED rpi_light, RGB_LED l2, LIST_TEST li) :
+task button(BUTTON button, RGB_LED rpi_light, RGB_LED l2, LIST_TEST li, LIST_TEST lst2) :
 triggerOn(button)
 {
-    int omar2 = 15; 
-    int omar = 10; 
-    list<int> val;
-    // Imagine some heavy expression instead of a literal
-    int lamar = max(li.list_one); 
- 
-    if(rpi_light.red_light > 91){
-        int item = val[omar2]; 
-        omar = item; 
-        lamar = omar; 
-    }
-    else if(l2.blue_light > rpi_light.blue_light){
-        omar = 69; 
-        l2.blue_val = omar;
-    }
-    else{
-        lamar = omar; 
-        omar = 51; 
+
+    /*
+    int omar = li.list_one[rpi_light.blue_val];
+    int omar2 = rpi_light.red_val + omar + 12; 
+    int crack = 65; 
+
+    for(int i = 0; i < crack; i++){
+        list.list_one[i]; 
     }
 
-    l2.red_val = omar;
-    if(lamar > 40){
-        l2.blue_val = lamar; 
-    }    
+    if(omar  == 91){
+        if(crack < 14){
+            omar = 15; 
+        }
+        else{
+            omar = 5 + 2; 
+        }
+        omar2 = omar; 
+    }
+    else if(omar > 12){
+        omar = 17; 
+    }
+    else if(omar < 10){
+        omar2 = 41; 
+    }
+    else{
+        omar2 = omar; 
+    }
+
+    int jah = omar2; 
+    */ 
+
+    // Aggregation
+
+    /* 
+    int sum_1 = 0; 
+    int sum_2 = 0; 
+    int omar = 0;
+
+    
+    for(int i = 0; i < 10; i + 1){
+        sum_1 = sum_1 + li.list_one[i]; 
+        if(li.list_one[i] > 50){
+            sum_1 = sum_1 * 5; 
+        }
+
+        sum_2 = sum_2 + lst2.list_one[i]; 
+    }
+
+    if(sum_1 > sum_2){
+        rpi_light.red_val = sum_1; 
+    }
+    */ >
+
+    // One: 
+    //rpi_light.green_val = 100; 
+
+    
+    // Two: Simple passes
+    int sum_1 = li.list_one[2];
+
+    int VAL_1 = 32;  
+    int sum_2 = lst2.list_one[rpi_light.red_val + rpi_light.green_val + 31]; 
+    int sub_val = lst2.list_two[sum_1][sum_2]; 
+
+    rpi_light.green_val = sub_val; 
+    rpi_light.blue_val = sum_1; 
+     
 }
 
 
@@ -37,6 +81,7 @@ setup() {
 
 
     LIST_TEST li  = "rpi::omar-12";    
+    LIST_TEST ls2  = "rpi::omar-13";    
     BUTTON rpi_button = "rpi::PIN-21";
-    button(rpi_button, rpi_light_1, rpi_light_2, li);
+    button(rpi_button, rpi_light_1, rpi_light_2, li, ls2);
 }
